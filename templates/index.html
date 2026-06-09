@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>COMPUTE — FUNFLIX://OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/os.css">
+  <style>
+    .stage {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      gap: 22px; padding: 40px 24px;
+      flex-wrap: wrap;
+    }
+
+    .mod-header { width: 100%; max-width: 720px; margin: 0 auto; }
+
+    .instrument {
+      width: 430px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 26px;
+    }
+
+    .inst-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 18px;
+    }
+    .inst-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.3em; color: var(--ink-faint); }
+    .inst-mode  { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; color: var(--red-dim); }
+
+    /* display */
+    .readout {
+      background: rgba(0,0,0,0.45);
+      border: 1px solid var(--line);
+      padding: 18px 20px 20px;
+      margin-bottom: 20px;
+      min-height: 96px;
+      display: flex; flex-direction: column;
+      justify-content: flex-end; align-items: flex-end;
+      word-break: break-all;
+      position: relative;
+      overflow: hidden;
+    }
+    .readout::before { /* scanline texture */
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(transparent 0 2px, rgba(255,255,255,0.012) 2px 4px);
+    }
+    .readout-expr {
+      font-family: var(--mono); font-size: 12px;
+      color: var(--ink-faint); min-height: 18px; margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+    .readout-val {
+      font-family: var(--mono); font-weight: 300;
+      font-size: 38px; line-height: 1;
+      color: var(--ink);
+      letter-spacing: 0.01em;
+      text-shadow: 0 0 24px rgba(232,236,248,0.15);
+      transition: font-size 0.15s;
+    }
+    .readout-val.long { font-size: 24px; }
+    .readout-val.error { color: var(--red); font-size: 15px; font-weight: 400; text-shadow: 0 0 20px var(--red-glow); }
+
+    /* keys */
+    .keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+    .key {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.015);
+      color: var(--ink);
+      font-family: var(--mono); font-size: 14px; font-weight: 400;
+      padding: 13px 4px;
+      border-radius: 2px;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.08s;
+      position: relative;
+    }
+    .key:hover { border-color: var(--line-bright); background: rgba(255,255,255,0.05); }
+    .key:active { transform: scale(0.94); }
+
+    .k-fn  { color: var(--ink-dim); font-size: 11.5px; }
+    .k-fn:hover { color: var(--ink); }
+    .k-op  { color: #ff6b76; }
+    .k-op:hover { border-color: var(--red-dim); background: rgba(255,30,45,0.06); }
+    .k-const { color: #5eead4; }
+    .k-ac  { color: var(--red); border-color: rgba(255,30,45,0.3); font-weight: 700; letter-spacing: 0.15em; font-size: 11px; }
+    .k-ac:hover { background: rgba(255,30,45,0.1); border-color: var(--red); }
+    .k-eq {
+      grid-column: span 2;
+      background: var(--red); border-color: var(--red);
+      color: #fff; font-weight: 700; font-size: 17px;
+    }
+    .k-eq:hover { box-shadow: 0 0 26px var(--red-glow), 0 0 70px var(--red-glow); background: var(--red); }
+    .k-span2 { grid-column: span 2; }
+    .keys-sep { grid-column: span 5; height: 3px; }
+
+    /* history rail */
+    .history {
+      width: 230px;
+      align-self: stretch;
+      display: flex; flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 22px 20px;
+      max-height: 560px;
+    }
+    @media (max-width: 760px) { .history { width: 430px; max-height: 220px; } }
+    .history-title {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.3em; color: var(--ink-faint);
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 8px;
+    }
+    .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .history-empty {
+      font-family: var(--mono); font-size: 10px;
+      color: var(--ink-faint); letter-spacing: 0.1em;
+      line-height: 1.9; padding-top: 10px;
+    }
+    .h-item {
+      text-align: right;
+      padding: 11px 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      background: none; border-left: none; border-right: none; border-top: none;
+      width: 100%;
+      transition: background 0.15s;
+    }
+    .h-item:hover { background: rgba(255,255,255,0.03); }
+    .h-expr { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); display: block; margin-bottom: 3px; word-break: break-all; }
+    .h-val  { font-family: var(--mono); font-size: 14px; color: var(--ink-dim); word-break: break-all; }
+    .h-item:hover .h-val { color: var(--ink); }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="stage">
+    <div class="instrument corners fade-up">
+      <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+      <div class="inst-head">
+        <span class="inst-title">COMPUTE / SCIENTIFIC ENGINE</span>
+        <span class="inst-mode">RAD</span>
+      </div>
+
+      <div class="readout">
+        <div class="readout-expr" id="expression">&nbsp;</div>
+        <div class="readout-val" id="result">0</div>
+      </div>
+
+      <div class="keys">
+        <button class="key k-fn" onclick="append('sin(')">sin</button>
+        <button class="key k-fn" onclick="append('cos(')">cos</button>
+        <button class="key k-fn" onclick="append('tan(')">tan</button>
+        <button class="key k-fn" onclick="append('log(')">log</button>
+        <button class="key k-fn" onclick="append('log2(')">log&#8322;</button>
+
+        <button class="key k-fn" onclick="append('sqrt(')">&radic;</button>
+        <button class="key k-fn" onclick="append('pow(')">x&#690;</button>
+        <button class="key k-fn" onclick="append('exp(')">e&#739;</button>
+        <button class="key k-fn" onclick="append('factorial(')">n!</button>
+        <button class="key k-fn" onclick="append('abs(')">|x|</button>
+
+        <button class="key k-fn" onclick="append('degrees(')">deg</button>
+        <button class="key k-fn" onclick="append('radians(')">rad</button>
+        <button class="key k-const" onclick="append('pi')">&pi;</button>
+        <button class="key k-const" onclick="append('e')">e</button>
+        <button class="key k-fn" onclick="append('(')">(&hairsp;)</button>
+
+        <div class="keys-sep"></div>
+
+        <button class="key k-ac" onclick="clearAll()">AC</button>
+        <button class="key k-fn" onclick="backspace()">&#9003;</button>
+        <button class="key k-op" onclick="append('%')">%</button>
+        <button class="key k-op" onclick="append('/')">&divide;</button>
+        <button class="key k-op" onclick="append('**')">^</button>
+
+        <button class="key" onclick="append('7')">7</button>
+        <button class="key" onclick="append('8')">8</button>
+        <button class="key" onclick="append('9')">9</button>
+        <button class="key k-op" onclick="append('*')">&times;</button>
+        <button class="key k-op" onclick="append('//')">&divide;&divide;</button>
+
+        <button class="key" onclick="append('4')">4</button>
+        <button class="key" onclick="append('5')">5</button>
+        <button class="key" onclick="append('6')">6</button>
+        <button class="key k-op" onclick="append('-')">&minus;</button>
+        <button class="key k-fn" onclick="append(')')">)</button>
+
+        <button class="key" onclick="append('1')">1</button>
+        <button class="key" onclick="append('2')">2</button>
+        <button class="key" onclick="append('3')">3</button>
+        <button class="key k-op" onclick="append('+')">+</button>
+        <button class="key k-fn" onclick="append('.')">.</button>
+
+        <button class="key k-span2" onclick="append('0')">0</button>
+        <button class="key k-fn" onclick="negate()">+/&minus;</button>
+        <button class="key k-eq" onclick="calculate()">=</button>
+      </div>
+    </div>
+
+    <div class="history corners fade-up" style="animation-delay:0.15s">
+      <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+      <div class="history-title">LOG / RECALL</div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">NO ENTRIES.<br/>RESULTS ACCUMULATE HERE.<br/>CLICK ANY ENTRY TO RECALL.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/os.js"></script>
+<script>
+  let expr = '';
+  const history = [];
+
+  const exprEl = document.getElementById('expression');
+  const resEl  = document.getElementById('result');
+
+  function updateDisplay() {
+    exprEl.innerHTML = expr || '&nbsp;';
+  }
+
+  function fitResult() {
+    resEl.classList.toggle('long', resEl.textContent.length > 13);
+  }
+
+  function append(val) {
+    if (val === '(' && expr && /[\d)]$/.test(expr)) expr += '*' + val;
+    else expr += val;
+    updateDisplay();
+  }
+
+  function clearAll() {
+    expr = '';
+    resEl.textContent = '0';
+    resEl.className = 'readout-val';
+    updateDisplay();
+  }
+
+  function backspace() { expr = expr.slice(0, -1); updateDisplay(); }
+
+  function negate() {
+    if (!expr) return;
+    expr = expr.startsWith('-') ? expr.slice(1) : '-' + expr;
+    updateDisplay();
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    list.innerHTML = history.map((h, i) =>
+      `<button class="h-item" data-i="${i}"><span class="h-expr">${escapeHtml(h.expr)} =</span><span class="h-val">${escapeHtml(h.res)}</span></button>`
+    ).join('');
+  }
+  document.getElementById('historyList').addEventListener('click', e => {
+    const it = e.target.closest('.h-item');
+    if (!it) return;
+    expr = history[+it.dataset.i].res;
+    resEl.textContent = expr;
+    resEl.className = 'readout-val';
+    fitResult();
+    updateDisplay();
+  });
+  function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  async function calculate() {
+    if (!expr) return;
+    const sent = expr;
+    try {
+      const res  = await fetch('/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expression: sent }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        resEl.textContent = data.error.toUpperCase();
+        resEl.className = 'readout-val error';
+      } else {
+        exprEl.textContent = sent + ' =';
+        resEl.textContent = data.result;
+        resEl.className = 'readout-val';
+        fitResult();
+        expr = data.result;
+        history.unshift({ expr: sent, res: data.result });
+        if (history.length > 12) history.pop();
+        renderHistory();
+      }
+    } catch {
+      resEl.textContent = 'LINK ERROR';
+      resEl.className = 'readout-val error';
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (window.OS && OS.paletteOpen) return;
+    if (e.metaKey || e.ctrlKey) return;
+    if (e.target.closest('input, select, textarea')) return;
+    if (e.key >= '0' && e.key <= '9') append(e.key);
+    else if (['+','-','*','/','%','.','(',')'].includes(e.key)) append(e.key);
+    else if (e.key === 'Enter' || e.key === '=') calculate();
+    else if (e.key === 'Backspace') backspace();
+    else if (e.key === 'Escape') clearAll();
+    else if (e.key === '^') append('**');
+  });
+</script>
+</body>
+</html>

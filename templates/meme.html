@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SYNTH — FUNFLIX://OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/os.css">
+  <style>
+    .stage {
+      flex: 1; width: 100%;
+      max-width: 1080px; margin: 0 auto;
+      padding: 38px 28px;
+      display: flex; flex-direction: column; gap: 24px;
+    }
+
+    .mod-head { display: flex; align-items: baseline; gap: 16px; }
+    .mod-title {
+      font-family: var(--disp); font-size: 28px; font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .mod-sub {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.25em; color: var(--ink-faint);
+    }
+
+    .grid {
+      display: grid; grid-template-columns: 330px 1fr; gap: 20px;
+      flex: 1; align-items: start;
+    }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 24px;
+    }
+
+    .ctl { display: flex; flex-direction: column; gap: 20px; }
+
+    .tpl-row { display: flex; gap: 8px; }
+    .tpl-row .os-select-wrap { flex: 1; }
+
+    .dice-btn {
+      width: 42px; height: 42px; flex-shrink: 0;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid var(--line); border-radius: 3px;
+      color: var(--ink-dim);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+    }
+    .dice-btn:hover { border-color: var(--red-dim); color: var(--red); transform: rotate(90deg); }
+    .dice-btn svg { width: 17px; height: 17px; }
+
+    /* output */
+    .output {
+      align-self: stretch;
+      display: flex; flex-direction: column;
+      min-height: 480px;
+    }
+    .out-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .out-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.3em; color: var(--ink-faint); }
+    .out-state { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; color: var(--ink-faint); }
+    .out-state.live { color: #2dd4a0; }
+    .out-state.busy { color: var(--red); }
+
+    .viewport {
+      flex: 1;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      min-height: 420px;
+    }
+    /* scan sweep while rendering */
+    .viewport.scanning::after {
+      content: '';
+      position: absolute; left: 0; right: 0; height: 90px;
+      background: linear-gradient(180deg, transparent, rgba(255,30,45,0.12), rgba(255,30,45,0.35), rgba(255,30,45,0.12), transparent);
+      animation: sweep 1.3s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes sweep { from { top: -90px; } to { top: 100%; } }
+
+    .viewport img {
+      max-width: 100%; max-height: 520px;
+      display: none;
+      animation: imgIn 0.35s ease;
+    }
+    .viewport img.loaded { display: block; }
+    @keyframes imgIn { from { opacity: 0; filter: brightness(2) saturate(0); } to { opacity: 1; filter: none; } }
+
+    .empty {
+      text-align: center;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--ink-faint); letter-spacing: 0.18em; line-height: 2.2;
+    }
+    .empty svg { width: 40px; height: 40px; color: var(--ink-faint); opacity: 0.5; margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="stage">
+    <div class="mod-head fade-up">
+      <h1 class="mod-title decode" data-text="SYNTH">SYNTH</h1>
+      <span class="mod-sub">// VISUAL SYNTHESIS UNIT</span>
+    </div>
+
+    <div class="grid">
+      <div class="panel corners ctl fade-up" style="animation-delay:0.1s">
+        <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+        <div>
+          <label class="os-label">SOURCE TEMPLATE</label>
+          <div class="tpl-row">
+            <div class="os-select-wrap">
+              <select class="os-select" id="templateSelect"><option value="">LOADING INDEX&hellip;</option></select>
+            </div>
+            <button class="dice-btn" onclick="shuffle()" title="randomize">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                <path d="M3 7h4c2 0 3 1 4.2 2.8L13 13c1.2 1.8 2.2 3 4.2 3H21"/>
+                <path d="M3 16h4c1.2 0 2.1-.4 2.9-1.2M21 7h-3.8c-1.2 0-2.1.4-2.9 1.2"/>
+                <path d="M18.5 4.5L21 7l-2.5 2.5M18.5 13.5L21 16l-2.5 2.5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="os-label">TEXT / UPPER</label>
+          <input class="os-input" type="text" id="topText" placeholder="top line&hellip;"/>
+        </div>
+        <div>
+          <label class="os-label">TEXT / LOWER</label>
+          <input class="os-input" type="text" id="bottomText" placeholder="bottom line&hellip;"/>
+        </div>
+        <button class="os-btn-primary" onclick="generate()">RENDER</button>
+        <a class="os-btn-ghost" id="dlBtn" download="funflix-synth.png" target="_blank" style="display:none">EXPORT PNG</a>
+      </div>
+
+      <div class="panel corners output fade-up" style="animation-delay:0.2s">
+        <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+        <div class="out-head">
+          <span class="out-title">OUTPUT / VIEWPORT</span>
+          <span class="out-state" id="outState">IDLE</span>
+        </div>
+        <div class="viewport" id="viewport">
+          <div class="empty" id="emptyState">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <rect x="3" y="3.5" width="18" height="17" rx="1.5"/>
+              <circle cx="8.6" cy="9.2" r="1.6"/>
+              <path d="M3 17l5.2-5 4.3 4 3.2-2.8L21 17.5"/>
+            </svg>
+            <div>AWAITING PARAMETERS<br/>SELECT TEMPLATE &middot; ADD TEXT &middot; RENDER</div>
+          </div>
+          <img id="memeImg" alt="synthesized output"/>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/os.js"></script>
+<script>
+  let templates = [];
+  const stateEl = document.getElementById('outState');
+
+  function setState(label, cls) {
+    stateEl.textContent = label;
+    stateEl.className = 'out-state' + (cls ? ' ' + cls : '');
+  }
+
+  async function loadTemplates() {
+    try {
+      const res = await fetch('/api/meme-templates');
+      templates = await res.json();
+      const sel = document.getElementById('templateSelect');
+      sel.innerHTML = templates.map((t, i) => `<option value="${i}">${t.name.toUpperCase()}</option>`).join('');
+      sel.value = Math.floor(Math.random() * templates.length);
+      setState(`${templates.length} TEMPLATES INDEXED`, 'live');
+    } catch {
+      setState('INDEX OFFLINE', 'busy');
+    }
+  }
+
+  function shuffle() {
+    if (!templates.length) return;
+    const sel = document.getElementById('templateSelect');
+    let next = sel.value;
+    while (next === sel.value && templates.length > 1)
+      next = String(Math.floor(Math.random() * templates.length));
+    sel.value = next;
+  }
+
+  function encode(text) {
+    return encodeURIComponent(text.trim() || '_').replace(/%20/g, '_').replace(/\?/g, '~q');
+  }
+
+  function generate() {
+    const idx = document.getElementById('templateSelect').value;
+    if (idx === '' || !templates[idx]) return;
+
+    const top    = document.getElementById('topText').value;
+    const bottom = document.getElementById('bottomText').value;
+    const url    = `https://api.memegen.link/images/${templates[idx].id}/${encode(top)}/${encode(bottom)}.png`;
+
+    const img   = document.getElementById('memeImg');
+    const vp    = document.getElementById('viewport');
+    const empty = document.getElementById('emptyState');
+    const dlBtn = document.getElementById('dlBtn');
+
+    img.classList.remove('loaded');
+    empty.style.display = 'none';
+    vp.classList.add('scanning');
+    dlBtn.style.display = 'none';
+    setState('RENDERING', 'busy');
+
+    img.onload = () => {
+      vp.classList.remove('scanning');
+      img.classList.add('loaded');
+      dlBtn.href = url;
+      dlBtn.style.display = 'block';
+      setState('RENDER COMPLETE', 'live');
+    };
+    img.onerror = () => {
+      vp.classList.remove('scanning');
+      empty.style.display = 'block';
+      empty.lastElementChild.innerHTML = 'RENDER FAILED<br/>RETRY OPERATION';
+      setState('FAULT', 'busy');
+    };
+    img.src = url;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (window.OS && OS.paletteOpen) return;
+    if (e.key === 'Enter' && !e.target.closest('select')) generate();
+  });
+
+  loadTemplates();
+</script>
+</body>
+</html>

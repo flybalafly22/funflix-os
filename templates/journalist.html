@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PRESS — FUNFLIX://OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/os.css">
+  <style>
+    .stage {
+      flex: 1; width: 100%;
+      max-width: 780px; margin: 0 auto;
+      padding: 38px 28px 56px;
+      display: flex; flex-direction: column; gap: 24px;
+    }
+
+    .mod-head { display: flex; align-items: baseline; gap: 16px; }
+    .mod-title { font-family: var(--disp); font-size: 28px; font-weight: 800; letter-spacing: 0.02em; }
+    .mod-sub { font-family: var(--mono); font-size: 10px; letter-spacing: 0.25em; color: var(--ink-faint); }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 24px;
+    }
+
+    .query-row { display: flex; gap: 10px; }
+    .query-row .os-input { flex: 1; }
+    .query-row .os-btn-primary { width: auto; padding: 0 26px; flex-shrink: 0; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .chip {
+      background: transparent;
+      border: 1px solid var(--line); border-radius: 2px;
+      color: var(--ink-dim);
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.14em;
+      padding: 7px 13px;
+      transition: all 0.16s;
+    }
+    .chip:hover { border-color: var(--red-dim); color: var(--red); background: rgba(255,30,45,0.04); }
+
+    /* uplink sequence */
+    .uplink {
+      display: none;
+      font-family: var(--mono); font-size: 12px;
+      line-height: 2.1; color: var(--ink-dim);
+    }
+    .uplink.show { display: block; }
+    .ul-ok { color: #2dd4a0; }
+    .ul-red { color: var(--red); }
+    .ul-dim { color: var(--ink-faint); }
+
+    /* article */
+    .wire { display: none; }
+    .wire.show { display: block; }
+
+    .wire-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 22px;
+    }
+    .wire-meta {
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.18em; color: var(--ink-faint);
+    }
+    .wire-live {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--red);
+    }
+    .wire-live::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--red); box-shadow: 0 0 8px var(--red-dim);
+      animation: pdot 1.4s ease-in-out infinite;
+    }
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--line); border-radius: 2px;
+      color: var(--ink-dim);
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.2em;
+      padding: 7px 14px;
+      transition: all 0.16s;
+      display: none;
+    }
+    .copy-btn.show { display: block; }
+    .copy-btn:hover { border-color: var(--line-bright); color: var(--ink); }
+
+    .wire-headline {
+      display: none;
+      font-family: var(--disp);
+      font-size: clamp(22px, 3.4vw, 32px);
+      font-weight: 700; line-height: 1.25;
+      color: var(--ink);
+      margin-bottom: 18px;
+      letter-spacing: 0.005em;
+    }
+    .wire-headline.show { display: block; }
+
+    .wire-body {
+      font-family: 'Lora', serif;
+      font-size: 16.5px; line-height: 1.95;
+      color: #c9cfdf;
+      white-space: pre-wrap;
+      min-height: 40px;
+    }
+
+    .stream-caret {
+      display: inline-block; width: 7px; height: 1.05em;
+      background: var(--red);
+      vertical-align: text-bottom; margin-left: 2px;
+      animation: pdot 0.7s steps(1) infinite;
+    }
+
+    .fault {
+      display: none;
+      margin-top: 18px;
+      border: 1px solid rgba(255,30,45,0.35);
+      background: rgba(255,30,45,0.05);
+      padding: 14px 18px;
+      font-family: var(--mono); font-size: 11.5px;
+      letter-spacing: 0.06em; color: #ff8b93;
+      line-height: 1.8;
+    }
+    .fault.show { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="stage">
+    <div class="mod-head fade-up">
+      <h1 class="mod-title decode" data-text="PRESS">PRESS</h1>
+      <span class="mod-sub">// AUTONOMOUS NEWSROOM</span>
+    </div>
+
+    <div class="panel corners fade-up" style="animation-delay:0.1s">
+      <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+      <label class="os-label">STORY DIRECTIVE</label>
+      <div class="query-row">
+        <input class="os-input" type="text" id="topicInput" placeholder="subject of investigation&hellip;" autocomplete="off"/>
+        <button class="os-btn-primary" id="goBtn" onclick="fetchStory()">DISPATCH</button>
+      </div>
+      <div class="chips">
+        <button class="chip" onclick="quickTopic('Artificial Intelligence')">ARTIFICIAL INTELLIGENCE</button>
+        <button class="chip" onclick="quickTopic('Quantum Computing')">QUANTUM COMPUTING</button>
+        <button class="chip" onclick="quickTopic('Space Exploration')">SPACE EXPLORATION</button>
+        <button class="chip" onclick="quickTopic('Climate Change')">CLIMATE CHANGE</button>
+        <button class="chip" onclick="quickTopic('Global Economy')">GLOBAL ECONOMY</button>
+        <button class="chip" onclick="quickTopic('Biotech')">BIOTECH</button>
+      </div>
+    </div>
+
+    <div class="panel corners fade-up" id="outPanel" style="animation-delay:0.2s; display:none">
+      <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+
+      <div class="uplink" id="uplink"></div>
+
+      <div class="wire" id="wire">
+        <div class="wire-head">
+          <div class="wire-meta">
+            <span class="wire-live">WIRE</span>
+            <span id="wireStamp">&mdash;</span>
+          </div>
+          <button class="copy-btn" id="copyBtn" onclick="copyArticle()">COPY</button>
+        </div>
+        <h2 class="wire-headline" id="wireHeadline"></h2>
+        <div class="wire-body" id="wireBody"></div>
+      </div>
+
+      <div class="fault" id="faultBox"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/os.js"></script>
+<script>
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let articleText = '';
+
+  function quickTopic(t) {
+    document.getElementById('topicInput').value = t;
+    fetchStory();
+  }
+
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+  async function playUplink(topic) {
+    const ul = document.getElementById('uplink');
+    ul.innerHTML = '';
+    ul.classList.add('show');
+    const lines = [
+      `<span class="ul-dim">&gt;</span> establishing uplink <span class="ul-ok">SECURE</span>`,
+      `<span class="ul-dim">&gt;</span> directive: <span class="ul-red">"${esc(topic).toUpperCase()}"</span>`,
+      `<span class="ul-dim">&gt;</span> sweeping live sources&hellip;`,
+    ];
+    for (const l of lines) {
+      const d = document.createElement('div');
+      d.innerHTML = l;
+      ul.appendChild(d);
+      await sleep(280);
+    }
+  }
+
+  async function fetchStory() {
+    const topic = document.getElementById('topicInput').value.trim();
+    if (!topic) return;
+
+    const panel    = document.getElementById('outPanel');
+    const uplink   = document.getElementById('uplink');
+    const wire     = document.getElementById('wire');
+    const headline = document.getElementById('wireHeadline');
+    const bodyEl   = document.getElementById('wireBody');
+    const fault    = document.getElementById('faultBox');
+    const btn      = document.getElementById('goBtn');
+    const copyBtn  = document.getElementById('copyBtn');
+
+    panel.style.display = 'block';
+    wire.classList.remove('show');
+    fault.classList.remove('show');
+    headline.classList.remove('show');
+    headline.textContent = '';
+    bodyEl.textContent = '';
+    copyBtn.classList.remove('show');
+    articleText = '';
+    btn.disabled = true;
+
+    const uplinkDone = playUplink(topic);
+
+    try {
+      const res = await fetch('/api/journalist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'server fault');
+      }
+      await uplinkDone;
+
+      uplink.classList.remove('show');
+      wire.classList.add('show');
+      document.getElementById('wireStamp').textContent =
+        new Date().toISOString().slice(0, 16).replace('T', ' / ') + ' UTC';
+
+      const caret = document.createElement('span');
+      caret.className = 'stream-caret';
+      bodyEl.appendChild(caret);
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '', headlineDone = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        articleText += chunk;
+
+        if (!headlineDone) {
+          // first stream line is the headline — render it big, route the rest to body
+          buf += chunk;
+          const nl = buf.indexOf('\n');
+          headline.classList.add('show');
+          if (nl === -1) {
+            headline.textContent = cleanLine(buf);
+          } else {
+            headline.textContent = cleanLine(buf.slice(0, nl));
+            headlineDone = true;
+            caret.insertAdjacentText('beforebegin', buf.slice(nl + 1).replace(/^\n+/, ''));
+          }
+        } else {
+          caret.insertAdjacentText('beforebegin', chunk);
+        }
+      }
+      caret.remove();
+
+      if (articleText.startsWith('ERROR:')) {
+        wire.classList.remove('show');
+        fault.textContent = articleText;
+        fault.classList.add('show');
+        return;
+      }
+      copyBtn.classList.add('show');
+    } catch (err) {
+      uplink.classList.remove('show');
+      wire.classList.remove('show');
+      fault.textContent = 'TRANSMISSION FAULT — ' + err.message;
+      fault.classList.add('show');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function cleanLine(s) {
+    return s.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim();
+  }
+
+  function copyArticle() {
+    navigator.clipboard.writeText(articleText).then(() => {
+      const b = document.getElementById('copyBtn');
+      b.textContent = 'COPIED';
+      setTimeout(() => b.textContent = 'COPY', 1800);
+    });
+  }
+
+  document.getElementById('topicInput').addEventListener('keydown', e => {
+    if (window.OS && OS.paletteOpen) return;
+    if (e.key === 'Enter') fetchStory();
+  });
+</script>
+</body>
+</html>
