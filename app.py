@@ -23,6 +23,10 @@ def index():
 def calculator():
     return render_template("index.html")
 
+@app.route("/game")
+def game():
+    return render_template("game.html")
+
 @app.route("/meme")
 def meme():
     return render_template("meme.html")

@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FLYUSERFLY — FUNFLIX://OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/os.css">
+  <style>
+    html, body { height: 100vh; overflow: hidden; }
+
+    #gameWrap {
+      position: relative;
+      flex: 1; min-height: 0;
+      overflow: hidden;
+      user-select: none; -webkit-user-select: none;
+    }
+    #gameCanvas { position: absolute; inset: 0; display: block; }
+
+    /* ── HUD panels ── */
+    .g-panel {
+      position: absolute;
+      background: rgba(4,5,11,0.82);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      font-family: var(--mono);
+      pointer-events: none;
+    }
+
+    #hudCase {
+      top: 18px; left: 18px;
+      width: 300px; padding: 14px 16px 13px;
+    }
+    #hudCaseTitle {
+      font-size: 10px; letter-spacing: 0.24em; color: var(--red);
+      margin-bottom: 8px;
+    }
+    #hudObjective {
+      font-size: 11.5px; letter-spacing: 0.06em; color: var(--ink);
+      line-height: 1.7; margin-bottom: 8px;
+    }
+    #hudProgress { font-size: 10px; letter-spacing: 0.18em; color: var(--ink-dim); }
+    #hudDist { font-size: 10px; letter-spacing: 0.18em; color: var(--ink-faint); margin-top: 4px; }
+
+    #hudKeys {
+      bottom: 14px; left: 18px;
+      padding: 8px 14px;
+      font-size: 9px; letter-spacing: 0.16em; color: var(--ink-faint);
+    }
+
+    #hudHint {
+      bottom: 64px; left: 50%; transform: translateX(-50%);
+      padding: 10px 22px;
+      border-color: var(--red-dim);
+      font-size: 11px; letter-spacing: 0.2em; color: var(--ink);
+      display: none;
+    }
+    #hudHint .k { color: var(--red); }
+
+    #hudWarn {
+      top: 18px; left: 50%; transform: translateX(-50%);
+      padding: 10px 20px;
+      border-color: var(--red);
+      background: rgba(255,30,45,0.12);
+      font-size: 11px; letter-spacing: 0.2em; color: #ff8b93;
+      display: none;
+      animation: warnBlink 0.8s steps(1) infinite;
+    }
+    @keyframes warnBlink { 50% { border-color: var(--red-dim); } }
+
+    #toastBox {
+      position: absolute; right: 18px; top: 18px;
+      width: 300px;
+      display: flex; flex-direction: column; gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: rgba(4,5,11,0.88);
+      border: 1px solid var(--line-bright);
+      border-left: 2px solid var(--red);
+      padding: 11px 14px;
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.08em; color: var(--ink);
+      line-height: 1.7;
+      opacity: 1; transition: opacity 0.6s;
+    }
+    .toast .tt { color: var(--red); letter-spacing: 0.18em; }
+    .toast.bye { opacity: 0; }
+
+    /* ── dialogue ── */
+    #dlg {
+      position: absolute;
+      bottom: 24px; left: 50%; transform: translateX(-50%);
+      width: min(640px, calc(100% - 40px));
+      background: rgba(4,5,11,0.94);
+      border: 1px solid var(--line-bright);
+      padding: 18px 22px;
+      font-family: var(--mono);
+      display: none;
+    }
+    #dlgSpeaker { font-size: 10px; letter-spacing: 0.26em; color: var(--red); margin-bottom: 10px; }
+    #dlgText { font-size: 13px; line-height: 1.9; color: var(--ink); letter-spacing: 0.02em; margin-bottom: 14px; }
+    .dlg-opt {
+      padding: 8px 10px;
+      font-size: 11px; letter-spacing: 0.12em; color: var(--ink-dim);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .dlg-opt:hover { color: var(--ink); border-color: var(--line); background: rgba(255,255,255,0.03); }
+    .dlg-opt .n { color: var(--red); margin-right: 10px; }
+
+    /* ── case file ── */
+    #caseFile {
+      position: absolute; top: 0; right: 0; bottom: 0;
+      width: min(380px, 90%);
+      background: rgba(4,5,11,0.96);
+      border-left: 1px solid var(--line-bright);
+      padding: 24px;
+      font-family: var(--mono);
+      display: none;
+      overflow-y: auto;
+    }
+    #caseFile h3 { font-size: 11px; letter-spacing: 0.3em; color: var(--red); font-weight: 400; margin-bottom: 18px; }
+    .cf-item { border-bottom: 1px solid var(--line); padding: 12px 2px; }
+    .cf-t { font-size: 11px; letter-spacing: 0.14em; color: var(--ink); margin-bottom: 5px; }
+    .cf-d { font-size: 10px; letter-spacing: 0.06em; color: var(--ink-dim); line-height: 1.8; }
+    .cf-empty { font-size: 10px; color: var(--ink-faint); letter-spacing: 0.12em; line-height: 2; }
+
+    /* ── big overlay (intro / debrief / win / pause) ── */
+    #bigOv {
+      position: absolute; inset: 0; z-index: 150;
+      background: rgba(3,3,8,0.9);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .ov-box {
+      width: min(620px, 100%);
+      border: 1px solid var(--line-bright);
+      background: rgba(5,6,13,0.97);
+      padding: 40px 44px;
+      position: relative;
+    }
+    .ov-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: 0.4em; color: var(--red); margin-bottom: 14px; }
+    .ov-title { font-family: var(--disp); font-size: clamp(28px, 5vw, 44px); font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: 0.02em; }
+    .ov-sub { font-family: var(--mono); font-size: 10px; letter-spacing: 0.3em; color: var(--ink-faint); margin-bottom: 24px; }
+    .ov-body { font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; color: var(--ink-dim); line-height: 2.1; margin-bottom: 28px; }
+    .ov-body .hl { color: var(--ink); }
+    .ov-body .rd { color: var(--red); }
+    .ov-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+    .ov-btn {
+      background: var(--red); border: none; color: #fff;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.24em; padding: 14px 30px;
+      cursor: pointer; transition: all 0.18s;
+    }
+    .ov-btn:hover { box-shadow: 0 0 32px var(--red-glow), 0 0 80px var(--red-glow); }
+    .ov-btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink-dim); }
+    .ov-btn.ghost:hover { border-color: var(--line-bright); color: var(--ink); box-shadow: none; }
+  </style>
+</head>
+<body data-nofx>
+
+<div class="page-wrap">
+  <div id="gameWrap">
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="g-panel" id="hudCase" style="display:none">
+      <div id="hudCaseTitle"></div>
+      <div id="hudObjective"></div>
+      <div id="hudProgress"></div>
+      <div id="hudDist"></div>
+    </div>
+
+    <div class="g-panel" id="hudKeys" style="display:none">WASD MOVE &middot; SHIFT RUN &middot; DRAG ORBIT &middot; E INTERACT &middot; TAB CASE FILE &middot; ESC PAUSE</div>
+
+    <div class="g-panel" id="hudHint"><span class="k">[E]</span> <span id="hudHintText">EXAMINE</span></div>
+    <div class="g-panel" id="hudWarn"></div>
+    <div id="toastBox"></div>
+
+    <div id="dlg">
+      <div id="dlgSpeaker"></div>
+      <div id="dlgText"></div>
+      <div id="dlgOpts"></div>
+    </div>
+
+    <div id="caseFile">
+      <h3>CASE FILE // EVIDENCE</h3>
+      <div id="cfList"></div>
+    </div>
+
+    <div id="bigOv"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/static/os.js"></script>
+<script>
+(() => {
+  'use strict';
+  const wrap   = document.getElementById('gameWrap');
+  const canvas = document.getElementById('gameCanvas');
+
+  /* ── renderer / scene ── */
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  } catch (e) {
+    wrap.innerHTML = '<div class="g-panel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:24px 30px;font-size:12px;letter-spacing:0.1em;color:var(--ink-dim)">WEBGL UNAVAILABLE — THIS TERMINAL CANNOT RUN FLYUSERFLY.</div>';
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05060d);
+  scene.fog = new THREE.FogExp2(0x05060d, 0.011);
+
+  const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 400);
+
+  function resize() {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(resize);
+
+  /* ── lights ── */
+  scene.add(new THREE.HemisphereLight(0x2a3558, 0x0a0a12, 0.95));
+  const dir = new THREE.DirectionalLight(0x7d8fb8, 0.25);
+  dir.position.set(40, 80, 20);
+  scene.add(dir);
+
+  /* ── helpers ── */
+  const dist2D = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  function lerpAngle(a, b, t) {
+    let d = (b - a) % (Math.PI * 2);
+    if (d > Math.PI) d -= Math.PI * 2;
+    if (d < -Math.PI) d += Math.PI * 2;
+    return a + d * t;
+  }
+
+  function makeWindowTex() {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = '#0e1019'; g.fillRect(0, 0, 128, 256);
+    const pal = ['#ffd9a0', '#9fc4ff', '#ff8d96', '#fff4d6'];
+    for (let y = 8; y < 244; y += 14) {
+      for (let x = 8; x < 116; x += 12) {
+        if (Math.random() < 0.32) {
+          g.fillStyle = pal[(Math.random() * pal.length) | 0];
+          g.globalAlpha = 0.5 + Math.random() * 0.5;
+        } else {
+          g.fillStyle = '#161a28';
+          g.globalAlpha = 1;
+        }
+        g.fillRect(x, y, 7, 9);
+      }
+    }
+    g.globalAlpha = 1;
+    const t = new THREE.CanvasTexture(c);
+    t.magFilter = THREE.NearestFilter;
+    return t;
+  }
+
+  function makeGlowTex() {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const g = c.getContext('2d');
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,0.9)');
+    gr.addColorStop(0.35, 'rgba(255,255,255,0.28)');
+    gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(c);
+  }
+  const glowTex = makeGlowTex();
+  function makeGlow(color, scale) {
+    const m = new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    const s = new THREE.Sprite(m);
+    s.scale.set(scale, scale, 1);
+    return s;
+  }
+
+  function textSprite(text, color) {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 64;
+    const g = c.getContext('2d');
+    g.font = '700 28px "JetBrains Mono", monospace';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = color; g.shadowColor = color; g.shadowBlur = 14;
+    g.fillText(text, 128, 34);
+    const t = new THREE.CanvasTexture(c);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false }));
+    s.scale.set(5.6, 1.4, 1);
+    return s;
+  }
+
+  /* ── ground ── */
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(240, 240),
+    new THREE.MeshStandardMaterial({ color: 0x05060c, roughness: 1 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+  const grid = new THREE.GridHelper(240, 60, 0x1c2238, 0x10141f);
+  grid.position.y = 0.02;
+  scene.add(grid);
+
+  /* ── city ── */
+  const colliders = [];
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x0c0e16, roughness: 0.95 });
+  const sideMats = [];
+  for (let v = 0; v < 5; v++) {
+    const t = makeWindowTex();
+    sideMats.push(new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.5, roughness: 0.9 }));
+  }
+  const neonColors = [0xff1e2d, 0x2dd4a0, 0x4d9fff, 0xf5b84d];
+
+  for (let i = -4; i <= 4; i++) {
+    for (let j = -4; j <= 4; j++) {
+      if (i === 0 && j === 0) continue; // central plaza
+      const w = 9 + Math.random() * 4;
+      const d = 9 + Math.random() * 4;
+      const h = 10 + Math.random() * 30;
+      const sm = sideMats[(Math.random() * sideMats.length) | 0];
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [sm, sm, roofMat, roofMat, sm, sm]);
+      mesh.position.set(i * 24, h / 2, j * 24);
+      scene.add(mesh);
+      colliders.push({ x1: i * 24 - w / 2 - 0.6, x2: i * 24 + w / 2 + 0.6, z1: j * 24 - d / 2 - 0.6, z2: j * 24 + d / 2 + 0.6 });
+
+      if (Math.random() < 0.55) { // neon bar on a street-facing side
+        const bh = 2 + Math.random() * 5;
+        const bar = new THREE.Mesh(
+          new THREE.BoxGeometry(0.25, bh, 0.25),
+          new THREE.MeshBasicMaterial({ color: neonColors[(Math.random() * neonColors.length) | 0] })
+        );
+        const side = Math.random() < 0.5 ? 1 : -1;
+        if (Math.random() < 0.5) bar.position.set(i * 24 + side * (w / 2 + 0.2), 2 + Math.random() * (h * 0.5), j * 24 + (Math.random() - 0.5) * d * 0.6);
+        else bar.position.set(i * 24 + (Math.random() - 0.5) * w * 0.6, 2 + Math.random() * (h * 0.5), j * 24 + side * (d / 2 + 0.2));
+        scene.add(bar);
+      }
+    }
+  }
+
+  /* ── plaza pylon ── */
+  const pylonMat = new THREE.MeshStandardMaterial({ color: 0x0a0a12, emissive: 0xff1e2d, emissiveIntensity: 0.9, roughness: 0.6 });
+  const pylon = new THREE.Mesh(new THREE.BoxGeometry(1.2, 7, 1.2), pylonMat);
+  pylon.position.set(0, 3.5, 0);
+  scene.add(pylon);
+  const pylonGlow = makeGlow(0xff1e2d, 7);
+  pylonGlow.position.set(0, 7, 0);
+  scene.add(pylonGlow);
+  colliders.push({ x1: -1.4, x2: 1.4, z1: -1.4, z2: 1.4 });
+
+  /* ── maintenance shaft 7 ── */
+  const shaft = new THREE.Group();
+  const shaftBody = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 3), new THREE.MeshStandardMaterial({ color: 0x10131e, roughness: 0.9 }));
+  shaftBody.position.y = 2;
+  shaft.add(shaftBody);
+  const shaftDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.6), new THREE.MeshBasicMaterial({ color: 0xff1e2d }));
+  shaftDoor.position.set(0, 1.3, 1.52);
+  shaft.add(shaftDoor);
+  const shaftSign = textSprite('SHAFT 7', '#ff5b65');
+  shaftSign.position.y = 5.2;
+  shaft.add(shaftSign);
+  shaft.position.set(60, 0, 92);
+  scene.add(shaft);
+  colliders.push({ x1: 57, x2: 63, z1: 90, z2: 94 });
+
+  /* ── rain ── */
+  const RAIN_N = 1200;
+  const rainPos = new Float32Array(RAIN_N * 3);
+  for (let i = 0; i < RAIN_N; i++) {
+    rainPos[i * 3] = (Math.random() - 0.5) * 180;
+    rainPos[i * 3 + 1] = Math.random() * 60;
+    rainPos[i * 3 + 2] = (Math.random() - 0.5) * 180;
+  }
+  const rainGeo = new THREE.BufferGeometry();
+  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+  const rain = new THREE.Points(rainGeo, new THREE.PointsMaterial({ color: 0x6f7f9f, size: 0.14, transparent: true, opacity: 0.5, depthWrite: false }));
+  scene.add(rain);
+
+  /* ── player (the detective) ── */
+  const player = new THREE.Group();
+  const playerInner = new THREE.Group();
+  player.add(playerInner);
+  const coatMat = new THREE.MeshStandardMaterial({ color: 0x161927, roughness: 0.85 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.15, 10), coatMat);
+  body.position.y = 0.85;
+  playerInner.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), new THREE.MeshStandardMaterial({ color: 0xcfb695, roughness: 0.8 }));
+  head.position.y = 1.62;
+  playerInner.add(head);
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.05, 14), new THREE.MeshStandardMaterial({ color: 0x12141f, roughness: 0.7 }));
+  brim.position.y = 1.85;
+  playerInner.add(brim);
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.43, 0.34, 14), new THREE.MeshStandardMaterial({ color: 0x12141f, roughness: 0.7 }));
+  crown.position.y = 2.02;
+  playerInner.add(crown);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.08, 14), new THREE.MeshBasicMaterial({ color: 0xff1e2d }));
+  band.position.y = 1.91;
+  playerInner.add(band);
+  const blob = new THREE.Mesh(new THREE.CircleGeometry(0.8, 16), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false }));
+  blob.rotation.x = -Math.PI / 2;
+  blob.position.y = 0.03;
+  player.add(blob);
+  player.position.set(0, 0, 10);
+  scene.add(player);
+
+  /* ── courier drone ── */
+  const drone = new THREE.Group();
+  const droneCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.55), new THREE.MeshStandardMaterial({ color: 0x0a0a12, emissive: 0x2dd4a0, emissiveIntensity: 1, roughness: 0.4 }));
+  drone.add(droneCore);
+  const droneRing = new THREE.Mesh(new THREE.TorusGeometry(1, 0.05, 8, 28), new THREE.MeshBasicMaterial({ color: 0x2dd4a0 }));
+  droneRing.rotation.x = Math.PI / 2;
+  drone.add(droneRing);
+  drone.add(makeGlow(0x2dd4a0, 4));
+  drone.position.set(0, 3.4, 4);
+  scene.add(drone);
+  const DRONE_WP = [[12, 12], [60, 12], [60, 60], [60, 86]];
+
+  /* ── evidence ── */
+  const EVIDENCE = [
+    { x: 12,  z: 12,  t: 'SCORCHED KEYCARD',      d: 'ACCESS CLASS: MAINTENANCE. ID PLATE BURNED CLEAN OFF.' },
+    { x: -36, z: 60,  t: 'RED POLYMER FLAKE',     d: 'VISOR GLASS, CRIMSON TINT. SNAPPED UNDER PRESSURE.' },
+    { x: 60,  z: -36, t: 'LIFTED PRINT — 2.1M',   d: 'PULLED OFF A VENT GRATE 2.1 METERS UP. SUBJECT IS TALL.' },
+    { x: -84, z: -12, t: 'MANIFEST STUB',          d: 'COURIER RUN, LAST NIGHT. DEPARTMENT CODE: M-7.' },
+    { x: 36,  z: 84,  t: 'CIGARETTE, STILL WARM',  d: 'BRAND: LUCKY GRID. SOMEONE WAITED HERE A LONG TIME.' },
+  ];
+  EVIDENCE.forEach(ev => {
+    const g = new THREE.Group();
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.4), new THREE.MeshBasicMaterial({ color: 0xff4b55 }));
+    core.position.y = 0.8;
+    g.add(core);
+    const gl = makeGlow(0xff1e2d, 3.2);
+    gl.position.y = 0.8;
+    g.add(gl);
+    g.position.set(ev.x, 0, ev.z);
+    scene.add(g);
+    ev.mesh = g;
+    ev.core = core;
+    ev.found = false;
+  });
+
+  /* ── suspects ── */
+  const SUSPECTS = [
+    {
+      name: 'VEX', role: 'GRID MAINTENANCE', color: 0xff1e2d, css: '#ff5b65', h: 1.18, x: -6, z: -2, win: true,
+      q: `“Shaft 7? I calibrate it every night. Alone. Nobody watches the watchers, detective.”`,
+      detail: `“Tall? Everyone is tall to a drone. And every tech wears a visor. Mine is... in the shop.”`,
+      note: 'VEX: NO VISOR ON PERSON. CLAIMS IT IS “IN THE SHOP”.',
+      confess: `“...Clever little user. The feed is in Shaft 7. I only wanted to watch it all — alone, with the city asleep. Take it. It never loved me back.”`,
+    },
+    {
+      name: 'MOTH', role: 'FREELANCE COURIER', color: 0x2dd4a0, css: '#2dd4a0', h: 0.88, x: 0, z: -7, win: false,
+      q: `“I fly what they sign for. Check the manifests — department code M-7 signed every run this week.”`,
+      detail: `“M-7 is not my code. I just fly where the signature sends me. Last run ended at Shaft 7.”`,
+      note: 'MOTH: CONFIRMS THE M-7 SIGNATURE ON THE SHAFT 7 RUN.',
+      alibi: `“Eight hundred witnesses logged my rig at the charging stacks all night. The alibi holds, detective.”`,
+    },
+    {
+      name: 'HALCYON', role: 'FEED EXECUTIVE', color: 0xf5b84d, css: '#f5b84d', h: 1.0, x: 6, z: -2, win: false,
+      q: `“Steal my own feed? Darling, I monetize it. Theft is for people with ladders and crimson glass.”`,
+      detail: `“Check the insurance ledger. I profit more if the feed stays exactly where it was.”`,
+      note: 'HALCYON: FINANCIAL MOTIVE WEAK.',
+      alibi: `“The board confirms HALCYON was live on six channels during the heist. The alibi holds, detective.”`,
+    },
+  ];
+  SUSPECTS.forEach(s => {
+    const g = new THREE.Group();
+    const f = s.h;
+    const sBody = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.2 * f, 10), new THREE.MeshStandardMaterial({ color: 0x171a28, roughness: 0.85 }));
+    sBody.position.y = 0.62 * f + 0.25;
+    g.add(sBody);
+    const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), new THREE.MeshStandardMaterial({ color: 0x232739, roughness: 0.8 }));
+    sHead.position.y = 1.55 * f;
+    g.add(sHead);
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.1), new THREE.MeshBasicMaterial({ color: s.color }));
+    visor.position.set(0, 1.58 * f, 0.26);
+    g.add(visor);
+    const sBlob = blob.clone();
+    g.add(sBlob);
+    const tag = textSprite(s.name, s.css);
+    tag.position.y = 2.35 * f + 0.4;
+    g.add(tag);
+    g.position.set(s.x, 0, s.z);
+    g.lookAt(0, 0, 10);
+    scene.add(g);
+    s.mesh = g;
+  });
+
+  /* ── objective beacon ── */
+  const beacon = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.9, 0.9, 150, 12, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xff1e2d, transparent: true, opacity: 0.12, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  beacon.position.y = 75;
+  scene.add(beacon);
+  const beaconRing = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.06, 8, 32), new THREE.MeshBasicMaterial({ color: 0xff1e2d }));
+  beaconRing.rotation.x = Math.PI / 2;
+  beaconRing.position.y = 0.3;
+  scene.add(beaconRing);
+  function setBeacon(x, z, on) {
+    beacon.visible = beaconRing.visible = on;
+    beacon.position.x = beaconRing.position.x = x;
+    beacon.position.z = beaconRing.position.z = z;
+  }
+  setBeacon(0, 0, false);
+
+  /* ── audio ── */
+  let AC = null, ambGain = null, ambOn = true;
+  function audioInit() {
+    if (AC) return;
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      const o1 = AC.createOscillator(), o2 = AC.createOscillator();
+      o1.type = 'sawtooth'; o2.type = 'sawtooth';
+      o1.frequency.value = 52; o2.frequency.value = 52.6;
+      const lp = AC.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 140;
+      ambGain = AC.createGain(); ambGain.gain.value = 0.014;
+      o1.connect(lp); o2.connect(lp); lp.connect(ambGain); ambGain.connect(AC.destination);
+      o1.start(); o2.start();
+    } catch (e) { AC = null; }
+  }
+  function beep(f, d, type, g) {
+    if (!AC) return;
+    try {
+      const o = AC.createOscillator(), gn = AC.createGain();
+      o.type = type || 'square'; o.frequency.value = f;
+      gn.gain.setValueAtTime(g || 0.04, AC.currentTime);
+      gn.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + (d || 0.09));
+      o.connect(gn); gn.connect(AC.destination);
+      o.start(); o.stop(AC.currentTime + (d || 0.09) + 0.02);
+    } catch (e) {}
+  }
+  const sfxPickup  = () => { beep(660, 0.07); setTimeout(() => beep(990, 0.07), 80); setTimeout(() => beep(1320, 0.1), 160); };
+  const sfxError   = () => beep(140, 0.25, 'sawtooth', 0.05);
+  const sfxBlip    = () => beep(880, 0.05, 'square', 0.025);
+
+  /* ── HUD helpers ── */
+  const el = id => document.getElementById(id);
+  function setCase(title, objective, progress) {
+    el('hudCase').style.display = 'block';
+    el('hudKeys').style.display = 'block';
+    el('hudCaseTitle').textContent = title;
+    el('hudObjective').textContent = objective;
+    el('hudProgress').textContent = progress || '';
+  }
+  function setProgress(p) { el('hudProgress').textContent = p; }
+  function toast(title, body) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = `<div class="tt">${title}</div>` + (body ? `<div>${body}</div>` : '');
+    el('toastBox').appendChild(t);
+    setTimeout(() => t.classList.add('bye'), 4200);
+    setTimeout(() => t.remove(), 5000);
+  }
+  function warn(msg) { const w = el('hudWarn'); w.style.display = 'block'; w.textContent = msg; }
+  function hideWarn() { el('hudWarn').style.display = 'none'; }
+
+  /* ── case file notes ── */
+  const caseNotes = [];
+  function addNote(t, d) {
+    if (caseNotes.some(n => n.t === t)) return;
+    caseNotes.push({ t, d });
+    renderCaseFile();
+  }
+  function renderCaseFile() {
+    el('cfList').innerHTML = caseNotes.length
+      ? caseNotes.map(n => `<div class="cf-item"><div class="cf-t">${n.t}</div><div class="cf-d">${n.d}</div></div>`).join('')
+      : '<div class="cf-empty">NO EVIDENCE LOGGED.<br/>SWEEP THE DISTRICT.</div>';
+  }
+  renderCaseFile();
+  let caseFileOpen = false;
+  function toggleCaseFile(force) {
+    caseFileOpen = force !== undefined ? force : !caseFileOpen;
+    el('caseFile').style.display = caseFileOpen ? 'block' : 'none';
+    if (caseFileOpen) sfxBlip();
+  }
+
+  /* ── dialogue ── */
+  let dlgOptions = null;
+  function openDialog(speaker, text, options) {
+    dlgOptions = options;
+    el('dlgSpeaker').textContent = speaker;
+    el('dlgText').textContent = text;
+    el('dlgOpts').innerHTML = options.map(o => `<div class="dlg-opt" data-n="${o.n}"><span class="n">[${o.n}]</span>${o.label}</div>`).join('');
+    el('dlg').style.display = 'block';
+    sfxBlip();
+  }
+  function closeDialog() {
+    el('dlg').style.display = 'none';
+    dlgOptions = null;
+  }
+  el('dlgOpts').addEventListener('click', e => {
+    const o = e.target.closest('.dlg-opt');
+    if (o && dlgOptions) {
+      const opt = dlgOptions.find(x => String(x.n) === o.dataset.n);
+      if (opt) opt.fn();
+    }
+  });
+  const dialogOpen = () => dlgOptions !== null;
+
+  /* ── big overlay ── */
+  let overlayOpen = false, pauseShown = false;
+  function showOverlay(cfg) {
+    overlayOpen = true;
+    const btns = cfg.buttons.map((b, i) =>
+      `<button class="ov-btn ${b.ghost ? 'ghost' : ''}" data-b="${i}">${b.label}</button>`).join('');
+    el('bigOv').innerHTML = `
+      <div class="ov-box corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+        ${cfg.eyebrow ? `<div class="ov-eyebrow">${cfg.eyebrow}</div>` : ''}
+        ${cfg.title ? `<div class="ov-title" id="ovTitle">${cfg.title}</div>` : ''}
+        ${cfg.sub ? `<div class="ov-sub">${cfg.sub}</div>` : ''}
+        <div class="ov-body">${cfg.body}</div>
+        <div class="ov-btns">${btns}</div>
+      </div>`;
+    el('bigOv').style.display = 'flex';
+    el('bigOv').querySelectorAll('.ov-btn').forEach(btn => {
+      btn.addEventListener('click', () => cfg.buttons[+btn.dataset.b].fn());
+    });
+    if (cfg.decode && window.OS && OS.decode) {
+      const t = el('ovTitle');
+      if (t) setTimeout(() => OS.decode(t), 120);
+    }
+  }
+  function hideOverlay() {
+    overlayOpen = false; pauseShown = false;
+    el('bigOv').style.display = 'none';
+  }
+
+  /* ── input ── */
+  const keys = new Set();
+  let camYaw = 0, camPitch = 0.52, camDist = 13;
+  let dragging = false, lastMX = 0, lastMY = 0;
+
+  canvas.addEventListener('mousedown', e => { dragging = true; lastMX = e.clientX; lastMY = e.clientY; });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    camYaw -= (e.clientX - lastMX) * 0.005;
+    camPitch = Math.min(1.05, Math.max(0.22, camPitch + (e.clientY - lastMY) * 0.004));
+    lastMX = e.clientX; lastMY = e.clientY;
+  });
+  canvas.addEventListener('wheel', e => {
+    camDist = Math.min(20, Math.max(9, camDist + e.deltaY * 0.012));
+  }, { passive: true });
+
+  document.addEventListener('keydown', e => {
+    if (window.OS && OS.paletteOpen) return;
+    if (e.target.closest('input, select, textarea')) return;
+    audioInit();
+
+    if (e.code === 'Tab') {
+      e.preventDefault();
+      if (!overlayOpen && mission > 0) toggleCaseFile();
+      return;
+    }
+    if (e.code === 'Escape') {
+      if (dialogOpen()) { closeDialog(); return; }
+      if (caseFileOpen) { toggleCaseFile(false); return; }
+      if (mission > 0) {
+        if (pauseShown) hideOverlay();
+        else if (!overlayOpen) {
+          pauseShown = true;
+          showOverlay({
+            eyebrow: '// PAUSED', title: 'STANDBY',
+            body: 'WASD — MOVE &nbsp;&middot;&nbsp; SHIFT — RUN<br/>MOUSE DRAG — ORBIT &nbsp;&middot;&nbsp; WHEEL — ZOOM<br/>E — INTERACT &nbsp;&middot;&nbsp; TAB — CASE FILE<br/>M — AMBIENCE &nbsp;&middot;&nbsp; ESC — RESUME',
+            buttons: [{ label: 'RESUME', fn: hideOverlay }],
+          });
+        }
+      }
+      return;
+    }
+    if (e.code === 'KeyM') {
+      if (ambGain) { ambOn = !ambOn; ambGain.gain.value = ambOn ? 0.014 : 0; toast('AMBIENCE', ambOn ? 'ON' : 'OFF'); }
+      return;
+    }
+    if (dialogOpen()) {
+      const opt = dlgOptions.find(o => String(o.n) === e.key);
+      if (opt) opt.fn();
+      return;
+    }
+    if (overlayOpen) return;
+    if (e.code === 'KeyE') {
+      const it = nearestInteract();
+      if (it) it.act();
+      return;
+    }
+    keys.add(e.code);
+  });
+  document.addEventListener('keyup', e => keys.delete(e.code));
+  window.addEventListener('blur', () => keys.clear());
+
+  /* ── interactables ── */
+  const interactables = [];
+  EVIDENCE.forEach(ev => {
+    interactables.push({
+      pos: () => ev.mesh.position,
+      r: 3.4,
+      enabled: () => mission === 1 && !ev.found,
+      prompt: 'EXAMINE EVIDENCE',
+      act: () => collectEvidence(ev),
+    });
+  });
+  SUSPECTS.forEach(s => {
+    interactables.push({
+      pos: () => s.mesh.position,
+      r: 4,
+      enabled: () => mission >= 1 && !overlayOpen,
+      prompt: `QUESTION ${s.name}`,
+      act: () => talkTo(s),
+    });
+  });
+  interactables.push({
+    pos: () => shaft.position,
+    r: 5.5,
+    enabled: () => mission === 3,
+    prompt: 'EXAMINE SHAFT 7',
+    act: () => {
+      openDialog('MAINTENANCE SHAFT 7', 'The dock still smells of ozone and cheap tobacco. The access log glows: one entry, code M-7, signed in crimson light.', [
+        { n: 1, label: 'STEP AWAY', fn: closeDialog },
+      ]);
+      addNote('SHAFT 7 ACCESS LOG', 'ONE ENTRY. CODE M-7. SIGNED IN CRIMSON LIGHT.');
+    },
+  });
+
+  function nearestInteract() {
+    let best = null, bd = 1e9;
+    for (const it of interactables) {
+      if (!it.enabled()) continue;
+      const d = dist2D(player.position, it.pos());
+      if (d < it.r && d < bd) { bd = d; best = it; }
+    }
+    return best;
+  }
+
+  /* ── missions ── */
+  let mission = 0, found = 0, wrongAccusations = 0, startTime = 0;
+  let droneActive = false, droneDone = false, m2Completed = false, wpI = 0, lostT = 0;
+
+  function collectEvidence(ev) {
+    ev.found = true;
+    scene.remove(ev.mesh);
+    found++;
+    sfxPickup();
+    addNote(ev.t, ev.d);
+    toast(`EVIDENCE ${found}/5`, ev.t);
+    setProgress(`EVIDENCE ${found}/5`);
+    shake = 0.35;
+    if (found === 5) setTimeout(debrief1, 1000);
+  }
+
+  function talkTo(s) {
+    if (mission < 3) {
+      openDialog(`${s.name} — ${s.role}`, `“Come back when you have something, detective.”`, [
+        { n: 1, label: 'WALK AWAY', fn: closeDialog },
+      ]);
+      return;
+    }
+    openDialog(`${s.name} — ${s.role}`, s.q, [
+      { n: 1, label: 'PRESS FOR DETAILS', fn: () => { addNote(`STATEMENT — ${s.name}`, s.note); openDialog(`${s.name} — ${s.role}`, s.detail, [
+        { n: 1, label: 'ACCUSE', fn: () => accuse(s) },
+        { n: 2, label: 'WALK AWAY', fn: closeDialog },
+      ]); } },
+      { n: 2, label: 'ACCUSE', fn: () => accuse(s) },
+      { n: 3, label: 'WALK AWAY', fn: closeDialog },
+    ]);
+  }
+
+  function accuse(s) {
+    if (s.win) {
+      sfxPickup();
+      openDialog(`${s.name} — ${s.role}`, s.confess, [
+        { n: 1, label: 'CLOSE THE CASE', fn: () => { closeDialog(); winGame(); } },
+      ]);
+    } else {
+      wrongAccusations++;
+      sfxError();
+      openDialog(`${s.name} — ${s.role}`, s.alibi, [
+        { n: 1, label: 'WALK AWAY', fn: () => { closeDialog(); toast('ALIBI HOLDS', 'THE TRAIL COOLS. ACCURACY NOTED.'); } },
+      ]);
+    }
+  }
+
+  function startM1() {
+    mission = 1;
+    startTime = performance.now();
+    setCase('CASE FILE 01 // COLD SCENE', 'SWEEP THE DISTRICT — RECOVER THE EVIDENCE', 'EVIDENCE 0/5');
+    toast('CASE OPENED', 'FOLLOW THE BEACON. PRESS E TO EXAMINE.');
+  }
+
+  function debrief1() {
+    showOverlay({
+      eyebrow: '// CASE FILE 01 — CLOSED', title: 'COLD SCENE', decode: true,
+      body: `Five fragments, one shape: someone with <span class="hl">maintenance access</span>, <span class="rd">crimson glass</span>, and a <span class="hl">long reach</span>.<br/><br/>A courier drone just lit up over the plaza. It flies like it&rsquo;s guilty.`,
+      buttons: [{ label: 'OPEN CASE FILE 02', fn: () => { hideOverlay(); startM2(); } }],
+    });
+  }
+
+  function startM2() {
+    mission = 2;
+    droneActive = false; droneDone = false; m2Completed = false; wpI = 0; lostT = 0;
+    drone.position.set(0, 3.4, 4);
+    setCase('CASE FILE 02 // THE COURIER', 'TAIL THE DRONE — STAY WITHIN 35M', 'APPROACH THE DRONE TO BEGIN');
+  }
+
+  function resetTail() {
+    droneActive = false; wpI = 0; lostT = 0;
+    drone.position.set(0, 3.4, 4);
+    hideWarn();
+    sfxError();
+    toast('TARGET LOST', 'THE DRONE CIRCLES BACK TO THE PLAZA. AGAIN.');
+    setProgress('APPROACH THE DRONE TO BEGIN');
+  }
+
+  function debrief2() {
+    addNote('DRONE LOG', 'DOCKED AT MAINTENANCE SHAFT 7. ACCESS CODE M-7.');
+    showOverlay({
+      eyebrow: '// CASE FILE 02 — CLOSED', title: 'THE COURIER', decode: true,
+      body: `The drone docked at <span class="hl">Maintenance Shaft 7</span> and signed itself in with code <span class="rd">M-7</span>.<br/><br/>Three people are standing in the plaza. One of them is lying.`,
+      buttons: [{ label: 'OPEN CASE FILE 03', fn: () => { hideOverlay(); startM3(); } }],
+    });
+  }
+
+  function startM3() {
+    mission = 3;
+    setCase('CASE FILE 03 // THE ACCUSATION', 'QUESTION THE SUSPECTS — ACCUSE THE THIEF', 'TAB — REVIEW THE CASE FILE');
+    toast('FINAL CASE FILE', 'RETURN TO THE PLAZA. CHOOSE CAREFULLY.');
+  }
+
+  function winGame() {
+    mission = 4;
+    setBeacon(0, 0, false);
+    const secs = Math.floor((performance.now() - startTime) / 1000);
+    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    const ss = String(secs % 60).padStart(2, '0');
+    let bestLine = '';
+    try {
+      const best = localStorage.getItem('fuf_best');
+      if (!best || secs < +best) { localStorage.setItem('fuf_best', secs); bestLine = '<br/><span class="rd">NEW DISTRICT RECORD.</span>'; }
+      else { const b = +best; bestLine = `<br/>DISTRICT RECORD — ${String(Math.floor(b / 60)).padStart(2, '0')}:${String(b % 60).padStart(2, '0')}`; }
+    } catch (e) {}
+    showOverlay({
+      eyebrow: '// VERDICT', title: 'CASE CLOSED', sub: 'THE FEED COMES HOME', decode: true,
+      body: `The city keeps buffering. Somewhere, a server exhales.<br/><br/>TIME — <span class="hl">${mm}:${ss}</span><br/>FALSE ACCUSATIONS — <span class="hl">${wrongAccusations}</span>${bestLine}<br/><br/><span class="rd">FLY, USER. FLY.</span>`,
+      buttons: [
+        { label: 'REOPEN CASE', fn: () => location.reload() },
+        { label: 'RETURN TO OS', fn: () => { document.body.classList.add('fade-out'); setTimeout(() => location.href = '/', 180); }, ghost: true },
+      ],
+    });
+  }
+
+  /* ── intro ── */
+  const touchNote = ('ontouchstart' in window) ? '<br/><br/><span class="rd">NOTE — A KEYBOARD IS REQUIRED. MOBILE IS NOT SUPPORTED.</span>' : '';
+  showOverlay({
+    eyebrow: '// FUNFLIX://OS PRESENTS', title: 'FLYUSERFLY', sub: 'A NOIR DETECTIVE SIMULATION', decode: true,
+    body: `Night 47. Rain on neon.<br/><br/>The <span class="hl">Master Feed</span> is gone — six petabytes of everything anyone ever watched, lifted from the vault between two heartbeats of the grid.<br/><br/>You&rsquo;re the last detective on payroll. Find the feed.<br/><br/><span class="rd">FLY, USER. FLY.</span>${touchNote}`,
+    buttons: [{ label: 'INITIATE CASE', fn: () => { audioInit(); hideOverlay(); startM1(); } }],
+  });
+
+  /* ── main loop ── */
+  const clock = new THREE.Clock();
+  let shake = 0;
+  const camPos = new THREE.Vector3(0, 10, 24);
+
+  function tick() {
+    requestAnimationFrame(tick);
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const t = clock.elapsedTime;
+
+    const frozen = overlayOpen || dialogOpen();
+
+    /* player movement */
+    let moving = false;
+    if (!frozen && mission > 0 && mission < 4) {
+      let mx = 0, mz = 0;
+      const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw);
+      const rx = Math.cos(camYaw),  rz = -Math.sin(camYaw);
+      if (keys.has('KeyW') || keys.has('ArrowUp'))    { mx += fx; mz += fz; }
+      if (keys.has('KeyS') || keys.has('ArrowDown'))  { mx -= fx; mz -= fz; }
+      if (keys.has('KeyD') || keys.has('ArrowRight')) { mx += rx; mz += rz; }
+      if (keys.has('KeyA') || keys.has('ArrowLeft'))  { mx -= rx; mz -= rz; }
+      const len = Math.hypot(mx, mz);
+      if (len > 0.01) {
+        moving = true;
+        mx /= len; mz /= len;
+        const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 13 : 8;
+        const nx = player.position.x + mx * speed * dt;
+        const nz = player.position.z + mz * speed * dt;
+        if (!hitsBuilding(nx, player.position.z)) player.position.x = Math.max(-98, Math.min(98, nx));
+        if (!hitsBuilding(player.position.x, nz)) player.position.z = Math.max(-98, Math.min(98, nz));
+        playerInner.rotation.y = lerpAngle(playerInner.rotation.y, Math.atan2(mx, mz), Math.min(1, dt * 12));
+      }
+    }
+    playerInner.position.y = moving ? Math.abs(Math.sin(t * 9)) * 0.12 : playerInner.position.y * 0.8;
+
+    /* world anims */
+    EVIDENCE.forEach((ev, i) => {
+      if (ev.found) return;
+      ev.core.rotation.y += dt * 2;
+      ev.core.position.y = 0.8 + Math.sin(t * 2 + i) * 0.18;
+    });
+    droneRing.rotation.z += dt * 2.4;
+    SUSPECTS.forEach((s, i) => { s.mesh.rotation.z = Math.sin(t * 1.2 + i * 2) * 0.02; });
+    pylonMat.emissiveIntensity = 0.7 + Math.sin(t * 2.2) * 0.3;
+    beaconRing.scale.setScalar(1 + Math.sin(t * 3) * 0.12);
+    beacon.material.opacity = 0.1 + Math.sin(t * 2.5) * 0.04;
+
+    /* rain */
+    const rp = rainGeo.attributes.position.array;
+    for (let i = 0; i < RAIN_N; i++) {
+      rp[i * 3 + 1] -= 58 * dt;
+      if (rp[i * 3 + 1] < 0) {
+        rp[i * 3 + 1] = 55 + Math.random() * 8;
+        rp[i * 3]     = player.position.x + (Math.random() - 0.5) * 180;
+        rp[i * 3 + 2] = player.position.z + (Math.random() - 0.5) * 180;
+      }
+    }
+    rainGeo.attributes.position.needsUpdate = true;
+
+    /* mission logic */
+    if (!frozen) {
+      if (mission === 1) {
+        let nearest = null, nd = 1e9;
+        EVIDENCE.forEach(ev => {
+          if (ev.found) return;
+          const d = dist2D(player.position, ev.mesh.position);
+          if (d < nd) { nd = d; nearest = ev; }
+        });
+        if (nearest) setBeacon(nearest.x, nearest.z, true);
+        else setBeacon(0, 0, false);
+      } else if (mission === 2) {
+        setBeacon(drone.position.x, drone.position.z, true);
+        const dp = dist2D(player.position, drone.position);
+        if (!droneActive && !droneDone) {
+          if (dp < 14) {
+            droneActive = true;
+            setProgress('IN PURSUIT');
+            toast('COURIER DEPARTING', 'DO NOT LOSE IT.');
+            sfxBlip();
+          }
+        } else if (droneActive && !droneDone) {
+          const wp = DRONE_WP[wpI];
+          const dx = wp[0] - drone.position.x, dz = wp[1] - drone.position.z;
+          const dd = Math.hypot(dx, dz);
+          if (dd < 1.2) {
+            wpI++;
+            if (wpI >= DRONE_WP.length) { droneDone = true; }
+          } else {
+            drone.position.x += (dx / dd) * 7 * dt;
+            drone.position.z += (dz / dd) * 7 * dt;
+          }
+          drone.position.y = 3.4 + Math.sin(t * 3) * 0.25;
+          if (dp > 35) {
+            lostT += dt;
+            warn(`SIGNAL LOST — RESET IN ${Math.max(0, 4 - lostT).toFixed(1)}S`);
+            if (lostT >= 4) resetTail();
+          } else if (dp > 26) {
+            warn('SIGNAL DEGRADING — CLOSE THE GAP');
+            lostT = 0;
+          } else { hideWarn(); lostT = 0; }
+        } else if (droneDone) {
+          drone.position.y += (1.6 - drone.position.y) * dt * 3;
+          hideWarn();
+          if (!m2Completed) { m2Completed = true; sfxPickup(); setTimeout(debrief2, 900); }
+        }
+      } else if (mission === 3) {
+        setBeacon(0, -2, true);
+      }
+    }
+
+    /* interact hint */
+    if (!frozen && mission > 0 && mission < 4) {
+      const it = nearestInteract();
+      if (it) {
+        el('hudHint').style.display = 'block';
+        el('hudHintText').textContent = it.prompt;
+      } else el('hudHint').style.display = 'none';
+    } else el('hudHint').style.display = 'none';
+
+    /* beacon distance */
+    if (beacon.visible && mission > 0 && mission < 4) {
+      el('hudDist').textContent = `BEACON — ${Math.round(dist2D(player.position, beacon.position))}M`;
+    } else el('hudDist').textContent = '';
+
+    /* camera */
+    const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
+    const desired = new THREE.Vector3(
+      player.position.x + Math.sin(camYaw) * cp * camDist,
+      player.position.y + sp * camDist + 1.6,
+      player.position.z + Math.cos(camYaw) * cp * camDist
+    );
+    camPos.lerp(desired, Math.min(1, dt * 6));
+    if (shake > 0.003) {
+      camPos.x += (Math.random() - 0.5) * shake;
+      camPos.y += (Math.random() - 0.5) * shake;
+      shake *= Math.pow(0.01, dt);
+    }
+    camera.position.copy(camPos);
+    camera.lookAt(player.position.x, player.position.y + 1.7, player.position.z);
+
+    renderer.render(scene, camera);
+  }
+
+  function hitsBuilding(x, z) {
+    for (const c of colliders) {
+      if (x > c.x1 - 0.7 && x < c.x2 + 0.7 && z > c.z1 - 0.7 && z < c.z2 + 0.7) return true;
+    }
+    return false;
+  }
+
+  tick();
+})();
+</script>
+</body>
+</html>

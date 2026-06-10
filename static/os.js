@@ -8,18 +8,20 @@
     { id: '01', name: 'COMPUTE', desc: 'scientific calculator', path: '/calculator' },
     { id: '02', name: 'SYNTH',   desc: 'meme generator',        path: '/meme' },
     { id: '03', name: 'PRESS',   desc: 'ai journalist',         path: '/journalist' },
+    { id: '04', name: 'FLYUSERFLY', desc: 'detective simulation', path: '/game' },
   ];
   const here = location.pathname.replace(/\/+$/, '') || '/';
   const current = MODULES.find(m => m.path === here) || MODULES[0];
   const CHEV = '<svg width="9" height="6" viewBox="0 0 9 6" fill="none"><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" stroke-width="1.2"/></svg>';
 
-  /* ── particle canvas ── */
+  /* ── particle canvas (skipped on pages that render their own scene, e.g. the game) ── */
+  const FX = document.body.dataset.nofx === undefined;
+  const mouse = { x: -9999, y: -9999 };
   const cv = document.createElement('canvas');
   cv.id = 'fxCanvas';
-  document.body.prepend(cv);
+  if (FX) document.body.prepend(cv);
   const cx = cv.getContext('2d');
   let W, H, DPR, nodes = [];
-  const mouse = { x: -9999, y: -9999 };
 
   function sizeCanvas() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -28,10 +30,12 @@
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
     cx.setTransform(DPR, 0, 0, DPR, 0, 0);
   }
-  sizeCanvas();
-  window.addEventListener('resize', sizeCanvas);
+  if (FX) {
+    sizeCanvas();
+    window.addEventListener('resize', sizeCanvas);
+  }
 
-  const N = Math.min(90, Math.floor(window.innerWidth / 16));
+  const N = FX ? Math.min(90, Math.floor(window.innerWidth / 16)) : 0;
   for (let i = 0; i < N; i++) {
     nodes.push({
       x: Math.random() * window.innerWidth,
@@ -77,7 +81,7 @@
     }
     requestAnimationFrame(tickField);
   }
-  requestAnimationFrame(tickField);
+  if (FX) requestAnimationFrame(tickField);
 
   /* ── HUD ── */
   const hud = document.createElement('header');
