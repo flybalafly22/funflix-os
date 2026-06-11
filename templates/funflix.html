@@ -38,12 +38,14 @@
 
     /* ── module cards ── */
     .modules {
-      display: grid;
-      grid-template-columns: repeat(4, 256px);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 20px;
+      max-width: 1480px;
     }
-    @media (max-width: 1180px) { .modules { grid-template-columns: repeat(2, 290px); } }
-    @media (max-width: 680px)  { .modules { grid-template-columns: min(290px, 100%); } }
+    .modules .module { width: 256px; }
+    @media (max-width: 680px) { .modules .module { width: min(290px, 100%); } }
 
     .module-status.new { color: var(--red); }
     .module-status.new::before { background: var(--red); box-shadow: 0 0 6px var(--red-dim); }
@@ -220,7 +222,7 @@
     <div class="hero fade-up">
       <div class="hero-eyebrow">// SELECT MODULE</div>
       <h1 class="hero-title decode" data-text="WHO'S WATCHING?">WHO'S WATCHING?</h1>
-      <div class="hero-sub">FOUR INSTRUMENTS &middot; ONE SYSTEM &middot; ZERO LIMITS</div>
+      <div class="hero-sub">FIVE INSTRUMENTS &middot; ONE SYSTEM &middot; ZERO LIMITS</div>
     </div>
 
     <div class="modules">
@@ -286,7 +288,7 @@
         <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
         <div class="module-top">
           <span class="module-idx">MODULE / 04</span>
-          <span class="module-status new">NEW</span>
+          <span class="module-status">ONLINE</span>
         </div>
         <svg class="module-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
           <circle cx="10.5" cy="10.5" r="6.2"/>
@@ -295,6 +297,25 @@
         </svg>
         <div class="module-name">FLYUSERFLY</div>
         <div class="module-desc">NOIR DETECTIVE SIMULATION.<br/>3D CITY / 3 CASE FILES / 1 THIEF.<br/>RUNS ENTIRELY IN YOUR BROWSER.</div>
+        <div class="module-enter">ENTER MODULE
+          <svg width="22" height="8" viewBox="0 0 22 8" fill="none"><path d="M0 4h20M17 1l3.5 3L17 7" stroke="currentColor"/></svg>
+        </div>
+      </a>
+
+      <a href="/play/city-game" data-nav class="module corners tilt fade-up" style="animation-delay:0.67s">
+        <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+        <div class="module-top">
+          <span class="module-idx">MODULE / 05</span>
+          <span class="module-status new">NEW</span>
+        </div>
+        <svg class="module-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+          <path d="M3 19h18"/>
+          <path d="M5 19v-7l4-3 3 2 4-5 3 4v9"/>
+          <circle cx="18.5" cy="6" r="1.6"/>
+          <path d="M7.5 19v-3M11 19v-2.2M15 19v-3.4"/>
+        </svg>
+        <div class="module-name">FLY</div>
+        <div class="module-desc">OPEN-WORLD COSTA VISTA.<br/>CARS / BIKES / DAY-NIGHT CYCLE.<br/>DESKTOP + MOBILE TOUCH CONTROLS.</div>
         <div class="module-enter">ENTER MODULE
           <svg width="22" height="8" viewBox="0 0 22 8" fill="none"><path d="M0 4h20M17 1l3.5 3L17 7" stroke="currentColor"/></svg>
         </div>

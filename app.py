@@ -27,6 +27,10 @@ def calculator():
 def game():
     return render_template("game.html")
 
+@app.route("/play/city-game")
+def fly():
+    return render_template("fly.html")
+
 @app.route("/meme")
 def meme():
     return render_template("meme.html")

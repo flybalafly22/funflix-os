@@ -9,6 +9,7 @@
     { id: '02', name: 'SYNTH',   desc: 'meme generator',        path: '/meme' },
     { id: '03', name: 'PRESS',   desc: 'ai journalist',         path: '/journalist' },
     { id: '04', name: 'FLYUSERFLY', desc: 'detective simulation', path: '/game' },
+    { id: '05', name: 'FLY', desc: 'open world — costa vista', path: '/play/city-game' },
   ];
   const here = location.pathname.replace(/\/+$/, '') || '/';
   const current = MODULES.find(m => m.path === here) || MODULES[0];
