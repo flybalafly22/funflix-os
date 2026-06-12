@@ -1,28 +1,28 @@
 /* ════════════════════════════════════════════════════════
-   FUNFLIX://OS — shared runtime
-   injects HUD, statusbar, particle field, cursor, ⌘K palette
+   FUNFLIX — MAISON · shared runtime
+   injects the frame (nav, footer), gold-dust field,
+   jewel cursor, and the ⌘K concierge
    ════════════════════════════════════════════════════════ */
 (() => {
   const MODULES = [
-    { id: '00', name: 'INDEX',   desc: 'module select',         path: '/' },
-    { id: '01', name: 'COMPUTE', desc: 'scientific calculator', path: '/calculator' },
-    { id: '02', name: 'SYNTH',   desc: 'meme generator',        path: '/meme' },
-    { id: '03', name: 'PRESS',   desc: 'ai journalist',         path: '/journalist' },
-    { id: '04', name: 'FLYUSERFLY', desc: 'detective simulation', path: '/game' },
-    { id: '05', name: 'FLY', desc: 'open world — costa vista', path: '/play/city-game' },
+    { id: '·',   name: 'MAISON',      desc: 'the collection',      path: '/' },
+    { id: 'I',   name: 'COMPUTE',     desc: 'instrument',          path: '/calculator' },
+    { id: 'II',  name: 'SYNTHESIS',   desc: 'image atelier',       path: '/meme' },
+    { id: 'III', name: 'THE PRESS',   desc: 'ai newsroom',         path: '/journalist' },
+    { id: 'IV',  name: 'FLYUSERFLY',  desc: 'a noir, playable',    path: '/game' },
+    { id: 'V',   name: 'COSTA VISTA', desc: 'open world',          path: '/play/city-game' },
   ];
   const here = location.pathname.replace(/\/+$/, '') || '/';
   const current = MODULES.find(m => m.path === here) || MODULES[0];
-  const CHEV = '<svg width="9" height="6" viewBox="0 0 9 6" fill="none"><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" stroke-width="1.2"/></svg>';
 
-  /* ── particle canvas (skipped on pages that render their own scene, e.g. the game) ── */
+  /* ── gold dust field (skipped on pages that render their own scene) ── */
   const FX = document.body.dataset.nofx === undefined;
   const mouse = { x: -9999, y: -9999 };
   const cv = document.createElement('canvas');
   cv.id = 'fxCanvas';
   if (FX) document.body.prepend(cv);
   const cx = cv.getContext('2d');
-  let W, H, DPR, nodes = [];
+  let W, H, DPR, motes = [];
 
   function sizeCanvas() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -36,93 +36,86 @@
     window.addEventListener('resize', sizeCanvas);
   }
 
-  const N = FX ? Math.min(90, Math.floor(window.innerWidth / 16)) : 0;
+  const N = FX ? Math.min(70, Math.floor(window.innerWidth / 22)) : 0;
   for (let i = 0; i < N; i++) {
-    nodes.push({
+    const big = Math.random() < 0.12;
+    motes.push({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
-      r: Math.random() < 0.12 ? 1.8 : 1.1,
-      red: Math.random() < 0.14,
+      r: big ? 2.2 + Math.random() * 2.6 : 0.6 + Math.random() * 1.1,
+      vy: -(0.08 + Math.random() * 0.22),
+      sway: Math.random() * Math.PI * 2,
+      swayV: 0.002 + Math.random() * 0.006,
+      tw: Math.random() * Math.PI * 2,
+      twV: 0.008 + Math.random() * 0.02,
+      big,
     });
   }
 
   function tickField() {
     cx.clearRect(0, 0, W, H);
-    for (const n of nodes) {
-      n.x += n.vx; n.y += n.vy;
-      const dx = n.x - mouse.x, dy = n.y - mouse.y;
+    for (const m of motes) {
+      m.y += m.vy;
+      m.sway += m.swayV;
+      m.tw += m.twV;
+      m.x += Math.sin(m.sway) * 0.18;
+      const dx = m.x - mouse.x, dy = m.y - mouse.y;
       const d2 = dx * dx + dy * dy;
-      if (d2 < 22500) { // 150px — gentle push away from cursor
+      if (d2 < 14400) { // a gentle breath away from the cursor
         const d = Math.sqrt(d2) || 1;
-        n.x += (dx / d) * 0.6; n.y += (dy / d) * 0.6;
+        m.x += (dx / d) * 0.35; m.y += (dy / d) * 0.35;
       }
-      if (n.x < -20) n.x = W + 20; if (n.x > W + 20) n.x = -20;
-      if (n.y < -20) n.y = H + 20; if (n.y > H + 20) n.y = -20;
-    }
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i], b = nodes[j];
-        const dx = a.x - b.x, dy = a.y - b.y;
-        const d2 = dx * dx + dy * dy;
-        if (d2 < 16900) { // 130px
-          const t = 1 - Math.sqrt(d2) / 130;
-          cx.strokeStyle = (a.red || b.red)
-            ? `rgba(255,30,45,${0.10 * t})`
-            : `rgba(255,255,255,${0.05 * t})`;
-          cx.lineWidth = 1;
-          cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke();
-        }
+      if (m.y < -10) { m.y = H + 10; m.x = Math.random() * W; }
+      if (m.x < -10) m.x = W + 10;
+      if (m.x > W + 10) m.x = -10;
+      const a = (0.18 + Math.sin(m.tw) * 0.14) * (m.big ? 0.5 : 1);
+      if (m.big) {
+        const g = cx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r * 3);
+        g.addColorStop(0, `rgba(200,164,93,${a})`);
+        g.addColorStop(1, 'rgba(200,164,93,0)');
+        cx.fillStyle = g;
+        cx.beginPath(); cx.arc(m.x, m.y, m.r * 3, 0, 7); cx.fill();
+      } else {
+        cx.fillStyle = `rgba(226,200,144,${a + 0.1})`;
+        cx.beginPath(); cx.arc(m.x, m.y, m.r, 0, 7); cx.fill();
       }
-    }
-    for (const n of nodes) {
-      cx.fillStyle = n.red ? 'rgba(255,30,45,0.6)' : 'rgba(255,255,255,0.35)';
-      cx.beginPath(); cx.arc(n.x, n.y, n.r, 0, 7); cx.fill();
     }
     requestAnimationFrame(tickField);
   }
   if (FX) requestAnimationFrame(tickField);
 
-  /* ── HUD ── */
+  /* ── the frame: top bar ── */
   const hud = document.createElement('header');
   hud.className = 'hud';
   hud.innerHTML = `
-    <a href="/" class="hud-logo" data-nav>FUNFLIX<span>://OS</span></a>
-    <div class="hud-mid">
-      <span class="pulse-dot"></span>
-      <span>SYS.NOMINAL</span>
-      <span class="hud-dim">|</span>
-      <span id="osClock">--:--:--</span>
-      <span class="hud-dim">UTC</span>
-    </div>
+    <a href="/" class="hud-logo" data-nav>FUNFLIX<span class="reg">&reg;</span></a>
+    <div class="hud-mid">Made by you &middot; Made for you</div>
     <div class="hud-right">
       <div class="os-menu" id="osMenu">
-        <button class="os-menu-btn" id="osMenuBtn">${current.id} / ${current.name} ${CHEV}</button>
+        <button class="os-menu-btn" id="osMenuBtn">Collection</button>
         <nav class="os-menu-list">
-          ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}"><span class="mi">${m.id}</span><span>${m.name}</span><span class="md">${m.desc}</span></a>`).join('')}
+          ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}"><span class="mi">${m.id === '·' ? '&middot;' : 'No. ' + m.id}</span><span>${m.name}</span><span class="md">${m.desc}</span></a>`).join('')}
         </nav>
       </div>
-      ${document.body.dataset.access !== undefined ? '<button class="os-access-btn" id="osAccessBtn">ACCESS</button>' : ''}
+      ${document.body.dataset.access !== undefined ? '<button class="os-access-btn" id="osAccessBtn">Enter</button>' : ''}
     </div>`;
   document.body.prepend(hud);
 
-  /* ── statusbar ── */
+  /* ── the footer line ── */
   const sb = document.createElement('footer');
   sb.className = 'statusbar';
   sb.innerHTML = `
-    <div>FUNFLIX_OS <span class="hl">v2.077</span> &mdash; <span class="hl">${current.name}</span></div>
-    <div class="sb-mid">MADE BY YOU &middot; MADE FOR YOU</div>
-    <div><span class="kbd">&#8984;K</span> COMMAND &nbsp; <span class="hl" id="sbUp">T+00:00</span></div>`;
+    <div>FUNFLIX &mdash; <span class="hl">MMXXVI</span></div>
+    <div class="sb-mid">${current.path === '/' ? 'A private collection of digital instruments' : 'No. ' + current.id + ' &mdash; ' + current.name}</div>
+    <div><span class="kbd">&#8984;K</span> Concierge &nbsp; <span class="hl" id="osClock">--:--</span></div>`;
   document.body.append(sb);
 
-  const t0 = Date.now();
   setInterval(() => {
     const c = document.getElementById('osClock');
-    if (c) c.textContent = new Date().toISOString().slice(11, 19);
-    const up = Math.floor((Date.now() - t0) / 1000);
-    const u = document.getElementById('sbUp');
-    if (u) u.textContent = `T+${String(Math.floor(up / 60)).padStart(2, '0')}:${String(up % 60).padStart(2, '0')}`;
+    if (c) {
+      const d = new Date();
+      c.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
   }, 1000);
 
   /* ── dropdown ── */
@@ -138,14 +131,14 @@
   /* ── page-fade navigation ── */
   function nav(href) {
     document.body.classList.add('fade-out');
-    setTimeout(() => { location.href = href; }, 170);
+    setTimeout(() => { location.href = href; }, 240);
   }
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-nav]');
     if (a && a.href) { e.preventDefault(); nav(a.getAttribute('href')); }
   });
 
-  /* ── custom cursor ── */
+  /* ── jewel cursor ── */
   if (matchMedia('(pointer: fine)').matches) {
     document.body.classList.add('os-cursor');
     const dot = document.createElement('div'); dot.id = 'curDot';
@@ -159,7 +152,7 @@
       ring.classList.toggle('hot', !!hot);
     });
     (function lerpRing() {
-      rx += (mouse.x - rx) * 0.16; ry += (mouse.y - ry) * 0.16;
+      rx += (mouse.x - rx) * 0.14; ry += (mouse.y - ry) * 0.14;
       ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
       requestAnimationFrame(lerpRing);
     })();
@@ -167,14 +160,14 @@
     document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
   }
 
-  /* ── command palette ── */
+  /* ── the concierge (⌘K) ── */
   const pal = document.createElement('div');
   pal.className = 'palette';
   pal.innerHTML = `
     <div class="pal-box">
       <div class="pal-head">
-        <span class="pp">&gt;_</span>
-        <input id="palInput" placeholder="type a command or destination&hellip;" autocomplete="off" spellcheck="false"/>
+        <span class="pp">&#10022;</span>
+        <input id="palInput" placeholder="How may we serve you&hellip;" autocomplete="off" spellcheck="false"/>
         <span class="pal-esc">ESC</span>
       </div>
       <div class="pal-list" id="palList"></div>
@@ -186,7 +179,9 @@
 
   function buildItems() {
     const items = MODULES.map(m => ({
-      id: m.id, label: `GOTO ${m.name}`, hint: m.desc,
+      id: m.id === '·' ? '&middot;' : m.id,
+      label: m.path === '/' ? 'Return to the Maison' : `Visit ${m.name.charAt(0) + m.name.slice(1).toLowerCase()}`,
+      hint: m.path === '/' ? 'the collection' : `No. ${m.id} — ${m.desc}`,
       run: () => nav(m.path),
       disabled: m.path === current.path,
     })).filter(i => !i.disabled);
@@ -201,7 +196,7 @@
     palSel = Math.min(palSel, Math.max(0, palItems.length - 1));
     palList.innerHTML = palItems.length
       ? palItems.map((i, n) => `<div class="pal-item ${n === palSel ? 'sel' : ''}" data-n="${n}"><span class="pi">${i.id}</span><span>${i.label}</span><span class="ph">${i.hint || ''}</span></div>`).join('')
-      : '<div class="pal-empty">NO MATCHING COMMAND</div>';
+      : '<div class="pal-empty">Regrettably, nothing matches. Try another word.</div>';
   }
 
   const OS = window.OS = { paletteOpen: false };
@@ -236,7 +231,7 @@
   });
   pal.addEventListener('click', e => { if (e.target === pal) closePal(); });
 
-  /* ── text decode effect ── */
+  /* ── text decode (the games still perform it) ── */
   const GLYPHS = '!<>-_\\/[]{}=+*^?#@%&';
   OS.decode = (el, duration = 900) => {
     const target = el.dataset.text ?? el.textContent;
@@ -254,7 +249,7 @@
     })(start);
   };
 
-  /* ── 3D tilt ── */
+  /* ── 3D tilt (kept for any page that requests it) ── */
   OS.tilt = (el, max = 7) => {
     el.style.transformStyle = 'preserve-3d';
     el.addEventListener('mousemove', e => {
@@ -272,7 +267,6 @@
     });
   };
 
-  /* auto-init */
   window.addEventListener('load', () => {
     document.querySelectorAll('.decode').forEach((el, i) =>
       setTimeout(() => OS.decode(el), 150 + i * 120));
