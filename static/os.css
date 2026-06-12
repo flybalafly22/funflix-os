@@ -17,8 +17,8 @@
   --gold-glow:   rgba(200,164,93,0.14);
   --hairline:    rgba(242,236,223,0.12);
   --hairline-2:  rgba(242,236,223,0.26);
-  --serif: 'Fraunces', serif;
-  --sans:  'Manrope', sans-serif;
+  --serif: 'Playfair Display', serif;
+  --sans:  'Inter', sans-serif;
 
   /* ── legacy tokens (the games' interior design depends on these) ── */
   --void:        #030308;

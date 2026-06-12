@@ -84,7 +84,8 @@
   }
   if (FX) requestAnimationFrame(tickField);
 
-  /* ── the frame: top bar ── */
+  /* ── the frame: top bar (pages with data-nohud build their own) ── */
+  const NOHUD = document.body.dataset.nohud !== undefined;
   const hud = document.createElement('header');
   hud.className = 'hud';
   hud.innerHTML = `
@@ -99,7 +100,7 @@
       </div>
       ${document.body.dataset.access !== undefined ? '<button class="os-access-btn" id="osAccessBtn">Enter</button>' : ''}
     </div>`;
-  document.body.prepend(hud);
+  if (!NOHUD) document.body.prepend(hud);
 
   /* ── the footer line ── */
   const sb = document.createElement('footer');
@@ -120,13 +121,15 @@
 
   /* ── dropdown ── */
   const menu = document.getElementById('osMenu');
-  document.getElementById('osMenuBtn').addEventListener('click', e => {
-    e.stopPropagation();
-    menu.classList.toggle('open');
-  });
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#osMenu')) menu.classList.remove('open');
-  });
+  if (menu) {
+    document.getElementById('osMenuBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      menu.classList.toggle('open');
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#osMenu')) menu.classList.remove('open');
+    });
+  }
 
   /* ── page-fade navigation ── */
   function nav(href) {
