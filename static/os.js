@@ -1,113 +1,46 @@
 /* ════════════════════════════════════════════════════════
-   FUNFLIX — MAISON · shared runtime
-   injects the frame (nav, footer), gold-dust field,
-   jewel cursor, and the ⌘K concierge
+   FUNFLIX — shared runtime
+   injects the frame (nav, footer) and the ⌘K concierge
    ════════════════════════════════════════════════════════ */
 (() => {
   const MODULES = [
-    { id: '·',   name: 'MAISON',      desc: 'the collection',      path: '/' },
-    { id: 'I',   name: 'COMPUTE',     desc: 'instrument',          path: '/calculator' },
-    { id: 'II',  name: 'SYNTHESIS',   desc: 'image atelier',       path: '/meme' },
-    { id: 'III', name: 'THE PRESS',   desc: 'ai newsroom',         path: '/journalist' },
-    { id: 'IV',  name: 'FLYUSERFLY',  desc: 'a noir, playable',    path: '/game' },
-    { id: 'V',   name: 'COSTA VISTA', desc: 'open world',          path: '/play/city-game' },
+    { id: '·',   name: 'Maison',      desc: 'the collection', path: '/' },
+    { id: 'I',   name: 'Compute',     desc: 'instrument',     path: '/calculator' },
+    { id: 'II',  name: 'Synthesis',   desc: 'image atelier',  path: '/meme' },
+    { id: 'III', name: 'The Press',   desc: 'ai newsroom',    path: '/journalist' },
+    { id: 'IV',  name: 'Flyuserfly',  desc: 'a noir, playable', path: '/game' },
+    { id: 'V',   name: 'Costa Vista', desc: 'open world',     path: '/play/city-game' },
   ];
   const here = location.pathname.replace(/\/+$/, '') || '/';
   const current = MODULES.find(m => m.path === here) || MODULES[0];
 
-  /* ── gold dust field (skipped on pages that render their own scene) ── */
-  const FX = document.body.dataset.nofx === undefined;
-  const mouse = { x: -9999, y: -9999 };
-  const cv = document.createElement('canvas');
-  cv.id = 'fxCanvas';
-  if (FX) document.body.prepend(cv);
-  const cx = cv.getContext('2d');
-  let W, H, DPR, motes = [];
-
-  function sizeCanvas() {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth; H = window.innerHeight;
-    cv.width = W * DPR; cv.height = H * DPR;
-    cv.style.width = W + 'px'; cv.style.height = H + 'px';
-    cx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  }
-  if (FX) {
-    sizeCanvas();
-    window.addEventListener('resize', sizeCanvas);
-  }
-
-  const N = FX ? Math.min(70, Math.floor(window.innerWidth / 22)) : 0;
-  for (let i = 0; i < N; i++) {
-    const big = Math.random() < 0.12;
-    motes.push({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      r: big ? 2.2 + Math.random() * 2.6 : 0.6 + Math.random() * 1.1,
-      vy: -(0.08 + Math.random() * 0.22),
-      sway: Math.random() * Math.PI * 2,
-      swayV: 0.002 + Math.random() * 0.006,
-      tw: Math.random() * Math.PI * 2,
-      twV: 0.008 + Math.random() * 0.02,
-      big,
-    });
-  }
-
-  function tickField() {
-    cx.clearRect(0, 0, W, H);
-    for (const m of motes) {
-      m.y += m.vy;
-      m.sway += m.swayV;
-      m.tw += m.twV;
-      m.x += Math.sin(m.sway) * 0.18;
-      const dx = m.x - mouse.x, dy = m.y - mouse.y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 < 14400) { // a gentle breath away from the cursor
-        const d = Math.sqrt(d2) || 1;
-        m.x += (dx / d) * 0.35; m.y += (dy / d) * 0.35;
-      }
-      if (m.y < -10) { m.y = H + 10; m.x = Math.random() * W; }
-      if (m.x < -10) m.x = W + 10;
-      if (m.x > W + 10) m.x = -10;
-      const a = (0.18 + Math.sin(m.tw) * 0.14) * (m.big ? 0.5 : 1);
-      if (m.big) {
-        const g = cx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r * 3);
-        g.addColorStop(0, `rgba(200,164,93,${a})`);
-        g.addColorStop(1, 'rgba(200,164,93,0)');
-        cx.fillStyle = g;
-        cx.beginPath(); cx.arc(m.x, m.y, m.r * 3, 0, 7); cx.fill();
-      } else {
-        cx.fillStyle = `rgba(226,200,144,${a + 0.1})`;
-        cx.beginPath(); cx.arc(m.x, m.y, m.r, 0, 7); cx.fill();
-      }
-    }
-    requestAnimationFrame(tickField);
-  }
-  if (FX) requestAnimationFrame(tickField);
-
-  /* ── the frame: top bar (pages with data-nohud build their own) ── */
-  const NOHUD = document.body.dataset.nohud !== undefined;
+  /* ── the frame: top bar ── */
   const hud = document.createElement('header');
   hud.className = 'hud';
   hud.innerHTML = `
-    <a href="/" class="hud-logo" data-nav>FUNFLIX<span class="reg">&reg;</span></a>
-    <div class="hud-mid">Made by you &middot; Made for you</div>
-    <div class="hud-right">
-      <div class="os-menu" id="osMenu">
-        <button class="os-menu-btn" id="osMenuBtn">Collection</button>
-        <nav class="os-menu-list">
-          ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}"><span class="mi">${m.id === '·' ? '&middot;' : 'No. ' + m.id}</span><span>${m.name}</span><span class="md">${m.desc}</span></a>`).join('')}
-        </nav>
+    <div class="hud-inner">
+      <a href="/" class="hud-logo" data-nav>Funflix<sup>&reg;</sup></a>
+      <nav class="hud-links">
+        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}">${m.name}</a>`).join('')}
+      </nav>
+      <div class="hud-right">
+        <button class="hud-cta" id="hudCta">Enter</button>
+        <button class="hud-burger" id="hudBurger" aria-label="Menu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        </button>
       </div>
-      ${document.body.dataset.access !== undefined ? '<button class="os-access-btn" id="osAccessBtn">Enter</button>' : ''}
+      <div class="hud-mobile" id="hudMobile">
+        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}">${m.name}</a>`).join('')}
+      </div>
     </div>`;
-  if (!NOHUD) document.body.prepend(hud);
+  document.body.prepend(hud);
 
   /* ── the footer line ── */
   const sb = document.createElement('footer');
   sb.className = 'statusbar';
   sb.innerHTML = `
-    <div>FUNFLIX &mdash; <span class="hl">MMXXVI</span></div>
-    <div class="sb-mid">${current.path === '/' ? 'A private collection of digital instruments' : 'No. ' + current.id + ' &mdash; ' + current.name}</div>
+    <div>Funflix &mdash; <span class="hl">MMXXVI</span></div>
+    <div class="sb-mid">${current.path === '/' ? 'Made by you &middot; Made for you' : 'No. ' + current.id + ' &mdash; ' + current.name}</div>
     <div><span class="kbd">&#8984;K</span> Concierge &nbsp; <span class="hl" id="osClock">--:--</span></div>`;
   document.body.append(sb);
 
@@ -119,49 +52,29 @@
     }
   }, 1000);
 
-  /* ── dropdown ── */
-  const menu = document.getElementById('osMenu');
-  if (menu) {
-    document.getElementById('osMenuBtn').addEventListener('click', e => {
-      e.stopPropagation();
-      menu.classList.toggle('open');
-    });
-    document.addEventListener('click', e => {
-      if (!e.target.closest('#osMenu')) menu.classList.remove('open');
-    });
-  }
-
-  /* ── page-fade navigation ── */
+  /* ── nav behaviors ── */
   function nav(href) {
     document.body.classList.add('fade-out');
-    setTimeout(() => { location.href = href; }, 240);
+    setTimeout(() => { location.href = href; }, 210);
   }
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-nav]');
     if (a && a.href) { e.preventDefault(); nav(a.getAttribute('href')); }
   });
 
-  /* ── jewel cursor ── */
-  if (matchMedia('(pointer: fine)').matches) {
-    document.body.classList.add('os-cursor');
-    const dot = document.createElement('div'); dot.id = 'curDot';
-    const ring = document.createElement('div'); ring.id = 'curRing';
-    document.body.append(dot, ring);
-    let rx = -50, ry = -50;
-    document.addEventListener('mousemove', e => {
-      mouse.x = e.clientX; mouse.y = e.clientY;
-      dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px';
-      const hot = e.target.closest('a, button, select, input, textarea, [data-hover]');
-      ring.classList.toggle('hot', !!hot);
-    });
-    (function lerpRing() {
-      rx += (mouse.x - rx) * 0.14; ry += (mouse.y - ry) * 0.14;
-      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
-      requestAnimationFrame(lerpRing);
-    })();
-  } else {
-    document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
-  }
+  document.getElementById('hudCta').addEventListener('click', () => {
+    if (typeof window.openAccess === 'function') window.openAccess();
+    else nav('/');
+  });
+
+  const mob = document.getElementById('hudMobile');
+  document.getElementById('hudBurger').addEventListener('click', e => {
+    e.stopPropagation();
+    mob.classList.toggle('open');
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#hudMobile, #hudBurger')) mob.classList.remove('open');
+  });
 
   /* ── the concierge (⌘K) ── */
   const pal = document.createElement('div');
@@ -183,7 +96,7 @@
   function buildItems() {
     const items = MODULES.map(m => ({
       id: m.id === '·' ? '&middot;' : m.id,
-      label: m.path === '/' ? 'Return to the Maison' : `Visit ${m.name.charAt(0) + m.name.slice(1).toLowerCase()}`,
+      label: m.path === '/' ? 'Return to the Maison' : `Visit ${m.name}`,
       hint: m.path === '/' ? 'the collection' : `No. ${m.id} — ${m.desc}`,
       run: () => nav(m.path),
       disabled: m.path === current.path,
@@ -260,8 +173,6 @@
       const px = (e.clientX - r.left) / r.width - 0.5;
       const py = (e.clientY - r.top) / r.height - 0.5;
       el.style.transform = `perspective(800px) rotateY(${px * max}deg) rotateX(${-py * max}deg) translateZ(0)`;
-      el.style.setProperty('--gx', `${(px + 0.5) * 100}%`);
-      el.style.setProperty('--gy', `${(py + 0.5) * 100}%`);
     });
     el.addEventListener('mouseleave', () => {
       el.style.transition = 'transform 0.4s cubic-bezier(0.22,1,0.36,1)';

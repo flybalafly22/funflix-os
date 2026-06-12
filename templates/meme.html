@@ -6,44 +6,47 @@
   <title>Synthesis — FUNFLIX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/os.css">
   <style>
     .stage {
       flex: 1; width: 100%;
       max-width: 1060px; margin: 0 auto;
-      padding: 54px 28px 70px;
+      padding: 64px 28px 80px;
       display: flex; flex-direction: column;
     }
 
-    .mod-head { text-align: center; margin-bottom: 44px; }
+    .mod-head { text-align: center; margin-bottom: 48px; }
     .mod-over {
-      font-family: var(--sans); font-size: 9px; font-weight: 600;
-      letter-spacing: 0.5em; text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 14px;
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--gray-2);
+      margin-bottom: 16px;
     }
     .mod-title {
-      font-family: var(--serif); font-weight: 300;
-      font-size: clamp(40px, 6vw, 62px);
-      letter-spacing: 0.04em; color: var(--ivory);
+      font-family: var(--serif); font-weight: 400;
+      font-size: clamp(44px, 6vw, 68px);
+      letter-spacing: -0.02em; line-height: 0.95;
+      color: var(--black);
     }
     .mod-sub {
-      margin-top: 10px;
+      margin-top: 12px;
       font-family: var(--serif); font-style: italic;
-      font-size: 14px; color: var(--ivory-faint);
+      font-size: 17px; color: var(--gray);
     }
 
     .grid {
-      display: grid; grid-template-columns: 320px 1fr; gap: 26px;
+      display: grid; grid-template-columns: 320px 1fr; gap: 24px;
       flex: 1; align-items: start;
     }
     @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
 
     .panel {
-      border: 1px solid var(--hairline-2);
-      background: rgba(255,255,255,0.012);
+      background: #fff;
+      border: 1px solid var(--rule-2);
+      border-radius: 28px;
       padding: 30px 28px;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.05);
     }
 
     .ctl { display: flex; flex-direction: column; gap: 26px; }
@@ -53,34 +56,35 @@
 
     .dice-btn {
       width: 40px; height: 40px; flex-shrink: 0;
-      background: transparent;
-      border: 1px solid var(--hairline-2);
-      color: var(--ivory-dim);
+      background: #fff;
+      border: 1px solid var(--rule-2);
+      border-radius: 999px;
+      color: var(--gray);
       display: flex; align-items: center; justify-content: center;
       transition: all 0.25s;
     }
-    .dice-btn:hover { border-color: var(--gold-dim); color: var(--gold-bright); transform: rotate(90deg); }
+    .dice-btn:hover { border-color: var(--black); color: var(--black); transform: rotate(90deg); }
     .dice-btn svg { width: 16px; height: 16px; }
 
     /* ── the framed piece ── */
-    .gallery {
-      display: flex; flex-direction: column;
-      min-height: 480px;
-    }
+    .gallery { display: flex; flex-direction: column; min-height: 480px; }
     .frame-mat {
       flex: 1;
-      border: 1px solid var(--hairline-2);
-      padding: 13px;
-      background: rgba(255,255,255,0.012);
+      background: #fff;
+      border: 1px solid var(--rule-2);
+      border-radius: 28px;
+      padding: 14px;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.05);
       display: flex; flex-direction: column;
     }
     .frame-inner {
       flex: 1;
-      border: 1px solid var(--hairline);
+      border: 1px solid var(--rule);
+      border-radius: 18px;
       display: flex; align-items: center; justify-content: center;
       position: relative; overflow: hidden;
       min-height: 400px;
-      background: rgba(0,0,0,0.25);
+      background: var(--wash);
     }
     .frame-inner img {
       max-width: 100%; max-height: 520px;
@@ -88,42 +92,43 @@
       animation: pieceIn 0.7s cubic-bezier(0.22,1,0.36,1);
     }
     .frame-inner img.loaded { display: block; }
-    @keyframes pieceIn { from { opacity: 0; transform: scale(1.015); filter: brightness(1.6) saturate(0.4); } to { opacity: 1; filter: none; } }
+    @keyframes pieceIn { from { opacity: 0; transform: scale(1.015); } to { opacity: 1; } }
 
     .plaque {
-      margin-top: 13px;
+      margin-top: 14px;
+      padding: 0 6px 2px;
       display: flex; align-items: baseline; justify-content: space-between;
       gap: 14px;
     }
     .plaque-title {
       font-family: var(--serif); font-style: italic;
-      font-size: 13px; color: var(--ivory-dim);
+      font-size: 15px; color: var(--gray);
     }
     .plaque-meta {
-      font-family: var(--sans); font-size: 8.5px; font-weight: 600;
-      letter-spacing: 0.3em; text-transform: uppercase;
-      color: var(--ivory-faint);
+      font-family: var(--sans); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--gray-2);
     }
 
     .empty {
       text-align: center; padding: 30px;
       font-family: var(--serif); font-style: italic;
-      font-size: 15px; font-weight: 300;
-      color: var(--ivory-faint);
-      line-height: 2.2;
+      font-size: 17px;
+      color: var(--gray-2);
+      line-height: 2;
     }
     .empty .e-rule {
-      width: 60px; height: 1px;
-      background: var(--gold-dim);
+      width: 56px; height: 1px;
+      background: var(--rule-2);
       margin: 0 auto 18px;
     }
 
     .spinner {
-      display: none; width: 34px; height: 34px;
-      border: 1px solid var(--hairline-2);
-      border-top-color: var(--gold);
+      display: none; width: 32px; height: 32px;
+      border: 1.5px solid var(--rule-2);
+      border-top-color: var(--black);
       border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+      animation: spin 0.8s linear infinite;
       position: absolute;
     }
     .spinner.show { display: block; }
@@ -134,14 +139,14 @@
 
 <div class="page-wrap">
   <div class="stage">
-    <div class="mod-head rise" style="animation-delay:0.05s">
+    <div class="mod-head fade-rise">
       <div class="mod-over">Atelier No. II</div>
       <h1 class="mod-title">Synthesis</h1>
       <div class="mod-sub">an atelier for the manufacture of jokes</div>
     </div>
 
     <div class="grid">
-      <div class="panel ctl rise" style="animation-delay:0.18s">
+      <div class="panel ctl fade-rise-d1">
         <div>
           <label class="os-label">The Canvas</label>
           <div class="tpl-row">
@@ -169,7 +174,7 @@
         <a class="os-btn-ghost" id="dlBtn" download="funflix-synthesis.png" target="_blank" style="display:none">Acquire &mdash; PNG</a>
       </div>
 
-      <div class="gallery rise" style="animation-delay:0.3s">
+      <div class="gallery fade-rise-d2">
         <div class="frame-mat">
           <div class="frame-inner" id="viewport">
             <div class="spinner" id="spinner"></div>
