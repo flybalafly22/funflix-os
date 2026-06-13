@@ -1464,51 +1464,80 @@
       g.add(sg);
     });
 
-    const bF = new THREE.Mesh(new THREE.BoxGeometry(2.32, 0.24, 0.3), trimDark);
-    bF.position.set(0, 0.42, 2.45); g.add(bF);
-    const bR = bF.clone(); bR.position.z = -2.45; g.add(bR);
+    /* the front clip is its own group so a crash can crumple it */
+    const front = new THREE.Group();
+    g.add(front);
+    const bF = new THREE.Mesh(new THREE.BoxGeometry(2.32, 0.26, 0.32), trimDark);
+    bF.position.set(0, 0.42, 2.45); front.add(bF);
+    const grill = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.2, 0.05), trimDark);
+    grill.position.set(0, 0.66, 2.39); front.add(grill);
+    for (let gi = -2; gi <= 2; gi++) {
+      const slat = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.02, 0.06), chrome);
+      slat.position.set(0, 0.66 + gi * 0.045, 2.41); front.add(slat);
+    }
+    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.08), hlMat);
+    hl.position.set(-0.72, 0.7, 2.39); front.add(hl);
+    const hr = hl.clone(); hr.position.x = 0.72; front.add(hr);
+    /* chrome housings around the lamps */
+    [[-0.72], [0.72]].forEach(([hx]) => {
+      const hh = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.2, 0.05), chrome);
+      hh.position.set(hx, 0.7, 2.36); front.add(hh);
+    });
 
-    const grill = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.18, 0.05), trimDark);
-    grill.position.set(0, 0.66, 2.38); g.add(grill);
-    const gBar = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.03, 0.06), chrome);
-    gBar.position.set(0, 0.66, 2.4); g.add(gBar);
-
-    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.15, 0.07), hlMat);
-    hl.position.set(-0.72, 0.7, 2.38); g.add(hl);
-    const hr = hl.clone(); hr.position.x = 0.72; g.add(hr);
-    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.13, 0.07), tlMat);
-    tl.position.set(-0.7, 0.72, -2.38); g.add(tl);
+    const bR = new THREE.Mesh(new THREE.BoxGeometry(2.32, 0.26, 0.32), trimDark);
+    bR.position.set(0, 0.42, -2.45); g.add(bR);
+    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.14, 0.07), tlMat);
+    tl.position.set(-0.7, 0.72, -2.39); g.add(tl);
     const tr = tl.clone(); tr.position.x = 0.7; g.add(tr);
 
     const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0xe8e4d2, roughness: 0.6 }));
-    plate.position.set(0, 0.5, -2.47);
-    plate.rotation.y = Math.PI;
-    g.add(plate);
+    plate.position.set(0, 0.5, -2.47); plate.rotation.y = Math.PI; g.add(plate);
 
-    [[-1.14, 1.05, 0.85], [1.14, 1.05, 0.85]].forEach(p => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.09, 0.2), paint);
-      m.position.set(p[0], p[1], p[2]);
-      g.add(m);
+    /* exhaust */
+    const exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.28, 8), chrome);
+    exhaust.rotation.x = Math.PI / 2;
+    exhaust.position.set(sport ? 0.5 : 0.78, 0.34, -2.5); g.add(exhaust);
+    if (sport) { const ex2 = exhaust.clone(); ex2.position.x = -0.5; g.add(ex2); }
+
+    /* wheel-arch fenders + chrome belt line + door seams */
+    [[-1.04, 1.52], [1.04, 1.52], [-1.04, -1.52], [1.04, -1.52]].forEach(([px, pz]) => {
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.07, 6, 12, Math.PI), trimDark);
+      arch.rotation.y = Math.PI / 2;
+      arch.position.set(px > 0 ? 0.92 : -0.92, 0.5, pz);
+      g.add(arch);
+    });
+    [[-1.0], [1.0]].forEach(([sx]) => {
+      const belt = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 3.6), chrome);
+      belt.position.set(sx, 0.82, 0); g.add(belt);
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.02), trimDark);
+      seam.position.set(sx, 0.7, -0.05); g.add(seam);
+    });
+
+    /* side mirrors on stalks */
+    [[-1.06], [1.06]].forEach(([mx]) => {
+      const stalk = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.04), trimDark);
+      stalk.position.set(mx, 1.02, 0.9); g.add(stalk);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.13, 0.1), paint);
+      cap.position.set(mx + (mx > 0 ? 0.12 : -0.12), 1.04, 0.9); g.add(cap);
+      const glassM = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.07), carGlass);
+      glassM.position.set(mx + (mx > 0 ? 0.18 : -0.18), 1.04, 0.9); g.add(glassM);
     });
 
     if (sport) {
       const blade = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.06, 0.42), paint);
-      blade.position.set(0, 1.18, -2.1);
-      blade.castShadow = true;
-      g.add(blade);
+      blade.position.set(0, 1.18, -2.1); blade.castShadow = true; g.add(blade);
       [[-0.7], [0.7]].forEach(([px]) => {
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.26, 0.08), trimDark);
-        post.position.set(px, 1.0, -2.1);
-        g.add(post);
+        post.position.set(px, 1.0, -2.1); g.add(post);
       });
     }
 
     const wheels = [];
-    [[-1.04, 1.52, true], [1.04, 1.52, true], [-1.04, -1.52, false], [1.04, -1.52, false]].forEach(([px, pz, front]) => {
+    [[-1.04, 1.52, true], [1.04, 1.52, true], [-1.04, -1.52, false], [1.04, -1.52, false]].forEach(([px, pz, front2]) => {
       const w = makeWheel(false);
       w.steer.position.set(px, 0.42, pz);
       g.add(w.steer);
-      wheels.push({ steer: w.steer, spin: w.spin, front });
+      wheels.push({ steer: w.steer, spin: w.spin, front: front2 });
     });
     g.userData.wheels = wheels;
 
@@ -1516,6 +1545,9 @@
     pool.rotation.x = -Math.PI / 2;
     pool.position.set(0, 0.06, 7);
     g.add(pool);
+
+    /* damage hooks */
+    g.userData.crash = { front, hl, hr, paint, baseColor: new THREE.Color(color), damage: 0 };
     return g;
   }
 
@@ -1676,62 +1708,91 @@
   const SKINS = [0xe8b58e, 0xc98e62, 0x8a5a3b, 0xf0c9a0, 0xa9744c];
   const HAIRS = [0x2a211c, 0x4a3320, 0x191920, 0x7a5232, 0xc9b18a];
 
+  /* organic torso/hip silhouettes via lathe profiles, squashed front-to-back to read human not round */
+  function latheBody(profile, mat, depthScale) {
+    const v = profile.map(p => new THREE.Vector2(p[0], p[1]));
+    const m = new THREE.Mesh(new THREE.LatheGeometry(v, 16), mat);
+    m.scale.z = depthScale;
+    m.castShadow = true;
+    return m;
+  }
   function buildHuman(opts) {
-    const skin  = new THREE.MeshStandardMaterial({ color: opts.skin, roughness: 0.75 });
-    const shirt = new THREE.MeshStandardMaterial({ color: opts.shirt, roughness: 0.85 });
-    const pants = new THREE.MeshStandardMaterial({ color: opts.pants, roughness: 0.85 });
-    const shoe  = new THREE.MeshStandardMaterial({ color: 0x23211e, roughness: 0.6 });
+    const skin  = new THREE.MeshStandardMaterial({ color: opts.skin, roughness: 0.72 });
+    const shirt = new THREE.MeshStandardMaterial({ color: opts.shirt, roughness: 0.82 });
+    const pants = new THREE.MeshStandardMaterial({ color: opts.pants, roughness: 0.84 });
+    const shoe  = new THREE.MeshStandardMaterial({ color: 0x201e1b, roughness: 0.55 });
 
     const g = new THREE.Group();
     const parts = {};
 
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.33, 0.66, 10), shirt);
-    torso.position.y = 1.3;
-    torso.castShadow = true;
+    /* tapered chest → waist */
+    const torso = latheBody([
+      [0.02, -0.36], [0.20, -0.35], [0.24, -0.2], [0.275, -0.03],
+      [0.305, 0.13], [0.30, 0.27], [0.23, 0.35], [0.02, 0.36],
+    ], shirt, 0.66);
+    torso.position.y = 1.32;
     g.add(torso);
-    const pelvis = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.27, 0.26, 10), pants);
-    pelvis.position.y = 0.9;
-    pelvis.castShadow = true;
+    /* hips */
+    const pelvis = latheBody([
+      [0.02, -0.18], [0.24, -0.16], [0.285, -0.02], [0.255, 0.14], [0.02, 0.18],
+    ], pants, 0.74);
+    pelvis.position.y = 0.92;
     g.add(pelvis);
 
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.12, 8), skin);
-    neck.position.y = 1.7;
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.085, 0.13, 8), skin);
+    neck.position.y = 1.72;
     g.add(neck);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 14, 11), skin);
-    head.position.y = 1.93;
+    /* smaller, oval head — the single biggest fix for the "toy" look */
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 13), skin);
+    head.scale.set(0.94, 1.08, 0.96);
+    head.position.y = 1.92;
     head.castShadow = true;
     g.add(head);
+    /* nose for a touch of face */
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.07, 6), skin);
+    nose.rotation.x = Math.PI / 2; nose.position.set(0, 1.9, 0.2);
+    g.add(nose);
     if (opts.hair !== null) {
-      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.245, 12, 9, 0, Math.PI * 2, 0, Math.PI * 0.55), new THREE.MeshStandardMaterial({ color: opts.hair, roughness: 0.95 }));
-      hair.position.y = 1.97;
-      g.add(hair);
+      const hairMat = new THREE.MeshStandardMaterial({ color: opts.hair, roughness: 0.95 });
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.215, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), hairMat);
+      cap.scale.set(0.96, 1.05, 0.99);
+      cap.position.y = 1.95;
+      g.add(cap);
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.18, 0.16), hairMat);
+      back.position.set(0, 1.94, -0.12);
+      g.add(back);
     }
     if (opts.shades) {
-      const sh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.05), trimDark);
-      sh.position.set(0, 1.95, 0.2);
+      const sh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.07, 0.05), trimDark);
+      sh.position.set(0, 1.94, 0.18);
       g.add(sh);
+    } else {
+      /* eyes */
+      [-0.07, 0.07].forEach(ex => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 5), trimDark);
+        eye.position.set(ex, 1.93, 0.185);
+        g.add(eye);
+      });
     }
 
-    /* arms with elbows */
-    [['armL', -0.38], ['armR', 0.38]].forEach(([key, px]) => {
+    /* arms: tapered upper + forearm + a shaped hand */
+    [['armL', -0.36], ['armR', 0.36]].forEach(([key, px]) => {
       const shoulder = new THREE.Group();
-      shoulder.position.set(px, 1.56, 0);
-      const shJoint = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 7), shirt);
+      shoulder.position.set(px, 1.57, 0);
+      const shJoint = new THREE.Mesh(new THREE.SphereGeometry(0.092, 10, 8), shirt);
       shoulder.add(shJoint);
-      const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.072, 0.34, 8), shirt);
-      upper.position.y = -0.17;
-      upper.castShadow = true;
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.062, 0.34, 9), shirt);
+      upper.position.y = -0.17; upper.castShadow = true;
       shoulder.add(upper);
       const elbow = new THREE.Group();
       elbow.position.y = -0.34;
-      const elJoint = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 7), skin);
+      const elJoint = new THREE.Mesh(new THREE.SphereGeometry(0.062, 9, 7), skin);
       elbow.add(elJoint);
-      const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.055, 0.32, 8), skin);
-      fore.position.y = -0.16;
-      fore.castShadow = true;
+      const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.05, 0.32, 9), skin);
+      fore.position.y = -0.16; fore.castShadow = true;
       elbow.add(fore);
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), skin);
-      hand.position.y = -0.34;
+      const hand = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.13, 0.05), skin);
+      hand.position.y = -0.37; hand.castShadow = true;
       elbow.add(hand);
       shoulder.add(elbow);
       g.add(shoulder);
@@ -1739,33 +1800,33 @@
       parts[key.replace('arm', 'elb')] = elbow;
     });
 
-    /* legs with knees */
-    [['legL', -0.16], ['legR', 0.16]].forEach(([key, px]) => {
+    /* legs: tapered thigh + calf + a proper shoe with a toe */
+    [['legL', -0.15], ['legR', 0.15]].forEach(([key, px]) => {
       const hip = new THREE.Group();
-      hip.position.set(px, 0.86, 0);
-      const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.112, 0.096, 0.42, 8), pants);
-      thigh.position.y = -0.21;
-      thigh.castShadow = true;
+      hip.position.set(px, 0.88, 0);
+      const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.092, 0.44, 9), pants);
+      thigh.position.y = -0.22; thigh.castShadow = true;
       hip.add(thigh);
       const knee = new THREE.Group();
-      knee.position.y = -0.42;
-      const knJoint = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 7), pants);
+      knee.position.y = -0.44;
+      const knJoint = new THREE.Mesh(new THREE.SphereGeometry(0.088, 9, 7), pants);
       knee.add(knJoint);
-      const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.4, 8), pants);
-      calf.position.y = -0.2;
-      calf.castShadow = true;
+      const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.086, 0.062, 0.42, 9), pants);
+      calf.position.y = -0.21; calf.castShadow = true;
       knee.add(calf);
-      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.3), shoe);
-      foot.position.set(0, -0.43, 0.06);
-      foot.castShadow = true;
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.09, 0.26), shoe);
+      foot.position.set(0, -0.44, 0.05); foot.castShadow = true;
       knee.add(foot);
+      const toe = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.06, 0.08), shoe);
+      toe.position.set(0, -0.46, 0.2);
+      knee.add(toe);
       hip.add(knee);
       g.add(hip);
       parts[key] = hip;
       parts[key.replace('leg', 'knee')] = knee;
     });
 
-    g.add(makeBlob(0.55));
+    g.add(makeBlob(0.52));
     g.userData.parts = parts;
     return g;
   }
@@ -1927,6 +1988,92 @@
   }
   setBeacon(0, 0, false);
 
+  /* ════════ CRASH FX — spark + smoke particle pools ════════ */
+  const sparks = [];
+  for (let i = 0; i < 44; i++) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffd27a, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
+    s.scale.set(0.4, 0.4, 1); s.visible = false; scene.add(s);
+    sparks.push({ spr: s, life: 0, vx: 0, vy: 0, vz: 0 });
+  }
+  function spawnSparks(x, y, z, power) {
+    let want = Math.min(16, 5 + (power * 12 | 0)), got = 0;
+    for (const p of sparks) {
+      if (got >= want) break;
+      if (p.life > 0) continue;
+      p.life = 0.3 + Math.random() * 0.3;
+      const a = Math.random() * 6.28, sp = 2 + Math.random() * 5;
+      p.vx = Math.cos(a) * sp; p.vz = Math.sin(a) * sp; p.vy = 2 + Math.random() * 5;
+      p.spr.visible = true; p.spr.position.set(x, y, z); p.spr.material.opacity = 1;
+      got++;
+    }
+  }
+  const smokes = [];
+  for (let i = 0; i < 34; i++) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0x3a3a3a, transparent: true, depthWrite: false, opacity: 0 }));
+    s.visible = false; scene.add(s);
+    smokes.push({ spr: s, life: 0, vy: 0, size: 1 });
+  }
+  function spawnSmoke(x, y, z, dark) {
+    for (const p of smokes) {
+      if (p.life > 0) continue;
+      p.life = 1.3 + Math.random() * 0.9; p.vy = 1.1 + Math.random();
+      p.size = 1 + Math.random() * 0.8;
+      p.spr.visible = true; p.spr.position.set(x, y, z);
+      p.spr.material.color.setHex(dark ? 0x1c1c1c : 0x555555);
+      p.spr.material.opacity = 0.5; p.spr.scale.set(p.size, p.size, 1);
+      break;
+    }
+  }
+  function updateFX(dt) {
+    for (const p of sparks) {
+      if (p.life <= 0) continue;
+      p.life -= dt; p.vy -= 15 * dt;
+      p.spr.position.x += p.vx * dt; p.spr.position.y += p.vy * dt; p.spr.position.z += p.vz * dt;
+      if (p.spr.position.y < 0.1) { p.spr.position.y = 0.1; p.vy *= -0.3; p.vx *= 0.6; p.vz *= 0.6; }
+      p.spr.material.opacity = Math.max(0, p.life / 0.35);
+      if (p.life <= 0) p.spr.visible = false;
+    }
+    for (const p of smokes) {
+      if (p.life <= 0) continue;
+      p.life -= dt; p.vy *= (1 - 0.4 * dt);
+      p.spr.position.y += p.vy * dt;
+      const sc = p.size + (2.2 - p.life) * 1.6;
+      p.spr.scale.set(sc, sc, 1);
+      p.spr.material.opacity = Math.max(0, p.life * 0.32);
+      if (p.life <= 0) p.spr.visible = false;
+    }
+  }
+
+  /* damage model: crumple, scorch, dead lamp, smoke, degraded handling */
+  function vForward(v) { return new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading)); }
+  function damageVehicle(v, impact) {
+    const c = v.mesh.userData.crash;
+    if (!c) return;
+    const fw = vForward(v);
+    const fx = v.mesh.position.x + fw.x * 2.4, fz = v.mesh.position.z + fw.z * 2.4;
+    spawnSparks(fx, 0.6, fz, impact);
+    c.damage = Math.min(1, c.damage + impact * 0.5);
+    c.front.position.z = -c.damage * 0.45;
+    c.front.scale.set(1 - c.damage * 0.12, 1 - c.damage * 0.3, 1 - c.damage * 0.5);
+    c.front.rotation.x = c.damage * 0.14 * (c.tilt || (c.tilt = Math.random() < 0.5 ? 1 : -1));
+    c.paint.color.copy(c.baseColor).multiplyScalar(1 - c.damage * 0.45);
+    c.paint.roughness = 0.3 + c.damage * 0.55;
+    if (c.damage > 0.5) c.hl.visible = false;
+    if (c.damage > 0.85) c.hr.visible = false;
+  }
+  function shoveTraffic(x, z, self, fw, power) {
+    trafficCars.forEach(tc => {
+      if (tc.mesh === self) return;
+      const d = Math.hypot(x - tc.mesh.position.x, z - tc.mesh.position.z);
+      if (d < 3.8) {
+        tc.mesh.position.x += fw.x * power;
+        tc.mesh.position.z += fw.z * power;
+        tc.cur = 0;
+        spawnSparks(tc.mesh.position.x, 0.6, tc.mesh.position.z, power * 0.4);
+      }
+    });
+  }
+
   /* ════════ AUDIO ════════ */
   let AC = null, engineOsc = null, engineGain = null, radioOn = false, radioGain = null, radioStep = 0, radioNext = 0;
   function audioInit() {
@@ -1973,6 +2120,7 @@
   const sfxPickup = () => { beep(660, 0.07); setTimeout(() => beep(990, 0.07), 80); setTimeout(() => beep(1320, 0.1), 160); };
   const sfxBlip   = () => beep(880, 0.05, 'square', 0.025);
   const sfxThud   = () => beep(120, 0.18, 'sawtooth', 0.05);
+  const sfxCrash  = (p) => { beep(80 + Math.random() * 30, 0.32, 'sawtooth', 0.07); setTimeout(() => beep(170, 0.16, 'square', 0.05), 40); if (p > 0.5) setTimeout(() => beep(240, 0.1, 'square', 0.03), 90); };
   let gullT = 8;
   function gull() { beep(1380, 0.12, 'sine', 0.018); setTimeout(() => beep(1050, 0.16, 'sine', 0.015), 140); }
 
@@ -2703,6 +2851,15 @@
     const frozen = overlayOpen || dialogOpen() || cine;
 
     const sky = updateDayNight(frozen && !cine ? 0 : dt);
+    updateFX(dt);
+    /* a badly wrecked car you're driving trails smoke from the crumpled hood */
+    if (!frozen && currentV) {
+      const c = currentV.mesh.userData.crash;
+      if (c && c.damage > 0.55 && Math.random() < 0.5) {
+        const fw = vForward(currentV);
+        spawnSmoke(currentV.mesh.position.x + fw.x * 2.2, 0.9, currentV.mesh.position.z + fw.z * 2.2, c.damage > 0.8);
+      }
+    }
 
     /* signal heads follow the global cycle */
     const sigP = t % 20;
@@ -2783,9 +2940,12 @@
     let steerVisual = 0;
     if (!frozen && currentV) {
       const v = currentV, K = KINDS[v.kind];
+      const dmg = (v.mesh.userData.crash && v.mesh.userData.crash.damage) || 0;
+      const maxV = K.maxV * (1 - dmg * 0.4);   // a wrecked car limps
+      const accel = K.accel * (1 - dmg * 0.35);
       const gas = pad.gas || keys.has('KeyW') || keys.has('ArrowUp');
       const brk = pad.brake || keys.has('KeyS') || keys.has('ArrowDown');
-      if (gas) v.vel = Math.min(K.maxV, v.vel + K.accel * dt);
+      if (gas) v.vel = Math.min(maxV, v.vel + accel * dt);
       else if (brk) v.vel = Math.max(-9, v.vel - 24 * dt);
       else v.vel *= Math.max(0, 1 - 1.3 * dt);
       if (keys.has('Space')) v.vel *= Math.max(0, 1 - 5 * dt);
@@ -2806,8 +2966,19 @@
       const bldBlocked = bNew && !bCur;
       const vehBlocked = pNew !== Infinity && pNew <= pCur + 0.001;
       if (bldBlocked || vehBlocked) {
-        if (Math.abs(v.vel) > 2) { shake = Math.min(0.5, Math.abs(v.vel) * 0.045 + 0.12); sfxThud(); }
-        v.vel *= -0.2;
+        const impactSpeed = Math.abs(v.vel);
+        if (impactSpeed > 5) {
+          /* a real crash: crumple, spark, shake, crunch — and shove what you hit */
+          const norm = Math.min(1, (impactSpeed - 5) / 22);
+          damageVehicle(v, norm * 0.6);
+          shake = Math.min(0.85, impactSpeed * 0.05 + 0.2);
+          sfxCrash(norm);
+          if (vehBlocked) shoveTraffic(nx, nz, v.mesh, vForward(v), 0.6 + norm * 1.4);
+          v.vel *= -0.28;
+        } else {
+          if (impactSpeed > 2) { shake = Math.min(0.5, impactSpeed * 0.045 + 0.12); sfxThud(); }
+          v.vel *= -0.2;
+        }
       } else {
         v.mesh.position.x = clamp(nx, BOUND_X[0], BOUND_X[1]);
         v.mesh.position.z = clamp(nz, BOUND_Z[0], BOUND_Z[1]);
