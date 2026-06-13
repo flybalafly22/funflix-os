@@ -10,6 +10,7 @@
     { id: 'III', name: 'The Press',   desc: 'ai newsroom',    path: '/journalist' },
     { id: 'IV',  name: 'Flyuserfly',  desc: 'a noir, playable', path: '/game' },
     { id: 'V',   name: 'Costa Vista', desc: 'open world',     path: '/play/city-game' },
+    { id: 'VI',  name: 'The Study',   desc: 'bio-analytics',  path: '/study' },
   ];
   const here = location.pathname.replace(/\/+$/, '') || '/';
   const current = MODULES.find(m => m.path === here) || MODULES[0];

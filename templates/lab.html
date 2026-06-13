@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Study — FUNFLIX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/os.css">
+  <style>
+    .stage {
+      flex: 1; width: 100%;
+      max-width: 920px; margin: 0 auto;
+      padding: 64px 28px 90px;
+      display: flex; flex-direction: column; gap: 30px;
+    }
+    @media (max-width: 640px) { .stage { padding: 44px 18px 70px; } }
+
+    .mod-head { text-align: center; }
+    .mod-over {
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--gray-2); margin-bottom: 16px;
+    }
+    .mod-title {
+      font-family: var(--serif); font-weight: 400;
+      font-size: clamp(44px, 6vw, 68px);
+      letter-spacing: -0.02em; line-height: 0.95; color: var(--black);
+    }
+    .mod-sub {
+      margin-top: 12px;
+      font-family: var(--serif); font-style: italic;
+      font-size: 17px; color: var(--gray);
+    }
+
+    /* ── the vitals band ── */
+    .vitals {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      border: 1px solid var(--rule-2); border-radius: 22px;
+      overflow: hidden; background: #fff;
+    }
+    @media (max-width: 640px) { .vitals { grid-template-columns: repeat(2, 1fr); } }
+    .vital { padding: 26px 22px; border-right: 1px solid var(--rule); }
+    .vital:last-child { border-right: none; }
+    @media (max-width: 640px) {
+      .vital:nth-child(2n) { border-right: none; }
+      .vital:nth-child(-n+2) { border-bottom: 1px solid var(--rule); }
+    }
+    .vital-n { font-family: var(--serif); font-size: 40px; line-height: 1; color: var(--black); }
+    .vital-l {
+      margin-top: 10px; font-family: var(--sans); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--gray-2);
+    }
+
+    /* ── finding cards ── */
+    .desk {
+      background: #fff; border: 1px solid var(--rule-2); border-radius: 28px;
+      padding: 36px 38px; box-shadow: 0 24px 70px rgba(0,0,0,0.05);
+    }
+    @media (max-width: 640px) { .desk { padding: 26px 22px; } }
+    .find-kicker {
+      font-family: var(--sans); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.24em; text-transform: uppercase; color: var(--gray-2);
+      margin-bottom: 14px; display: flex; align-items: baseline; gap: 12px;
+    }
+    .find-kicker .fk-no { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--black); letter-spacing: 0; text-transform: none; }
+    .find-title {
+      font-family: var(--serif); font-weight: 400;
+      font-size: clamp(26px, 3.4vw, 34px); line-height: 1.1;
+      letter-spacing: -0.015em; color: var(--black); margin-bottom: 14px;
+    }
+    .find-body {
+      font-family: var(--serif); font-size: 18px; line-height: 1.75; color: #2a2a28;
+    }
+    .find-body + .find-body { margin-top: 14px; }
+    .find-body em { color: var(--black); font-style: italic; }
+    .find-body b { font-weight: 400; color: var(--black); border-bottom: 1px solid var(--rule-2); }
+
+    .chart-wrap { margin-top: 26px; }
+    .chart-title {
+      font-family: var(--sans); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray-2);
+      margin-bottom: 16px;
+    }
+    svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+    .ax-line { stroke: var(--rule-2); stroke-width: 1; }
+    .grid-line { stroke: var(--rule); stroke-width: 1; }
+    .tick-txt { font-family: var(--sans); font-size: 10px; fill: var(--gray-2); }
+    .bar-lbl { font-family: var(--sans); font-size: 11px; font-weight: 500; fill: var(--black); }
+    .bar-sub { font-family: var(--sans); font-size: 10px; fill: var(--gray-2); }
+    .bar-val { font-family: var(--serif); font-size: 16px; fill: var(--black); }
+    .pt-lbl  { font-family: var(--serif); font-style: italic; font-size: 14px; fill: var(--black); }
+    .ax-title { font-family: var(--sans); font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; fill: var(--gray-2); }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; }
+    .legend span { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans); font-size: 12px; color: var(--gray); }
+    .legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+    /* ── interactive explorer controls ── */
+    .controls { display: flex; flex-wrap: wrap; gap: 26px; margin-top: 6px; }
+    .ctrl-group { display: flex; flex-direction: column; gap: 10px; }
+    .seg { display: inline-flex; border: 1px solid var(--rule-2); border-radius: 999px; overflow: hidden; }
+    .seg button {
+      background: none; border: none; padding: 9px 16px;
+      font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--gray);
+      transition: background 0.18s, color 0.18s; white-space: nowrap;
+    }
+    .seg button + button { border-left: 1px solid var(--rule); }
+    .seg button.on { background: var(--black); color: #fff; }
+    .seg button:not(.on):hover { background: var(--wash); color: var(--black); }
+    .explore-note { margin-top: 14px; font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--gray); }
+
+    /* ════════ The Analyst — chatbot ════════ */
+    .analyst { padding-bottom: 30px; }
+    .chat-log {
+      display: flex; flex-direction: column; gap: 18px;
+      max-height: 460px; overflow-y: auto;
+      padding: 4px 4px 8px; margin: 22px 0 24px;
+    }
+    .bubble { max-width: 86%; font-size: 16px; line-height: 1.7; }
+    .bubble.ai {
+      align-self: flex-start;
+      font-family: var(--serif); color: #232321;
+      white-space: pre-wrap;
+    }
+    .bubble.ai .who, .bubble.user .who {
+      display: block; font-family: var(--sans); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.22em; text-transform: uppercase; color: var(--gray-2); margin-bottom: 7px;
+    }
+    .bubble.user {
+      align-self: flex-end; text-align: right;
+      font-family: var(--sans); font-size: 15px; color: #fff;
+      background: var(--black); border-radius: 18px 18px 4px 18px;
+      padding: 14px 18px;
+    }
+    .bubble.user .who { color: rgba(255,255,255,0.55); text-align: right; }
+    .bubble.ai .txt { display: inline; }
+    .stream-caret {
+      display: inline-block; width: 1px; height: 1.05em; background: var(--black);
+      vertical-align: text-bottom; margin-left: 2px; animation: cBlink 0.8s steps(1) infinite;
+    }
+    @keyframes cBlink { 50% { opacity: 0; } }
+    .bubble.err { align-self: flex-start; font-family: var(--serif); font-style: italic; color: var(--gray);
+      border-left: 2px solid var(--rule-2); padding-left: 16px; }
+
+    .ask-chips { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 22px; }
+    .chip {
+      background: none; border: none; color: var(--gray-2);
+      font-family: var(--sans); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.16em; text-transform: uppercase; padding: 6px 0;
+      position: relative; transition: color 0.22s; text-align: left;
+    }
+    .chip::after { content: ''; position: absolute; left: 0; bottom: 2px; width: 0; height: 1px; background: var(--black); transition: width 0.3s cubic-bezier(0.22,1,0.36,1); }
+    .chip:hover { color: var(--black); }
+    .chip:hover::after { width: 100%; }
+
+    .chat-row { display: flex; gap: 16px; align-items: flex-end; }
+    .chat-row .os-input { flex: 1; }
+    .chat-row .os-btn-primary { width: auto; flex-shrink: 0; padding-left: 26px; padding-right: 26px; }
+    .api-hint {
+      margin-top: 16px; font-family: var(--sans); font-size: 11px; color: var(--gray-2);
+      letter-spacing: 0.04em;
+    }
+    .loading-line { font-family: var(--serif); font-style: italic; color: var(--gray-2); }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="stage">
+
+    <div class="mod-head fade-rise">
+      <div class="mod-over">Bureau No. VI</div>
+      <h1 class="mod-title">The Study</h1>
+      <div class="mod-sub">a bio-analytics dossier on sports nutrition &mdash; that answers back</div>
+    </div>
+
+    <!-- vitals -->
+    <div class="vitals fade-rise-d1" id="vitals"></div>
+
+    <!-- Finding 1 -->
+    <section class="desk fade-rise-d1">
+      <div class="find-kicker"><span class="fk-no">Finding I</span> The headline</div>
+      <h2 class="find-title">The supplement is the whole story.</h2>
+      <p class="find-body">Across <b id="f1n">1,000</b> participants, strength gains separate almost perfectly by regimen. The combined <em>&ldquo;Both&rdquo;</em> protocol leads, creatine sits in the middle, and the mass gainer trails far behind &mdash; it is a weight product, not a strength one.</p>
+      <p class="find-body">The small number beside each bar is the <b>coefficient of variation</b> (CoV) &mdash; the spread relative to the average. A lower CoV means more <em>consistent</em> results from person to person, which answers the dataset's own challenge: which regimen gives reliable strength spikes regardless of who takes it.</p>
+      <div class="chart-wrap">
+        <div class="chart-title">Mean strength gain by supplement &mdash; bar label shows consistency (CoV)</div>
+        <svg class="chart" id="chartSupp" viewBox="0 0 760 300" role="img" aria-label="Mean strength gain by supplement"></svg>
+      </div>
+    </section>
+
+    <!-- Finding 2 -->
+    <section class="desk">
+      <div class="find-kicker"><span class="fk-no">Finding II</span> The trade-off</div>
+      <h2 class="find-title">Weight and strength pull in different directions.</h2>
+      <p class="find-body">Plotting each regimen by what it actually delivers makes the design of the data legible. <em>Mass Gainer</em> buys kilograms but little strength. <em>Creatine</em> buys strength with almost no added weight. <em>Both</em> sits in the prized upper-right &mdash; gains on each axis at once.</p>
+      <div class="chart-wrap">
+        <div class="chart-title">Each point is a regimen's average outcome</div>
+        <svg class="chart" id="chartTrade" viewBox="0 0 760 380" role="img" aria-label="Weight change versus strength gain by supplement"></svg>
+      </div>
+      <div class="legend" id="legendTrade"></div>
+    </section>
+
+    <!-- Finding 3 -->
+    <section class="desk">
+      <div class="find-kicker"><span class="fk-no">Finding III</span> The non-story</div>
+      <h2 class="find-title">Who you are barely moves the needle.</h2>
+      <p class="find-body">Age, gender, cycle length and starting weight are all but uncorrelated with strength gain &mdash; every correlation sits within a hair of <b>zero</b>. Average strength gain is essentially identical across genders, exactly as you'd expect from a field that was assigned at random.</p>
+      <p class="find-body">A correlation near zero means the two numbers move independently: knowing someone's age tells you nothing useful about their result. The bars below are drawn on a wide &minus;0.2 to +0.2 scale so you can see just how flat they really are.</p>
+      <div class="chart-wrap">
+        <div class="chart-title">Correlation with strength gain &mdash; everything hovers at zero</div>
+        <svg class="chart" id="chartCorr" viewBox="0 0 760 220" role="img" aria-label="Correlations with strength gain"></svg>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Mean strength gain by gender &mdash; flat by design</div>
+        <svg class="chart" id="chartGender" viewBox="0 0 760 200" role="img" aria-label="Mean strength gain by gender"></svg>
+      </div>
+    </section>
+
+    <!-- Explorer -->
+    <section class="desk">
+      <div class="find-kicker"><span class="fk-no">Explore</span> All 1,000 participants</div>
+      <h2 class="find-title">See it for yourself.</h2>
+      <p class="find-body">Each dot is one participant, coloured by supplement. Switch the horizontal axis and filter by gender &mdash; notice the colour bands stay stacked no matter what you choose. That stubborn stacking <em>is</em> the finding: the regimen sets the level, everything else is noise.</p>
+      <div class="controls">
+        <div class="ctrl-group">
+          <label class="os-label" style="margin:0">Horizontal axis</label>
+          <div class="seg" id="segX">
+            <button data-x="Weeks" class="on">Weeks</button>
+            <button data-x="Age">Age</button>
+            <button data-x="Initial_WT">Start weight</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <label class="os-label" style="margin:0">Gender filter</label>
+          <div class="seg" id="segG">
+            <button data-g="All" class="on">All</button>
+            <button data-g="Female">Female</button>
+            <button data-g="Male">Male</button>
+            <button data-g="Non-Binary">Non-Binary</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <svg class="chart" id="chartScatter" viewBox="0 0 760 420" role="img" aria-label="Strength gain scatter explorer"></svg>
+      </div>
+      <div class="legend" id="legendScatter"></div>
+      <p class="explore-note" id="exploreNote"></p>
+    </section>
+
+    <!-- Finding 4 -->
+    <section class="desk">
+      <div class="find-kicker"><span class="fk-no">Finding IV</span> The model</div>
+      <h2 class="find-title">A model confirms it &mdash; one feature does the work.</h2>
+      <p class="find-body">Predicting strength gain from a participant's profile (age, gender, cycle length, starting weight and supplement), a cross-validated model lands around <b id="mBest">3.4 points</b> of average error. The mean-only baseline is roughly twice as wrong, so the features genuinely help &mdash; but which ones?</p>
+      <p class="find-body">Permutation importance answers that: shuffle the <em>Supplement</em> column and the model collapses; shuffle anything else and almost nothing happens. In other words, the entire predictive signal is the regimen.</p>
+      <div class="chart-wrap">
+        <div class="chart-title">Average error by model &mdash; lower is better (MAE, percentage points)</div>
+        <svg class="chart" id="chartModel" viewBox="0 0 760 250" role="img" aria-label="Model error comparison"></svg>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Feature importance &mdash; drop in R² when a feature is scrambled</div>
+        <svg class="chart" id="chartImp" viewBox="0 0 760 220" role="img" aria-label="Feature importance"></svg>
+      </div>
+    </section>
+
+    <!-- The Analyst -->
+    <section class="desk analyst">
+      <div class="find-kicker"><span class="fk-no">The Analyst</span> Ask the data anything</div>
+      <h2 class="find-title">A conversation with the findings.</h2>
+      <p class="find-body">The analyst below has read the full brief &mdash; every table, correlation and model result on this page. Ask it to explain a number, challenge a claim, or dig into a slice of the data.</p>
+
+      <div class="chat-log" id="chatLog"></div>
+
+      <div class="ask-chips" id="askChips">
+        <button class="chip">Which supplement is most consistent and why?</button>
+        <button class="chip">Why is the R² only 0.68?</button>
+        <button class="chip">Does age affect strength gain?</button>
+        <button class="chip">Explain the weight vs strength trade-off</button>
+      </div>
+
+      <div class="chat-row">
+        <input class="os-input" type="text" id="askInput" placeholder="ask the analyst&hellip;" autocomplete="off"/>
+        <button class="os-btn-primary" id="askBtn">Ask</button>
+      </div>
+      <div class="api-hint" id="apiHint"></div>
+    </section>
+
+  </div>
+</div>
+
+<script src="/static/os.js"></script>
+<script>
+/* ════════ palette + helpers ════════ */
+const COLORS = {
+  'Both': '#111111',
+  'Creatine Monohydrate': '#c8a45d',
+  'Mass Gainer': '#9b9b9b',
+};
+const SHORT = { 'Both': 'Both', 'Creatine Monohydrate': 'Creatine', 'Mass Gainer': 'Mass Gainer' };
+const NS = 'http://www.w3.org/2000/svg';
+
+function svg(tag, attrs, txt) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (txt != null) e.textContent = txt;
+  return e;
+}
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+let DATA = null;
+
+/* ════════ vitals ════════ */
+function renderVitals(m, supp) {
+  const top = supp[0];
+  const vals = [
+    [m.n.toLocaleString(), 'Participants'],
+    [m.strength_mean + '%', 'Mean strength gain'],
+    [SHORT[top.name], 'Top regimen'],
+    [m.weeks_min + '–' + m.weeks_max + ' wks', 'Cycle range'],
+  ];
+  const host = document.getElementById('vitals');
+  host.innerHTML = vals.map(([n, l]) =>
+    `<div class="vital"><div class="vital-n">${n}</div><div class="vital-l">${l}</div></div>`).join('');
+}
+
+/* ════════ Finding 1 — vertical bars (strength by supplement) ════════ */
+function renderSupp(supp) {
+  const s = document.getElementById('chartSupp'); clear(s);
+  const W = 760, H = 300, padL = 46, padB = 64, padT = 24, padR = 20;
+  const plotH = H - padB - padT, plotW = W - padL - padR;
+  const yMax = 30;
+  const yToPx = v => padT + plotH - (v / yMax) * plotH;
+  // gridlines
+  for (let g = 0; g <= yMax; g += 10) {
+    s.appendChild(svg('line', { class: 'grid-line', x1: padL, y1: yToPx(g), x2: W - padR, y2: yToPx(g) }));
+    s.appendChild(svg('text', { class: 'tick-txt', x: padL - 10, y: yToPx(g) + 3, 'text-anchor': 'end' }, g + '%'));
+  }
+  const n = supp.length, slot = plotW / n, bw = Math.min(150, slot * 0.5);
+  supp.forEach((d, i) => {
+    const cx = padL + slot * (i + 0.5);
+    const y = yToPx(d.mean);
+    s.appendChild(svg('rect', { x: cx - bw / 2, y, width: bw, height: padT + plotH - y, rx: 6, fill: COLORS[d.name] }));
+    s.appendChild(svg('text', { class: 'bar-val', x: cx, y: y - 22, 'text-anchor': 'middle' }, d.mean + '%'));
+    s.appendChild(svg('text', { class: 'bar-sub', x: cx, y: y - 8, 'text-anchor': 'middle' }, 'CoV ' + d.cov + '%'));
+    s.appendChild(svg('text', { class: 'bar-lbl', x: cx, y: H - padB + 24, 'text-anchor': 'middle' }, SHORT[d.name]));
+    s.appendChild(svg('text', { class: 'bar-sub', x: cx, y: H - padB + 40, 'text-anchor': 'middle' }, 'n = ' + d.n));
+  });
+}
+
+/* ════════ Finding 2 — trade-off scatter (one point per regimen) ════════ */
+function renderTrade(supp) {
+  const s = document.getElementById('chartTrade'); clear(s);
+  const W = 760, H = 380, padL = 60, padB = 60, padT = 24, padR = 30;
+  const plotH = H - padB - padT, plotW = W - padL - padR;
+  const xMax = 10, yMax = 30; // weight kg, strength %
+  const xPx = v => padL + (v / xMax) * plotW;
+  const yPx = v => padT + plotH - (v / yMax) * plotH;
+  // grid
+  for (let g = 0; g <= yMax; g += 10) {
+    s.appendChild(svg('line', { class: 'grid-line', x1: padL, y1: yPx(g), x2: W - padR, y2: yPx(g) }));
+    s.appendChild(svg('text', { class: 'tick-txt', x: padL - 10, y: yPx(g) + 3, 'text-anchor': 'end' }, g + '%'));
+  }
+  for (let g = 0; g <= xMax; g += 2) {
+    s.appendChild(svg('line', { class: 'grid-line', x1: xPx(g), y1: padT, x2: xPx(g), y2: padT + plotH }));
+    s.appendChild(svg('text', { class: 'tick-txt', x: xPx(g), y: padT + plotH + 18, 'text-anchor': 'middle' }, g + 'kg'));
+  }
+  s.appendChild(svg('text', { class: 'ax-title', x: padL + plotW / 2, y: H - 12, 'text-anchor': 'middle' }, 'Average weight gained (kg)'));
+  s.appendChild(svg('text', { class: 'ax-title', x: 16, y: padT + plotH / 2, 'text-anchor': 'middle', transform: `rotate(-90 16 ${padT + plotH / 2})` }, 'Average strength gain (%)'));
+  supp.forEach(d => {
+    const x = xPx(d.wt_mean), y = yPx(d.mean);
+    s.appendChild(svg('circle', { cx: x, cy: y, r: 13, fill: COLORS[d.name], 'fill-opacity': 0.9 }));
+    const right = x < W - 150;
+    s.appendChild(svg('text', { class: 'pt-lbl', x: x + (right ? 22 : -22), y: y + 5, 'text-anchor': right ? 'start' : 'end' }, SHORT[d.name]));
+  });
+  document.getElementById('legendTrade').innerHTML = supp.map(d =>
+    `<span><i style="background:${COLORS[d.name]}"></i>${SHORT[d.name]} &mdash; ${d.wt_mean}kg, ${d.mean}%</span>`).join('');
+}
+
+/* ════════ Finding 3a — correlation bars ════════ */
+function renderCorr(corr) {
+  const s = document.getElementById('chartCorr'); clear(s);
+  const W = 760, H = 220, padL = 110, padR = 40, padT = 16, padB = 28;
+  const rows = Object.entries(corr);
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const lim = 0.2;
+  const xPx = v => padL + ((v + lim) / (2 * lim)) * plotW;
+  const zero = xPx(0);
+  // scale ticks
+  [-0.2, -0.1, 0, 0.1, 0.2].forEach(t => {
+    s.appendChild(svg('line', { class: t === 0 ? 'ax-line' : 'grid-line', x1: xPx(t), y1: padT, x2: xPx(t), y2: padT + plotH }));
+    s.appendChild(svg('text', { class: 'tick-txt', x: xPx(t), y: H - 8, 'text-anchor': 'middle' }, t.toFixed(1)));
+  });
+  const rh = plotH / rows.length;
+  rows.forEach(([k, v], i) => {
+    const cy = padT + rh * (i + 0.5);
+    const x = xPx(v);
+    s.appendChild(svg('text', { class: 'bar-lbl', x: padL - 14, y: cy + 4, 'text-anchor': 'end' }, k));
+    s.appendChild(svg('rect', { x: Math.min(zero, x), y: cy - 9, width: Math.max(2, Math.abs(x - zero)), height: 18, rx: 4, fill: '#111' }));
+    s.appendChild(svg('text', { class: 'bar-sub', x: x + (v >= 0 ? 8 : -8), y: cy + 4, 'text-anchor': v >= 0 ? 'start' : 'end' }, v.toFixed(3)));
+  });
+}
+
+/* ════════ Finding 3b — gender bars (flat) ════════ */
+function renderGender(gender) {
+  const s = document.getElementById('chartGender'); clear(s);
+  const W = 760, H = 200, padL = 46, padR = 20, padT = 20, padB = 40;
+  const plotW = W - padL - padR, plotH = H - padT - padB, yMax = 30;
+  const yPx = v => padT + plotH - (v / yMax) * plotH;
+  for (let g = 0; g <= yMax; g += 10) {
+    s.appendChild(svg('line', { class: 'grid-line', x1: padL, y1: yPx(g), x2: W - padR, y2: yPx(g) }));
+    s.appendChild(svg('text', { class: 'tick-txt', x: padL - 10, y: yPx(g) + 3, 'text-anchor': 'end' }, g + '%'));
+  }
+  const n = gender.length, slot = plotW / n, bw = Math.min(120, slot * 0.42);
+  gender.forEach((d, i) => {
+    const cx = padL + slot * (i + 0.5), y = yPx(d.mean);
+    s.appendChild(svg('rect', { x: cx - bw / 2, y, width: bw, height: padT + plotH - y, rx: 6, fill: '#d8d4cb' }));
+    s.appendChild(svg('text', { class: 'bar-val', x: cx, y: y - 8, 'text-anchor': 'middle' }, d.mean + '%'));
+    s.appendChild(svg('text', { class: 'bar-lbl', x: cx, y: H - 16, 'text-anchor': 'middle' }, d.name));
+  });
+}
+
+/* ════════ Explorer — 1,000-point scatter ════════ */
+let xKey = 'Weeks', gFilter = 'All';
+const X_META = {
+  Weeks: { label: 'Cycle length (weeks)', min: 4, max: 24 },
+  Age: { label: 'Age (years)', min: 18, max: 65 },
+  Initial_WT: { label: 'Starting weight (kg)', min: 50, max: 100 },
+};
+function renderScatter() {
+  const s = document.getElementById('chartScatter'); clear(s);
+  const W = 760, H = 420, padL = 52, padR = 24, padT = 20, padB = 54;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const meta = X_META[xKey], yMax = 32;
+  const xPx = v => padL + ((v - meta.min) / (meta.max - meta.min)) * plotW;
+  const yPx = v => padT + plotH - (v / yMax) * plotH;
+  for (let g = 0; g <= 30; g += 10) {
+    s.appendChild(svg('line', { class: 'grid-line', x1: padL, y1: yPx(g), x2: W - padR, y2: yPx(g) }));
+    s.appendChild(svg('text', { class: 'tick-txt', x: padL - 10, y: yPx(g) + 3, 'text-anchor': 'end' }, g + '%'));
+  }
+  const xticks = 5;
+  for (let i = 0; i <= xticks; i++) {
+    const v = meta.min + (meta.max - meta.min) * i / xticks;
+    s.appendChild(svg('text', { class: 'tick-txt', x: xPx(v), y: padT + plotH + 20, 'text-anchor': 'middle' }, Math.round(v)));
+  }
+  s.appendChild(svg('text', { class: 'ax-title', x: padL + plotW / 2, y: H - 12, 'text-anchor': 'middle' }, meta.label));
+  s.appendChild(svg('text', { class: 'ax-title', x: 14, y: padT + plotH / 2, 'text-anchor': 'middle', transform: `rotate(-90 14 ${padT + plotH / 2})` }, 'Strength gain (%)'));
+
+  const rows = DATA.records.filter(r => gFilter === 'All' || r.Gender === gFilter);
+  // jitter x a touch for integer-valued axes so points don't perfectly overlap
+  rows.forEach(r => {
+    const jit = (Math.random() - 0.5) * (plotW / (meta.max - meta.min)) * 0.7;
+    const c = svg('circle', {
+      cx: xPx(r[xKey]) + jit, cy: yPx(r.Strength_Gain), r: 3.4,
+      fill: COLORS[r.Supplement], 'fill-opacity': 0.42,
+    });
+    s.appendChild(c);
+  });
+  document.getElementById('exploreNote').textContent =
+    `Showing ${rows.length} participants` + (gFilter === 'All' ? '.' : ` who identify as ${gFilter}.`);
+}
+function renderScatterLegend() {
+  document.getElementById('legendScatter').innerHTML = Object.keys(COLORS).map(k =>
+    `<span><i style="background:${COLORS[k]}"></i>${SHORT[k]}</span>`).join('');
+}
+
+/* ════════ Finding 4a — model MAE bars ════════ */
+function renderModel(rows) {
+  const s = document.getElementById('chartModel'); clear(s);
+  const W = 760, H = 250, padL = 150, padR = 60, padT = 16, padB = 28;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxMae = Math.max(...rows.map(r => r.mae)) * 1.15;
+  const xPx = v => padL + (v / maxMae) * plotW;
+  const rh = plotH / rows.length;
+  rows.forEach((r, i) => {
+    const cy = padT + rh * (i + 0.5), bw = xPx(r.mae) - padL;
+    const isBest = r.name === DATA.model.best;
+    s.appendChild(svg('text', { class: 'bar-lbl', x: padL - 14, y: cy + 4, 'text-anchor': 'end' }, r.name));
+    s.appendChild(svg('rect', { x: padL, y: cy - 11, width: Math.max(2, bw), height: 22, rx: 4, fill: isBest ? '#111' : '#cfcabf' }));
+    s.appendChild(svg('text', { class: 'bar-sub', x: padL + bw + 8, y: cy + 4 }, r.mae + 'pp  ·  R² ' + r.r2));
+  });
+}
+
+/* ════════ Finding 4b — feature importance ════════ */
+function renderImp(imp) {
+  const s = document.getElementById('chartImp'); clear(s);
+  const W = 760, H = 220, padL = 110, padR = 70, padT = 12, padB = 20;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxV = Math.max(...imp.map(d => d.value)) * 1.12 || 1;
+  const rh = plotH / imp.length;
+  imp.forEach((d, i) => {
+    const cy = padT + rh * (i + 0.5), bw = (d.value / maxV) * plotW;
+    s.appendChild(svg('text', { class: 'bar-lbl', x: padL - 14, y: cy + 4, 'text-anchor': 'end' }, d.feature));
+    s.appendChild(svg('rect', { x: padL, y: cy - 10, width: Math.max(1.5, bw), height: 20, rx: 4, fill: i === 0 ? '#c8a45d' : '#d8d4cb' }));
+    s.appendChild(svg('text', { class: 'bar-sub', x: padL + Math.max(1.5, bw) + 8, y: cy + 4 }, d.value.toFixed(3)));
+  });
+}
+
+/* ════════ load + render everything ════════ */
+async function boot() {
+  try {
+    const res = await fetch('/api/analysis-data');
+    DATA = await res.json();
+    if (DATA.error) throw new Error(DATA.error);
+  } catch (e) {
+    document.getElementById('vitals').innerHTML =
+      `<div class="vital" style="grid-column:1/-1"><div class="loading-line">The dossier could not be loaded &mdash; ${esc(String(e.message || e))}</div></div>`;
+    return;
+  }
+  renderVitals(DATA.meta, DATA.by_supplement);
+  document.getElementById('f1n').textContent = DATA.meta.n.toLocaleString();
+  const best = DATA.model.rows.find(r => r.name === DATA.model.best);
+  if (best) document.getElementById('mBest').textContent = best.mae + ' points';
+  renderSupp(DATA.by_supplement);
+  renderTrade(DATA.by_supplement);
+  renderCorr(DATA.correlations);
+  renderGender(DATA.by_gender);
+  renderScatterLegend();
+  renderScatter();
+  renderModel(DATA.model.rows);
+  renderImp(DATA.model.importance);
+  if (DATA.analyst_ready === false)
+    document.getElementById('apiHint').textContent =
+      'Note: set the GEMINI_API_KEY environment variable to enable the live analyst.';
+}
+boot();
+
+/* explorer controls */
+document.getElementById('segX').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#segX button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); xKey = b.dataset.x; renderScatter();
+});
+document.getElementById('segG').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#segG button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); gFilter = b.dataset.g; renderScatter();
+});
+
+/* ════════ The Analyst — multi-turn chat ════════ */
+const history = [];
+let busy = false;
+const log = document.getElementById('chatLog');
+const input = document.getElementById('askInput');
+const btn = document.getElementById('askBtn');
+
+function addBubble(role, text) {
+  const b = document.createElement('div');
+  b.className = 'bubble ' + (role === 'user' ? 'user' : 'ai');
+  const who = document.createElement('span');
+  who.className = 'who';
+  who.textContent = role === 'user' ? 'You' : 'The Analyst';
+  b.appendChild(who);
+  const t = document.createElement('span');
+  t.className = 'txt';
+  t.textContent = text || '';
+  b.appendChild(t);
+  log.appendChild(b);
+  log.scrollTop = log.scrollHeight;
+  return t;
+}
+
+// seed greeting
+addBubble('assistant', "I've read the full study. Ask me to unpack any chart, defend a finding, or slice the data a different way — what's on your mind?");
+
+async function ask(q) {
+  q = (q || input.value).trim();
+  if (!q || busy) return;
+  busy = true; btn.disabled = true;
+  input.value = '';
+  addBubble('user', q);
+  history.push({ role: 'user', content: q });
+
+  const txt = addBubble('assistant', '');
+  const caret = document.createElement('span');
+  caret.className = 'stream-caret';
+  txt.parentElement.appendChild(caret);
+
+  let answer = '';
+  try {
+    const res = await fetch('/api/analyst', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'the analyst is unavailable');
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      answer += dec.decode(value, { stream: true });
+      if (answer.startsWith('ERROR:')) break;
+      txt.textContent = answer;
+      log.scrollTop = log.scrollHeight;
+    }
+    caret.remove();
+    if (answer.startsWith('ERROR:')) {
+      txt.parentElement.className = 'bubble err';
+      txt.textContent = answer.replace(/^ERROR:\s*/, 'Regrettably — ');
+      history.pop(); // don't keep a failed turn in context
+    } else {
+      history.push({ role: 'assistant', content: answer });
+    }
+  } catch (err) {
+    caret.remove();
+    txt.parentElement.className = 'bubble err';
+    txt.textContent = 'Regrettably, the line dropped — ' + err.message;
+    history.pop();
+  } finally {
+    busy = false; btn.disabled = false;
+    input.focus();
+  }
+}
+
+btn.addEventListener('click', () => ask());
+input.addEventListener('keydown', e => {
+  if (window.OS && OS.paletteOpen) return;
+  if (e.key === 'Enter') ask();
+});
+document.getElementById('askChips').addEventListener('click', e => {
+  const c = e.target.closest('.chip');
+  if (c) ask(c.textContent);
+});
+</script>
+</body>
+</html>
