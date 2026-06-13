@@ -265,6 +265,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="/static/os.js"></script>
 <script>
 (() => {
@@ -294,10 +301,20 @@
   scene.fog = new THREE.FogExp2(0x7fc4f5, 0.0036);
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 700);
 
+  /* subtle bloom — sun, neon, headlights glow like a modern title (desktop only) */
+  let composer = null;
+  if (!IS_TOUCH && THREE.EffectComposer && THREE.UnrealBloomPass && THREE.RenderPass && THREE.ShaderPass && THREE.GammaCorrectionShader) {
+    composer = new THREE.EffectComposer(renderer);
+    composer.addPass(new THREE.RenderPass(scene, camera));
+    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(800, 600), 0.45, 0.4, 0.85));
+    composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
+  }
+
   function resize() {
     const w = wrap.clientWidth, h = wrap.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
+    if (composer) composer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -618,14 +635,17 @@
   shinyMats.push(chrome, carGlass);
 
   /* ════════ WORLD ════════ */
-  const BLOCK = 36, BOUND_X = [-100, 126], BOUND_Z = [-96, 106];
+  const BLOCK = 36, BOUND_X = [-100, 190], BOUND_Z = [-146, 138];
+  const TOWER = { x: 144, z: -36 };   // Delgado's glass monolith
+  const BAR   = { x: 6,   z: 126 };   // La Gaviota, on the marina boardwalk
+  const TAPE  = { x: 144, z: -54 };   // storage B, behind the tower
   const colliders = [];
   const footprints = [];
 
   /* ground */
   const asphalt = new THREE.Mesh(
-    new THREE.PlaneGeometry(560, 420),
-    new THREE.MeshStandardMaterial({ map: texClone(asphaltTex, 64, 48), roughness: 0.95 })
+    new THREE.PlaneGeometry(760, 640),
+    new THREE.MeshStandardMaterial({ map: texClone(asphaltTex, 86, 72), bumpMap: texClone(asphaltTex, 86, 72), bumpScale: 0.045, roughness: 0.95 })
   );
   asphalt.rotation.x = -Math.PI / 2;
   asphalt.receiveShadow = true;
@@ -656,12 +676,12 @@
   scene.add(water);
 
   /* lane dashes */
-  const ROADS_X = [-54, -18, 18, 54, 90];
-  const ROADS_Z = [-90, -54, -18, 18, 54, 90];
+  const ROADS_X = [-54, -18, 18, 54, 90, 126, 162];
+  const ROADS_Z = [-126, -90, -54, -18, 18, 54, 90];
   {
     const dashes = [];
-    ROADS_X.forEach(x => { for (let s = -96; s < 108; s += 7) dashes.push([x, s, 0]); });
-    ROADS_Z.forEach(z => { for (let s = -58; s < 126; s += 7) dashes.push([s, z, 1]); });
+    ROADS_X.forEach(x => { for (let s = -144, e = 118; s < e; s += 7) dashes.push([x, s, 0]); });
+    ROADS_Z.forEach(z => { for (let s = -58, e = 190; s < e; s += 7) dashes.push([s, z, 1]); });
     const im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 0.02, 2.4), new THREE.MeshBasicMaterial({ color: 0xc9c2b2 }), dashes.length);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
     const qr = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
@@ -725,13 +745,14 @@
     parkingLots.push({ bx, bz });
   }
 
-  for (let i = -1; i <= 3; i++) {
-    for (let j = -2; j <= 2; j++) {
+  for (let i = -1; i <= 5; i++) {
+    for (let j = -4; j <= 2; j++) {
       if (i === 1 && j === 0) continue;  // plaza
       if (i === 0 && j === 1) continue;  // park
+      if (i === 4 && j === -1) continue; // reserved: Delgado tower
       const bx = i * BLOCK, bz = j * BLOCK;
 
-      if ((i === 0 && j === -1) || (i === 3 && j === 1)) { buildParkingLot(bx, bz); continue; }
+      if ((i === 0 && j === -1) || (i === 3 && j === 1) || (i === 5 && j === 1)) { buildParkingLot(bx, bz); continue; }
 
       /* sidewalk slab under every block */
       const slab = new THREE.Mesh(sidewalkGeo, sidewalkMat);
@@ -739,10 +760,16 @@
       slab.receiveShadow = true;
       scene.add(slab);
 
-      const downtown = i >= 2;
-      const w = 11 + Math.random() * 6;
-      const d = 11 + Math.random() * 6;
-      const h = downtown ? 18 + Math.random() * 20 : 9 + Math.random() * 8;
+      /* districts: beachfront lowrise · downtown towers · north-heights villas · east industrial */
+      const heights = j <= -3;
+      const industrial = i >= 4 && !heights;
+      const downtown = i >= 2 && i <= 3 && !heights;
+      const w = (industrial ? 15 : 11) + Math.random() * (industrial ? 4 : 6);
+      const d = (industrial ? 14 : 11) + Math.random() * (industrial ? 4 : 6);
+      const h = heights ? 6 + Math.random() * 4
+        : industrial ? 7 + Math.random() * 4
+        : downtown ? 18 + Math.random() * 20
+        : 9 + Math.random() * 8;
       const glassTower = downtown && h > 26 && Math.random() < 0.55;
       const floors = Math.max(2, Math.round(h / 3));
 
@@ -757,7 +784,7 @@
         });
         shinyMats.push(sideMat);
       } else {
-        const fc = FACADES[(Math.random() * FACADES.length) | 0];
+        const fc = industrial ? FACADES[4 + ((Math.random() * 2) | 0)] : FACADES[(Math.random() * FACADES.length) | 0];
         const rx = Math.max(1, Math.round(w / 13));
         const ry = floors / 8;
         sideMat = new THREE.MeshStandardMaterial({
@@ -772,7 +799,7 @@
       }
       windowMats.push(sideMat);
 
-      const hasShop = !downtown && shopIdx < SHOP_NAMES.length && Math.random() < 0.6;
+      const hasShop = !downtown && !heights && !industrial && shopIdx < SHOP_NAMES.length && Math.random() < 0.6;
       if (hasShop) {
         const sMat = new THREE.MeshStandardMaterial({ map: storefrontTex(SHOP_NAMES[shopIdx], SHOP_HUES[shopIdx]), roughness: 0.5, metalness: 0.2, envMapIntensity: 0.8 });
         shopIdx++;
@@ -847,6 +874,76 @@
     grass.position.set(0, 0.03, 36);
     grass.receiveShadow = true;
     scene.add(grass);
+  }
+
+  /* ── Delgado tower: the antagonist's glass monolith ── */
+  {
+    const tMat = new THREE.MeshStandardMaterial({
+      map: texClone(glassMapBase, 2, 2.2),
+      emissive: 0xffffff,
+      emissiveMap: texClone(glassEmiBase, 2, 2.2),
+      emissiveIntensity: 0.05,
+      metalness: 0.9, roughness: 0.1, envMapIntensity: 1.5,
+    });
+    shinyMats.push(tMat); windowMats.push(tMat);
+    const tw = 16, td = 16, th = 58;
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(tw, th, td), [tMat, tMat, roofMat, roofMat, tMat, tMat]);
+    tower.position.set(TOWER.x, th / 2, TOWER.z);
+    tower.castShadow = tower.receiveShadow = true;
+    scene.add(tower);
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(tw * 0.55, 5, td * 0.55), [tMat, tMat, roofMat, roofMat, tMat, tMat]);
+    crown.position.set(TOWER.x, th + 2.5, TOWER.z);
+    crown.castShadow = true;
+    scene.add(crown);
+    const sign = textSprite('DELGADO', '#ff5e8a');
+    sign.scale.set(11, 2.7, 1);
+    sign.position.set(TOWER.x, th + 7.5, TOWER.z);
+    scene.add(sign);
+    const slabT = new THREE.Mesh(sidewalkGeo, sidewalkMat);
+    slabT.position.set(TOWER.x, 0.05, TOWER.z);
+    slabT.receiveShadow = true;
+    scene.add(slabT);
+    colliders.push({ x1: TOWER.x - tw / 2 - 0.5, x2: TOWER.x + tw / 2 + 0.5, z1: TOWER.z - td / 2 - 0.5, z2: TOWER.z + td / 2 + 0.5 });
+    footprints.push({ x: TOWER.x, z: TOWER.z, w: tw, d: td });
+  }
+
+  /* ── south marina: boardwalk, La Gaviota bar, boats on the water ── */
+  {
+    const board = new THREE.Mesh(new THREE.BoxGeometry(110, 0.22, 18), new THREE.MeshStandardMaterial({ color: 0x8a6a48, roughness: 0.95 }));
+    board.position.set(20, 0.11, 126);
+    board.receiveShadow = true;
+    scene.add(board);
+    /* the bar */
+    const barMat = new THREE.MeshStandardMaterial({ map: storefrontTex('LA GAVIOTA', '#2aa399'), roughness: 0.5, metalness: 0.2 });
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(12, 4, 7), [barMat, barMat, roofMat, roofMat, barMat, barMat]);
+    bar.position.set(BAR.x, 2, BAR.z + 3);
+    bar.castShadow = bar.receiveShadow = true;
+    scene.add(bar);
+    const barRoof = new THREE.Mesh(new THREE.BoxGeometry(13.4, 0.5, 8.4), parapetMat);
+    barRoof.position.set(BAR.x, 4.3, BAR.z + 3);
+    scene.add(barRoof);
+    colliders.push({ x1: BAR.x - 6.5, x2: BAR.x + 6.5, z1: BAR.z - 0.5, z2: BAR.z + 7 });
+    /* south sea */
+    const southSea = new THREE.Mesh(new THREE.PlaneGeometry(360, 60), waterMat);
+    southSea.rotation.x = -Math.PI / 2;
+    southSea.position.set(45, 0.05, 165);
+    scene.add(southSea);
+    /* boats */
+    const hullMat = new THREE.MeshStandardMaterial({ color: 0xf0ece0, roughness: 0.5, metalness: 0.2 });
+    for (let b = 0; b < 4; b++) {
+      const boat = new THREE.Group();
+      const hull = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.5, 5.6, 6, 1), hullMat);
+      hull.rotation.x = Math.PI / 2;
+      hull.scale.y = 0.5;
+      hull.position.y = 0.4;
+      boat.add(hull);
+      const cabin2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.6), new THREE.MeshStandardMaterial({ color: 0x2aa399, roughness: 0.6 }));
+      cabin2.position.set(0, 1.1, -0.4);
+      boat.add(cabin2);
+      boat.position.set(-18 + b * 22, 0, 142 + (b % 2) * 6);
+      boat.rotation.y = rand(-0.4, 0.4);
+      scene.add(boat);
+    }
   }
 
   /* ── palms: curved trunks, arching fronds, coconuts (3 instanced draws) ── */
@@ -1032,7 +1129,7 @@
     const armGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.6, 6);
     const headGeo = new THREE.BoxGeometry(0.5, 0.16, 0.26);
     const poleMat = new THREE.MeshStandardMaterial({ color: 0x2e333d, roughness: 0.6, metalness: 0.5 });
-    [-54, 18, 90].forEach(x => [-72, -36, 0, 36, 72].forEach(z => {
+    [-54, 18, 90, 162].forEach(x => [-126, -72, -36, 0, 36, 72].forEach(z => {
       const lx = x + 5, lz = z + 5;
       const pole = new THREE.Mesh(poleGeo, poleMat);
       pole.position.set(lx, 3.2, lz);
@@ -1057,7 +1154,7 @@
   }
 
   /* ── traffic signals: NS green → yellow → EW green → yellow, 20s cycle ── */
-  const SIGNALS = [[-18, -54], [90, -54], [90, 54], [-18, 54], [18, -18], [54, 18]];
+  const SIGNALS = [[-18, -54], [90, -54], [90, 54], [-18, 54], [18, -18], [54, 18], [126, -18], [18, -90], [126, 54], [54, -126]];
   const sigRed = new THREE.MeshStandardMaterial({ color: 0x550c12, emissive: 0xff2433, emissiveIntensity: 1.2, roughness: 0.4 });
   const sigYel = new THREE.MeshStandardMaterial({ color: 0x554a0c, emissive: 0xffc233, emissiveIntensity: 0.05, roughness: 0.4 });
   const sigGrn = new THREE.MeshStandardMaterial({ color: 0x0c5524, emissive: 0x2dd46a, emissiveIntensity: 0.05, roughness: 0.4 });
@@ -1093,8 +1190,17 @@
   sun.shadow.camera.top = 95; sun.shadow.camera.bottom = -95;
   sun.shadow.camera.near = 10; sun.shadow.camera.far = 460;
   sun.shadow.bias = -0.0005;
+  sun.shadow.radius = 3;
   scene.add(sun);
   scene.add(sun.target);
+
+  /* the player's vehicle gets real headlight beams after dark */
+  const headLamps = [0, 1].map(() => {
+    const sl = new THREE.SpotLight(0xfff0cc, 0, 55, 0.5, 0.45, 1.2);
+    sl.castShadow = false;
+    scene.add(sl); scene.add(sl.target);
+    return sl;
+  });
 
   const sunSprite = makeGlow(0xffc46b, 90);
   sunSprite.material.fog = false;
@@ -1207,6 +1313,45 @@
     return { steer, spin };
   }
 
+  /* curved body shells — a sedan/coupe silhouette extruded with a soft bevel,
+     so every edge is rounded the way sheet metal is */
+  function carBodyGeo(sport) {
+    const s = new THREE.Shape();
+    if (sport) {
+      s.moveTo(2.36, 0.3);
+      s.quadraticCurveTo(2.46, 0.5, 2.34, 0.7);
+      s.lineTo(1.5, 0.8);
+      s.quadraticCurveTo(0.9, 0.86, 0.55, 1.18);
+      s.quadraticCurveTo(0.25, 1.3, -0.25, 1.3);
+      s.quadraticCurveTo(-0.85, 1.28, -1.35, 0.95);
+      s.lineTo(-2.15, 0.88);
+      s.quadraticCurveTo(-2.42, 0.8, -2.38, 0.5);
+      s.lineTo(-2.32, 0.3);
+      s.lineTo(2.36, 0.3);
+    } else {
+      s.moveTo(2.36, 0.3);
+      s.quadraticCurveTo(2.46, 0.55, 2.36, 0.78);
+      s.quadraticCurveTo(2.1, 0.94, 1.7, 0.94);
+      s.lineTo(1.12, 0.98);
+      s.quadraticCurveTo(0.78, 1.04, 0.5, 1.42);
+      s.quadraticCurveTo(0.3, 1.52, -0.1, 1.52);
+      s.quadraticCurveTo(-0.5, 1.5, -0.78, 1.18);
+      s.quadraticCurveTo(-0.95, 1.0, -1.3, 0.98);
+      s.lineTo(-2.1, 0.94);
+      s.quadraticCurveTo(-2.44, 0.86, -2.4, 0.55);
+      s.lineTo(-2.34, 0.3);
+      s.lineTo(2.36, 0.3);
+    }
+    const geo = new THREE.ExtrudeGeometry(s, { depth: 1.78, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.14, bevelSegments: 3, steps: 1 });
+    geo.rotateY(-Math.PI / 2);
+    geo.computeBoundingBox();
+    const bb = geo.boundingBox;
+    geo.translate(-(bb.min.x + bb.max.x) / 2, 0, 0);
+    geo.computeVertexNormals();
+    return geo;
+  }
+  const CAR_GEOMS = { sedan: carBodyGeo(false), sport: carBodyGeo(true) };
+
   function buildCarMesh(color, sport) {
     const g = new THREE.Group();
     const paint = new THREE.MeshPhysicalMaterial({
@@ -1215,23 +1360,24 @@
     });
     shinyMats.push(paint);
 
-    const hullLo = new THREE.Mesh(new THREE.BoxGeometry(2.24, 0.46, 4.72), paint);
-    hullLo.position.y = 0.52;
-    hullLo.castShadow = true;
-    g.add(hullLo);
-    const hullHi = new THREE.Mesh(new THREE.BoxGeometry(2.06, 0.32, sport ? 4.0 : 4.4), paint);
-    hullHi.position.y = 0.9;
-    hullHi.castShadow = true;
-    g.add(hullHi);
+    const body = new THREE.Mesh(CAR_GEOMS[sport ? 'sport' : 'sedan'], paint);
+    body.castShadow = true;
+    g.add(body);
 
-    const cabLen = sport ? 1.7 : 2.15;
-    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.74, sport ? 0.42 : 0.5, cabLen), carGlass);
-    cab.position.set(0, sport ? 1.22 : 1.3, -0.2);
-    g.add(cab);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.07, cabLen - 0.2), paint);
-    roof.position.set(0, sport ? 1.46 : 1.58, -0.2);
-    roof.castShadow = true;
-    g.add(roof);
+    /* raked glass */
+    const ws = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.52, 0.06), carGlass);
+    ws.position.set(0, sport ? 1.06 : 1.22, sport ? 0.42 : 0.8);
+    ws.rotation.x = sport ? -0.62 : -0.52;
+    g.add(ws);
+    const rg = new THREE.Mesh(new THREE.BoxGeometry(1.46, 0.46, 0.06), carGlass);
+    rg.position.set(0, sport ? 1.04 : 1.2, sport ? -0.92 : -0.86);
+    rg.rotation.x = sport ? 0.66 : 0.5;
+    g.add(rg);
+    [[-1, 0], [1, 0]].forEach(([sx]) => {
+      const sg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.32, sport ? 0.95 : 1.2), carGlass);
+      sg.position.set(sx * 0.86, sport ? 1.02 : 1.16, -0.05);
+      g.add(sg);
+    });
 
     const bF = new THREE.Mesh(new THREE.BoxGeometry(2.32, 0.24, 0.3), trimDark);
     bF.position.set(0, 0.42, 2.45); g.add(bF);
@@ -1369,6 +1515,8 @@
     [[-18, -54], [90, -54], [90, 54], [-18, 54]],
     [[18, -18], [18, 18], [54, 18], [54, -18]],
     [[-54, -90], [-54, 90], [-18, 90], [-18, -90]],
+    [[126, -126], [162, -126], [162, 90], [126, 90]],
+    [[-54, -126], [90, -126], [90, -90], [-54, -90]],
   ];
   const trafficCars = [];
   const trafficColors = [0xc1294a, 0x1fa8a0, 0xe6c542, 0x7a5fc0, 0xe8e6e0, 0x37424e];
@@ -1412,12 +1560,32 @@
     }
   });
 
-  /* thief coupe */
+  /* story vehicles: the thief's coupe (Act I), Delgado's enforcer (Act II), two pursuit cars (Act III) */
   const thiefCar = buildCarMesh(0x551722, true);
   thiefCar.visible = false;
   scene.add(thiefCar);
+  const enforcerCar = buildCarMesh(0x14161c, true);
+  enforcerCar.visible = false;
+  scene.add(enforcerCar);
+  const pursuers = [];
+  for (let k = 0; k < 2; k++) {
+    const m = buildCarMesh(0x241014, true);
+    m.visible = false;
+    scene.add(m);
+    pursuers.push({ mesh: m, active: false, heading: 0, spin: 0 });
+  }
+
   const THIEF_LOOP = [[-54, -90], [126, -90], [126, 90], [-54, 90]];
-  const thief = { active: false, caught: false, target: 0, speed: 17, ramT: 0, spin: 0 };
+  const NORTH_LOOP = [[-54, -126], [126, -126], [126, -54], [-54, -54]];
+  /* one generalized chase — whichever car the act puts on the road */
+  const hunt = { car: null, active: false, loop: THIEF_LOOP, target: 1, speed: 17, ramT: 0, spin: 0, onBust: null };
+  function startHunt(car, loop, speed, sx, sz, onBust) {
+    hunt.car = car; hunt.loop = loop; hunt.speed = speed; hunt.onBust = onBust;
+    hunt.active = true; hunt.ramT = 0; hunt.target = 1; hunt.spin = 0;
+    car.visible = true;
+    car.position.set(sx, 0, sz);
+  }
+  function stopHunt(hide) { hunt.active = false; if (hide && hunt.car) hunt.car.visible = false; }
 
   /* ════════ CHARACTERS — jointed elbows & knees ════════ */
   const SKINS = [0xe8b58e, 0xc98e62, 0x8a5a3b, 0xf0c9a0, 0xa9744c];
@@ -1463,12 +1631,16 @@
     [['armL', -0.38], ['armR', 0.38]].forEach(([key, px]) => {
       const shoulder = new THREE.Group();
       shoulder.position.set(px, 1.56, 0);
+      const shJoint = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 7), shirt);
+      shoulder.add(shJoint);
       const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.072, 0.34, 8), shirt);
       upper.position.y = -0.17;
       upper.castShadow = true;
       shoulder.add(upper);
       const elbow = new THREE.Group();
       elbow.position.y = -0.34;
+      const elJoint = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 7), skin);
+      elbow.add(elJoint);
       const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.055, 0.32, 8), skin);
       fore.position.y = -0.16;
       fore.castShadow = true;
@@ -1492,6 +1664,8 @@
       hip.add(thigh);
       const knee = new THREE.Group();
       knee.position.y = -0.42;
+      const knJoint = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 7), pants);
+      knee.add(knJoint);
       const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.4, 8), pants);
       calf.position.y = -0.2;
       calf.castShadow = true;
@@ -1556,6 +1730,15 @@
   ricoMark.position.set(-84, 3.4, 88);
   scene.add(ricoMark);
 
+  /* Marisol — the informant at La Gaviota */
+  const marisol = buildHuman({ shirt: 0xe6c542, pants: 0x44323e, skin: 0xa9744c, hair: 0x19191c });
+  marisol.position.set(BAR.x - 4, 0.22, BAR.z - 2);
+  marisol.rotation.y = Math.PI;
+  scene.add(marisol);
+  const mariMark = makeGlow(0xffb35c, 3.2);
+  mariMark.position.set(BAR.x - 4, 3.5, BAR.z - 2);
+  scene.add(mariMark);
+
   /* pedestrians */
   const peds = [];
   const SHIRTS = [0xe6c542, 0x7a5fc0, 0x6fc7c0, 0xe87f9a, 0x6da75c, 0xe8e6e0, 0x37424e];
@@ -1575,7 +1758,7 @@
       ped.position.set(line, 0, from);
     } else {
       horizontal = n % 2 === 0;
-      line = [-54, -18, 18, 54][n % 4] + 8.5;
+      line = [-54, -18, 18, 54, 90, 126][n % 6] + 8.5;
       from = -70 + Math.random() * 30; to = 30 + Math.random() * 60;
       if (horizontal) ped.position.set(from, 0, line);
       else ped.position.set(line, 0, from);
@@ -1788,24 +1971,50 @@
   function save(data) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {} }
   let saveData = loadSave();
 
-  let mState = 'idle', missionStart = 0;
+  /* states: idle | drive,talk,chase,pickup,return (acts I & II) | a3_drive,a3_grab,a3_escape | done */
+  let mState = 'idle', missionStart = 0, curAct = 1, a3Timer = 0, intercomDone = false;
 
-  function startMission() {
-    mState = 'drive';
-    el('hudObjTitle').textContent = 'THE COURIER RUN';
-    missionStart = performance.now();
-    thief.active = false; thief.caught = false; thief.ramT = 0;
+  function resetMissionEntities() {
+    stopHunt(true);
     thiefCar.visible = false;
+    enforcerCar.visible = false;
+    pursuers.forEach(pu => { pu.active = false; pu.mesh.visible = false; });
     pkg.visible = false;
-    setObjective('DRIVE TO THE DOCKS', 'RICO IS WAITING BY THE CRATES — FOLLOW THE PINK BEACON');
-    toast('THE COURIER RUN', 'A PACKAGE WAS STOLEN. GET IT BACK.');
-    if (!IS_TOUCH) {
-      const hk = el('hudKeys');
-      hk.textContent = 'WASD MOVE · SHIFT RUN · F VEHICLE · E INTERACT · ESC PAUSE';
-      hk.style.display = 'block';
-      setTimeout(() => { hk.style.display = 'none'; }, 45000);
+    a3Timer = 0; intercomDone = false;
+    setBeacon(0, 0, false);
+  }
+
+  function showKeysStrip() {
+    if (IS_TOUCH) return;
+    const hk = el('hudKeys');
+    hk.textContent = 'WASD MOVE · SHIFT RUN · F VEHICLE · E INTERACT · ESC PAUSE';
+    hk.style.display = 'block';
+    setTimeout(() => { hk.style.display = 'none'; }, 45000);
+  }
+
+  function startAct(n) {
+    resetMissionEntities();
+    curAct = n;
+    missionStart = performance.now();
+    if (n === 1) {
+      mState = 'drive';
+      el('hudObjTitle').textContent = 'ACT I — THE COURIER RUN';
+      setObjective('DRIVE TO THE DOCKS', 'RICO IS WAITING BY THE CRATES — FOLLOW THE PINK BEACON');
+      toast('ACT I', 'A PACKAGE WAS STOLEN. GET IT BACK.');
+      showKeysStrip();
+    } else if (n === 2) {
+      mState = 'drive';
+      el('hudObjTitle').textContent = 'ACT II — THE INFORMANT';
+      setObjective('DRIVE TO LA GAVIOTA', 'MARISOL TENDS BAR ON THE MARINA BOARDWALK, SOUTH SIDE');
+      toast('ACT II', 'THE THIEF WAS HIRED. FIND OUT BY WHOM.');
+    } else {
+      mState = 'a3_drive';
+      el('hudObjTitle').textContent = 'ACT III — THE MASTER TAPE';
+      setObjective('GO TO DELGADO TOWER', 'EASTSIDE — THE GLASS MONOLITH WITH HIS NAME ON IT');
+      toast('ACT III', 'IBARRA&rsquo;S LAST RECORDING IS IN THAT TOWER.');
     }
   }
+  const startMission = () => startAct(saveData.act && saveData.act <= 3 ? saveData.act : 1);
 
   /* ── opening cinematic + controls card ── */
   let cine = false, cineT = 0;
@@ -1839,7 +2048,8 @@
     showControlsCard();
   }
   el('btnSkip').addEventListener('click', endCine);
-  function showControlsCard() {
+  function showControlsCard(toMenu) {
+    if (toMenu) { showControlsMenuVariant(); return; }
     showOverlay({
       eyebrow: '// HOW TO PLAY', title: 'CONTROLS',
       body: IS_TOUCH
@@ -1848,22 +2058,64 @@
       buttons: [{ label: "LET'S GO", fn: () => { hideOverlay(); startMission(); } }],
     });
   }
-  function startFreeRoam() {
-    mState = 'done';
-    el('hudObjTitle').textContent = 'COSTA VISTA';
-    setObjective('FREE ROAM', 'THE CITY IS YOURS. MISSION COMPLETE.');
-    setBeacon(0, 0, false);
+  function showControlsMenuVariant() {
+    showOverlay({
+      eyebrow: '// HOW TO PLAY', title: 'CONTROLS',
+      body: IS_TOUCH
+        ? 'LEFT THUMB — <span class="hl">MOVE & STEER</span><br/>RIGHT BUTTONS — <span class="hl">JUMP / GAS / BRAKE / TALK / RIDE</span><br/>DRAG EMPTY SPACE — <span class="hl">CAMERA</span>'
+        : 'WASD / ARROWS — <span class="hl">MOVE & DRIVE</span> &nbsp;&middot;&nbsp; SHIFT — <span class="hl">RUN</span><br/>F — <span class="hl">VEHICLE</span> &nbsp;&middot;&nbsp; E — <span class="hl">TALK / PICK UP</span> &nbsp;&middot;&nbsp; SPACE — <span class="hl">JUMP / HANDBRAKE</span><br/>R — <span class="hl">RADIO</span> &nbsp;&middot;&nbsp; MOUSE — <span class="hl">CAMERA</span> &nbsp;&middot;&nbsp; ESC — <span class="hl">PAUSE</span>',
+      buttons: [{ label: 'BACK', fn: () => { hideOverlay(); showTitleMenu(); } }],
+    });
   }
 
+  /* ── the game shell: title menu ── */
+  function showTitleMenu() {
+    resetMissionEntities();
+    mState = 'idle';
+    el('hudObj').style.display = 'none';
+    el('hudClock').style.display = 'none';
+    el('minimapBox').style.display = 'none';
+    el('btnPause').style.display = 'none';
+    const act = saveData.act || (saveData.done ? 2 : 1);
+    saveData.act = act;
+    const storyLabel = act > 3 ? 'REPLAY STORY' : (act > 1 ? `CONTINUE — ACT ${['', 'I', 'II', 'III'][act]}` : 'STORY MODE');
+    showOverlay({
+      eyebrow: '// FUNFLIX PRESENTS', title: 'FLY', sub: 'COSTA VISTA — 1986',
+      body: `Your mentor, <span class="hl">Maestro Ibarra</span>, built one perfect synthesizer chip — then vanished.<br/>Tonight it resurfaced on Rico&rsquo;s dock... and so did the people who took him.<br/><br/><span class="pk">A story in three acts</span>, an open city, and a sea that drinks the sun.${IS_TOUCH ? '<br/><br/>TOUCH CONTROLS READY.' : ''}`,
+      buttons: [
+        { label: storyLabel, fn: () => {
+            audioInit(); hideOverlay();
+            if (act > 3) { saveData.act = 1; save(saveData); curAct = 1; startCinematic(); }
+            else if (act === 1) startCinematic();
+            else startAct(act);
+          } },
+        ...(act > 1 ? [{ label: 'FREE ROAM', fn: () => { audioInit(); hideOverlay(); startFreeRoam(); } }] : []),
+        { label: 'CONTROLS', fn: () => showControlsCard(true) },
+        { label: 'QUIT', fn: () => { document.body.classList.add('fade-out'); setTimeout(() => location.href = '/', 180); }, ghost: true },
+      ],
+    });
+  }
+  function startFreeRoam() {
+    resetMissionEntities();
+    mState = 'done';
+    el('hudObjTitle').textContent = 'COSTA VISTA';
+    setObjective('FREE ROAM', 'THE CITY IS YOURS.');
+  }
+
+  /* ── Act I & III: Rico ── */
   function ricoTalk() {
-    if (mState === 'drive' || mState === 'talk') {
+    if (curAct === 1 && (mState === 'drive' || mState === 'talk')) {
       mState = 'talk';
-      openDialog('RICO — DOCK FOREMAN', '“There you are. Some clown in a maroon coupe lifted the package — a prototype synth chip, one of a kind. He is doing laps like he owns the city. Run him down and bring it home.”', [
-        { n: 1, label: 'ON IT.', fn: () => { closeDialog(); beginChase(); } },
+      openDialog('RICO — DOCK FOREMAN', '“There you are. Some clown in a maroon coupe lifted the package — a prototype synth chip. Maestro Ibarra&rsquo;s work. Your teacher&rsquo;s work. Run him down and bring it home.”', [
+        { n: 1, label: 'FOR IBARRA.', fn: () => { closeDialog(); beginChase(); } },
       ]);
-    } else if (mState === 'return') {
-      openDialog('RICO — DOCK FOREMAN', '“Ha! You actually got it. The chip is safe, the city sleeps easy, and you, my friend, fly. Costa Vista owes you one.”', [
-        { n: 1, label: 'ANY TIME.', fn: () => { closeDialog(); completeMission(); } },
+    } else if (curAct === 1 && mState === 'return') {
+      openDialog('RICO — DOCK FOREMAN', '“You got it. But look at the casing — this is a copy. Somebody paid that clown to steal a FAKE. Which means someone wanted us looking the wrong way. Ask Marisol at La Gaviota. She hears everything.”', [
+        { n: 1, label: 'I&rsquo;LL FIND HER.', fn: () => { closeDialog(); actComplete(1); } },
+      ]);
+    } else if (curAct === 3 && mState === 'a3_escape') {
+      openDialog('RICO — DOCK FOREMAN', '“The master tape... Ibarra&rsquo;s last record. Delgado wanted to bury it behind his label forever. Tomorrow we press it free — every radio in Costa Vista plays it at dawn. You did right by the old man.”', [
+        { n: 1, label: 'FOR IBARRA.', fn: () => { closeDialog(); gameComplete(); } },
       ]);
     } else {
       openDialog('RICO — DOCK FOREMAN', mState === 'chase' ? '“He is still out there — go!”' : '“Enjoy the sunset, friend.”', [
@@ -1872,59 +2124,134 @@
     }
   }
 
-  function beginChase() {
-    mState = 'chase';
-    thief.active = true;
-    thiefCar.visible = true;
-    thiefCar.position.set(-54, 0, 60);
-    thief.target = 3;
-    setObjective('CHASE THE MAROON COUPE', 'RAM IT OR STAY ON ITS TAIL TO FORCE IT TO STOP');
-    toast('CHASE', 'THE COUPE IS ON THE BEACH ROAD.');
+  /* ── Act II: Marisol ── */
+  function marisolTalk() {
+    if (curAct === 2 && (mState === 'drive' || mState === 'talk')) {
+      mState = 'talk';
+      openDialog('MARISOL — LA GAVIOTA', '“The coupe? Hired by Delgado&rsquo;s fixer. Black coupe, runs the north heights every night carrying the boss&rsquo;s books. Ibarra refused to sell Delgado his music — then he vanished. Knock that ledger loose and we&rsquo;ll know where the real chip sleeps.”', [
+        { n: 1, label: 'CONSIDER IT DONE.', fn: () => { closeDialog(); beginChase(); } },
+      ]);
+    } else if (curAct === 2 && mState === 'return') {
+      openDialog('MARISOL — LA GAVIOTA', '“Let me see... &lsquo;IBARRA — TOWER STORAGE B.&rsquo; The master tape. Everything he ever was, locked in Delgado&rsquo;s tower. Go get him back, corredor.”', [
+        { n: 1, label: 'TOWER. TONIGHT.', fn: () => { closeDialog(); actComplete(2); } },
+      ]);
+    } else {
+      openDialog('MARISOL — LA GAVIOTA', '“The sea keeps secrets better than I do.”', [
+        { n: 1, label: 'LATER.', fn: closeDialog },
+      ]);
+    }
   }
 
-  function bustThief() {
-    thief.caught = true; thief.active = false;
+  function beginChase() {
+    mState = 'chase';
+    if (curAct === 1) {
+      startHunt(thiefCar, THIEF_LOOP, 17, -54, 60, bustHunt);
+      setObjective('CHASE THE MAROON COUPE', 'RAM IT OR RIDE ITS BUMPER TO FORCE IT TO STOP');
+      toast('CHASE', 'THE COUPE IS ON THE BEACH ROAD.');
+    } else {
+      startHunt(enforcerCar, NORTH_LOOP, 19, -54, -90, bustHunt);
+      setObjective('TAKE DOWN THE BLACK COUPE', 'IT RUNS THE NORTH HEIGHTS RING — FASTER THAN THE LAST ONE');
+      toast('CHASE', 'THE FIXER&rsquo;S CAR IS IN THE HEIGHTS.');
+    }
+  }
+
+  function bustHunt() {
+    stopHunt(false);
     sfxThud(); setTimeout(sfxPickup, 250);
-    pkg.position.set(thiefCar.position.x + 2.2, 0, thiefCar.position.z);
+    pkg.position.set(hunt.car.position.x + 2.2, 0, hunt.car.position.z);
     pkg.visible = true;
     mState = 'pickup';
-    setObjective('RECOVER THE PACKAGE', 'WALK OVER THE CRATE THE THIEF DROPPED');
-    toast('GOT HIM', 'THE COUPE STALLED. GRAB THE PACKAGE.');
+    setObjective(curAct === 1 ? 'RECOVER THE PACKAGE' : 'GRAB THE LEDGER', 'WALK OVER WHAT THE DRIVER DROPPED');
+    toast('GOT HIM', curAct === 1 ? 'THE COUPE STALLED. GRAB THE PACKAGE.' : 'THE FIXER BAILED. TAKE THE LEDGER.');
   }
 
   function pickupPkg() {
     pkg.visible = false;
     sfxPickup();
     mState = 'return';
-    setObjective('RETURN TO RICO', 'BRING THE PACKAGE BACK TO THE DOCKS');
-    toast('PACKAGE SECURED', 'RICO IS WAITING.');
-    setTimeout(() => {
-      if (mState === 'return') {
-        sfxBlip();
-        openDialog('RICO — ON THE RADIO', '“Heads up — the coupe’s crew is circling the docks looking for you. Bring it home in one piece, friend.”', [
-          { n: 1, label: 'COPY THAT.', fn: closeDialog },
-        ]);
-      }
-    }, 1600);
+    if (curAct === 1) {
+      setObjective('RETURN TO RICO', 'BRING THE PACKAGE BACK TO THE DOCKS');
+      toast('PACKAGE SECURED', 'RICO IS WAITING.');
+      setTimeout(() => {
+        if (mState === 'return' && curAct === 1) {
+          sfxBlip();
+          openDialog('RICO — ON THE RADIO', '“Heads up — the coupe&rsquo;s crew is circling the docks looking for you. Bring it home in one piece, friend.”', [
+            { n: 1, label: 'COPY THAT.', fn: closeDialog },
+          ]);
+        }
+      }, 1600);
+    } else {
+      setObjective('BACK TO MARISOL', 'SHE CAN READ THE FIXER&rsquo;S SHORTHAND');
+      toast('LEDGER SECURED', 'LA GAVIOTA, SOUTH MARINA.');
+    }
   }
 
-  function completeMission() {
-    mState = 'done';
+  /* ── Act III beats ── */
+  function towerIntercom() {
+    intercomDone = true;
+    openDialog('DELGADO — INTERCOM', '“The courier. I own every note in this city — the charts, the airwaves, even silence. Ibarra understood that too late. Walk away, and I&rsquo;ll let you keep your little sunset.”', [
+      { n: 1, label: 'OPEN THE DOOR, DELGADO.', fn: () => {
+        closeDialog();
+        mState = 'a3_grab';
+        a3Timer = 90;
+        pursuers.forEach((pu, i) => {
+          pu.active = true; pu.mesh.visible = true;
+          pu.mesh.position.set(TOWER.x - 18 + i * 36, 0, TOWER.z);
+          pu.heading = 0;
+        });
+        setObjective('REACH STORAGE B — BEHIND THE TOWER', 'HIS CREW IS COMING. THE CLOCK IS RUNNING.');
+        toast('ALARM RAISED', 'TWO CARS ON YOUR TAIL. MOVE.');
+      } },
+    ]);
+  }
+  function grabTape() {
+    sfxPickup();
+    mState = 'a3_escape';
+    setObjective('ESCAPE TO THE DOCKS', 'LOSE THEM OR OUTRUN THEM — RICO IS WAITING');
+    toast('MASTER TAPE SECURED', 'IBARRA&rsquo;S LAST RECORD. GO. GO. GO.');
+  }
+  function failAct3() {
+    toast('TOO SLOW', 'HIS CREW SEALED THE STORAGE. CIRCLE BACK.');
+    sfxThud();
+    pursuers.forEach(pu => { pu.active = false; pu.mesh.visible = false; });
+    intercomDone = false;
+    mState = 'a3_drive';
+    setObjective('GO TO DELGADO TOWER', 'SHAKE THEM OFF AND TRY AGAIN');
+  }
+
+  function actComplete(n) {
     const secs = Math.floor((performance.now() - missionStart) / 1000);
-    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
-    const ss = String(secs % 60).padStart(2, '0');
-    let bestLine = '';
-    if (!saveData.best || secs < saveData.best) { saveData.best = secs; bestLine = '<br/><span class="pk">NEW RECORD.</span>'; }
-    else bestLine = `<br/>BEST — ${String(Math.floor(saveData.best / 60)).padStart(2, '0')}:${String(saveData.best % 60).padStart(2, '0')}`;
-    saveData.done = true;
+    saveData.act = n + 1;
     save(saveData);
-    setBeacon(0, 0, false);
+    resetMissionEntities();
+    mState = 'idle';
+    const acts = {
+      1: { t: 'ACT I COMPLETE', s: 'THE FAKE', b: 'The chip was a decoy — someone wanted eyes off the real prize.<br/>Marisol pours answers at La Gaviota, down on the marina.' },
+      2: { t: 'ACT II COMPLETE', s: 'THE LEDGER', b: 'One line in the fixer&rsquo;s book: <span class="hl">IBARRA — TOWER STORAGE B.</span><br/>Your mentor&rsquo;s last master tape, locked in Delgado&rsquo;s monolith.' },
+    };
+    const a = acts[n];
     showOverlay({
-      eyebrow: '// MISSION COMPLETE', title: 'COURIER RUN', sub: 'COSTA VISTA — SAVED TO THIS BROWSER',
-      body: `The chip is home. The neon hums a little warmer tonight.<br/>Somewhere on the strip, a synthesizer plays a chord nobody has heard before.<br/><br/>TIME — <span class="hl">${mm}:${ss}</span>${bestLine}<br/><br/><span class="pk">FREE ROAM UNLOCKED FOREVER.</span>`,
+      eyebrow: '// ' + a.t, title: a.s, sub: `CLEARED IN ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} — PROGRESS SAVED`,
+      body: a.b,
+      buttons: [
+        { label: `BEGIN ACT ${n + 1 === 2 ? 'II' : 'III'}`, fn: () => { hideOverlay(); startAct(n + 1); } },
+        { label: 'FREE ROAM', fn: () => { hideOverlay(); startFreeRoam(); }, ghost: true },
+      ],
+    });
+  }
+
+  function gameComplete() {
+    const secs = Math.floor((performance.now() - missionStart) / 1000);
+    saveData.act = 4; saveData.done = true;
+    save(saveData);
+    resetMissionEntities();
+    mState = 'done';
+    showOverlay({
+      eyebrow: '// STORY COMPLETE', title: 'FOR IBARRA', sub: 'COSTA VISTA — SAVED TO THIS BROWSER',
+      body: `Dawn. Every radio on the strip plays a chord nobody has heard before —<br/>your mentor&rsquo;s voice, free of Delgado forever.<br/><br/>ACT III — <span class="hl">${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span><br/><br/><span class="pk">THE CITY IS YOURS. FREE ROAM FOREVER.</span>`,
       buttons: [
         { label: 'FREE ROAM', fn: () => { hideOverlay(); startFreeRoam(); } },
-        { label: 'RETURN TO OS', fn: () => { document.body.classList.add('fade-out'); setTimeout(() => location.href = '/', 180); }, ghost: true },
+        { label: 'MAIN MENU', fn: () => { hideOverlay(); showTitleMenu(); }, ghost: true },
       ],
     });
   }
@@ -2037,8 +2364,9 @@
         + '<br/><br/>PROGRESS SAVES TO THIS BROWSER AUTOMATICALLY.',
       buttons: [
         { label: 'RESUME', fn: hideOverlay },
-        ...(saveData.done && mState === 'done' ? [{ label: 'REPLAY MISSION', fn: () => { hideOverlay(); startMission(); } }] : []),
-        { label: 'RETURN TO OS', fn: () => { document.body.classList.add('fade-out'); setTimeout(() => location.href = '/', 180); }, ghost: true },
+        ...(mState !== 'done' && mState !== 'idle' ? [{ label: 'RESTART ACT', fn: () => { hideOverlay(); startAct(curAct); } }] : []),
+        { label: 'MAIN MENU', fn: () => { hideOverlay(); showTitleMenu(); } },
+        { label: 'QUIT GAME', fn: () => { document.body.classList.add('fade-out'); setTimeout(() => location.href = '/', 180); }, ghost: true },
       ],
     });
   }
@@ -2144,6 +2472,12 @@
       prompt: 'GRAB PACKAGE', key: 'E',
       act: pickupPkg,
     },
+    {
+      pos: () => marisol.position, r: 4.5,
+      enabled: () => mState !== 'idle' && curAct === 2 && !currentV,
+      prompt: 'TALK TO MARISOL', key: 'E',
+      act: marisolTalk,
+    },
   ];
   function nearestInteract() {
     let best = null, bd = 1e9;
@@ -2156,7 +2490,7 @@
   }
 
   /* ════════ MINIMAP ════════ */
-  const MAP_PAD = 160, MAP_SCALE = 1.6;
+  const MAP_PAD = 210, MAP_SCALE = 1.6;
   const mapBase = document.createElement('canvas');
   mapBase.width = mapBase.height = (MAP_PAD * 2) * MAP_SCALE;
   {
@@ -2164,7 +2498,9 @@
     const W = mapBase.width, c0 = W / 2;
     g.fillStyle = '#15314a'; g.fillRect(0, 0, W, W);
     g.fillStyle = '#caa86c'; g.fillRect(c0 - 104 * MAP_SCALE, 0, 46 * MAP_SCALE, W);
-    g.fillStyle = '#2c3040'; g.fillRect(c0 - 58 * MAP_SCALE, 0, (58 + 126) * MAP_SCALE, W);
+    g.fillStyle = '#2c3040'; g.fillRect(c0 - 58 * MAP_SCALE, 0, 250 * MAP_SCALE, W);
+    g.fillStyle = '#15314a'; g.fillRect(c0 - 58 * MAP_SCALE, c0 + 140 * MAP_SCALE, W, W); // south sea
+    g.fillStyle = '#8a6a48'; g.fillRect(c0 + (20 - 55) * MAP_SCALE, c0 + 117 * MAP_SCALE, 110 * MAP_SCALE, 18 * MAP_SCALE); // boardwalk
     g.strokeStyle = '#1c1f2c'; g.lineWidth = 13 * MAP_SCALE;
     ROADS_X.forEach(x => {
       g.beginPath(); g.moveTo(c0 + x * MAP_SCALE, 0); g.lineTo(c0 + x * MAP_SCALE, W); g.stroke();
@@ -2192,8 +2528,10 @@
       mmCtx.beginPath(); mmCtx.arc(bx, bz, r, 0, 7); mmCtx.fill();
     };
     if (beacon.visible) blip(beacon.position.x, beacon.position.z, '#ff5e8a', 4);
-    if (thief.active) blip(thiefCar.position.x, thiefCar.position.z, '#ff2433', 3.5);
+    if (hunt.active) blip(hunt.car.position.x, hunt.car.position.z, '#ff2433', 3.5);
+    pursuers.forEach(pu => { if (pu.active) blip(pu.mesh.position.x, pu.mesh.position.z, '#ff2433', 3); });
     if (mState !== 'idle') blip(rico.position.x, rico.position.z, '#ffb35c', 3);
+    if (mState !== 'idle' && curAct === 2) blip(marisol.position.x, marisol.position.z, '#ffb35c', 3);
     vehicles.forEach(v => { if (v !== currentV) blip(v.mesh.position.x, v.mesh.position.z, '#9fb6e8', 2.4); });
     const ang = currentV ? currentV.heading : playerInner.rotation.y;
     mmCtx.save();
@@ -2221,30 +2559,32 @@
   }
   function groundYAt(x, z) { return onPier(x, z) ? 0.32 : 0; }
 
-  /* moving things are solid too — no more ghost cars */
+  /* moving things are solid too — no more ghost cars.
+     Returns distance to nearest blocker (Infinity if clear) so movers
+     can always ESCAPE: a move that increases the distance is allowed. */
+  function vehProximity(x, z, selfMesh, r, ignorePlayer) {
+    let m = Infinity;
+    const test = (mesh) => {
+      if (mesh === selfMesh || !mesh.visible) return;
+      const d = Math.hypot(x - mesh.position.x, z - mesh.position.z);
+      if (d < r && d < m) m = d;
+    };
+    for (const tc of trafficCars) test(tc.mesh);
+    for (const v of vehicles) test(v.mesh);
+    test(thiefCar); test(enforcerCar);
+    pursuers.forEach(p => test(p.mesh));
+    if (!ignorePlayer && !currentV) {
+      const d = Math.hypot(x - player.position.x, z - player.position.z);
+      if (d < r * 0.8 && d < m) m = d;
+    }
+    return m;
+  }
   function blockedByVehicle(x, z, selfMesh, r, ignorePlayer) {
-    for (const tc of trafficCars) {
-      if (tc.mesh !== selfMesh && Math.hypot(x - tc.mesh.position.x, z - tc.mesh.position.z) < r) return true;
-    }
-    for (const v of vehicles) {
-      if (v.mesh !== selfMesh && Math.hypot(x - v.mesh.position.x, z - v.mesh.position.z) < r) return true;
-    }
-    if (thiefCar.visible && thiefCar !== selfMesh && Math.hypot(x - thiefCar.position.x, z - thiefCar.position.z) < r) return true;
-    if (!ignorePlayer && !currentV && Math.hypot(x - player.position.x, z - player.position.z) < r * 0.8) return true;
-    return false;
+    return vehProximity(x, z, selfMesh, r, ignorePlayer) !== Infinity;
   }
 
-  /* ════════ INTRO ════════ */
-  showOverlay({
-    eyebrow: '// FUNFLIX PRESENTS', title: 'FLY', sub: 'COSTA VISTA — 1986',
-    body: `Pastel towers. A sea that drinks the sun every night.<br/><br/>You run packages, favors, and the occasional miracle along the strip.<br/>Tonight, your friend <span class="hl">Rico</span> calls in a debt: a one-of-a-kind <span class="pk">prototype synth chip</span> just got stolen off his dock.<br/><br/>${saveData.done ? '<span class="hl">SAVE FOUND — MISSION ALREADY COMPLETE.</span><br/>' : ''}${IS_TOUCH ? 'TOUCH CONTROLS READY — LEFT THUMB MOVES, RIGHT BUTTONS ACT.' : 'WASD MOVES. F TAKES A CAR. THE REST IS INSTINCT.'}`,
-    buttons: saveData.done
-      ? [
-          { label: 'FREE ROAM', fn: () => { audioInit(); hideOverlay(); startFreeRoam(); } },
-          { label: 'REPLAY MISSION', fn: () => { audioInit(); hideOverlay(); startMission(); } },
-        ]
-      : [{ label: 'START', fn: () => { audioInit(); hideOverlay(); startCinematic(); } }],
-  });
+  /* ════════ TITLE ════════ */
+  showTitleMenu();
 
   /* ════════ MAIN LOOP ════════ */
   const clock = new THREE.Clock();
@@ -2282,12 +2622,15 @@
       if (avg > 0.024) slowT += fpsAcc; else slowT = 0;
       if (slowT > 2.5) {
         slowT = 0;
-        if (perfStage === 0 && sun.castShadow) {
-          sun.castShadow = false; perfStage = 1;
+        if (perfStage === 0 && composer) {
+          composer = null; perfStage = 1;
+          toast('PERFORMANCE MODE', 'BLOOM OFF.');
+        } else if (perfStage <= 1 && sun.castShadow) {
+          sun.castShadow = false; perfStage = 2;
           toast('PERFORMANCE MODE', 'SHADOWS OFF.');
-        } else if (perfStage <= 1) {
+        } else if (perfStage <= 2) {
           renderer.setPixelRatio(Math.max(0.8, renderer.getPixelRatio() - 0.2));
-          perfStage = 2;
+          perfStage = 3;
         }
       }
       fpsAcc = 0; fpsN = 0;
@@ -2312,8 +2655,10 @@
         const speed = (run ? 11.5 : 6.5) * Math.min(1, len);
         const nx = player.position.x + dx * speed * dt;
         const nz = player.position.z + dz * speed * dt;
-        if (!hitsBuilding(nx, player.position.z) && !blockedByVehicle(nx, player.position.z, null, 1.6, true)) player.position.x = nx;
-        if (!hitsBuilding(player.position.x, nz) && !blockedByVehicle(player.position.x, nz, null, 1.6, true)) player.position.z = nz;
+        const fpCur = vehProximity(player.position.x, player.position.z, null, 1.6, true);
+        const okV = (x2, z2) => { const p2 = vehProximity(x2, z2, null, 1.6, true); return p2 === Infinity || p2 > fpCur + 0.001; };
+        if (!hitsBuilding(nx, player.position.z) && okV(nx, player.position.z)) player.position.x = nx;
+        if (!hitsBuilding(player.position.x, nz) && okV(player.position.x, nz)) player.position.z = nz;
         if (player.position.x < -104 && !onPier(player.position.x, player.position.z)) player.position.x = -104;
         player.position.x = clamp(player.position.x, -148, BOUND_X[1]);
         player.position.z = clamp(player.position.z, BOUND_Z[0], BOUND_Z[1]);
@@ -2349,14 +2694,16 @@
       }
       const nx = v.mesh.position.x + Math.sin(v.heading) * v.vel * dt;
       const nz = v.mesh.position.z + Math.cos(v.heading) * v.vel * dt;
-      if (hitsBuilding(nx, nz, K.margin)) {
+      /* escape-aware: never trap the player — moving AWAY from what you hit always works */
+      const cX = v.mesh.position.x, cZ = v.mesh.position.z;
+      const bNew = hitsBuilding(nx, nz, K.margin), bCur = hitsBuilding(cX, cZ, K.margin);
+      const pNew = vehProximity(nx, nz, v.mesh, 2.7, true);
+      const pCur = vehProximity(cX, cZ, v.mesh, 2.7, true);
+      const bldBlocked = bNew && !bCur;
+      const vehBlocked = pNew !== Infinity && pNew <= pCur + 0.001;
+      if (bldBlocked || vehBlocked) {
+        if (Math.abs(v.vel) > 2) { shake = Math.min(0.5, Math.abs(v.vel) * 0.045 + 0.12); sfxThud(); }
         v.vel *= -0.2;
-        shake = Math.min(0.5, Math.abs(v.vel) * 0.04 + 0.12);
-        sfxThud();
-      } else if (blockedByVehicle(nx, nz, v.mesh, 2.7, true)) {
-        v.vel *= -0.25;
-        shake = Math.min(0.5, Math.abs(v.vel) * 0.05 + 0.14);
-        sfxThud();
       } else {
         v.mesh.position.x = clamp(nx, BOUND_X[0], BOUND_X[1]);
         v.mesh.position.z = clamp(nz, BOUND_Z[0], BOUND_Z[1]);
@@ -2378,12 +2725,12 @@
       } else {
         player.position.copy(v.mesh.position);
       }
-      if (mState === 'chase' && thief.active) {
-        const dT = dist2D(v.mesh.position, thiefCar.position);
+      if (mState === 'chase' && hunt.active) {
+        const dT = dist2D(v.mesh.position, hunt.car.position);
         if (dT < 6.5) {
-          thief.ramT += dt * (dT < 4 ? 2 : 1);
-          if (thief.ramT > 2.2) bustThief();
-        } else thief.ramT = Math.max(0, thief.ramT - dt * 0.6);
+          hunt.ramT += dt * (dT < 4 ? 2 : 1);
+          if (hunt.ramT > 2.2) hunt.onBust();
+        } else hunt.ramT = Math.max(0, hunt.ramT - dt * 0.6);
       }
       if (engineGain) {
         engineGain.gain.value = 0.026;
@@ -2398,22 +2745,50 @@
       engineGain.gain.value = 0;
     }
 
-    /* ── thief AI ── */
-    if (!frozen && thief.active) {
-      const wp = THIEF_LOOP[thief.target];
-      const dx = wp[0] - thiefCar.position.x, dz = wp[1] - thiefCar.position.z;
+    /* ── chase AI (whichever act's car) ── */
+    if (!frozen && hunt.active) {
+      const wp = hunt.loop[hunt.target];
+      const dx = wp[0] - hunt.car.position.x, dz = wp[1] - hunt.car.position.z;
       const dd = Math.hypot(dx, dz);
-      if (dd < 3) thief.target = (thief.target + 1) % THIEF_LOOP.length;
+      if (dd < 3) hunt.target = (hunt.target + 1) % hunt.loop.length;
       else {
-        const dToPlayer = dist2D(thiefCar.position, focusPos());
-        const sp = dToPlayer > 70 ? 12.5 : thief.speed;
-        thiefCar.position.x += (dx / dd) * sp * dt;
-        thiefCar.position.z += (dz / dd) * sp * dt;
-        thiefCar.rotation.y = lerpAngle(thiefCar.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 4));
-        thief.spin += (sp / 0.42) * dt;
-        thiefCar.userData.wheels.forEach(w => { w.spin.rotation.x = thief.spin; });
+        const dToPlayer = dist2D(hunt.car.position, focusPos());
+        const sp = dToPlayer > 70 ? hunt.speed * 0.72 : hunt.speed;
+        hunt.car.position.x += (dx / dd) * sp * dt;
+        hunt.car.position.z += (dz / dd) * sp * dt;
+        hunt.car.rotation.y = lerpAngle(hunt.car.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 4));
+        hunt.spin += (sp / 0.42) * dt;
+        hunt.car.userData.wheels.forEach(w => { w.spin.rotation.x = hunt.spin; });
       }
     }
+
+    /* ── Act III pursuers: they want the tape back ── */
+    if (!frozen) pursuers.forEach(pu => {
+      if (!pu.active) return;
+      const tgt = focusPos();
+      const dx = tgt.x - pu.mesh.position.x, dz = tgt.z - pu.mesh.position.z;
+      const dd = Math.hypot(dx, dz) || 1;
+      pu.heading = lerpAngle(pu.heading, Math.atan2(dx, dz), Math.min(1, dt * 2.0));
+      const sp = dd > 9 ? 18.5 : 12;
+      const nx2 = pu.mesh.position.x + Math.sin(pu.heading) * sp * dt;
+      const nz2 = pu.mesh.position.z + Math.cos(pu.heading) * sp * dt;
+      if (!hitsBuilding(nx2, nz2, 1.5)) {
+        pu.mesh.position.x = clamp(nx2, BOUND_X[0], BOUND_X[1]);
+        pu.mesh.position.z = clamp(nz2, BOUND_Z[0], BOUND_Z[1]);
+      }
+      pu.mesh.rotation.y = pu.heading;
+      pu.spin += sp / 0.42 * dt;
+      pu.mesh.userData.wheels.forEach(w => { w.spin.rotation.x = pu.spin; });
+      if (dd < 2.9) {
+        if (currentV) { currentV.vel *= 0.45; shake = Math.max(shake, 0.38); }
+        else {
+          player.position.x += (dx / dd) * -1.8;
+          player.position.z += (dz / dd) * -1.8;
+          shake = Math.max(shake, 0.32);
+        }
+        sfxThud();
+      }
+    });
 
     /* ── traffic & peds ── */
     if (!frozen) {
@@ -2495,16 +2870,28 @@
     }
     radioTick();
 
-    /* mission triggers */
+    /* mission triggers — act aware */
     if (!frozen) {
+      const npcPos = curAct === 2 ? marisol.position : rico.position;
       if (mState === 'drive') {
-        setBeacon(rico.position.x, rico.position.z, true);
+        setBeacon(npcPos.x, npcPos.z, true);
       } else if (mState === 'chase') {
-        setBeacon(thiefCar.position.x, thiefCar.position.z, true);
+        setBeacon(hunt.car.position.x, hunt.car.position.z, true);
       } else if (mState === 'pickup') {
         setBeacon(pkg.position.x, pkg.position.z, true);
         if (!currentV && pkg.visible && dist2D(player.position, pkg.position) < 2.4) pickupPkg();
       } else if (mState === 'return') {
+        setBeacon(npcPos.x, npcPos.z, true);
+      } else if (mState === 'a3_drive') {
+        setBeacon(TOWER.x, TOWER.z + 14, true);
+        if (!intercomDone && dist2D(focusPos(), { x: TOWER.x, z: TOWER.z + 14 }) < 7) towerIntercom();
+      } else if (mState === 'a3_grab') {
+        setBeacon(TAPE.x, TAPE.z, true);
+        a3Timer -= dt;
+        el('hudObjSub').textContent = `STORAGE B SEALS IN ${Math.max(0, Math.ceil(a3Timer))}S — THEY'RE ON YOU`;
+        if (a3Timer <= 0) failAct3();
+        else if (!currentV && dist2D(player.position, { x: TAPE.x, z: TAPE.z }) < 2.6) grabTape();
+      } else if (mState === 'a3_escape') {
         setBeacon(rico.position.x, rico.position.z, true);
       }
     }
@@ -2565,7 +2952,24 @@
     sun.position.set(f.x + sky.sx * 165, Math.max(34, sky.elev * 165 + 12), f.z + 62);
     sun.target.position.set(f.x, 0, f.z);
 
-    renderer.render(scene, camera);
+    /* headlight beams */
+    if (currentV && sky.nightF > 0.25) {
+      const fw = new THREE.Vector3(Math.sin(currentV.heading), 0, Math.cos(currentV.heading));
+      const rt = new THREE.Vector3(fw.z, 0, -fw.x);
+      headLamps.forEach((sl, i) => {
+        const side = i === 0 ? -0.7 : 0.7;
+        sl.intensity = 2.4 * sky.nightF;
+        sl.position.set(
+          currentV.mesh.position.x + fw.x * 2.2 + rt.x * side,
+          0.75,
+          currentV.mesh.position.z + fw.z * 2.2 + rt.z * side
+        );
+        sl.target.position.set(sl.position.x + fw.x * 14, 0.2, sl.position.z + fw.z * 14);
+      });
+    } else headLamps.forEach(sl => sl.intensity = 0);
+
+    if (composer) composer.render();
+    else renderer.render(scene, camera);
   }
   tick();
 })();
