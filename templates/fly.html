@@ -232,6 +232,11 @@
     <div id="minimapBox"><canvas id="minimap" width="150" height="150"></canvas></div>
     <div id="toastBox"></div>
 
+    <div id="wayArrow" style="position:absolute; left:50%; top:50%; z-index:55; display:none; pointer-events:none; transform:translate(-50%,-50%);">
+      <div id="wayChevron" style="font-family:var(--mono); font-size:30px; color:#ff5e8a; text-shadow:0 0 12px rgba(255,94,138,0.8), 0 2px 6px rgba(0,0,0,0.6); line-height:1;">&#10148;</div>
+      <div id="wayDist" style="font-family:var(--mono); font-size:10px; letter-spacing:0.12em; color:#fff; text-align:center; margin-top:3px; text-shadow:0 1px 4px rgba(0,0,0,0.8);">--</div>
+    </div>
+
     <div class="corner-btns">
       <button class="cbtn" id="btnFS">FULLSCREEN</button>
       <button class="cbtn" id="btnPause" style="display:none">PAUSE</button>
@@ -298,7 +303,7 @@
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x7fc4f5);
-  scene.fog = new THREE.FogExp2(0x7fc4f5, 0.0036);
+  scene.fog = new THREE.FogExp2(0x7fc4f5, 0.0019);
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 700);
 
   /* subtle bloom — sun, neon, headlights glow like a modern title (desktop only) */
@@ -745,6 +750,73 @@
     parkingLots.push({ bx, bz });
   }
 
+  /* ── builders for varied silhouettes ── */
+  const curbMat = new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.9 });
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x2c2f36, roughness: 0.5, metalness: 0.6 });
+  const doorMat = new THREE.MeshStandardMaterial({ color: 0x3a2f22, roughness: 0.8 });
+  const awningC = cnv(64, 32);
+  {
+    const g = awningC.getContext('2d');
+    for (let x = 0; x < 64; x += 16) { g.fillStyle = '#e8607a'; g.fillRect(x, 0, 8, 32); g.fillStyle = '#f5f0e0'; g.fillRect(x + 8, 0, 8, 32); }
+  }
+  const awningTex2 = tex(awningC, true); awningTex2.repeat.set(4, 1);
+  const awningMat = new THREE.MeshStandardMaterial({ map: awningTex2, roughness: 0.8, side: THREE.DoubleSide });
+  function boxFaces(side) { return [side, side, roofMat, roofMat, side, side]; }
+  function mkFacadeMat(w, floors, glass, industrial) {
+    if (glass) {
+      const ry = Math.max(1, Math.round(floors / 8 * 6));
+      const m = new THREE.MeshStandardMaterial({
+        map: texClone(glassMapBase, Math.max(1, Math.round(w / 8)), ry),
+        emissive: 0xffffff, emissiveMap: texClone(glassEmiBase, Math.max(1, Math.round(w / 8)), ry),
+        emissiveIntensity: 0.05, metalness: 0.85, roughness: 0.15, envMapIntensity: 1.3,
+      });
+      shinyMats.push(m); windowMats.push(m); return m;
+    }
+    const fc = industrial ? FACADES[4 + ((Math.random() * 2) | 0)] : FACADES[(Math.random() * FACADES.length) | 0];
+    const rx = Math.max(1, Math.round(w / 12)), ry = Math.max(1, Math.round(floors / 2));
+    const m = new THREE.MeshStandardMaterial({
+      map: texClone(fc.map, rx, ry), emissive: 0xffffff, emissiveMap: texClone(fc.emi, rx, ry),
+      emissiveIntensity: 0.05, roughness: 0.9, bumpMap: texClone(fc.map, rx, ry), bumpScale: 0.06,
+    });
+    windowMats.push(m); return m;
+  }
+  function addBalconies(cx, cz, w, d, h, floors) {
+    const fz = cz + d / 2;
+    const n = Math.min(3, Math.max(1, Math.round(w / 4.5)));
+    const span = w * 0.74, bw = span / n;
+    for (let fl = 1; fl < floors; fl++) {
+      if (Math.random() < 0.45) continue;
+      const by = fl * (h / floors) + 0.2;
+      for (let k = 0; k < n; k++) {
+        const bxk = cx - span / 2 + bw / 2 + k * bw;
+        const sl = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.92, 0.12, 1.05), parapetMat);
+        sl.position.set(bxk, by, fz + 0.5); sl.castShadow = true; scene.add(sl);
+        const rl = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.92, 0.46, 0.06), railMat);
+        rl.position.set(bxk, by + 0.28, fz + 1.0); scene.add(rl);
+      }
+    }
+  }
+  function addRooftop(cx, cz, w, d, h, big) {
+    const lip = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.55, d + 0.5), parapetMat);
+    lip.position.set(cx, h + 0.22, cz); lip.castShadow = true; scene.add(lip);
+    const n = 1 + (Math.random() * (big ? 3 : 2) | 0);
+    for (let k = 0; k < n; k++) {
+      const ac = new THREE.Mesh(new THREE.BoxGeometry(rand(1.4, 2.4), rand(0.8, 1.3), rand(1.2, 2)), acMat);
+      ac.position.set(cx + rand(-w / 3, w / 3), h + 0.9, cz + rand(-d / 3, d / 3));
+      ac.castShadow = true; scene.add(ac);
+    }
+    if (big && Math.random() < 0.6) {
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.1, 2.4, 12), tankMat);
+      tank.position.set(cx + w / 4, h + 1.5, cz - d / 4); tank.castShadow = true; scene.add(tank);
+      const legs = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.6, 12), trimDark);
+      legs.position.set(cx + w / 4, h + 0.3, cz - d / 4); scene.add(legs);
+    }
+  }
+  function regBuilding(cx, cz, w, d) {
+    colliders.push({ x1: cx - w / 2 - 0.5, x2: cx + w / 2 + 0.5, z1: cz - d / 2 - 0.5, z2: cz + d / 2 + 0.5 });
+    footprints.push({ x: cx, z: cz, w, d });
+  }
+
   for (let i = -1; i <= 5; i++) {
     for (let j = -4; j <= 2; j++) {
       if (i === 1 && j === 0) continue;  // plaza
@@ -754,95 +826,108 @@
 
       if ((i === 0 && j === -1) || (i === 3 && j === 1) || (i === 5 && j === 1)) { buildParkingLot(bx, bz); continue; }
 
-      /* sidewalk slab under every block */
+      /* sidewalk slab + raised curb ring — the footpath the city was missing */
       const slab = new THREE.Mesh(sidewalkGeo, sidewalkMat);
-      slab.position.set(bx, 0.05, bz);
+      slab.position.set(bx, 0.06, bz);
       slab.receiveShadow = true;
       scene.add(slab);
+      [[0, 10.5, 21, 0.18], [0, -10.5, 21, 0.18], [10.5, 0, 0.18, 21], [-10.5, 0, 0.18, 21]].forEach(([ox, oz, cw, cd]) => {
+        const curb = new THREE.Mesh(new THREE.BoxGeometry(cw, 0.22, cd), curbMat);
+        curb.position.set(bx + ox, 0.11, bz + oz);
+        curb.receiveShadow = true; scene.add(curb);
+      });
 
-      /* districts: beachfront lowrise · downtown towers · north-heights villas · east industrial */
+      /* districts */
       const heights = j <= -3;
       const industrial = i >= 4 && !heights;
       const downtown = i >= 2 && i <= 3 && !heights;
-      const w = (industrial ? 15 : 11) + Math.random() * (industrial ? 4 : 6);
-      const d = (industrial ? 14 : 11) + Math.random() * (industrial ? 4 : 6);
-      const h = heights ? 6 + Math.random() * 4
-        : industrial ? 7 + Math.random() * 4
-        : downtown ? 18 + Math.random() * 20
-        : 9 + Math.random() * 8;
-      const glassTower = downtown && h > 26 && Math.random() < 0.55;
-      const floors = Math.max(2, Math.round(h / 3));
+      const beach = !heights && !industrial && !downtown;
 
-      let sideMat;
-      if (glassTower) {
-        sideMat = new THREE.MeshStandardMaterial({
-          map: texClone(glassMapBase, Math.max(1, Math.round(w / 8)), floors / 8 * 0.8),
-          emissive: 0xffffff,
-          emissiveMap: texClone(glassEmiBase, Math.max(1, Math.round(w / 8)), floors / 8 * 0.8),
-          emissiveIntensity: 0.05,
-          metalness: 0.85, roughness: 0.15, envMapIntensity: 1.3,
-        });
-        shinyMats.push(sideMat);
-      } else {
-        const fc = industrial ? FACADES[4 + ((Math.random() * 2) | 0)] : FACADES[(Math.random() * FACADES.length) | 0];
-        const rx = Math.max(1, Math.round(w / 13));
-        const ry = floors / 8;
-        sideMat = new THREE.MeshStandardMaterial({
-          map: texClone(fc.map, rx, ry),
-          emissive: 0xffffff,
-          emissiveMap: texClone(fc.emi, rx, ry),
-          emissiveIntensity: 0.05,
-          roughness: 0.9,
-          bumpMap: texClone(fc.map, rx, ry),
-          bumpScale: 0.06,
-        });
-      }
-      windowMats.push(sideMat);
-
-      const hasShop = !downtown && !heights && !industrial && shopIdx < SHOP_NAMES.length && Math.random() < 0.6;
-      if (hasShop) {
-        const sMat = new THREE.MeshStandardMaterial({ map: storefrontTex(SHOP_NAMES[shopIdx], SHOP_HUES[shopIdx]), roughness: 0.5, metalness: 0.2, envMapIntensity: 0.8 });
-        shopIdx++;
-        const base = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 3.3, d + 0.3), [sMat, sMat, roofMat, roofMat, sMat, sMat]);
-        base.position.set(bx, 1.65, bz);
-        base.castShadow = base.receiveShadow = true;
-        scene.add(base);
-        const upper = new THREE.Mesh(new THREE.BoxGeometry(w, h - 3.3, d), [sideMat, sideMat, roofMat, roofMat, sideMat, sideMat]);
-        upper.position.set(bx, 3.3 + (h - 3.3) / 2, bz);
-        upper.castShadow = upper.receiveShadow = true;
-        scene.add(upper);
-      } else {
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [sideMat, sideMat, roofMat, roofMat, sideMat, sideMat]);
-        mesh.position.set(bx, h / 2, bz);
-        mesh.castShadow = mesh.receiveShadow = true;
-        scene.add(mesh);
-      }
-
-      /* parapet lip */
-      const lip = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.55, d + 0.5), parapetMat);
-      lip.position.set(bx, h + 0.22, bz);
-      lip.castShadow = true;
-      scene.add(lip);
-
-      /* rooftop clutter */
-      if (h > 13) {
-        const n = 1 + (Math.random() * 2 | 0);
-        for (let k = 0; k < n; k++) {
-          const ac = new THREE.Mesh(new THREE.BoxGeometry(rand(1.4, 2.4), rand(0.8, 1.3), rand(1.2, 2)), acMat);
-          ac.position.set(bx + rand(-w / 3, w / 3), h + 0.9, bz + rand(-d / 3, d / 3));
-          ac.castShadow = true;
-          scene.add(ac);
+      if (downtown) {
+        /* podium + setback tower — real skyline silhouette */
+        const pw = 12 + rand(0, 3), pd = 12 + rand(0, 3), ph = 4.2;
+        const podMat = mkFacadeMat(pw, 1, false, false);
+        const podium = new THREE.Mesh(new THREE.BoxGeometry(pw, ph, pd), boxFaces(podMat));
+        podium.position.set(bx, ph / 2, bz); podium.castShadow = podium.receiveShadow = true; scene.add(podium);
+        let cw = pw, cd = pd, cy = ph;
+        const tiers = 1 + (Math.random() * 2 | 0);
+        const glass = Math.random() < 0.5;
+        for (let tIdx = 0; tIdx < tiers; tIdx++) {
+          const tw = cw * rand(0.62, 0.82), td = cd * rand(0.62, 0.82);
+          const th = (tiers === 1 ? 16 + rand(0, 20) : 9 + rand(0, 9));
+          const fl = Math.max(3, Math.round(th / 3));
+          const tMat = mkFacadeMat(tw, fl, glass, false);
+          const tw2 = new THREE.Mesh(new THREE.BoxGeometry(tw, th, td), boxFaces(tMat));
+          tw2.position.set(bx, cy + th / 2, bz); tw2.castShadow = tw2.receiveShadow = true; scene.add(tw2);
+          cy += th; cw = tw; cd = td;
         }
-        if (h > 22 && Math.random() < 0.5) {
-          const tank = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.1, 2.2, 10), tankMat);
-          tank.position.set(bx + w / 4, h + 1.4, bz - d / 4);
-          tank.castShadow = true;
-          scene.add(tank);
-        }
-      }
+        addRooftop(bx, bz, cw, cd, cy, true);
+        regBuilding(bx, bz, pw, pd);
 
-      colliders.push({ x1: bx - w / 2 - 0.5, x2: bx + w / 2 + 0.5, z1: bz - d / 2 - 0.5, z2: bz + d / 2 + 0.5 });
-      footprints.push({ x: bx, z: bz, w, d });
+      } else if (heights) {
+        /* villa — wide, low, balconies, terraced upper floor */
+        const w = 12 + rand(0, 4), d = 11 + rand(0, 4), h = 6 + rand(0, 3.5);
+        const fl = Math.max(2, Math.round(h / 3));
+        const m = mkFacadeMat(w, fl, false, false);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), boxFaces(m));
+        body.position.set(bx, h / 2, bz); body.castShadow = body.receiveShadow = true; scene.add(body);
+        addBalconies(bx, bz, w, d, h, fl);
+        if (Math.random() < 0.6) {
+          const uw = w * 0.6, ud = d * 0.6, uh = 2.6 + rand(0, 1.5);
+          const um = mkFacadeMat(uw, 1, false, false);
+          const up = new THREE.Mesh(new THREE.BoxGeometry(uw, uh, ud), boxFaces(um));
+          up.position.set(bx + rand(-1.5, 1.5), h + uh / 2, bz + rand(-1.5, 1.5));
+          up.castShadow = true; scene.add(up);
+          const railT = new THREE.Mesh(new THREE.BoxGeometry(w - 0.6, 0.4, 0.06), railMat);
+          railT.position.set(bx, h + 0.2, bz + d / 2 - 0.3); scene.add(railT);
+        } else {
+          addRooftop(bx, bz, w, d, h, false);
+        }
+        regBuilding(bx, bz, w, d);
+
+      } else if (industrial) {
+        /* warehouse — long, low, monitor roof, loading door, silo */
+        const w = 15 + rand(0, 4), d = 14 + rand(0, 4), h = 7 + rand(0, 3.5);
+        const fl = 2;
+        const m = mkFacadeMat(w, fl, false, true);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), boxFaces(m));
+        body.position.set(bx, h / 2, bz); body.castShadow = body.receiveShadow = true; scene.add(body);
+        const monitor = new THREE.Mesh(new THREE.BoxGeometry(w * 0.5, 1.6, d), [trimDark, trimDark, roofMat, roofMat, trimDark, trimDark]);
+        monitor.position.set(bx, h + 0.8, bz); monitor.castShadow = true; scene.add(monitor);
+        const door = new THREE.Mesh(new THREE.BoxGeometry(4, 3.4, 0.2), doorMat);
+        door.position.set(bx, 1.7, bz + d / 2 + 0.05); scene.add(door);
+        if (Math.random() < 0.5) {
+          const silo = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, h + 3, 14), new THREE.MeshStandardMaterial({ color: 0xb8b0a0, roughness: 0.6, metalness: 0.4 }));
+          silo.position.set(bx + w / 2 + 1.8, (h + 3) / 2, bz - d / 4); silo.castShadow = true; scene.add(silo);
+          const dome = new THREE.Mesh(new THREE.SphereGeometry(1.6, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), silo.material);
+          dome.position.set(bx + w / 2 + 1.8, h + 3, bz - d / 4); scene.add(dome);
+          colliders.push({ x1: bx + w / 2 + 0.2, x2: bx + w / 2 + 3.4, z1: bz - d / 4 - 1.6, z2: bz - d / 4 + 1.6 });
+        }
+        regBuilding(bx, bz, w, d);
+
+      } else {
+        /* beach lowrise — shopfront podium + residential floors + awning + balconies */
+        const w = 11 + rand(0, 5), d = 11 + rand(0, 4), h = 9 + rand(0, 7);
+        const fl = Math.max(2, Math.round(h / 3));
+        const upMat = mkFacadeMat(w, fl, false, false);
+        const hasShop = shopIdx < SHOP_NAMES.length && Math.random() < 0.7;
+        if (hasShop) {
+          const sMat = new THREE.MeshStandardMaterial({ map: storefrontTex(SHOP_NAMES[shopIdx], SHOP_HUES[shopIdx]), roughness: 0.5, metalness: 0.2, envMapIntensity: 0.8 });
+          shopIdx++;
+          const base = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 3.3, d + 0.3), boxFaces(sMat));
+          base.position.set(bx, 1.65, bz); base.castShadow = base.receiveShadow = true; scene.add(base);
+          const awn = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.18, 1.6), awningMat);
+          awn.position.set(bx, 3.3, bz + d / 2 + 0.7); awn.rotation.x = 0.18; awn.castShadow = true; scene.add(awn);
+          const upper = new THREE.Mesh(new THREE.BoxGeometry(w, h - 3.3, d), boxFaces(upMat));
+          upper.position.set(bx, 3.3 + (h - 3.3) / 2, bz); upper.castShadow = upper.receiveShadow = true; scene.add(upper);
+        } else {
+          const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), boxFaces(upMat));
+          body.position.set(bx, h / 2, bz); body.castShadow = body.receiveShadow = true; scene.add(body);
+        }
+        addBalconies(bx, bz, w, d, h, fl);
+        addRooftop(bx, bz, w, d, h, h > 13);
+        regBuilding(bx, bz, w, d);
+      }
     }
   }
 
@@ -1743,7 +1828,9 @@
   const peds = [];
   const SHIRTS = [0xe6c542, 0x7a5fc0, 0x6fc7c0, 0xe87f9a, 0x6da75c, 0xe8e6e0, 0x37424e];
   const PANTS  = [0x3a3f48, 0x5a4632, 0x2c3340, 0x7a7468, 0x44323e];
-  const PED_N = IS_TOUCH ? 7 : 12;
+  const PED_N = IS_TOUCH ? 9 : 16;
+  /* sidewalk corridors: parallel to roads but offset onto the concrete ring (±10.3 from a block centre) */
+  const BLOCK_CTRS = [-36, 0, 36, 72, 108, 144];
   for (let n = 0; n < PED_N; n++) {
     const ped = buildHuman({
       shirt: SHIRTS[n % SHIRTS.length],
@@ -1753,15 +1840,18 @@
     });
     let from, to, horizontal, line;
     if (n < 3) {
-      horizontal = false; line = -86 + n * 8;
+      /* beach boardwalk strollers (on the sand promenade, off the road) */
+      horizontal = false; line = -68 + n * 4;
       from = -60 + Math.random() * 30; to = 40 + Math.random() * 50;
       ped.position.set(line, 0, from);
     } else {
       horizontal = n % 2 === 0;
-      line = [-54, -18, 18, 54, 90, 126][n % 6] + 8.5;
-      from = -70 + Math.random() * 30; to = 30 + Math.random() * 60;
-      if (horizontal) ped.position.set(from, 0, line);
-      else ped.position.set(line, 0, from);
+      const bc = BLOCK_CTRS[n % BLOCK_CTRS.length];
+      const cross = BLOCK_CTRS[(n + 2) % BLOCK_CTRS.length];
+      line = bc + (Math.random() < 0.5 ? 10.3 : -10.3); // hug the curb, on the concrete
+      from = cross - 9; to = cross + 9;                  // stay within the block, between cross-streets
+      if (horizontal) ped.position.set(rand(from, to), 0, line);
+      else ped.position.set(line, 0, rand(from, to));
     }
     scene.add(ped);
     peds.push({
@@ -1816,10 +1906,24 @@
   beaconRing.rotation.x = Math.PI / 2;
   beaconRing.position.y = 0.3;
   scene.add(beaconRing);
+  /* a see-through floating pin so the goal is unmissable even behind buildings */
+  const pinC = cnv(64, 80);
+  {
+    const g = pinC.getContext('2d');
+    g.fillStyle = '#ff5e8a'; g.strokeStyle = '#fff'; g.lineWidth = 4;
+    g.beginPath(); g.arc(32, 30, 24, Math.PI, 0); g.lineTo(32, 76); g.closePath();
+    g.fill(); g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(32, 30, 9, 0, 7); g.fill();
+  }
+  const wayPin = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(pinC), transparent: true, depthTest: false, depthWrite: false }));
+  wayPin.scale.set(3.2, 4, 1);
+  wayPin.renderOrder = 999;
+  scene.add(wayPin);
   function setBeacon(x, z, on) {
     beacon.visible = beaconRing.visible = on;
-    beacon.position.x = beaconRing.position.x = x;
-    beacon.position.z = beaconRing.position.z = z;
+    wayPin.visible = on;
+    beacon.position.x = beaconRing.position.x = wayPin.position.x = x;
+    beacon.position.z = beaconRing.position.z = wayPin.position.z = z;
   }
   setBeacon(0, 0, false);
 
@@ -2921,6 +3025,30 @@
 
     if (mState !== 'idle') drawMinimap();
 
+    /* ── waypoint pin + screen-edge arrow ── */
+    if (beacon.visible) {
+      wayPin.position.y = 6.5 + Math.sin(t * 2.5) * 0.5;
+      const f0 = focusPos();
+      const dpix = Math.round(dist2D(f0, beacon.position));
+      const v = new THREE.Vector3(beacon.position.x, 2.5, beacon.position.z).project(camera);
+      const onScreen = v.z < 1 && Math.abs(v.x) < 0.92 && Math.abs(v.y) < 0.92;
+      const arrow = el('wayArrow');
+      if (onScreen) { arrow.style.display = 'none'; }
+      else {
+        arrow.style.display = 'block';
+        const W = wrap.clientWidth, H = wrap.clientHeight;
+        let sx = v.x, sy = v.y;
+        if (v.z > 1) { sx = -sx; sy = -sy; } // behind camera: flip
+        const ang = Math.atan2(sy, sx);
+        const mrg = 64;
+        const px = clamp(W / 2 + Math.cos(ang) * (W / 2 - mrg), mrg, W - mrg);
+        const py = clamp(H / 2 - Math.sin(ang) * (H / 2 - mrg), mrg, H - mrg);
+        arrow.style.left = px + 'px'; arrow.style.top = py + 'px';
+        el('wayChevron').style.transform = `rotate(${-ang}rad)`;
+        el('wayDist').textContent = dpix + 'm';
+      }
+    } else el('wayArrow').style.display = 'none';
+
     /* ── camera + sun follow ── */
     const f = focusPos();
     if (cine) {
@@ -2933,20 +3061,27 @@
       if (cineT > 9.6) endCine();
     } else {
       camDist += (camDistT - camDist) * Math.min(1, dt * 5);
+      /* on foot, ease the camera behind the direction you're facing so you always see ahead */
+      if (!currentV && !dragging && camId === null && moving) {
+        camYaw = lerpAngle(camYaw, playerInner.rotation.y + Math.PI, Math.min(1, dt * 1.4));
+      }
       const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
-      const desired = new THREE.Vector3(
-        f.x + Math.sin(camYaw) * cp * camDist,
-        f.y + sp * camDist + 1.5,
-        f.z + Math.cos(camYaw) * cp * camDist
-      );
-      camPos.lerp(desired, Math.min(1, dt * 6));
+      const pivotY = f.y + (currentV ? 1.3 : 1.7);
+      /* collision-aware: shorten the boom if a building sits between target and camera */
+      let useDist = camDist;
+      const dirx = Math.sin(camYaw) * cp, diry = sp, dirz = Math.cos(camYaw) * cp;
+      for (let s = 1.2; s < camDist; s += 1.0) {
+        if (hitsBuilding(f.x + dirx * s, f.z + dirz * s, 0.8)) { useDist = Math.max(3.4, s - 0.8); break; }
+      }
+      const desired = new THREE.Vector3(f.x + dirx * useDist, pivotY + diry * useDist * 0.5 + 1.0, f.z + dirz * useDist);
+      camPos.lerp(desired, Math.min(1, dt * (useDist < camDist - 0.5 ? 14 : 7)));
       if (shake > 0.003) {
         camPos.x += (Math.random() - 0.5) * shake;
         camPos.y += (Math.random() - 0.5) * shake;
         shake *= Math.pow(0.01, dt);
       }
       camera.position.copy(camPos);
-      camera.lookAt(f.x, f.y + 1.6, f.z);
+      camera.lookAt(f.x, pivotY, f.z);
     }
 
     sun.position.set(f.x + sky.sx * 165, Math.max(34, sky.elev * 165 + 12), f.z + 62);
