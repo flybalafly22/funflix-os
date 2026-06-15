@@ -306,12 +306,55 @@
   scene.fog = new THREE.FogExp2(0x7fc4f5, 0.0019);
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 700);
 
+  /* cinematic colour-grade: contrast lift, warm/cool split-tone, vignette.
+     Runs in LINEAR space (before the gamma pass), so whites stay tamed and
+     bloom doesn't blow out. uTime is reserved for a faint film grain. */
+  const GradeShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      uVignette: { value: 0.32 },
+      uContrast: { value: 1.07 },
+      uSaturation: { value: 1.12 },
+      uLift: { value: new THREE.Vector3(0.0, 0.004, 0.012) },   // cool shadows
+      uGain: { value: new THREE.Vector3(1.03, 1.005, 0.97) },   // warm highlights
+      uTime: { value: 0 },
+    },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float uVignette, uContrast, uSaturation, uTime;
+      uniform vec3 uLift, uGain;
+      varying vec2 vUv;
+      void main(){
+        vec4 tex = texture2D(tDiffuse, vUv);
+        vec3 c = tex.rgb;
+        /* lift / gain split-tone */
+        c = c * uGain + uLift;
+        /* contrast around mid grey */
+        c = (c - 0.5) * uContrast + 0.5;
+        /* saturation */
+        float l = dot(c, vec3(0.299, 0.587, 0.114));
+        c = mix(vec3(l), c, uSaturation);
+        /* vignette */
+        vec2 d = vUv - 0.5;
+        float vig = smoothstep(0.85, 0.30, dot(d, d) * 2.0);
+        c *= mix(1.0, vig, uVignette);
+        /* faint animated grain — breaks up software-render banding */
+        float g = fract(sin(dot(vUv * (uTime * 0.0 + 1.0) + uTime, vec2(12.9898, 78.233))) * 43758.5453);
+        c += (g - 0.5) * 0.012;
+        gl_FragColor = vec4(max(c, 0.0), tex.a);
+      }`,
+  };
+
   /* subtle bloom — sun, neon, headlights glow like a modern title (desktop only) */
-  let composer = null;
+  let composer = null, gradePass = null;
   if (!IS_TOUCH && THREE.EffectComposer && THREE.UnrealBloomPass && THREE.RenderPass && THREE.ShaderPass && THREE.GammaCorrectionShader) {
     composer = new THREE.EffectComposer(renderer);
     composer.addPass(new THREE.RenderPass(scene, camera));
-    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(800, 600), 0.45, 0.4, 0.85));
+    /* tamer bloom: lower strength + higher threshold so daylight whites don't smear */
+    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(800, 600), 0.34, 0.5, 0.92));
+    gradePass = new THREE.ShaderPass(GradeShader);
+    composer.addPass(gradePass);
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
   }
 
@@ -1439,6 +1482,11 @@
 
   function buildCarMesh(color, sport) {
     const g = new THREE.Group();
+    /* sprung-body group: rolls/pitches/bobs on the suspension without moving the
+       wheels, the ground pool, or the collision frame (which read g directly) */
+    const chassis = new THREE.Group();
+    g.add(chassis);
+    g.userData.chassis = chassis;
     const paint = new THREE.MeshPhysicalMaterial({
       color, metalness: 0.9, roughness: 0.3,
       clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.2,
@@ -1447,26 +1495,26 @@
 
     const body = new THREE.Mesh(CAR_GEOMS[sport ? 'sport' : 'sedan'], paint);
     body.castShadow = true;
-    g.add(body);
+    chassis.add(body);
 
     /* raked glass */
     const ws = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.52, 0.06), carGlass);
     ws.position.set(0, sport ? 1.06 : 1.22, sport ? 0.42 : 0.8);
     ws.rotation.x = sport ? -0.62 : -0.52;
-    g.add(ws);
+    chassis.add(ws);
     const rg = new THREE.Mesh(new THREE.BoxGeometry(1.46, 0.46, 0.06), carGlass);
     rg.position.set(0, sport ? 1.04 : 1.2, sport ? -0.92 : -0.86);
     rg.rotation.x = sport ? 0.66 : 0.5;
-    g.add(rg);
+    chassis.add(rg);
     [[-1, 0], [1, 0]].forEach(([sx]) => {
       const sg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.32, sport ? 0.95 : 1.2), carGlass);
       sg.position.set(sx * 0.86, sport ? 1.02 : 1.16, -0.05);
-      g.add(sg);
+      chassis.add(sg);
     });
 
     /* the front clip is its own group so a crash can crumple it */
     const front = new THREE.Group();
-    g.add(front);
+    chassis.add(front);
     const bF = new THREE.Mesh(new THREE.BoxGeometry(2.32, 0.26, 0.32), trimDark);
     bF.position.set(0, 0.42, 2.45); front.add(bF);
     const grill = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.2, 0.05), trimDark);
@@ -1485,50 +1533,50 @@
     });
 
     const bR = new THREE.Mesh(new THREE.BoxGeometry(2.32, 0.26, 0.32), trimDark);
-    bR.position.set(0, 0.42, -2.45); g.add(bR);
+    bR.position.set(0, 0.42, -2.45); chassis.add(bR);
     const tl = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.14, 0.07), tlMat);
-    tl.position.set(-0.7, 0.72, -2.39); g.add(tl);
-    const tr = tl.clone(); tr.position.x = 0.7; g.add(tr);
+    tl.position.set(-0.7, 0.72, -2.39); chassis.add(tl);
+    const tr = tl.clone(); tr.position.x = 0.7; chassis.add(tr);
 
     const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0xe8e4d2, roughness: 0.6 }));
-    plate.position.set(0, 0.5, -2.47); plate.rotation.y = Math.PI; g.add(plate);
+    plate.position.set(0, 0.5, -2.47); plate.rotation.y = Math.PI; chassis.add(plate);
 
     /* exhaust */
     const exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.28, 8), chrome);
     exhaust.rotation.x = Math.PI / 2;
-    exhaust.position.set(sport ? 0.5 : 0.78, 0.34, -2.5); g.add(exhaust);
-    if (sport) { const ex2 = exhaust.clone(); ex2.position.x = -0.5; g.add(ex2); }
+    exhaust.position.set(sport ? 0.5 : 0.78, 0.34, -2.5); chassis.add(exhaust);
+    if (sport) { const ex2 = exhaust.clone(); ex2.position.x = -0.5; chassis.add(ex2); }
 
     /* wheel-arch fenders + chrome belt line + door seams */
     [[-1.04, 1.52], [1.04, 1.52], [-1.04, -1.52], [1.04, -1.52]].forEach(([px, pz]) => {
       const arch = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.07, 6, 12, Math.PI), trimDark);
       arch.rotation.y = Math.PI / 2;
       arch.position.set(px > 0 ? 0.92 : -0.92, 0.5, pz);
-      g.add(arch);
+      chassis.add(arch);
     });
     [[-1.0], [1.0]].forEach(([sx]) => {
       const belt = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 3.6), chrome);
-      belt.position.set(sx, 0.82, 0); g.add(belt);
+      belt.position.set(sx, 0.82, 0); chassis.add(belt);
       const seam = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.02), trimDark);
-      seam.position.set(sx, 0.7, -0.05); g.add(seam);
+      seam.position.set(sx, 0.7, -0.05); chassis.add(seam);
     });
 
     /* side mirrors on stalks */
     [[-1.06], [1.06]].forEach(([mx]) => {
       const stalk = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.04), trimDark);
-      stalk.position.set(mx, 1.02, 0.9); g.add(stalk);
+      stalk.position.set(mx, 1.02, 0.9); chassis.add(stalk);
       const cap = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.13, 0.1), paint);
-      cap.position.set(mx + (mx > 0 ? 0.12 : -0.12), 1.04, 0.9); g.add(cap);
+      cap.position.set(mx + (mx > 0 ? 0.12 : -0.12), 1.04, 0.9); chassis.add(cap);
       const glassM = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.07), carGlass);
-      glassM.position.set(mx + (mx > 0 ? 0.18 : -0.18), 1.04, 0.9); g.add(glassM);
+      glassM.position.set(mx + (mx > 0 ? 0.18 : -0.18), 1.04, 0.9); chassis.add(glassM);
     });
 
     if (sport) {
       const blade = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.06, 0.42), paint);
-      blade.position.set(0, 1.18, -2.1); blade.castShadow = true; g.add(blade);
+      blade.position.set(0, 1.18, -2.1); blade.castShadow = true; chassis.add(blade);
       [[-0.7], [0.7]].forEach(([px]) => {
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.26, 0.08), trimDark);
-        post.position.set(px, 1.0, -2.1); g.add(post);
+        post.position.set(px, 1.0, -2.1); chassis.add(post);
       });
     }
 
@@ -1553,40 +1601,43 @@
 
   function buildBikeMesh(color) {
     const g = new THREE.Group();
+    const chassis = new THREE.Group();
+    g.add(chassis);
+    g.userData.chassis = chassis;
     const paint = new THREE.MeshPhysicalMaterial({ color, metalness: 0.85, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 1.2 });
     shinyMats.push(paint);
 
     const tank = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.32, 0.95), paint);
     tank.position.set(0, 0.98, 0.18);
     tank.castShadow = true;
-    g.add(tank);
+    chassis.add(tank);
     const seat = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.72), trimDark);
     seat.position.set(0, 0.99, -0.52);
-    g.add(seat);
+    chassis.add(seat);
     const cowl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.4), paint);
     cowl.position.set(0, 1.0, -0.95);
-    g.add(cowl);
+    chassis.add(cowl);
     const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.9, 6), trimDark);
     spine.rotation.x = Math.PI / 2;
     spine.position.set(0, 0.72, 0);
-    g.add(spine);
+    chassis.add(spine);
     [[-0.1], [0.1]].forEach(([ox]) => {
       const fork = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.85, 6), chrome);
       fork.rotation.x = 0.45;
       fork.position.set(ox, 0.78, 0.85);
-      g.add(fork);
+      chassis.add(fork);
       const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.3, 7), chrome);
       pipe.rotation.x = Math.PI / 2 - 0.08;
       pipe.position.set(ox * 2.4, 0.5, -0.45);
-      g.add(pipe);
+      chassis.add(pipe);
     });
     const bars = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.85, 6), chrome);
     bars.rotation.z = Math.PI / 2;
     bars.position.set(0, 1.22, 0.72);
-    g.add(bars);
+    chassis.add(bars);
     const hl = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.16, 0.08), hlMat);
     hl.position.set(0, 1.0, 1.1);
-    g.add(hl);
+    chassis.add(hl);
 
     const wheels = [];
     [[1.0, true], [-0.95, false]].forEach(([pz, front]) => {
@@ -1615,7 +1666,8 @@
     mesh.position.set(x, 0, z);
     mesh.rotation.y = heading;
     scene.add(mesh);
-    const v = { mesh, kind, vel: 0, heading, name, spin: 0 };
+    const v = { mesh, kind, vel: 0, heading, name, spin: 0,
+                slip: 0, roll: 0, pitch: 0, bob: 0, lastV: 0, yawRate: 0, drift: 0 };
     vehicles.push(v);
     return v;
   }
@@ -2042,6 +2094,51 @@
       p.spr.material.opacity = Math.max(0, p.life * 0.32);
       if (p.life <= 0) p.spr.visible = false;
     }
+    /* skid marks fade slowly back into the asphalt */
+    for (const s of skids) {
+      if (!s.mesh.visible) continue;
+      s.life -= dt * 0.06;
+      if (s.life <= 0) { s.mesh.visible = false; continue; }
+      s.mesh.material.opacity = Math.min(0.5, s.life) * 0.78;
+    }
+  }
+
+  /* ════════ TIRE SKID MARKS — pooled ground decals (rear axle, under drift/brake) ════════ */
+  const skidTexC = cnv(32, 32);
+  {
+    const g = skidTexC.getContext('2d');
+    const gr = g.createRadialGradient(16, 16, 1, 16, 16, 16);
+    gr.addColorStop(0, 'rgba(14,14,16,0.95)');
+    gr.addColorStop(0.6, 'rgba(14,14,16,0.5)');
+    gr.addColorStop(1, 'rgba(14,14,16,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+  }
+  const skidTex = new THREE.CanvasTexture(skidTexC);
+  const skidGeo = new THREE.PlaneGeometry(0.34, 0.34);
+  const SKID_N = IS_TOUCH ? 60 : 150;
+  const skids = [];
+  let skidHead = 0;
+  for (let i = 0; i < SKID_N; i++) {
+    const m = new THREE.Mesh(skidGeo, new THREE.MeshBasicMaterial({
+      map: skidTex, transparent: true, opacity: 0, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    }));
+    m.rotation.x = -Math.PI / 2;
+    m.visible = false;
+    m.renderOrder = 1;
+    scene.add(m);
+    skids.push({ mesh: m, life: 0 });
+  }
+  function layeSkid(x, z, heading, intensity) {
+    const s = skids[skidHead];
+    skidHead = (skidHead + 1) % SKID_N;
+    s.mesh.position.set(x, 0.045, z);
+    s.mesh.rotation.z = -heading;
+    const w = 0.7 + intensity * 0.6;
+    s.mesh.scale.set(w, 1.7 + intensity * 0.8, 1);
+    s.life = 1.0;
+    s.mesh.material.opacity = 0.55;
+    s.mesh.visible = true;
   }
 
   /* damage model: crumple, scorch, dead lamp, smoke, degraded handling */
@@ -2513,6 +2610,9 @@
   const pad = { mx: 0, my: 0, gas: false, brake: false };
   let camYaw = Math.PI, camPitch = 0.46, camDist = 11, camDistT = 11;
   let dragging = false, lastMX = 0, lastMY = 0;
+  const BASE_FOV = 60;
+  let camFov = BASE_FOV;
+  const camLook = new THREE.Vector3();   // smoothed look-ahead target
 
   canvas.addEventListener('mousedown', e => { dragging = true; lastMX = e.clientX; lastMY = e.clientY; });
   window.addEventListener('mouseup', () => { dragging = false; });
@@ -2568,6 +2668,10 @@
     playerInner.rotation.y = v.heading;
     player.visible = true;
     camDistT = 11;
+    /* settle the suspension so a parked car sits level */
+    v.lat = 0; v.roll = 0; v.pitch = 0; v.drift = 0; v.yawRate = 0;
+    const ch = v.mesh.userData.chassis;
+    if (ch) { ch.rotation.set(0, 0, 0); ch.position.y = 0; }
     if (engineGain) engineGain.gain.value = 0;
     el('speedo').style.display = 'none';
     el('btnRadio').style.display = 'none';
@@ -2945,19 +3049,49 @@
       const accel = K.accel * (1 - dmg * 0.35);
       const gas = pad.gas || keys.has('KeyW') || keys.has('ArrowUp');
       const brk = pad.brake || keys.has('KeyS') || keys.has('ArrowDown');
+      const handbrake = keys.has('Space');
+      const prevVel = v.vel;
       if (gas) v.vel = Math.min(maxV, v.vel + accel * dt);
       else if (brk) v.vel = Math.max(-9, v.vel - 24 * dt);
       else v.vel *= Math.max(0, 1 - 1.3 * dt);
-      if (keys.has('Space')) v.vel *= Math.max(0, 1 - 5 * dt);
+      if (handbrake) v.vel *= Math.max(0, 1 - 5 * dt);
       let steer = (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) - (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0);
       steer -= pad.mx;
       steer = clamp(steer, -1, 1);
       steerVisual = steer;
-      if (Math.abs(v.vel) > 0.5) {
-        v.heading += steer * K.steer * dt * Math.sign(v.vel) * Math.min(1, Math.abs(v.vel) / 9);
-      }
-      const nx = v.mesh.position.x + Math.sin(v.heading) * v.vel * dt;
-      const nz = v.mesh.position.z + Math.cos(v.heading) * v.vel * dt;
+
+      /* ── arcade-sim handling: speed-scaled steering + lateral grip/slip ── */
+      const speed = Math.abs(v.vel);
+      const dir = Math.sign(v.vel) || 1;
+      /* steering authority tapers at speed so it never feels twitchy flat-out */
+      const steerAuth = clamp(1.25 - speed / (maxV * 1.7), 0.42, 1);
+      const turn = steer * K.steer * steerAuth * dir * Math.min(1, speed / 7);
+      if (speed > 0.5) v.heading += turn * dt;
+      v.yawRate = turn;
+
+      /* grip model: lateral slip velocity builds from the turn the body can't hold.
+         a handbrake or sharp turn at speed breaks traction → controlled drift. */
+      const isBike = v.kind === 'bike';
+      const gripMax = isBike ? 9.5 : 7.2;                 // m/s of lateral the tires hold
+      const demand = -turn * speed * (isBike ? 0.7 : 1.0); // centripetal demand → sideways load
+      v.lat = (v.lat || 0) + demand * dt * 4.2;
+      let gripLoss = clamp((Math.abs(v.lat) - gripMax) / gripMax, 0, 1);
+      if (handbrake && speed > 4) { v.lat += dir * steer * speed * dt * 1.4; gripLoss = Math.max(gripLoss, 0.6); }
+      /* tires scrub the lateral velocity back toward zero (more grip = faster recovery) */
+      const recover = (handbrake ? 1.4 : 5.2) * (isBike ? 1.4 : 1);
+      v.lat *= Math.max(0, 1 - recover * dt);
+      v.lat = clamp(v.lat, -16, 16);
+      v.drift = gripLoss;
+      /* a sliding car bleeds a little forward speed */
+      if (gripLoss > 0.25) v.vel *= Math.max(0, 1 - gripLoss * 1.2 * dt);
+
+      /* world-space velocity = forward (along heading) + lateral (sideways) */
+      const fwX = Math.sin(v.heading), fwZ = Math.cos(v.heading);
+      const rtX = fwZ, rtZ = -fwX;
+      const moveX = fwX * v.vel + rtX * v.lat;
+      const moveZ = fwZ * v.vel + rtZ * v.lat;
+      const nx = v.mesh.position.x + moveX * dt;
+      const nz = v.mesh.position.z + moveZ * dt;
       /* escape-aware: never trap the player — moving AWAY from what you hit always works */
       const cX = v.mesh.position.x, cZ = v.mesh.position.z;
       const bNew = hitsBuilding(nx, nz, K.margin), bCur = hitsBuilding(cX, cZ, K.margin);
@@ -2974,23 +3108,58 @@
           shake = Math.min(0.85, impactSpeed * 0.05 + 0.2);
           sfxCrash(norm);
           if (vehBlocked) shoveTraffic(nx, nz, v.mesh, vForward(v), 0.6 + norm * 1.4);
-          v.vel *= -0.28;
+          v.vel *= -0.28; v.lat *= 0.2;
         } else {
           if (impactSpeed > 2) { shake = Math.min(0.5, impactSpeed * 0.045 + 0.12); sfxThud(); }
-          v.vel *= -0.2;
+          v.vel *= -0.2; v.lat *= 0.3;
         }
       } else {
         v.mesh.position.x = clamp(nx, BOUND_X[0], BOUND_X[1]);
         v.mesh.position.z = clamp(nz, BOUND_Z[0], BOUND_Z[1]);
       }
       v.mesh.rotation.y = v.heading;
+      /* wheels spin to ground speed; fronts steer; rears smear under slip */
+      const groundSpeed = Math.hypot(moveX, moveZ);
       v.spin += (v.vel / 0.42) * dt;
       v.mesh.userData.wheels.forEach(w => {
         w.spin.rotation.x = v.spin;
-        if (w.front) w.steer.rotation.y = lerpAngle(w.steer.rotation.y, steer * 0.42, Math.min(1, dt * 8));
+        if (w.front) w.steer.rotation.y = lerpAngle(w.steer.rotation.y, steer * 0.42 + clamp(v.lat * 0.04, -0.3, 0.3), Math.min(1, dt * 8));
       });
-      if (v.kind === 'bike') {
-        v.mesh.rotation.z = -steer * Math.min(1, Math.abs(v.vel) / 12) * 0.3;
+
+      /* ── visual suspension: pitch on accel/brake, roll into corners, bob ── */
+      const ch = v.mesh.userData.chassis;
+      if (ch) {
+        const accelG = (v.vel - prevVel) / Math.max(dt, 0.001);   // longitudinal g
+        const targetPitch = clamp(-accelG * 0.006, -0.09, 0.09);  // nose-up on gas, dive on brake
+        const targetRoll = clamp(v.lat * 0.018 + v.yawRate * speed * 0.004, -0.16, 0.16);
+        v.pitch += (targetPitch - v.pitch) * Math.min(1, dt * 7);
+        v.roll += (targetRoll - v.roll) * Math.min(1, dt * 8);
+        /* bob: faint road-noise bounce scaled by speed */
+        v.bob += dt * (4 + speed * 0.7);
+        const bobAmt = Math.sin(v.bob) * Math.min(0.02, speed * 0.0011);
+        ch.rotation.x = v.pitch;
+        ch.position.y = bobAmt;
+        if (!isBike) ch.rotation.z = -v.roll;
+      }
+
+      /* ── skid marks + tire smoke when traction breaks or you brake hard ── */
+      const hardBrake = brk && v.vel < 0 ? false : (brk && prevVel > 7);
+      const skidding = v.drift > 0.35 || (handbrake && speed > 5) || (hardBrake && speed > 9);
+      if (skidding && groundSpeed > 3) {
+        const inten = clamp(v.drift + (handbrake ? 0.4 : 0) + (hardBrake ? 0.3 : 0), 0.3, 1);
+        const rearZ = isBike ? -0.95 : -1.52;
+        for (const sx of (isBike ? [0] : [-1.0, 1.0])) {
+          const wx = v.mesh.position.x + fwX * rearZ + rtX * sx;
+          const wz = v.mesh.position.z + fwZ * rearZ + rtZ * sx;
+          layeSkid(wx, wz, v.heading, inten);
+        }
+        if (Math.random() < 0.4 + inten * 0.4) {
+          spawnSmoke(v.mesh.position.x + fwX * rearZ, 0.35, v.mesh.position.z + fwZ * rearZ, false);
+        }
+      }
+
+      if (isBike) {
+        v.mesh.rotation.z = -steer * Math.min(1, Math.abs(v.vel) / 12) * 0.3 - v.roll * 0.6;
         player.position.copy(v.mesh.position);
         player.position.y = 0.52;
         playerInner.rotation.y = 0;
@@ -3231,7 +3400,11 @@
       camPos.copy(camera.position);
       if (cineT > 9.6) endCine();
     } else {
-      camDist += (camDistT - camDist) * Math.min(1, dt * 5);
+      /* speed factor 0..1 used to widen FOV + lengthen the boom at pace */
+      const spd = currentV ? Math.abs(currentV.vel) : 0;
+      const spdF = currentV ? clamp(spd / KINDS[currentV.kind].maxV, 0, 1) : 0;
+      const camDistTarget = camDistT + spdF * 2.4;                 // a touch more trail flat-out
+      camDist += (camDistTarget - camDist) * Math.min(1, dt * 5);
       /* on foot, ease the camera behind the direction you're facing so you always see ahead */
       if (!currentV && !dragging && camId === null && moving) {
         camYaw = lerpAngle(camYaw, playerInner.rotation.y + Math.PI, Math.min(1, dt * 1.4));
@@ -3252,7 +3425,19 @@
         shake *= Math.pow(0.01, dt);
       }
       camera.position.copy(camPos);
-      camera.lookAt(f.x, pivotY, f.z);
+      /* look-ahead: lead the camera toward where the vehicle is heading at speed */
+      let lookX = f.x, lookZ = f.z;
+      if (currentV && spd > 1) {
+        const lead = spdF * 5.5 * Math.sign(currentV.vel);
+        lookX += Math.sin(currentV.heading) * lead;
+        lookZ += Math.cos(currentV.heading) * lead;
+      }
+      camLook.lerp(new THREE.Vector3(lookX, pivotY, lookZ), Math.min(1, dt * 6));
+      camera.lookAt(camLook.x, camLook.y, camLook.z);
+      /* mild FOV punch with speed — kept gentle so it isn't nauseating */
+      const fovTarget = BASE_FOV + spdF * 7;
+      camFov += (fovTarget - camFov) * Math.min(1, dt * 3);
+      if (Math.abs(camera.fov - camFov) > 0.05) { camera.fov = camFov; camera.updateProjectionMatrix(); }
     }
 
     sun.position.set(f.x + sky.sx * 165, Math.max(34, sky.elev * 165 + 12), f.z + 62);
@@ -3274,6 +3459,7 @@
       });
     } else headLamps.forEach(sl => sl.intensity = 0);
 
+    if (gradePass) gradePass.uniforms.uTime.value = t;
     if (composer) composer.render();
     else renderer.render(scene, camera);
   }

@@ -1,0 +1,29 @@
+{
+  "url": "http://127.0.0.1:5072/play/city-game",
+  "ts": "2026-06-15 23:28:05",
+  "load_seconds": 4.14,
+  "webgl": {
+    "present": true,
+    "w": 1280,
+    "h": 574,
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3, Unspecified Version)"
+  },
+  "fps": 60,
+  "features": {
+    "hud_ids_found": [
+      "minimap",
+      "speedo"
+    ],
+    "text_markers_found": []
+  },
+  "screenshot": "/Users/balarajput/calculator_web/qa/shots/shot_1781562494.png",
+  "console_errors": [],
+  "page_errors": [],
+  "gates": {
+    "renders": true,
+    "no_console_errors": true,
+    "no_page_errors": true,
+    "load_under_8s": true,
+    "fps_ok_proxy": true
+  }
+}
