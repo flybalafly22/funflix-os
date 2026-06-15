@@ -1,7 +1,7 @@
 {
-  "url": "http://127.0.0.1:5072/play/city-game",
-  "ts": "2026-06-15 23:28:05",
-  "load_seconds": 4.14,
+  "url": "http://127.0.0.1:5083/play/city-game",
+  "ts": "2026-06-15 23:41:27",
+  "load_seconds": 4.17,
   "webgl": {
     "present": true,
     "w": 1280,
@@ -16,7 +16,7 @@
     ],
     "text_markers_found": []
   },
-  "screenshot": "/Users/balarajput/calculator_web/qa/shots/shot_1781562494.png",
+  "screenshot": "/Users/balarajput/calculator_web/qa/shots/shot_1781563296.png",
   "console_errors": [],
   "page_errors": [],
   "gates": {

@@ -1700,6 +1700,50 @@
     }
   });
 
+  /* ════════ STREAMED AMBIENT TRAFFIC ════════
+     A pool of plain cars that drive the real road grid as a waypoint network,
+     keep to the right lane, brake for the player / each other / red lights, and
+     turn at intersections. Far cars despawn and respawn ahead of the player so
+     the city stays populated for cheap. Separate from the fixed-loop trafficCars
+     above and from the story cars/hunt — so it can't break the missions. */
+  const LANE = 2.6;                       // right-of-centre offset
+  const AMB_MAX = IS_TOUCH ? 6 : 14;      // active ambient cars (hard cap)
+  const AMB_NEAR = 24, AMB_FAR = 165;     // spawn just out of view, cull beyond this
+  const ambCars = [];
+  for (let i = 0; i < AMB_MAX; i++) {
+    const mesh = buildCarMesh(trafficColors[i % trafficColors.length], false);
+    mesh.visible = false;
+    scene.add(mesh);
+    ambCars.push({ mesh, active: false, axis: 0, dir: 1, lane: 0, line: 0,
+                   speed: 0, cur: 0, spin: 0, retire: 0 });
+  }
+  /* nearest grid line >= v on a sorted array (for picking the next intersection) */
+  function nextLine(arr, v, dir) {
+    if (dir > 0) { for (const a of arr) if (a > v + 4) return a; return null; }
+    for (let k = arr.length - 1; k >= 0; k--) if (arr[k] < v - 4) return arr[k]; return null;
+  }
+  function ambSpawn(car, fx, fz) {
+    /* spawn on a random road just out of view, heading toward/around the player */
+    const onX = Math.random() < 0.5;               // travelling along a vertical (X-fixed) road?
+    const ang = Math.random() * Math.PI * 2, R = AMB_NEAR + Math.random() * 28;
+    let sx = fx + Math.cos(ang) * R, sz = fz + Math.sin(ang) * R;
+    sx = clamp(sx, BOUND_X[0] + 6, BOUND_X[1] - 6);
+    sz = clamp(sz, BOUND_Z[0] + 6, BOUND_Z[1] - 6);
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    if (onX) {
+      const line = ROADS_X.reduce((b, x) => Math.abs(x - sx) < Math.abs(b - sx) ? x : b, ROADS_X[0]);
+      car.axis = 1; car.line = line; car.dir = dir; car.lane = dir > 0 ? LANE : -LANE;
+      car.mesh.position.set(line + car.lane, 0, clamp(sz, BOUND_Z[0] + 6, BOUND_Z[1] - 6));
+    } else {
+      const line = ROADS_Z.reduce((b, z) => Math.abs(z - sz) < Math.abs(b - sz) ? z : b, ROADS_Z[0]);
+      car.axis = 0; car.line = line; car.dir = dir; car.lane = dir > 0 ? -LANE : LANE;
+      car.mesh.position.set(clamp(sx, BOUND_X[0] + 6, BOUND_X[1] - 6), 0, line + car.lane);
+    }
+    car.speed = 8 + Math.random() * 4; car.cur = car.speed; car.spin = 0;
+    car.mesh.rotation.y = car.axis === 1 ? (car.dir > 0 ? 0 : Math.PI) : (car.dir > 0 ? Math.PI / 2 : -Math.PI / 2);
+    car.mesh.visible = true; car.active = true;
+  }
+
   /* parked cars — solid: each registers a collider */
   const PARKED_N = IS_TOUCH ? 3 : 6;
   for (let n = 0; n < PARKED_N; n++) {
@@ -1728,6 +1772,114 @@
       colliders.push({ x1: cx - 1.3, x2: cx + 1.3, z1: cz - 2.5, z2: cz + 2.5 });
     }
   });
+
+  /* ════════ STREET FURNITURE — instanced/merged so density costs ~nothing ════════
+     One InstancedMesh per repeated prop. Placement walks the sidewalk ring of every
+     city block (±10.5 from a block centre) and drops props at intervals, skipping the
+     crosswalk mouths and signal poles. Code/canvas-only geometry, no external assets. */
+  {
+    /* footprint lookup so we only furnish blocks that actually have sidewalks */
+    const blockSet = new Set();
+    footprints.forEach(b => blockSet.add(Math.round(b.x / BLOCK) + ',' + Math.round(b.z / BLOCK)));
+    parkingLots.forEach(({ bx, bz }) => blockSet.add(Math.round(bx / BLOCK) + ',' + Math.round(bz / BLOCK)));
+
+    /* candidate prop anchor points: walk each block's curb ring */
+    const anchors = []; // {x, z, nx, nz}  nx/nz = outward normal (faces the road)
+    blockSet.forEach(key => {
+      const [gi, gj] = key.split(',').map(Number);
+      const bx = gi * BLOCK, bz = gj * BLOCK;
+      const R = 10.0;
+      for (let s = -7; s <= 7; s += 7) {
+        anchors.push({ x: bx + s, z: bz - R, nx: 0, nz: -1 });
+        anchors.push({ x: bx + s, z: bz + R, nx: 0, nz: 1 });
+        anchors.push({ x: bx - R, z: bz + s, nx: -1, nz: 0 });
+        anchors.push({ x: bx + R, z: bz + s, nx: 1, nz: 0 });
+      }
+    });
+
+    /* don't sit a prop on a signal pole or in a crosswalk mouth */
+    const occupied = (x, z) => {
+      for (const [sx, sz] of SIGNALS) if (Math.abs(x - (sx + 6.4)) < 1.4 && Math.abs(z - (sz + 6.4)) < 1.4) return true;
+      for (const rx of ROADS_X) if (Math.abs(x - rx) < 5) for (const rz of ROADS_Z) if (Math.abs(z - rz) < 5) return true;
+      return false;
+    };
+    const free = anchors.filter(a => !occupied(a.x, a.z));
+
+    /* helper: build an InstancedMesh from a list of {x,z,ry,sc} placements */
+    const placeInstanced = (geo, mat, list, baseY, shadow) => {
+      if (!list.length) return;
+      const im = new THREE.InstancedMesh(geo, mat, list.length);
+      const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), sc = new THREE.Vector3();
+      list.forEach((p, n) => {
+        q.setFromAxisAngle(up, p.ry || 0);
+        sc.setScalar(p.sc || 1);
+        m4.compose(new THREE.Vector3(p.x, baseY * (p.sc || 1), p.z), q, sc);
+        im.setMatrixAt(n, m4);
+      });
+      im.castShadow = !!shadow;
+      im.instanceMatrix.needsUpdate = true;
+      scene.add(im);
+      return im;
+    };
+
+    /* prop geometries (small, shared) */
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x2b2f37, roughness: 0.5, metalness: 0.55 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x23262c, roughness: 0.6, metalness: 0.4 });
+    const hydMat  = new THREE.MeshStandardMaterial({ color: 0xb23a2e, roughness: 0.6, metalness: 0.2 });
+    const binMat  = new THREE.MeshStandardMaterial({ color: 0x3c5a42, roughness: 0.7, metalness: 0.25 });
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b4a30, roughness: 0.85 });
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a4330, roughness: 0.95 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f6b3a, roughness: 0.95 });
+    const lampHeadMat = new THREE.MeshStandardMaterial({ color: 0x14161a, emissive: 0xffd98a, emissiveIntensity: 0.12, roughness: 0.5 });
+
+    /* lamppost = tall pole + arm + head, three instanced meshes sharing placements */
+    const lampGeo = new THREE.CylinderGeometry(0.09, 0.13, 6.2, 7); lampGeo.translate(0, 3.1, 0);
+    const lampHeadGeo = new THREE.BoxGeometry(0.5, 0.2, 0.32); lampHeadGeo.translate(0.55, 6.05, 0);
+    const lampArmGeo = new THREE.BoxGeometry(0.9, 0.08, 0.08); lampArmGeo.translate(0.35, 6.1, 0);
+
+    const hydGeo = new THREE.CylinderGeometry(0.16, 0.2, 0.7, 8); hydGeo.translate(0, 0.35, 0);
+    const hydCapGeo = new THREE.SphereGeometry(0.17, 8, 6); hydCapGeo.translate(0, 0.74, 0);
+    const binGeo = new THREE.CylinderGeometry(0.28, 0.24, 0.85, 10); binGeo.translate(0, 0.42, 0);
+    const benchSeatGeo = new THREE.BoxGeometry(1.8, 0.1, 0.5); benchSeatGeo.translate(0, 0.48, 0);
+    const benchBackGeo = new THREE.BoxGeometry(1.8, 0.5, 0.1); benchBackGeo.translate(0, 0.75, -0.22);
+    const trunkGeo = new THREE.CylinderGeometry(0.18, 0.26, 2.6, 7); trunkGeo.translate(0, 1.3, 0);
+    const canopyGeo = new THREE.SphereGeometry(1.5, 9, 7); canopyGeo.scale(1, 0.85, 1); canopyGeo.translate(0, 3.1, 0);
+    const signPoleGeo = new THREE.CylinderGeometry(0.05, 0.05, 2.6, 6); signPoleGeo.translate(0, 1.3, 0);
+    const signGeo = new THREE.BoxGeometry(0.62, 0.42, 0.04); signGeo.translate(0, 2.4, 0);
+
+    /* distribute anchors across prop types — deterministic so it's stable frame to frame */
+    const lamps = [], hyds = [], bins = [], benches = [], trees = [], signs = [];
+    free.forEach((a, i) => {
+      const ry = Math.atan2(a.nx, a.nz);             // face the road
+      const px = a.x + a.nx * 0.3, pz = a.z + a.nz * 0.3;
+      const slot = { x: px, z: pz, ry };
+      const m = i % 12;
+      if (m === 0 || m === 6) lamps.push(slot);
+      else if (m === 3) hyds.push(slot);
+      else if (m === 9) bins.push(slot);
+      else if (m === 1) benches.push({ x: px, z: pz, ry: ry + Math.PI }); // seat faces in
+      else if (m === 4 || m === 10) trees.push({ x: a.x + a.nx * 0.1, z: a.z + a.nz * 0.1, ry: i * 1.3 });
+      else if (m === 7) signs.push(slot);
+    });
+
+    /* lamppost: post + arm + head as three instanced meshes sharing placements */
+    const lampPlace = lamps;
+    placeInstanced(lampGeo, poleMat, lampPlace, 0, true);
+    placeInstanced(lampArmGeo, poleMat, lampPlace, 0, false);
+    placeInstanced(lampHeadGeo, lampHeadMat, lampPlace, 0, false);
+    placeInstanced(hydGeo, hydMat, hyds, 0, true);
+    placeInstanced(hydCapGeo, hydMat, hyds, 0, false);
+    placeInstanced(binGeo, binMat, bins, 0, true);
+    placeInstanced(benchSeatGeo, woodMat, benches, 0, true);
+    placeInstanced(benchBackGeo, woodMat, benches, 0, false);
+    placeInstanced(trunkGeo, trunkMat, trees, 0, true);
+    placeInstanced(canopyGeo, leafMat, trees, 0, true);
+    placeInstanced(signPoleGeo, poleMat, signs, 0, false);
+    placeInstanced(signGeo, darkMat, signs, 0, false);
+
+    /* a few benches/trees also register soft colliders so you can't drive through trunks */
+    trees.forEach(t => colliders.push({ x1: t.x - 0.3, x2: t.x + 0.3, z1: t.z - 0.3, z2: t.z + 0.3 }));
+  }
 
   /* story vehicles: the thief's coupe (Act I), Delgado's enforcer (Act II), two pursuit cars (Act III) */
   const thiefCar = buildCarMesh(0x551722, true);
@@ -1975,6 +2127,46 @@
     });
   }
 
+  /* ════════ STREAMED PEDESTRIANS ════════
+     A pool of wandering humans kept near the player: they walk sidewalk segments
+     between intersections, pause to window-shop, roughly steer clear of the road
+     and the player, and respawn on a fresh block when they drift too far. */
+  const CROWD_MAX = IS_TOUCH ? 8 : 18;
+  const CROWD_FAR = 95, CROWD_NEAR = 26;
+  const crowd = [];
+  for (let i = 0; i < CROWD_MAX; i++) {
+    const mesh = buildHuman({
+      shirt: SHIRTS[i % SHIRTS.length],
+      pants: PANTS[(i + 2) % PANTS.length],
+      skin: SKINS[(i + 1) % SKINS.length],
+      hair: Math.random() < 0.14 ? null : HAIRS[(i + 1) % HAIRS.length],
+    });
+    mesh.visible = false;
+    scene.add(mesh);
+    crowd.push({ mesh, active: false, horizontal: true, from: 0, to: 0, line: 0,
+                 dir: 1, speed: 1.4, phase: i * 1.9, mode: 'walk', pauseT: 0, nextPause: 0 });
+  }
+  function crowdSpawn(pd, fx, fz) {
+    /* pick a block sidewalk ring just out of view */
+    const gi = Math.round(fx / BLOCK) + (Math.random() < 0.5 ? -1 : 1) * (1 + (Math.random() * 2 | 0));
+    const gj = Math.round(fz / BLOCK) + (Math.random() < 0.5 ? -1 : 1) * (1 + (Math.random() * 2 | 0));
+    const bx = clamp(gi * BLOCK, BOUND_X[0] + 12, BOUND_X[1] - 12);
+    const bz = clamp(gj * BLOCK, BOUND_Z[0] + 12, BOUND_Z[1] - 12);
+    pd.horizontal = Math.random() < 0.5;
+    const off = (Math.random() < 0.5 ? 10.3 : -10.3);
+    if (pd.horizontal) {
+      pd.line = bz + off; pd.from = bx - 9; pd.to = bx + 9;
+      pd.mesh.position.set(rand(pd.from, pd.to), 0, pd.line);
+    } else {
+      pd.line = bx + off; pd.from = bz - 9; pd.to = bz + 9;
+      pd.mesh.position.set(pd.line, 0, rand(pd.from, pd.to));
+    }
+    pd.dir = Math.random() < 0.5 ? 1 : -1;
+    pd.speed = 1.3 + Math.random() * 1.1;
+    pd.mode = 'walk'; pd.pauseT = 0; pd.nextPause = rand(5, 13);
+    pd.mesh.visible = true; pd.active = true;
+  }
+
   /* two locals taking in the view */
   function sitPose(h) {
     const p = h.userData.parts;
@@ -2159,16 +2351,18 @@
     if (c.damage > 0.85) c.hr.visible = false;
   }
   function shoveTraffic(x, z, self, fw, power) {
-    trafficCars.forEach(tc => {
-      if (tc.mesh === self) return;
-      const d = Math.hypot(x - tc.mesh.position.x, z - tc.mesh.position.z);
+    const shove = (m, brake) => {
+      if (m.mesh === self) return;
+      const d = Math.hypot(x - m.mesh.position.x, z - m.mesh.position.z);
       if (d < 3.8) {
-        tc.mesh.position.x += fw.x * power;
-        tc.mesh.position.z += fw.z * power;
-        tc.cur = 0;
-        spawnSparks(tc.mesh.position.x, 0.6, tc.mesh.position.z, power * 0.4);
+        m.mesh.position.x += fw.x * power;
+        m.mesh.position.z += fw.z * power;
+        brake(m);
+        spawnSparks(m.mesh.position.x, 0.6, m.mesh.position.z, power * 0.4);
       }
-    });
+    };
+    trafficCars.forEach(tc => shove(tc, m => { m.cur = 0; }));
+    ambCars.forEach(ac => { if (ac.active) shove(ac, m => { m.cur = 0; }); });
   }
 
   /* ════════ AUDIO ════════ */
@@ -2926,6 +3120,7 @@
       if (d < r && d < m) m = d;
     };
     for (const tc of trafficCars) test(tc.mesh);
+    for (const ac of ambCars) if (ac.active) test(ac.mesh);
     for (const v of vehicles) test(v.mesh);
     test(thiefCar); test(enforcerCar);
     pursuers.forEach(p => test(p.mesh));
@@ -3269,6 +3464,84 @@
           tc.mesh.userData.wheels.forEach(w => { w.spin.rotation.x = tc.spin; });
         }
       });
+
+      /* ── streamed ambient traffic: maintain pool near the player, drive the grid ── */
+      {
+        const fp = focusPos();
+        for (const ac of ambCars) {
+          if (!ac.active) { ambSpawn(ac, fp.x, fp.z); continue; }
+          const m = ac.mesh;
+          /* cull far cars → recycle ahead */
+          const dToCam = Math.hypot(m.position.x - fp.x, m.position.z - fp.z);
+          if (dToCam > AMB_FAR) { ambSpawn(ac, fp.x, fp.z); continue; }
+
+          /* heading unit vector along the current road, in travel direction */
+          let ux, uz;
+          if (ac.axis === 1) { ux = 0; uz = ac.dir; } else { ux = ac.dir; uz = 0; }
+
+          /* turn decision at intersections: when crossing a perpendicular road line,
+             sometimes turn onto it (keeps cars circulating, not just driving off-map) */
+          const pos = ac.axis === 1 ? m.position.z : m.position.x;
+          const cross = ac.axis === 1 ? ROADS_Z : ROADS_X;
+          for (const c of cross) {
+            const ahead = (c - pos) * ac.dir;
+            if (ahead > 0 && ahead < 1.2) {
+              // at intersection center along travel axis — decide a turn ~35% of the time
+              if (Math.random() < 0.35) {
+                const newDir = Math.random() < 0.5 ? 1 : -1;
+                const newAxis = ac.axis === 1 ? 0 : 1;
+                if (newAxis === 1) {
+                  // turning onto a vertical (X-fixed) road — snap to nearest X centerline
+                  ac.line = ROADS_X.reduce((b, x) => Math.abs(x - m.position.x) < Math.abs(b - m.position.x) ? x : b, ROADS_X[0]);
+                  ac.lane = newDir > 0 ? LANE : -LANE;
+                  m.position.x = ac.line + ac.lane; m.position.z = c;
+                } else {
+                  ac.line = ROADS_Z.reduce((b, z) => Math.abs(z - m.position.z) < Math.abs(b - m.position.z) ? z : b, ROADS_Z[0]);
+                  ac.lane = newDir > 0 ? -LANE : LANE;
+                  m.position.z = ac.line + ac.lane; m.position.x = c;
+                }
+                ac.axis = newAxis; ac.dir = newDir;
+                if (ac.axis === 1) { ux = 0; uz = ac.dir; } else { ux = ac.dir; uz = 0; }
+              }
+              break;
+            }
+          }
+
+          /* off-map guard: if we ran past the boundary, recycle */
+          if (m.position.x < BOUND_X[0] - 4 || m.position.x > BOUND_X[1] + 4 ||
+              m.position.z < BOUND_Z[0] - 4 || m.position.z > BOUND_Z[1] + 4) {
+            ambSpawn(ac, fp.x, fp.z); continue;
+          }
+
+          let desired = ac.speed;
+          /* red light: NS roads (axis 1, moving along X-fixed) vs EW */
+          const movingX = Math.abs(ux) > 0.7;
+          const green = movingX ? (p20 >= 10 && p20 < 18) : (p20 < 8);
+          if (!green) {
+            for (const s of SIGNALS) {
+              const rx = s[0] - m.position.x, rz = s[1] - m.position.z;
+              const ahead = ux * rx + uz * rz;
+              const lat = Math.abs(movingX ? rz : rx);
+              if (ahead > 2.5 && ahead < 10 && lat < 5) { desired = 0; break; }
+            }
+          }
+          /* brake for anything on the road ahead (cars, player) */
+          if (desired > 0) {
+            const lx2 = m.position.x + ux * 6, lz2 = m.position.z + uz * 6;
+            if (blockedByVehicle(lx2, lz2, m, 3.2, false)) desired = 0;
+          }
+          ac.cur += (desired - ac.cur) * Math.min(1, dt * 3);
+          if (ac.cur > 0.04) {
+            m.position.x += ux * ac.cur * dt;
+            m.position.z += uz * ac.cur * dt;
+            const tgt = ac.axis === 1 ? (ac.dir > 0 ? 0 : Math.PI) : (ac.dir > 0 ? Math.PI / 2 : -Math.PI / 2);
+            m.rotation.y = lerpAngle(m.rotation.y, tgt, Math.min(1, dt * 6));
+            ac.spin += (ac.cur / 0.42) * dt;
+            if (m.userData.wheels) m.userData.wheels.forEach(w => { w.spin.rotation.x = ac.spin; });
+          }
+        }
+      }
+
       peds.forEach(pd => {
         if (pd.mode === 'pause') {
           pd.pauseT -= dt;
@@ -3295,6 +3568,40 @@
         pd.mesh.rotation.y = lerpAngle(pd.mesh.rotation.y, ang, Math.min(1, dt * 6));
         walkAnim(pd.mesh, t + pd.phase, pd.jogger ? 1.3 : 0.8);
       });
+
+      /* ── streamed crowd: maintain pool near the player on sidewalks ── */
+      {
+        const fp = focusPos();
+        for (const pd of crowd) {
+          if (!pd.active) { crowdSpawn(pd, fp.x, fp.z); continue; }
+          const m = pd.mesh;
+          const dCam = Math.hypot(m.position.x - fp.x, m.position.z - fp.z);
+          if (dCam > CROWD_FAR) { crowdSpawn(pd, fp.x, fp.z); continue; }
+
+          if (pd.mode === 'pause') {
+            pd.pauseT -= dt;
+            walkAnim(m, t + pd.phase, 0);
+            if (pd.pauseT <= 0) { pd.mode = 'walk'; pd.nextPause = rand(5, 12); }
+            continue;
+          }
+          pd.nextPause -= dt;
+          if (pd.nextPause <= 0) {
+            pd.mode = 'pause'; pd.pauseT = rand(1.5, 4);
+            m.rotation.y += (Math.random() < 0.5 ? 1 : -1) * Math.PI / 2;
+            continue;
+          }
+          const axis = pd.horizontal ? 'x' : 'z';
+          let step = pd.dir * pd.speed * dt;
+          /* roughly avoid the player on foot: if very close ahead, hold up */
+          if (!currentV && dCam < 3.2) step *= 0.25;
+          m.position[axis] += step;
+          if (m.position[axis] > pd.to) pd.dir = -1;
+          if (m.position[axis] < pd.from) pd.dir = 1;
+          const ang = pd.horizontal ? (pd.dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (pd.dir > 0 ? 0 : Math.PI);
+          m.rotation.y = lerpAngle(m.rotation.y, ang, Math.min(1, dt * 6));
+          walkAnim(m, t + pd.phase, 0.8);
+        }
+      }
     }
 
     /* anims */
