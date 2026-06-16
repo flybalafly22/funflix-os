@@ -766,7 +766,7 @@
   shinyMats.push(chrome, carGlass);
 
   /* ════════ WORLD ════════ */
-  const BLOCK = 36, BOUND_X = [-100, 190], BOUND_Z = [-146, 138];
+  const BLOCK = 36, BOUND_X = [-100, 290], BOUND_Z = [-200, 138];
   const TOWER = { x: 144, z: -36 };   // Delgado's glass monolith
   const BAR   = { x: 6,   z: 126 };   // La Gaviota, on the marina boardwalk
   const TAPE  = { x: 144, z: -54 };   // storage B, behind the tower
@@ -807,12 +807,12 @@
   scene.add(water);
 
   /* lane dashes */
-  const ROADS_X = [-54, -18, 18, 54, 90, 126, 162];
-  const ROADS_Z = [-126, -90, -54, -18, 18, 54, 90];
+  const ROADS_X = [-54, -18, 18, 54, 90, 126, 162, 198, 234, 270];
+  const ROADS_Z = [-162, -126, -90, -54, -18, 18, 54, 90];
   {
     const dashes = [];
-    ROADS_X.forEach(x => { for (let s = -144, e = 118; s < e; s += 7) dashes.push([x, s, 0]); });
-    ROADS_Z.forEach(z => { for (let s = -58, e = 190; s < e; s += 7) dashes.push([s, z, 1]); });
+    ROADS_X.forEach(x => { for (let s = -190, e = 118; s < e; s += 7) dashes.push([x, s, 0]); });
+    ROADS_Z.forEach(z => { for (let s = -58, e = 290; s < e; s += 7) dashes.push([s, z, 1]); });
     const im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 0.02, 2.4), new THREE.MeshBasicMaterial({ color: 0xc9c2b2 }), dashes.length);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
     const qr = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
@@ -943,14 +943,15 @@
     footprints.push({ x: cx, z: cz, w, d });
   }
 
-  for (let i = -1; i <= 5; i++) {
-    for (let j = -4; j <= 2; j++) {
+  for (let i = -1; i <= 7; i++) {
+    for (let j = -5; j <= 2; j++) {
       if (i === 1 && j === 0) continue;  // plaza
       if (i === 0 && j === 1) continue;  // park
       if (i === 4 && j === -1) continue; // reserved: Delgado tower
+      if (i === 6 && j === 0) continue;  // uptown plaza (east expansion)
       const bx = i * BLOCK, bz = j * BLOCK;
 
-      if ((i === 0 && j === -1) || (i === 3 && j === 1) || (i === 5 && j === 1)) { buildParkingLot(bx, bz); continue; }
+      if ((i === 0 && j === -1) || (i === 3 && j === 1) || (i === 5 && j === 1) || (i === 7 && j === -2)) { buildParkingLot(bx, bz); continue; }
 
       /* sidewalk slab + raised curb ring — the footpath the city was missing */
       const slab = new THREE.Mesh(sidewalkGeo, sidewalkMat);
@@ -965,9 +966,10 @@
 
       /* districts */
       const heights = j <= -3;
-      const industrial = i >= 4 && !heights;
+      const uptown = i >= 6 && !heights;                       // NEW eastside business cluster
+      const industrial = i >= 4 && i <= 5 && !heights;
       const downtown = i >= 2 && i <= 3 && !heights;
-      const beach = !heights && !industrial && !downtown;
+      const beach = !heights && !industrial && !downtown && !uptown;
 
       if (downtown) {
         /* podium + setback tower — real skyline silhouette */
@@ -1029,6 +1031,28 @@
           dome.position.set(bx + w / 2 + 1.8, h + 3, bz - d / 4); scene.add(dome);
           colliders.push({ x1: bx + w / 2 + 0.2, x2: bx + w / 2 + 3.4, z1: bz - d / 4 - 1.6, z2: bz - d / 4 + 1.6 });
         }
+        regBuilding(bx, bz, w, d);
+
+      } else if (uptown) {
+        /* eastside business cluster — clean glass-forward midrise on a slim plinth,
+           denser and flatter-topped than downtown's setback towers → distinct skyline */
+        const w = 12 + rand(0, 4), d = 12 + rand(0, 4);
+        const plinthH = 3.4;
+        const plMat = mkFacadeMat(w + 0.4, 1, false, false);
+        const plinth = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, plinthH, d + 0.6), boxFaces(plMat));
+        plinth.position.set(bx, plinthH / 2, bz); plinth.castShadow = plinth.receiveShadow = true; scene.add(plinth);
+        const th = 14 + rand(0, 16);
+        const fl = Math.max(4, Math.round(th / 3));
+        const glass = Math.random() < 0.7;                     // mostly glass towers here
+        const tMat = mkFacadeMat(w, fl, glass, false);
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(w, th, d), boxFaces(tMat));
+        tower.position.set(bx, plinthH + th / 2, bz); tower.castShadow = tower.receiveShadow = true; scene.add(tower);
+        /* a thin accent fin up one corner reads as contemporary architecture */
+        if (Math.random() < 0.5) {
+          const fin = new THREE.Mesh(new THREE.BoxGeometry(0.5, th + plinthH, 0.5), trimDark);
+          fin.position.set(bx + w / 2, (th + plinthH) / 2, bz + d / 2); fin.castShadow = true; scene.add(fin);
+        }
+        addRooftop(bx, bz, w, d, plinthH + th, true);
         regBuilding(bx, bz, w, d);
 
       } else {
@@ -2701,6 +2725,8 @@
         getTime: () => dayT,
         getNightF: () => lastNightF,
         freeRoam: () => { try { audioInit(); } catch (e) {} hideOverlay(); startFreeRoam(); },
+        tp: (x, z) => { player.position.x = x; player.position.z = z; if (currentV) { currentV.mesh.position.x = x; currentV.mesh.position.z = z; } },
+        setCamYaw: a => { camYaw = a; },
         inVehicle: () => !!currentV,
         vehKind: () => currentV ? currentV.kind : null,
         lights: () => ({
@@ -3300,7 +3326,7 @@
   }
 
   /* ════════ MINIMAP ════════ */
-  const MAP_PAD = 210, MAP_SCALE = 1.6;
+  const MAP_PAD = 340, MAP_SCALE = 1.6;   // widened to cover the east/north map expansion
   const mapBase = document.createElement('canvas');
   mapBase.width = mapBase.height = (MAP_PAD * 2) * MAP_SCALE;
   {
@@ -3308,7 +3334,7 @@
     const W = mapBase.width, c0 = W / 2;
     g.fillStyle = '#15314a'; g.fillRect(0, 0, W, W);
     g.fillStyle = '#caa86c'; g.fillRect(c0 - 104 * MAP_SCALE, 0, 46 * MAP_SCALE, W);
-    g.fillStyle = '#2c3040'; g.fillRect(c0 - 58 * MAP_SCALE, 0, 250 * MAP_SCALE, W);
+    g.fillStyle = '#2c3040'; g.fillRect(c0 - 58 * MAP_SCALE, 0, 360 * MAP_SCALE, W);
     g.fillStyle = '#15314a'; g.fillRect(c0 - 58 * MAP_SCALE, c0 + 140 * MAP_SCALE, W, W); // south sea
     g.fillStyle = '#8a6a48'; g.fillRect(c0 + (20 - 55) * MAP_SCALE, c0 + 117 * MAP_SCALE, 110 * MAP_SCALE, 18 * MAP_SCALE); // boardwalk
     g.strokeStyle = '#1c1f2c'; g.lineWidth = 13 * MAP_SCALE;

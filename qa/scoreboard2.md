@@ -8,17 +8,17 @@ User priorities (verbatim): "work on the graphics", "car controls especially are
 
 | Dimension                  | Base | I1 | I2 | I3 | I4 | I5 |
 |----------------------------|:---:|:--:|:--:|:--:|:--:|:--:|
-| Controls — vehicle feel ★  | 4 | 7 | 7 |  |  |  |
-| Camera & game-feel         | 6 | 7 | 7 |  |  |  |
-| Lighting & atmosphere      | 6 | 6 | 8 |  |  |  |
-| Materials & surfaces       | 5 | 5 | 7 |  |  |  |
-| VFX & post-processing      | 6 | 6 | 7 |  |  |  |
-| World detail & density     | 6 | 6 | 7 |  |  |  |
-| Vehicle/character fidelity | 5 | 5 | 5 |  |  |  |
-| Map scale & layout variety | 5 | 5 | 5 |  |  |  |
-| Performance (auto)         | 9 | 9 | 9 |  |  |  |
-| Stability (auto)           | 9 | 9 | 9 |  |  |  |
-| **Average**                | **6.1** | **6.5** | **7.1** |  |  |  |
+| Controls — vehicle feel ★  | 4 | 7 | 7 | 7 |  |  |
+| Camera & game-feel         | 6 | 7 | 7 | 7 |  |  |
+| Lighting & atmosphere      | 6 | 6 | 8 | 8 |  |  |
+| Materials & surfaces       | 5 | 5 | 7 | 7 |  |  |
+| VFX & post-processing      | 6 | 6 | 7 | 7 |  |  |
+| World detail & density     | 6 | 6 | 7 | 8 |  |  |
+| Vehicle/character fidelity | 5 | 5 | 5 | 5 |  |  |
+| Map scale & layout variety | 5 | 5 | 5 | 8 |  |  |
+| Performance (auto)         | 9 | 9 | 9 | 9 |  |  |
+| Stability (auto)           | 9 | 9 | 9 | 9 |  |  |
+| **Average**                | **6.1** | **6.5** | **7.1** | **7.5** |  |  |
 
 I1 (Controls & camera) gates: renders ✅ · 0 console ✅ · 0 page ✅ · load 4.16s ✅ · 60fps ✅ · drive 0 errors ✅ (Δ +0.4)
   - chase cam: critically-damped spring (k scales 55→125 with speed), steer-lead into corners, looks into slides — kills the swimmy follow
@@ -32,6 +32,14 @@ I2 (Graphics core) gates: renders ✅ · 0 console ✅ · 0 page ✅ · 60fps �
   - facades: 4→8 coastal-Mediterranean colours + per-type glass tints + variable column counts; sill grime
     weathering streaks + base ambient-occlusion gradient — kills the monotone-beige-box grid
   - asphalt: deeper cooler base, roughness 0.95→0.78 + envMap 0.5 → real sun sheen on the road
+
+I3 (Map expansion) gates: renders ✅ · 0 console ✅ · 0 page ✅ · load 4.15s ✅ · 60fps ✅ · teleport tour 0 errors ✅ (Δ +0.4)
+  - grid -1..5/-4..2 → -1..7/-5..2: ~50% more city area (east + north), all props/traffic/minimap auto-extend
+  - NEW eastside "uptown" district: glass-forward midrise on slim plinths + accent fins → distinct skyline cluster
+  - roads/lane-dashes/bounds extended; minimap MAP_PAD 210→340 + land band so the radar covers the new extent
+  - new uptown plaza + east parking lot; villa hills extended north into a long boulevard
+  - props auto-furnish new blocks (derived from footprints); traffic drives the new roads (verified in capture)
+  - QA bridge: added inert tp()/setCamYaw() (gated by ?qa=1) for district capture + future loop testing
 
 ★ = user's explicit #1 complaint.
 
