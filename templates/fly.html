@@ -76,6 +76,47 @@
     }
     #minimap { width: 100%; height: 100%; }
 
+    /* ── stats: wanted stars + health + cash (right column, above minimap) ── */
+    #hudStats {
+      position: absolute; right: 14px; bottom: 174px;
+      width: 150px;
+      display: none;
+      flex-direction: column; align-items: flex-end; gap: 7px;
+      font-family: var(--mono);
+      pointer-events: none;
+    }
+    #wanted { display: flex; gap: 3px; height: 16px; }
+    #wanted .star {
+      font-size: 15px; line-height: 16px; color: #2a2330;
+      text-shadow: none; transition: color 0.25s, text-shadow 0.25s;
+    }
+    #wanted .star.on {
+      color: #ffcf3c;
+      text-shadow: 0 0 8px rgba(255,180,40,0.9), 0 0 2px rgba(255,220,120,0.9);
+    }
+    #wanted.heat .star.on { animation: wantedPulse 0.7s ease-in-out infinite; }
+    @keyframes wantedPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+    .stat-row {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(8,6,16,0.78);
+      border: 1px solid rgba(255,94,138,0.32);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-radius: 4px;
+      padding: 4px 8px;
+    }
+    .stat-row .lbl { font-size: 8px; letter-spacing: 0.16em; color: #64748b; }
+    #healthBarWrap {
+      width: 64px; height: 6px; border-radius: 3px;
+      background: rgba(255,255,255,0.08); overflow: hidden;
+    }
+    #healthBar {
+      height: 100%; width: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, #ff5e8a, #ff9d5c);
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+    #cashVal { font-size: 12px; letter-spacing: 0.06em; color: #6ee7a8; text-shadow: 0 0 8px rgba(110,231,168,0.4); }
+    #cashRow .lbl { color: #6ee7a8; opacity: 0.7; }
+
     #toastBox {
       position: absolute; left: 50%; top: 56px; transform: translateX(-50%);
       width: min(320px, 80%);
@@ -230,6 +271,13 @@
     <div class="g-panel" id="hudHint"><span class="k" id="hudHintKey">[E]</span> <span id="hudHintText">TALK</span></div>
     <div class="g-panel" id="speedo"><span id="speedoVal">0</span> <span class="u">KM/H</span></div>
     <div id="minimapBox"><canvas id="minimap" width="150" height="150"></canvas></div>
+    <div id="hudStats">
+      <div id="wanted" title="wanted level">
+        <span class="star">&#9733;</span><span class="star">&#9733;</span><span class="star">&#9733;</span><span class="star">&#9733;</span><span class="star">&#9733;</span>
+      </div>
+      <div class="stat-row" id="healthRow"><span class="lbl">HEALTH</span><div id="healthBarWrap"><div id="healthBar"></div></div></div>
+      <div class="stat-row" id="cashRow"><span class="lbl">CASH</span><span id="cashVal">$0</span></div>
+    </div>
     <div id="toastBox"></div>
 
     <div id="wayArrow" style="position:absolute; left:50%; top:50%; z-index:55; display:none; pointer-events:none; transform:translate(-50%,-50%);">
@@ -2366,36 +2414,93 @@
   }
 
   /* ════════ AUDIO ════════ */
-  let AC = null, engineOsc = null, engineGain = null, radioOn = false, radioGain = null, radioStep = 0, radioNext = 0;
+  /* one AudioContext for everything; every node is guarded so a suspended /
+     blocked context can never throw. Master bus carries a mute we can flip. */
+  let AC = null, master = null, muted = false;
+  let engineOsc = null, engineSub = null, engineGain = null, engineNoiseG = null, engineLP = null;
+  let ambGain = null, sirenOsc = null, sirenGain = null, sirenLFO = null;
+  let screechSrc = null, screechGain = null;
+  let radioOn = false, radioGain = null, radioStep = 0, radioNext = 0;
+  let noiseBuffer = null;
+  function makeNoiseBuffer() {
+    const len = 2 * AC.sampleRate;
+    const buf = AC.createBuffer(1, len, AC.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    return buf;
+  }
   function audioInit() {
-    if (AC) return;
+    if (AC) { resumeAudio(); return; }
     try {
       AC = new (window.AudioContext || window.webkitAudioContext)();
-      const len = 2 * AC.sampleRate;
-      const buf = AC.createBuffer(1, len, AC.sampleRate);
-      const ch = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
-      const noise = AC.createBufferSource();
-      noise.buffer = buf; noise.loop = true;
-      const lp = AC.createBiquadFilter();
-      lp.type = 'lowpass'; lp.frequency.value = 420;
-      const og = AC.createGain(); og.gain.value = 0.012;
+      master = AC.createGain(); master.gain.value = muted ? 0 : 1;
+      master.connect(AC.destination);
+      noiseBuffer = makeNoiseBuffer();
+
+      /* ── ambient city bed: low drone + filtered traffic hiss, slow swell ── */
+      ambGain = AC.createGain(); ambGain.gain.value = 0.012;
+      ambGain.connect(master);
+      const hiss = AC.createBufferSource();
+      hiss.buffer = noiseBuffer; hiss.loop = true;
+      const hissLP = AC.createBiquadFilter(); hissLP.type = 'lowpass'; hissLP.frequency.value = 420;
+      const hissG = AC.createGain(); hissG.gain.value = 0.9;
+      hiss.connect(hissLP); hissLP.connect(hissG); hissG.connect(ambGain);
+      const drone = AC.createOscillator(); drone.type = 'sine'; drone.frequency.value = 48;
+      const droneG = AC.createGain(); droneG.gain.value = 0.5;
+      drone.connect(droneG); droneG.connect(ambGain);
       const lfo = AC.createOscillator(); lfo.frequency.value = 0.09;
-      const lfoG = AC.createGain(); lfoG.gain.value = 0.007;
-      lfo.connect(lfoG); lfoG.connect(og.gain);
-      noise.connect(lp); lp.connect(og); og.connect(AC.destination);
-      noise.start(); lfo.start();
-      engineOsc = AC.createOscillator();
-      engineOsc.type = 'sawtooth'; engineOsc.frequency.value = 50;
-      const elp = AC.createBiquadFilter();
-      elp.type = 'lowpass'; elp.frequency.value = 340;
+      const lfoG = AC.createGain(); lfoG.gain.value = 0.5;
+      lfo.connect(lfoG); lfoG.connect(ambGain.gain);
+      hiss.start(); drone.start(); lfo.start();
+
+      /* ── engine: sawtooth body + sine sub-octave + filtered noise grit ── */
       engineGain = AC.createGain(); engineGain.gain.value = 0;
-      engineOsc.connect(elp); elp.connect(engineGain); engineGain.connect(AC.destination);
-      engineOsc.start();
+      engineGain.connect(master);
+      engineLP = AC.createBiquadFilter(); engineLP.type = 'lowpass'; engineLP.frequency.value = 340;
+      engineLP.connect(engineGain);
+      engineOsc = AC.createOscillator(); engineOsc.type = 'sawtooth'; engineOsc.frequency.value = 50;
+      engineOsc.connect(engineLP);
+      engineSub = AC.createOscillator(); engineSub.type = 'sine'; engineSub.frequency.value = 25;
+      const subG = AC.createGain(); subG.gain.value = 0.6;
+      engineSub.connect(subG); subG.connect(engineLP);
+      const engNoise = AC.createBufferSource(); engNoise.buffer = noiseBuffer; engNoise.loop = true;
+      const engNoiseLP = AC.createBiquadFilter(); engNoiseLP.type = 'bandpass'; engNoiseLP.frequency.value = 300; engNoiseLP.Q.value = 0.7;
+      engineNoiseG = AC.createGain(); engineNoiseG.gain.value = 0;
+      engNoise.connect(engNoiseLP); engNoiseLP.connect(engineNoiseG); engineNoiseG.connect(engineGain);
+      engineOsc.start(); engineSub.start(); engNoise.start();
+
+      /* ── police siren: two-tone wail, gated by gain when a hunt is live ── */
+      sirenGain = AC.createGain(); sirenGain.gain.value = 0;
+      sirenGain.connect(master);
+      sirenOsc = AC.createOscillator(); sirenOsc.type = 'sawtooth'; sirenOsc.frequency.value = 720;
+      const sirenLP = AC.createBiquadFilter(); sirenLP.type = 'bandpass'; sirenLP.frequency.value = 900; sirenLP.Q.value = 4;
+      sirenOsc.connect(sirenLP); sirenLP.connect(sirenGain);
+      sirenLFO = AC.createOscillator(); sirenLFO.type = 'sine'; sirenLFO.frequency.value = 0.9;
+      const sirenLFOG = AC.createGain(); sirenLFOG.gain.value = 230;
+      sirenLFO.connect(sirenLFOG); sirenLFOG.connect(sirenOsc.frequency);
+      sirenOsc.start(); sirenLFO.start();
+
+      /* ── tire screech: looping filtered noise, gain-gated per skid event ── */
+      screechGain = AC.createGain(); screechGain.gain.value = 0;
+      screechGain.connect(master);
+      screechSrc = AC.createBufferSource(); screechSrc.buffer = noiseBuffer; screechSrc.loop = true;
+      const screechBP = AC.createBiquadFilter(); screechBP.type = 'bandpass'; screechBP.frequency.value = 1500; screechBP.Q.value = 5;
+      screechSrc.connect(screechBP); screechBP.connect(screechGain);
+      screechSrc.start();
+
       radioGain = AC.createGain(); radioGain.gain.value = 0;
-      radioGain.connect(AC.destination);
+      radioGain.connect(master);
       radioNext = AC.currentTime + 0.1;
     } catch (e) { AC = null; }
+    resumeAudio();
+  }
+  function resumeAudio() {
+    /* a context can start suspended (autoplay policy) — resume on the gesture */
+    try { if (AC && AC.state === 'suspended') AC.resume(); } catch (e) {}
+  }
+  function setMuted(m) {
+    muted = m;
+    try { if (master) master.gain.value = m ? 0 : 1; } catch (e) {}
   }
   function beep(f, d, type, g) {
     if (!AC) return;
@@ -2404,16 +2509,38 @@
       o.type = type || 'square'; o.frequency.value = f;
       gn.gain.setValueAtTime(g || 0.04, AC.currentTime);
       gn.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + (d || 0.09));
-      o.connect(gn); gn.connect(AC.destination);
+      o.connect(gn); gn.connect(master || AC.destination);
       o.start(); o.stop(AC.currentTime + (d || 0.09) + 0.02);
     } catch (e) {}
   }
   const sfxPickup = () => { beep(660, 0.07); setTimeout(() => beep(990, 0.07), 80); setTimeout(() => beep(1320, 0.1), 160); };
   const sfxBlip   = () => beep(880, 0.05, 'square', 0.025);
+  const sfxClick  = () => beep(520, 0.035, 'square', 0.02);
+  const sfxChime  = () => { beep(784, 0.12, 'sine', 0.05); setTimeout(() => beep(1176, 0.18, 'sine', 0.045), 110); };
   const sfxThud   = () => beep(120, 0.18, 'sawtooth', 0.05);
-  const sfxCrash  = (p) => { beep(80 + Math.random() * 30, 0.32, 'sawtooth', 0.07); setTimeout(() => beep(170, 0.16, 'square', 0.05), 40); if (p > 0.5) setTimeout(() => beep(240, 0.1, 'square', 0.03), 90); };
+  /* collision thud scaled by impact (0..1) — bigger hits get more body + grit */
+  const sfxCrash  = (p) => {
+    const pw = clamp(p == null ? 0.5 : p, 0, 1);
+    beep(70 + Math.random() * 30, 0.28 + pw * 0.18, 'sawtooth', 0.05 + pw * 0.06);
+    setTimeout(() => beep(150 + Math.random() * 40, 0.16, 'square', 0.04 + pw * 0.03), 40);
+    if (pw > 0.5) setTimeout(() => beep(240, 0.1, 'square', 0.03), 90);
+    if (AC && screechGain) { /* a quick metal scrape burst on hard hits */
+      try { screechGain.gain.setValueAtTime(pw * 0.05, AC.currentTime);
+            screechGain.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + 0.18); } catch (e) {}
+    }
+  };
+  /* siren: ramp on/off smoothly so the loop never clicks */
+  function setSiren(on) {
+    if (!AC || !sirenGain) return;
+    try {
+      sirenGain.gain.cancelScheduledValues(AC.currentTime);
+      sirenGain.gain.setTargetAtTime(on ? 0.045 : 0, AC.currentTime, 0.25);
+    } catch (e) {}
+  }
   let gullT = 8;
   function gull() { beep(1380, 0.12, 'sine', 0.018); setTimeout(() => beep(1050, 0.16, 'sine', 0.015), 140); }
+  /* far-off horn — part of the ambient bed */
+  function farHorn() { beep(196 + Math.random() * 30, 0.4, 'sawtooth', 0.012); }
 
   const BASS = [55, 55, 110, 55, 65.4, 65.4, 130.8, 65.4, 43.65, 43.65, 87.3, 43.65, 49, 49, 98, 98];
   const ARP  = [220, 261.6, 329.6, 440, 523.2, 440, 329.6, 261.6, 174.6, 220, 261.6, 349.2, 196, 246.9, 293.7, 392];
@@ -2444,10 +2571,14 @@
     }
   }
   function toggleRadio() {
-    if (!AC) return;
+    if (!AC) { sfxClick(); return; }
     radioOn = !radioOn;
-    radioGain.gain.value = radioOn ? 0.9 : 0;
+    try {
+      radioGain.gain.cancelScheduledValues(AC.currentTime);
+      radioGain.gain.setTargetAtTime(radioOn ? 0.7 : 0, AC.currentTime, 0.08);
+    } catch (e) { radioGain.gain.value = radioOn ? 0.7 : 0; }
     if (radioOn) radioNext = AC.currentTime + 0.05;
+    sfxClick();
     toast('SYNTHRIDER FM', radioOn ? 'NOW PLAYING — MIDNIGHT MIRAGE' : 'RADIO OFF');
     el('btnRadio').classList.toggle('on', radioOn);
   }
@@ -2457,10 +2588,65 @@
     el('hudObj').style.display = 'block';
     el('hudClock').style.display = 'block';
     el('minimapBox').style.display = 'block';
+    el('hudStats').style.display = 'flex';
     el('btnPause').style.display = 'block';
     el('hudObjText').textContent = text;
     el('hudObjSub').textContent = sub || '';
   }
+
+  /* ── wanted / health / cash state ──
+     wanted (0..5, continuous) climbs from mayhem and decays when laying low.
+     In free roam it auto-spawns a cop hunt; story beats are never hijacked. */
+  let wanted = 0, wantedShown = -1, cash = 0, cashShown = 0;
+  const wantedStars = () => Array.from(el('wanted').children);
+  let autoHunt = false;          // true while a wanted-driven hunt is live
+  const isFreeRoam = () => mState === 'done';   // non-cinematic, non-mission free play
+  function addWanted(amount) {
+    if (!isFreeRoam()) return;   // only mayhem in free roam builds heat
+    wanted = clamp(wanted + amount, 0, 5);
+  }
+  function addCash(amount, label) {
+    cash += amount;
+    if (label) toast(label, '+$' + amount.toLocaleString());
+  }
+  function drawWantedStars() {
+    const lvl = Math.ceil(wanted - 0.001);   // partial heat lights the next star
+    if (lvl === wantedShown) return;
+    wantedShown = lvl;
+    wantedStars().forEach((s, i) => s.classList.toggle('on', i < lvl));
+    el('wanted').classList.toggle('heat', lvl >= 4);
+  }
+  function drawCash() {
+    if (cash === cashShown) return;
+    /* ease the counter toward the target so it ticks up */
+    const step = Math.max(1, Math.ceil(Math.abs(cash - cashShown) / 6));
+    cashShown += Math.sign(cash - cashShown) * Math.min(step, Math.abs(cash - cashShown));
+    el('cashVal').textContent = '$' + cashShown.toLocaleString();
+  }
+  function drawHealth() {
+    const dmg = (currentV && currentV.mesh.userData.crash) ? currentV.mesh.userData.crash.damage : 0;
+    const hp = currentV ? Math.round((1 - dmg) * 100) : 100;
+    const bar = el('healthBar');
+    bar.style.width = hp + '%';
+    bar.style.background = hp > 55 ? 'linear-gradient(90deg,#ff5e8a,#ff9d5c)'
+      : hp > 25 ? 'linear-gradient(90deg,#ffb35c,#ffd95c)'
+      : 'linear-gradient(90deg,#ff3b3b,#ff7a3b)';
+  }
+  /* opt-in QA bridge (only when ?qa=1) so headless tests can verify the
+     wanted / cash / siren / audio paths without depending on spawn geometry */
+  try {
+    if (/[?&]qa=1\b/.test(location.search)) {
+      window.__cv = {
+        setWanted: v => { wanted = clamp(v, 0, 5); },
+        getWanted: () => wanted,
+        addCash: (a, l) => addCash(a, l),
+        getCash: () => cash,
+        audioState: () => AC ? AC.state : 'none',
+        nodes: () => ({ engine: !!engineGain, siren: !!sirenGain, screech: !!screechGain, amb: !!ambGain, master: !!master }),
+        autoHunt: () => autoHunt,
+      };
+    }
+  } catch (e) {}
   function toast(title, body) {
     const t = document.createElement('div');
     t.className = 'toast';
@@ -2484,7 +2670,7 @@
     const o = e.target.closest('.dlg-opt');
     if (o && dlgOptions) {
       const opt = dlgOptions.find(x => String(x.n) === o.dataset.n);
-      if (opt) opt.fn();
+      if (opt) { sfxClick(); opt.fn(); }
     }
   });
   const dialogOpen = () => dlgOptions !== null;
@@ -2503,7 +2689,7 @@
       </div>`;
     el('bigOv').style.display = 'flex';
     el('bigOv').querySelectorAll('.ov-btn').forEach(btn => {
-      btn.addEventListener('click', () => cfg.buttons[+btn.dataset.b].fn());
+      btn.addEventListener('click', () => { sfxClick(); cfg.buttons[+btn.dataset.b].fn(); });
     });
   }
   function hideOverlay() { overlayOpen = false; pauseShown = false; el('bigOv').style.display = 'none'; }
@@ -2524,13 +2710,14 @@
     pursuers.forEach(pu => { pu.active = false; pu.mesh.visible = false; });
     pkg.visible = false;
     a3Timer = 0; intercomDone = false;
+    wanted = 0; autoHunt = false; setSiren(false);
     setBeacon(0, 0, false);
   }
 
   function showKeysStrip() {
     if (IS_TOUCH) return;
     const hk = el('hudKeys');
-    hk.textContent = 'WASD MOVE · SHIFT RUN · F VEHICLE · E INTERACT · ESC PAUSE';
+    hk.textContent = 'WASD MOVE · SHIFT RUN · F VEHICLE · E INTERACT · R RADIO · M MUTE · ESC PAUSE';
     hk.style.display = 'block';
     setTimeout(() => { hk.style.display = 'none'; }, 45000);
   }
@@ -2618,6 +2805,7 @@
     el('hudObj').style.display = 'none';
     el('hudClock').style.display = 'none';
     el('minimapBox').style.display = 'none';
+    el('hudStats').style.display = 'none';
     el('btnPause').style.display = 'none';
     const act = saveData.act || (saveData.done ? 2 : 1);
     saveData.act = act;
@@ -2711,6 +2899,7 @@
   function pickupPkg() {
     pkg.visible = false;
     sfxPickup();
+    addCash(500, curAct === 1 ? 'PACKAGE RECOVERED' : 'LEDGER RECOVERED');
     mState = 'return';
     if (curAct === 1) {
       setObjective('RETURN TO RICO', 'BRING THE PACKAGE BACK TO THE DOCKS');
@@ -2749,6 +2938,7 @@
   }
   function grabTape() {
     sfxPickup();
+    addCash(1000, 'MASTER TAPE');
     mState = 'a3_escape';
     setObjective('ESCAPE TO THE DOCKS', 'LOSE THEM OR OUTRUN THEM — RICO IS WAITING');
     toast('MASTER TAPE SECURED', 'IBARRA&rsquo;S LAST RECORD. GO. GO. GO.');
@@ -2764,6 +2954,7 @@
 
   function actComplete(n) {
     const secs = Math.floor((performance.now() - missionStart) / 1000);
+    addCash(2500, 'ACT BONUS');
     saveData.act = n + 1;
     save(saveData);
     resetMissionEntities();
@@ -2898,6 +3089,7 @@
     if (e.code === 'KeyE') { doAction(); return; }
     if (e.code === 'KeyF') { doVehicle(); return; }
     if (e.code === 'KeyR') { if (currentV) toggleRadio(); return; }
+    if (e.code === 'KeyM') { setMuted(!muted); toast('AUDIO', muted ? 'MUTED' : 'UNMUTED'); return; }
     if (e.code === 'Space') { e.preventDefault(); doJump(); }
     keys.add(e.code);
   });
@@ -3066,31 +3258,44 @@
   const mmCtx = el('minimap').getContext('2d');
   function drawMinimap() {
     const f = focusPos();
-    const VIEW = 95, S = 150 / VIEW;
+    const VIEW = 95, S = 150 / VIEW, RAD = 71;
     const px = (f.x + MAP_PAD) * MAP_SCALE, pz = (f.z + MAP_PAD) * MAP_SCALE;
     const w = VIEW * MAP_SCALE;
     mmCtx.clearRect(0, 0, 150, 150);
     mmCtx.drawImage(mapBase, px - w / 2, pz - w / 2, w, w, 0, 0, 150, 150);
-    const blip = (x, z, color, r) => {
-      let bx = 75 + (x - f.x) * S, bz = 75 + (z - f.z) * S;
-      bx = clamp(bx, 6, 144); bz = clamp(bz, 6, 144);
+    /* blips that fall outside the dial are clamped to its rim with a faded ring */
+    const blip = (x, z, color, r, ring) => {
+      let bx = (x - f.x) * S, bz = (z - f.z) * S;
+      const d = Math.hypot(bx, bz);
+      const edge = d > RAD - r;
+      if (edge) { const k = (RAD - r) / d; bx *= k; bz *= k; }
+      mmCtx.globalAlpha = edge ? 0.55 : 1;
       mmCtx.fillStyle = color;
-      mmCtx.beginPath(); mmCtx.arc(bx, bz, r, 0, 7); mmCtx.fill();
+      mmCtx.beginPath(); mmCtx.arc(75 + bx, 75 + bz, r, 0, 7); mmCtx.fill();
+      if (ring && !edge) { mmCtx.globalAlpha = 0.5; mmCtx.strokeStyle = color; mmCtx.lineWidth = 1.2;
+        mmCtx.beginPath(); mmCtx.arc(75 + bx, 75 + bz, r + 2.5, 0, 7); mmCtx.stroke(); }
+      mmCtx.globalAlpha = 1;
     };
-    if (beacon.visible) blip(beacon.position.x, beacon.position.z, '#ff5e8a', 4);
-    if (hunt.active) blip(hunt.car.position.x, hunt.car.position.z, '#ff2433', 3.5);
-    pursuers.forEach(pu => { if (pu.active) blip(pu.mesh.position.x, pu.mesh.position.z, '#ff2433', 3); });
+    /* ambient + scripted traffic as small blue blips (cheap; only the visible pool) */
+    trafficCars.forEach(tc => { if (tc.mesh.visible) blip(tc.mesh.position.x, tc.mesh.position.z, '#7f9fd8', 1.9); });
+    ambCars.forEach(ac => { if (ac.active) blip(ac.mesh.position.x, ac.mesh.position.z, '#7f9fd8', 1.9); });
+    vehicles.forEach(v => { if (v !== currentV) blip(v.mesh.position.x, v.mesh.position.z, '#9fb6e8', 2.4); });
+    /* cops pulse red and carry a ring so they read instantly */
+    if (hunt.active) blip(hunt.car.position.x, hunt.car.position.z, '#ff2433', 3.4, true);
+    pursuers.forEach(pu => { if (pu.active) blip(pu.mesh.position.x, pu.mesh.position.z, '#ff2433', 3, true); });
     if (mState !== 'idle') blip(rico.position.x, rico.position.z, '#ffb35c', 3);
     if (mState !== 'idle' && curAct === 2) blip(marisol.position.x, marisol.position.z, '#ffb35c', 3);
-    vehicles.forEach(v => { if (v !== currentV) blip(v.mesh.position.x, v.mesh.position.z, '#9fb6e8', 2.4); });
+    if (beacon.visible) blip(beacon.position.x, beacon.position.z, '#ff5e8a', 4, true);
+    /* player arrow — points to heading */
     const ang = currentV ? currentV.heading : playerInner.rotation.y;
     mmCtx.save();
     mmCtx.translate(75, 75);
     mmCtx.rotate(-ang + Math.PI);
     mmCtx.fillStyle = '#ffffff';
+    mmCtx.strokeStyle = 'rgba(0,0,0,0.5)'; mmCtx.lineWidth = 1;
     mmCtx.beginPath();
-    mmCtx.moveTo(0, -7); mmCtx.lineTo(4.5, 5); mmCtx.lineTo(-4.5, 5);
-    mmCtx.closePath(); mmCtx.fill();
+    mmCtx.moveTo(0, -7.5); mmCtx.lineTo(5, 5.5); mmCtx.lineTo(0, 2.5); mmCtx.lineTo(-5, 5.5);
+    mmCtx.closePath(); mmCtx.fill(); mmCtx.stroke();
     mmCtx.restore();
   }
   function focusPos() { return currentV ? currentV.mesh.position : player.position; }
@@ -3141,7 +3346,7 @@
   const clock = new THREE.Clock();
   let shake = 0;
   const camPos = new THREE.Vector3(38, 8, 28);
-  let fpsAcc = 0, fpsN = 0, slowT = 0, perfStage = 0;
+  let fpsAcc = 0, fpsN = 0, slowT = 0, perfStage = 0, hudAcc = 0;
 
   function tick() {
     requestAnimationFrame(tick);
@@ -3302,7 +3507,8 @@
           damageVehicle(v, norm * 0.6);
           shake = Math.min(0.85, impactSpeed * 0.05 + 0.2);
           sfxCrash(norm);
-          if (vehBlocked) shoveTraffic(nx, nz, v.mesh, vForward(v), 0.6 + norm * 1.4);
+          if (vehBlocked) { shoveTraffic(nx, nz, v.mesh, vForward(v), 0.6 + norm * 1.4); addWanted(0.5 + norm * 0.9); }
+          else addWanted(0.25 + norm * 0.4);   // ramming property still draws heat
           v.vel *= -0.28; v.lat *= 0.2;
         } else {
           if (impactSpeed > 2) { shake = Math.min(0.5, impactSpeed * 0.045 + 0.12); sfxThud(); }
@@ -3371,18 +3577,57 @@
           if (hunt.ramT > 2.2) hunt.onBust();
         } else hunt.ramT = Math.max(0, hunt.ramT - dt * 0.6);
       }
-      if (engineGain) {
-        engineGain.gain.value = 0.026;
-        if (engineOsc) {
-          engineOsc.type = v.kind === 'bike' ? 'square' : 'sawtooth';
-          engineOsc.frequency.value = (v.kind === 'bike' ? 68 : 46) + Math.abs(v.vel) * 5.4;
-        }
+      /* ── layered engine: rpm tracks speed; throttle adds body + grit; ── */
+      if (AC && engineGain) {
+        const spd01 = clamp(speed / Math.max(1, maxV), 0, 1);
+        const rpm = spd01 + (gas ? 0.25 : 0);                 // throttle nudges rpm up
+        const base = v.kind === 'bike' ? 70 : 44;
+        const range = v.kind === 'bike' ? 240 : 150;
+        const f = base + rpm * range;
+        engineOsc.type = v.kind === 'bike' ? 'square' : 'sawtooth';
+        engineOsc.frequency.setTargetAtTime(f, AC.currentTime, 0.04);
+        engineSub.frequency.setTargetAtTime(f * 0.5, AC.currentTime, 0.04);
+        engineLP.frequency.setTargetAtTime(260 + rpm * 700, AC.currentTime, 0.05);
+        /* idle hum at rest, swells with revs; a touch louder on the gas */
+        engineGain.gain.setTargetAtTime(0.02 + rpm * 0.05 + (gas ? 0.012 : 0), AC.currentTime, 0.06);
+        engineNoiseG.gain.setTargetAtTime((gas ? 0.05 : 0.015) * (0.4 + spd01), AC.currentTime, 0.06);
+      }
+      /* ── tire screech: gain follows skid intensity ── */
+      if (AC && screechGain) {
+        const screech = (v.drift > 0.3 || (handbrake && speed > 5) || (hardBrake && speed > 9)) && groundSpeed > 3
+          ? clamp(v.drift * 0.05 + (handbrake ? 0.02 : 0), 0, 0.07) : 0;
+        screechGain.gain.setTargetAtTime(screech, AC.currentTime, 0.05);
       }
       el('speedoVal').textContent = Math.round(Math.abs(v.vel) * 3.6);
       if (!dragging && camId === null) camYaw = lerpAngle(camYaw, v.heading + Math.PI, Math.min(1, dt * 1.8));
-    } else if (engineGain) {
-      engineGain.gain.value = 0;
+    } else if (AC && engineGain) {
+      /* on foot or paused: silence the engine + screech */
+      engineGain.gain.setTargetAtTime(0, AC.currentTime, 0.08);
+      if (engineNoiseG) engineNoiseG.gain.setTargetAtTime(0, AC.currentTime, 0.08);
+      if (screechGain) screechGain.gain.setTargetAtTime(0, AC.currentTime, 0.08);
     }
+
+    /* ════════ WANTED LEVEL + auto police (free roam only) ════════ */
+    if (!frozen) {
+      /* heat cools while laying low — faster the lower it already is */
+      if (wanted > 0) wanted = Math.max(0, wanted - dt * (autoHunt ? 0.045 : 0.11));
+      if (isFreeRoam()) {
+        /* spawn a pursuing cop once heat passes 2; reuse the scripted hunt rig */
+        if (!autoHunt && wanted >= 2) {
+          const f = focusPos();
+          const loop = f.z < -20 ? NORTH_LOOP : THIEF_LOOP;
+          /* drop the cop on the road behind the player, then it chases the loop */
+          startHunt(thiefCar, loop, 19 + wanted, clamp(f.x, -50, 122), clamp(f.z - 30, -120, 86), () => {});
+          autoHunt = true;
+          toast('WANTED', 'COSTA VISTA PD IS ON YOU — LOSE THEM');
+        } else if (autoHunt && wanted < 0.4) {
+          stopHunt(true); autoHunt = false;
+          toast('LOST THEM', 'HEAT OFF. YOU FADED INTO THE CITY.');
+        }
+      } else if (autoHunt) { stopHunt(true); autoHunt = false; }
+    }
+    /* siren only for a police chase — the auto-hunt, or Act I's cop chase */
+    setSiren(!frozen && hunt.active && (autoHunt || mState === 'chase'));
 
     /* ── chase AI (whichever act's car) ── */
     if (!frozen && hunt.active) {
@@ -3617,7 +3862,14 @@
 
     if (AC && !frozen) {
       gullT -= dt;
-      if (gullT <= 0) { if (sky.nightF < 0.4) gull(); gullT = 9 + Math.random() * 14; }
+      if (gullT <= 0) {
+        /* daytime: a gull cries; any hour: an occasional far-off horn */
+        if (sky.nightF < 0.4 && Math.random() < 0.6) gull();
+        else if (Math.random() < 0.5) farHorn();
+        gullT = 9 + Math.random() * 14;
+      }
+      /* ambient bed dips at night (the city quiets after dark) */
+      if (ambGain) ambGain.gain.setTargetAtTime(0.012 - sky.nightF * 0.005, AC.currentTime, 0.6);
     }
     radioTick();
 
@@ -3670,7 +3922,11 @@
       }
     } else el('hudHint').style.display = 'none';
 
-    if (mState !== 'idle') drawMinimap();
+    if (mState !== 'idle') {
+      /* throttle the minimap + stat redraws to ~22fps — cheap and smooth enough */
+      hudAcc += dt;
+      if (hudAcc >= 0.045) { hudAcc = 0; drawMinimap(); drawWantedStars(); drawHealth(); drawCash(); }
+    }
 
     /* ── waypoint pin + screen-edge arrow ── */
     if (beacon.visible) {

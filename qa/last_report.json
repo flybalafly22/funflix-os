@@ -1,7 +1,7 @@
 {
-  "url": "http://127.0.0.1:5083/play/city-game",
-  "ts": "2026-06-15 23:41:27",
-  "load_seconds": 4.17,
+  "url": "http://127.0.0.1:5087/play/city-game",
+  "ts": "2026-06-16 07:03:21",
+  "load_seconds": 4.21,
   "webgl": {
     "present": true,
     "w": 1280,
@@ -12,11 +12,12 @@
   "features": {
     "hud_ids_found": [
       "minimap",
-      "speedo"
+      "speedo",
+      "wanted"
     ],
     "text_markers_found": []
   },
-  "screenshot": "/Users/balarajput/calculator_web/qa/shots/shot_1781563296.png",
+  "screenshot": "/Users/balarajput/calculator_web/qa/shots/shot_1781589809.png",
   "console_errors": [],
   "page_errors": [],
   "gates": {
