@@ -361,15 +361,15 @@
     uniforms: {
       tDiffuse: { value: null },
       uVignette: { value: 0.34 },
-      uContrast: { value: 1.13 },
-      uSaturation: { value: 1.19 },
+      uContrast: { value: 1.15 },
+      uSaturation: { value: 1.10 },
       uLift: { value: new THREE.Vector3(-0.004, 0.002, 0.016) },  // cool, slightly crushed shadows
       uGain: { value: new THREE.Vector3(1.05, 1.012, 0.965) },    // warm highlights — golden-hour bias
       uTime: { value: 0 },
       uSpeed: { value: 0 },    // 0..1 — drives a radial speed vignette + streak hint
       uNight: { value: 0 },    // 0..1 — gently cools/contrasts the night grade
-      uStylize: { value: 0.30 },  // 0..1 — Messenger/Sable-style posterized tone cohesion
-      uBands: { value: 7.0 },     // tone steps the luminance snaps to when stylized
+      uStylize: { value: 0.45 },  // 0..1 — Messenger/Sable-style posterized tone cohesion (leaned in)
+      uBands: { value: 5.0 },     // fewer tone steps → clearer cel banding
     },
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
@@ -433,10 +433,10 @@
       uTexel:   { value: new THREE.Vector2(1 / 640, 1 / 360) },
       uNear:    { value: 0.1 },
       uFar:     { value: 700.0 },
-      uColor:   { value: new THREE.Color(0x121620) },
-      uStrength:{ value: 0.90 },
-      uThresh:  { value: 0.0012 },
-      uThick:   { value: 1.3 },
+      uColor:   { value: new THREE.Color(0x0e1118) },
+      uStrength:{ value: 1.0 },
+      uThresh:  { value: 0.0010 },
+      uThick:   { value: 1.5 },
     },
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
@@ -534,6 +534,35 @@
 
   const shinyMats = [];   // envMapIntensity follows daylight
   const windowMats = [];  // emissive windows follow night
+
+  /* ── stylized fresnel rim-light (Messenger silhouette glow) ──
+     injected non-destructively into existing MeshStandard/Physical materials so they
+     keep all PBR/env behaviour; adds an additive edge that hugs silhouettes (coincides
+     with the ink outline) and feeds bloom. Injected at <output_fragment>, where
+     `outgoingLight` is still live + linear (NOT <dithering_fragment>, which is post-encode). */
+  function addRimLight(material, opts) {
+    opts = opts || {};
+    const u = {
+      rimColor:    { value: opts.color || new THREE.Color(0xbfe0ff) },
+      rimPower:    { value: opts.power != null ? opts.power : 3.0 },
+      rimStrength: { value: opts.strength != null ? opts.strength : 0.5 },
+    };
+    const prev = material.onBeforeCompile;
+    material.onBeforeCompile = function (shader, renderer) {
+      if (prev) prev.call(this, shader, renderer);
+      shader.uniforms.rimColor = u.rimColor;
+      shader.uniforms.rimPower = u.rimPower;
+      shader.uniforms.rimStrength = u.rimStrength;
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vRimN; varying vec3 vRimP;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n vRimN = normalize(transformedNormal); vRimP = (modelViewMatrix * vec4(transformed,1.0)).xyz;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vRimN; varying vec3 vRimP;\nuniform vec3 rimColor; uniform float rimPower; uniform float rimStrength;')
+        .replace('#include <output_fragment>', 'float rimF = pow(1.0 - clamp(dot(normalize(vRimN), normalize(-vRimP)), 0.0, 1.0), rimPower);\n outgoingLight += rimColor * (rimF * rimStrength);\n#include <output_fragment>');
+    };
+    material.needsUpdate = true;
+    return material;
+  }
 
   function cnv(w, h) {
     const c = document.createElement('canvas');
@@ -1730,6 +1759,7 @@
       color, metalness: 0.86, roughness: 0.26,
       clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.7,
     });
+    addRimLight(paint, { color: new THREE.Color(0xcfe8ff), power: 3.4, strength: 0.42 });
     shinyMats.push(paint);
 
     const body = new THREE.Mesh(CAR_GEOMS[sport ? 'sport' : 'sedan'], paint);
@@ -1844,6 +1874,7 @@
     g.add(chassis);
     g.userData.chassis = chassis;
     const paint = new THREE.MeshPhysicalMaterial({ color, metalness: 0.85, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 1.2 });
+    addRimLight(paint, { color: new THREE.Color(0xcfe8ff), power: 3.4, strength: 0.42 });
     shinyMats.push(paint);
 
     const tank = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.32, 0.95), paint);
@@ -2167,6 +2198,8 @@
     const shirt = new THREE.MeshStandardMaterial({ color: opts.shirt, roughness: 0.82 });
     const pants = new THREE.MeshStandardMaterial({ color: opts.pants, roughness: 0.84 });
     const shoe  = new THREE.MeshStandardMaterial({ color: 0x201e1b, roughness: 0.55 });
+    /* rim only on the player (opts.rim) so pedestrian crowds don't each recompile */
+    if (opts.rim) [skin, shirt, pants].forEach(m => addRimLight(m, { color: new THREE.Color(0xdfeaff), power: 2.6, strength: 0.34 }));
 
     const g = new THREE.Group();
     const parts = {};
@@ -2299,7 +2332,7 @@
 
   /* player — flamingo shirt, cream slacks, shades */
   const player = new THREE.Group();
-  const playerInner = buildHuman({ shirt: 0xe8607a, pants: 0x2c3550, skin: 0xd9a878, hair: 0x2a211c, shades: true });
+  const playerInner = buildHuman({ shirt: 0xe8607a, pants: 0x2c3550, skin: 0xd9a878, hair: 0x2a211c, shades: true, rim: true });
   player.add(playerInner);
   player.position.set(38, 0, 8);
   scene.add(player);

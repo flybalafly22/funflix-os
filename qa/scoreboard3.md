@@ -8,18 +8,18 @@ Rubric: 0–10 each, where a *cohesive stylized open-world* (Messenger/Sable-cla
 
 | Dimension                       | Base(8.1 cycle) | S1 | S2 | S3 | S4 | S5 |
 |---------------------------------|:--:|:--:|:--:|:--:|:--:|:--:|
-| Art-direction cohesion ★        | 7  | 8  | 9  |    |    |    |
-| Atmosphere & sky/fog            | 7  | 8  | 8  |    |    |    |
-| Stylization / signature look ★  | 5  | 6  | 8  |    |    |    |
-| Materials & surfaces            | 8  | 8  | 8  |    |    |    |
-| Lighting mood                   | 8  | 8  | 8  |    |    |    |
-| Controls & camera feel          | 8  | 8  | 8  |    |    |    |
-| World detail & district variety | 8  | 8  | 8  |    |    |    |
-| UI / first-impression polish    | 6  | 6  | 6  |    |    |    |
-| Character & expression          | 5  | 5  | 5  |    |    |    |
-| Performance (auto)              | 9  | 9  | 9  |    |    |    |
-| Stability (auto)                | 9  | 9  | 9  |    |    |    |
-| **Average**                     | **7.3** | **7.5** | **7.8** |  |  |  |
+| Art-direction cohesion ★        | 7  | 8  | 9  | 9  |    |    |
+| Atmosphere & sky/fog            | 7  | 8  | 8  | 8  |    |    |
+| Stylization / signature look ★  | 5  | 6  | 8  | 9  |    |    |
+| Materials & surfaces            | 8  | 8  | 8  | 9  |    |    |
+| Lighting mood                   | 8  | 8  | 8  | 8  |    |    |
+| Controls & camera feel          | 8  | 8  | 8  | 8  |    |    |
+| World detail & district variety | 8  | 8  | 8  | 8  |    |    |
+| UI / first-impression polish    | 6  | 6  | 6  | 6  |    |    |
+| Character & expression          | 5  | 5  | 5  | 6  |    |    |
+| Performance (auto)              | 9  | 9  | 9  | 9  |    |    |
+| Stability (auto)                | 9  | 9  | 9  | 9  |    |    |
+| **Average**                     | **7.3** | **7.5** | **7.8** | **8.1** |  |  |
 
 ★ = the dimensions the _Messenger_ thesis most directly targets (where the realism path left the most headroom).
 
@@ -46,5 +46,16 @@ Rubric: 0–10 each, where a *cohesive stylized open-world* (Messenger/Sable-cla
   like the whole composer). Held 60fps on the M3 test rig; the fps proxy can't measure GPU cost,
   so Performance stays 9 *pending real-hardware confirmation*. Rolls back to the no-composer path
   on touch automatically. (Rim-light pushed to S3 — one big shader change per sprint to stay bisectable.)
+
+## S3 — Lean-in stylization + material finish (Δ +0.3) — gates: renders ✅ · 0 console ✅ · 0 page ✅ · 60fps(proxy) ✅ · drive 0 errors ✅
+User direction: **"lean in harder"** on the Messenger/Sable look. Delivered globally + on hero mats:
+- **Stronger cel**: posterize uStylize 0.30→0.45, bands 7→5 (clearer flat tone steps).
+- **Heavier ink**: outline strength 0.9→1.0, thick 1.3→1.5, thresh 0.0012→0.0010, darker line.
+- **Flatter palette**: grade saturation 1.19→1.10, contrast 1.13→1.15 (illustrated, serene).
+- **Fresnel rim-light** (`addRimLight`, non-destructive `onBeforeCompile` at `<output_fragment>`):
+  soft silhouette edge glow on car/bike paint + the player; coincides with the ink outline and
+  feeds bloom → premium edge. Player-only on humans (gated) so pedestrian crowds don't recompile.
+  - Bug found + fixed in QA: injected `transformed` at `<defaultnormal_vertex>` (before it's
+    declared) → vertex compile error; moved the injection to `<begin_vertex>`. Verified 0 errors.
 
 Notes per sprint appended below as the loop runs.
