@@ -2754,6 +2754,23 @@
           beam: +beamPoolMat.opacity.toFixed(2),
           braking: playerBraking,
         }),
+        carState: () => currentV ? { x: currentV.mesh.position.x, z: currentV.mesh.position.z, heading: currentV.heading, vel: currentV.vel, lat: currentV.lat || 0, drift: currentV.drift || 0 } : null,
+        enterNearestVehicle: () => {
+          if (currentV) return true;
+          let best = null, bd = Infinity;
+          vehicles.forEach(v => { const d = dist2D(player.position, v.mesh.position); if (d < bd) { bd = d; best = v; } });
+          if (!best) return false;
+          player.position.x = best.mesh.position.x; player.position.z = best.mesh.position.z;
+          enterVehicle(best); return true;
+        },
+        resetCar: (x, z, heading) => {
+          if (!currentV) return false;
+          currentV.mesh.position.x = x; currentV.mesh.position.z = z;
+          if (typeof heading === 'number') currentV.heading = heading;
+          currentV.vel = 0; currentV.lat = 0; currentV.drift = 0;
+          player.position.x = x; player.position.z = z;
+          return true;
+        },
       };
     }
   } catch (e) {}
@@ -3612,24 +3629,32 @@
       if (speed > 0.5) v.heading += turn * dt;
       v.yawRate = turn;
 
-      /* grip model: lateral slip velocity builds from the turn the body can't hold.
-         a handbrake or sharp turn at speed breaks traction → controlled drift. */
+      /* ── grip & slip model ──────────────────────────────────────────────
+         Tyres hold lateral load up to a limit, so normal cornering GRIPS and the
+         car follows its nose. Only load BEYOND that limit breaks traction into a
+         slide — and a broken-traction turn slides the body WITH the steer (the
+         rear comes round) and yaws the nose further into the corner, so a drift
+         rotates the way you are turning, never against it. */
       const isBike = v.kind === 'bike';
-      const gripMax = isBike ? 9.5 : 7.2;                 // m/s of lateral the tires hold
-      const demand = -turn * speed * (isBike ? 0.7 : 1.0); // centripetal demand → sideways load
-      v.lat = (v.lat || 0) + demand * dt * 4.2;
-      let gripLoss = clamp((Math.abs(v.lat) - gripMax) / gripMax, 0, 1);
-      if (handbrake && speed > 4) { v.lat += dir * steer * speed * dt * 1.4; gripLoss = Math.max(gripLoss, 0.6); }
-      /* tires scrub the lateral velocity back toward zero (more grip = faster recovery).
-         counter-steer assist: steering INTO the slide recovers grip ~1.7x faster, so a
-         drift is something you catch and hold on purpose, not an ice-rink surprise. */
-      const counterSteer = gripLoss > 0.2 && Math.abs(steer) > 0.12 && Math.sign(steer) === Math.sign(v.lat);
-      const recover = (handbrake ? 1.4 : 5.2) * (isBike ? 1.4 : 1) * (counterSteer ? 1.7 : 1);
+      const gripMax = isBike ? 9.5 : 7.2;                  // lateral the tyres hold (m/s)
+      const load = turn * speed;                           // centripetal demand (+ve = turning left)
+      const cap = gripMax * (handbrake ? 0.4 : 1);         // handbrake lowers the grip ceiling
+      const excess = Math.max(0, Math.abs(load) - cap);    // only the overdrive breaks loose
+      v.lat = (v.lat || 0) + Math.sign(load) * excess * dt * 5.0;
+      if (handbrake && speed > 4 && Math.abs(steer) > 0.05) v.lat += Math.sign(steer) * speed * dt * 2.0;
+      v.lat = clamp(v.lat, -13, 13);
+      let gripLoss = clamp(Math.abs(v.lat) / gripMax, 0, 1);
+      /* counter-steer assist: steering AGAINST the slide catches it ~1.8x faster,
+         so a drift is something you hold and recover on purpose, not an ice-rink surprise. */
+      const counterSteer = gripLoss > 0.2 && Math.abs(steer) > 0.12 && Math.sign(steer) !== Math.sign(v.lat);
+      const recover = (handbrake ? 1.6 : 6.5) * (isBike ? 1.3 : 1) * (counterSteer ? 1.8 : 1);
       v.lat *= Math.max(0, 1 - recover * dt);
-      v.lat = clamp(v.lat, -16, 16);
       v.drift = gripLoss;
-      /* a sliding car bleeds a little forward speed */
-      if (gripLoss > 0.25) v.vel *= Math.max(0, 1 - gripLoss * 1.2 * dt);
+      /* a broken-traction turn rotates the nose into the corner (oversteer) and bleeds a little speed */
+      if (gripLoss > 0.2) {
+        v.heading += Math.sign(load) * Math.min(gripLoss * speed * 0.0011, 0.02);
+        v.vel *= Math.max(0, 1 - gripLoss * 1.0 * dt);
+      }
 
       /* world-space velocity = forward (along heading) + lateral (sideways) */
       const fwX = Math.sin(v.heading), fwZ = Math.cos(v.heading);
