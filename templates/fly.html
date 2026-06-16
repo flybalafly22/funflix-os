@@ -345,7 +345,7 @@
   renderer.setPixelRatio(IS_TOUCH ? 1 : Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.92; // calmer sun — detail survives noon
+  renderer.toneMappingExposure = 0.98; // richer key light — stronger sun-to-fill ratio gives form
   renderer.shadowMap.enabled = !IS_TOUCH;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -360,11 +360,11 @@
   const GradeShader = {
     uniforms: {
       tDiffuse: { value: null },
-      uVignette: { value: 0.32 },
-      uContrast: { value: 1.07 },
-      uSaturation: { value: 1.12 },
-      uLift: { value: new THREE.Vector3(0.0, 0.004, 0.012) },   // cool shadows
-      uGain: { value: new THREE.Vector3(1.03, 1.005, 0.97) },   // warm highlights
+      uVignette: { value: 0.34 },
+      uContrast: { value: 1.13 },
+      uSaturation: { value: 1.19 },
+      uLift: { value: new THREE.Vector3(-0.004, 0.002, 0.016) },  // cool, slightly crushed shadows
+      uGain: { value: new THREE.Vector3(1.05, 1.012, 0.965) },    // warm highlights — golden-hour bias
       uTime: { value: 0 },
       uSpeed: { value: 0 },    // 0..1 — drives a radial speed vignette + streak hint
       uNight: { value: 0 },    // 0..1 — gently cools/contrasts the night grade
@@ -532,7 +532,7 @@
   }
 
   /* asphalt with lane wear + cracks */
-  const asphaltC = noiseCanvas('#43464d', ['#2c2e33', '#55585f', '#393b40', '#606268'], 2600);
+  const asphaltC = noiseCanvas('#383b42', ['#26282d', '#4a4d54', '#313338', '#565962'], 2600);
   {
     const g = asphaltC.getContext('2d');
     g.strokeStyle = 'rgba(20,20,22,0.35)';
@@ -591,11 +591,15 @@
   const cloudTex = new THREE.CanvasTexture(cloudC);
 
   /* ── building facades: plaster & brick, with frames, sills, slabs, AC units ── */
-  function facadeCanvases(style, wallHex) {
+  function facadeCanvases(style, wallHex, opts) {
+    opts = opts || {};
     const W = 256, H = 512;
     const c = cnv(W, H), e = cnv(W, H);
     const g = c.getContext('2d'), ge = e.getContext('2d');
     ge.fillStyle = '#000'; ge.fillRect(0, 0, W, H);
+    /* per-facade glass tint + column count so no two building types read the same */
+    const gtint = opts.glass || ['#5d7d9a', '#33495e', '#1f2d3c'];
+    const cols = opts.cols || 4;
 
     if (style === 'brick') {
       g.fillStyle = '#cfc8bb'; g.fillRect(0, 0, W, H); // mortar
@@ -614,9 +618,9 @@
       for (let i = 0; i < 60; i++) g.fillRect(Math.random() * W, Math.random() * H, 2, rand(8, 40));
     }
 
-    const floors = 8, cols = 4;
+    const floors = 8;
     const fH = H / floors;
-    const winW = 38, winH = 32;
+    const winW = cols >= 5 ? 30 : 38, winH = 32;
     for (let f = 0; f < floors; f++) {
       const fy = f * fH;
       /* floor slab shadow band */
@@ -630,7 +634,7 @@
         g.fillRect(wx - 3, wy - 3, winW + 6, winH + 6);
         /* glass with sky sheen */
         const gl = g.createLinearGradient(wx, wy, wx + winW, wy + winH);
-        gl.addColorStop(0, '#5d7d9a'); gl.addColorStop(0.45, '#33495e'); gl.addColorStop(1, '#1f2d3c');
+        gl.addColorStop(0, gtint[0]); gl.addColorStop(0.45, gtint[1]); gl.addColorStop(1, gtint[2]);
         g.fillStyle = gl;
         g.fillRect(wx, wy, winW, winH);
         g.fillStyle = 'rgba(255,255,255,0.20)';
@@ -650,6 +654,12 @@
           g.fillStyle = '#70757a';
           for (let v = 0; v < 4; v++) g.fillRect(wx + 6, wy + winH + 10 + v * 2.6, 18, 1);
         }
+        /* faint grime streak weeping down from the sill — reads as real weathering */
+        if (style !== 'brick' && Math.random() < 0.5) {
+          g.fillStyle = `rgba(40,34,28,${0.05 + Math.random() * 0.07})`;
+          const sw = 3 + Math.random() * 5;
+          g.fillRect(wx + Math.random() * (winW - sw), wy + winH + 6, sw, rand(10, 30));
+        }
         /* lit at night */
         if (Math.random() < 0.34) {
           ge.fillStyle = ['#ffd9a0', '#fff2cd', '#ffe6b0'][(Math.random() * 3) | 0];
@@ -657,14 +667,28 @@
         }
       }
     }
+    /* soft top-down ambient-occlusion gradient: base of the wall sits in shade */
+    const ao = g.createLinearGradient(0, H * 0.7, 0, H);
+    ao.addColorStop(0, 'rgba(0,0,0,0)'); ao.addColorStop(1, 'rgba(0,0,0,0.18)');
+    g.fillStyle = ao; g.fillRect(0, H * 0.7, W, H * 0.3);
     return { map: tex(c, true), emi: tex(e, true) };
   }
 
+  /* a far wider coastal-Mediterranean + modern palette with per-type window tints,
+     so a city block no longer reads as one repeated beige box */
+  const GT_BLUE = ['#6f93b0', '#3a5168', '#22303f'];
+  const GT_WARM = ['#c9b48f', '#7a674a', '#463a28'];
+  const GT_TEAL = ['#6fb0a8', '#357068', '#1f3d39'];
+  const GT_DARK = ['#46586a', '#2a3744', '#161e26'];
   const FACADES = [
-    facadeCanvases('plaster', '#e8c9c4'),
-    facadeCanvases('plaster', '#cfe4d4'),
-    facadeCanvases('plaster', '#d8cbe8'),
-    facadeCanvases('plaster', '#efe2c3'),
+    facadeCanvases('plaster', '#e3b9a8', { glass: GT_WARM }),          // terracotta
+    facadeCanvases('plaster', '#d8e0d2', { glass: GT_TEAL, cols: 5 }), // sage
+    facadeCanvases('plaster', '#c9d6e0', { glass: GT_BLUE, cols: 5 }), // pale slate
+    facadeCanvases('plaster', '#efe2c3', { glass: GT_WARM }),          // sand
+    facadeCanvases('plaster', '#e6d6e2', { glass: GT_BLUE }),          // mauve
+    facadeCanvases('plaster', '#b9c2c9', { glass: GT_DARK, cols: 5 }), // concrete grey
+    facadeCanvases('plaster', '#dec9a0', { glass: GT_WARM }),          // ochre
+    facadeCanvases('plaster', '#cfe4e0', { glass: GT_TEAL }),          // seafoam
     facadeCanvases('brick', ''),
     facadeCanvases('brick', ''),
   ];
@@ -752,7 +776,7 @@
   /* ground */
   const asphalt = new THREE.Mesh(
     new THREE.PlaneGeometry(760, 640),
-    new THREE.MeshStandardMaterial({ map: texClone(asphaltTex, 86, 72), bumpMap: texClone(asphaltTex, 86, 72), bumpScale: 0.045, roughness: 0.95 })
+    new THREE.MeshStandardMaterial({ map: texClone(asphaltTex, 86, 72), bumpMap: texClone(asphaltTex, 86, 72), bumpScale: 0.06, roughness: 0.78, metalness: 0.05, envMapIntensity: 0.5 })
   );
   asphalt.rotation.x = -Math.PI / 2;
   asphalt.receiveShadow = true;
@@ -874,7 +898,7 @@
       });
       shinyMats.push(m); windowMats.push(m); return m;
     }
-    const fc = industrial ? FACADES[4 + ((Math.random() * 2) | 0)] : FACADES[(Math.random() * FACADES.length) | 0];
+    const fc = industrial ? FACADES[8 + ((Math.random() * 2) | 0)] : FACADES[(Math.random() * 8) | 0];
     const rx = Math.max(1, Math.round(w / 12)), ry = Math.max(1, Math.round(floors / 2));
     const m = new THREE.MeshStandardMaterial({
       map: texClone(fc.map, rx, ry), emissive: 0xffffff, emissiveMap: texClone(fc.emi, rx, ry),
@@ -1373,11 +1397,13 @@
   const sun = new THREE.DirectionalLight(0xfff2dd, 1);
   sun.castShadow = !IS_TOUCH;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.left = -95; sun.shadow.camera.right = 95;
-  sun.shadow.camera.top = 95; sun.shadow.camera.bottom = -95;
+  /* tighter frustum, player-centred (sun follows player) → ~2.3x the shadow
+     resolution near the camera, so contact shadows read crisp instead of mushy */
+  sun.shadow.camera.left = -62; sun.shadow.camera.right = 62;
+  sun.shadow.camera.top = 62; sun.shadow.camera.bottom = -62;
   sun.shadow.camera.near = 10; sun.shadow.camera.far = 460;
-  sun.shadow.bias = -0.0005;
-  sun.shadow.radius = 3;
+  sun.shadow.bias = -0.0004;
+  sun.shadow.radius = 2.4;
   scene.add(sun);
   scene.add(sun.target);
 
@@ -1462,7 +1488,7 @@
     const elev = Math.sin(th);
     const sx = Math.cos(th);
     const dayF = Math.max(0, elev);
-    sun.intensity = dayF * 1.12 + 0.04;
+    sun.intensity = dayF * 1.55 + 0.05;   // stronger key → deeper, sculpted shadows
     const horiz = clamp(1 - Math.abs(elev) * 2.4, 0, 1);
     sun.color.setHex(0xfff2dd).lerp(new THREE.Color(0xff7a40), horiz);
     sunSprite.position.set(sx * 430, elev * 380 + 6, 60);
@@ -1473,7 +1499,7 @@
     const nightF = clamp((0.05 - elev) * 5, 0, 1);
     moonSprite.material.opacity = nightF * 0.9;
     starMat.opacity = nightF * 0.85;
-    hemiL.intensity = 0.28 + dayF * 0.42;
+    hemiL.intensity = 0.20 + dayF * 0.30;   // lower fill so the sun actually sculpts form
     skyAt(dayT);
     scene.background.copy(skyCol);
     scene.fog.color.copy(skyCol);
