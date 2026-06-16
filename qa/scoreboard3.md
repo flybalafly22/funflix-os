@@ -8,18 +8,18 @@ Rubric: 0–10 each, where a *cohesive stylized open-world* (Messenger/Sable-cla
 
 | Dimension                       | Base | S1 | S2 | S3 | S4 | S5 | S6 |
 |---------------------------------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| Art-direction cohesion ★        | 7  | 8  | 9  | 9  | 9  | 9  |    |
-| Atmosphere & sky/fog            | 7  | 8  | 8  | 8  | 8  | 8  |    |
-| Stylization / signature look ★  | 5  | 6  | 8  | 9  | 9  | 9  |    |
-| Materials & surfaces            | 8  | 8  | 8  | 9  | 9  | 9  |    |
-| Lighting mood                   | 8  | 8  | 8  | 8  | 8  | 8  |    |
-| Controls & camera feel          | 8  | 8  | 8  | 8  | 8  | 8  |    |
-| World detail & district variety | 8  | 8  | 8  | 8  | 8  | 8  |    |
-| UI / first-impression polish    | 6  | 6  | 6  | 6  | 6  | 8  |    |
-| Character & expression          | 5  | 5  | 5  | 6  | 8  | 8  |    |
-| Performance (auto)              | 9  | 9  | 9  | 9  | 9  | 9  |    |
-| Stability (auto)                | 9  | 9  | 9  | 9  | 9  | 9  |    |
-| **Average**                     | **7.3** | **7.5** | **7.8** | **8.1** | **8.3** | **8.5** |  |
+| Art-direction cohesion ★        | 7  | 8  | 9  | 9  | 9  | 9  | 9  |
+| Atmosphere & sky/fog            | 7  | 8  | 8  | 8  | 8  | 8  | 8  |
+| Stylization / signature look ★  | 5  | 6  | 8  | 9  | 9  | 9  | 9  |
+| Materials & surfaces            | 8  | 8  | 8  | 9  | 9  | 9  | 9  |
+| Lighting mood                   | 8  | 8  | 8  | 8  | 8  | 8  | 8  |
+| Controls & camera feel          | 8  | 8  | 8  | 8  | 8  | 8  | 9  |
+| World detail & district variety | 8  | 8  | 8  | 8  | 8  | 8  | 8  |
+| UI / first-impression polish    | 6  | 6  | 6  | 6  | 6  | 8  | 8  |
+| Character & expression          | 5  | 5  | 5  | 6  | 8  | 8  | 8  |
+| Performance (auto)              | 9  | 9  | 9  | 9  | 9  | 9  | 9  |
+| Stability (auto)                | 9  | 9  | 9  | 9  | 9  | 9  | 9  |
+| **Average**                     | **7.3** | **7.5** | **7.8** | **8.1** | **8.3** | **8.5** | **8.5** |
 
 ★ = the dimensions the _Messenger_ thesis most directly targets (where the realism path left the most headroom).
 
@@ -75,4 +75,28 @@ Messenger's UI animates every detail. Added (pure-CSS, zero gameplay risk + one 
 - **Emote discoverability**: "1–4 — EMOTE" added to both controls cards.
 - Verified: title screen renders clean, 0 errors. UI/first-impression 6 → 8.
 
-Notes per sprint appended below as the loop runs.
+## S6 — Driving feel/camera + finish & day-night QA (Δ +0.05) — gates: renders ✅ · 0 console ✅ · 0 page ✅ · steer regression PASS ✅ · 60fps(proxy) ✅
+- **Camera auto-centering** (Messenger accessibility): the on-foot camera now always eases behind
+  you — brisk while moving, a slow settle when idle — never fighting a manual drag. Non-gamers
+  don't have to wrestle the camera. (The in-vehicle spring chase cam was already excellent.)
+- **Adaptive day-night stylization** (protects the day-night constraint): posterize eases
+  0.45→~0.29 and outline 1.0→~0.72 as night falls, so the 5-band cel + raised contrast don't
+  crush low-light tones. Night re-captured: moody but readable, car/emote clean.
+- Regression: the steer-skids-right fix re-verified (LEFT→left, RIGHT→right, both PASS) after all
+  six sprints of changes. Full day/sunset/night QA, 0 errors throughout.
+
+## ✅ LOOP TERMINATED at Sprint 6 — avg 8.5/10
+Two stop conditions hit at once: **6-sprint cap reached** AND **diminishing returns** (S6 Δ < 0.2).
+Total lift this cycle: **7.3 → 8.5 (+1.2)** on the stylized rubric; 0 console/page errors every sprint,
+60fps(proxy) held, load < 5s. (Target was 8.8; the last ~0.3 is character-model fidelity + true
+animated-WebGL UI + denser world — bigger builds than a polish loop, flagged for a future cycle.)
+
+**What the studio shipped (Messenger-inspired):** gradient atmospheric sky · posterized tone
+cohesion · the signature silhouette **ink outline** · fresnel rim-light on hero materials ·
+a procedural **emote system** (1–4) · animated title/HUD + first-impression polish · camera
+auto-centering · adaptive day-night stylization — all r128, all procedural (no external assets),
+desktop composer auto-disabled on touch.
+
+**HONEST CAVEAT (unchanged):** the outline adds one extra half-res scene render/frame (desktop
+only); held 60fps on the M3 dev rig but the fps proxy can't measure GPU — wants real-hardware
+confirmation. Performance stays 9 pending that.

@@ -4395,9 +4395,11 @@
       camAccelKick += (kickTarget - camAccelKick) * Math.min(1, dt * 6);
       const camDistTarget = camDistT + spdF * 2.4 + Math.max(0, camAccelKick) * 0.14;
       camDist += (camDistTarget - camDist) * Math.min(1, dt * 5);
-      /* on foot, ease the camera behind the direction you're facing so you always see ahead */
-      if (!currentV && !dragging && camId === null && moving) {
-        camYaw = lerpAngle(camYaw, playerInner.rotation.y + Math.PI, Math.min(1, dt * 1.4));
+      /* on foot, ease the camera behind you so you always see ahead — Messenger-style
+         auto-centering: brisk while moving, a slow settle when idle (never fights a
+         manual drag, which sets `dragging`). Keeps non-gamers from wrestling the camera. */
+      if (!currentV && !dragging && camId === null) {
+        camYaw = lerpAngle(camYaw, playerInner.rotation.y + Math.PI, Math.min(1, dt * (moving ? 1.8 : 0.6)));
       }
       const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
       const pivotY = f.y + (currentV ? 1.3 : 1.7);
@@ -4480,6 +4482,10 @@
       gradeSpdSm += (spdTarget - gradeSpdSm) * Math.min(1, rawDt * 4);
       gradePass.uniforms.uSpeed.value = gradeSpdSm;
       gradePass.uniforms.uNight.value = sky.nightF;
+      /* ease the stylization down after dark so 5-band posterize + contrast don't
+         crush the low-light tones; outline also softens so dark-on-dark stays clean */
+      gradePass.uniforms.uStylize.value = 0.45 - sky.nightF * 0.18;
+      if (outlinePass) outlinePass.uniforms.uStrength.value = 1.0 - sky.nightF * 0.28;
     }
     updateEmote(rawDt);
     if (outlinePass) {
