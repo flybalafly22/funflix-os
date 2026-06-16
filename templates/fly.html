@@ -253,6 +253,28 @@
     #btnAct   { right: 116px; bottom: 130px; width: 64px; height: 64px; font-size: 10px; }
     #btnVeh   { right: 116px; bottom: 56px;  width: 64px; height: 64px; font-size: 10px; }
     #btnRadio { right: 30px;  bottom: 200px; width: 50px; height: 50px; font-size: 9px; display: none; }
+
+    /* ── S5 UI polish: entrance + micro-animations (Messenger-style animated UI) ── */
+    @keyframes ovIn   { from { opacity: 0; transform: translateY(20px) scale(0.985); } to { opacity: 1; transform: none; } }
+    @keyframes ovRise { from { opacity: 0; transform: translateY(11px); } to { opacity: 1; transform: none; } }
+    @keyframes titleSheen { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+    @keyframes btnGlow { 0%, 100% { box-shadow: 0 0 0 rgba(255,94,138,0); } 50% { box-shadow: 0 0 26px rgba(255,94,138,0.5); } }
+    @keyframes panelIn { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+    @keyframes speedoPop { from { transform: scale(1.18); color: #fff; } to { transform: scale(1); } }
+    .ov-box     { animation: ovIn 0.5s cubic-bezier(.2,.7,.2,1) both; }
+    .ov-eyebrow { animation: ovRise 0.5s ease both 0.06s; }
+    .ov-title   { background-size: 200% auto; animation: ovRise 0.5s ease both 0.12s, titleSheen 7s linear infinite; }
+    .ov-sub     { animation: ovRise 0.5s ease both 0.18s; }
+    .ov-body    { animation: ovRise 0.55s ease both 0.24s; }
+    .ov-btns    { animation: ovRise 0.55s ease both 0.32s; }
+    .ov-btn     { transition: all 0.18s, transform 0.08s; }
+    .ov-btn:not(.ghost) { animation: btnGlow 2.6s ease-in-out infinite; }
+    .ov-btn:hover  { transform: translateY(-1px); }
+    .ov-btn:active { transform: translateY(1px); }
+    /* HUD panels ease in when first shown (excludes #hudHint, which toggles often) */
+    #hudObj, #hudClock, #speedo, #minimapBox, #hudStats { animation: panelIn 0.42s ease both; }
+    #speedoVal { display: inline-block; }
+    #speedoVal.pop { animation: speedoPop 0.5s ease; }
   </style>
 </head>
 <body data-nofx>
@@ -3109,7 +3131,7 @@
       eyebrow: '// HOW TO PLAY', title: 'CONTROLS',
       body: IS_TOUCH
         ? 'LEFT THUMB — <span class="hl">MOVE & STEER</span><br/>RIGHT BUTTONS — <span class="hl">JUMP / GAS / BRAKE / TALK / RIDE</span><br/>DRAG EMPTY SPACE — <span class="hl">CAMERA</span><br/><br/>FOLLOW THE <span class="pk">PINK BEACON</span>. IT ALWAYS MARKS YOUR GOAL.'
-        : 'WASD / ARROWS — <span class="hl">MOVE & DRIVE</span> &nbsp;&middot;&nbsp; SHIFT — <span class="hl">RUN</span><br/>F — <span class="hl">ENTER / EXIT VEHICLE</span> &nbsp;&middot;&nbsp; E — <span class="hl">TALK / PICK UP</span><br/>SPACE — <span class="hl">JUMP / HANDBRAKE</span> &nbsp;&middot;&nbsp; R — <span class="hl">RADIO IN CAR</span><br/>MOUSE DRAG — <span class="hl">CAMERA</span> &nbsp;&middot;&nbsp; WHEEL — <span class="hl">ZOOM</span><br/><br/>FOLLOW THE <span class="pk">PINK BEACON</span>. IT ALWAYS MARKS YOUR GOAL.',
+        : 'WASD / ARROWS — <span class="hl">MOVE & DRIVE</span> &nbsp;&middot;&nbsp; SHIFT — <span class="hl">RUN</span><br/>F — <span class="hl">ENTER / EXIT VEHICLE</span> &nbsp;&middot;&nbsp; E — <span class="hl">TALK / PICK UP</span><br/>SPACE — <span class="hl">JUMP / HANDBRAKE</span> &nbsp;&middot;&nbsp; R — <span class="hl">RADIO IN CAR</span><br/>1–4 — <span class="hl">EMOTE</span> &nbsp;&middot;&nbsp; MOUSE DRAG — <span class="hl">CAMERA</span> &nbsp;&middot;&nbsp; WHEEL — <span class="hl">ZOOM</span><br/><br/>FOLLOW THE <span class="pk">PINK BEACON</span>. IT ALWAYS MARKS YOUR GOAL.',
       buttons: [{ label: "LET'S GO", fn: () => { hideOverlay(); startMission(); } }],
     });
   }
@@ -3118,7 +3140,7 @@
       eyebrow: '// HOW TO PLAY', title: 'CONTROLS',
       body: IS_TOUCH
         ? 'LEFT THUMB — <span class="hl">MOVE & STEER</span><br/>RIGHT BUTTONS — <span class="hl">JUMP / GAS / BRAKE / TALK / RIDE</span><br/>DRAG EMPTY SPACE — <span class="hl">CAMERA</span>'
-        : 'WASD / ARROWS — <span class="hl">MOVE & DRIVE</span> &nbsp;&middot;&nbsp; SHIFT — <span class="hl">RUN</span><br/>F — <span class="hl">VEHICLE</span> &nbsp;&middot;&nbsp; E — <span class="hl">TALK / PICK UP</span> &nbsp;&middot;&nbsp; SPACE — <span class="hl">JUMP / HANDBRAKE</span><br/>R — <span class="hl">RADIO</span> &nbsp;&middot;&nbsp; MOUSE — <span class="hl">CAMERA</span> &nbsp;&middot;&nbsp; ESC — <span class="hl">PAUSE</span>',
+        : 'WASD / ARROWS — <span class="hl">MOVE & DRIVE</span> &nbsp;&middot;&nbsp; SHIFT — <span class="hl">RUN</span><br/>F — <span class="hl">VEHICLE</span> &nbsp;&middot;&nbsp; E — <span class="hl">TALK / PICK UP</span> &nbsp;&middot;&nbsp; SPACE — <span class="hl">JUMP / HANDBRAKE</span><br/>R — <span class="hl">RADIO</span> &nbsp;&middot;&nbsp; 1–4 — <span class="hl">EMOTE</span> &nbsp;&middot;&nbsp; MOUSE — <span class="hl">CAMERA</span> &nbsp;&middot;&nbsp; ESC — <span class="hl">PAUSE</span>',
       buttons: [{ label: 'BACK', fn: () => { hideOverlay(); showTitleMenu(); } }],
     });
   }
@@ -3973,7 +3995,13 @@
           ? clamp(v.drift * 0.05 + (handbrake ? 0.02 : 0), 0, 0.07) : 0;
         screechGain.gain.setTargetAtTime(screech, AC.currentTime, 0.05);
       }
-      el('speedoVal').textContent = Math.round(Math.abs(v.vel) * 3.6);
+      {
+        const sv = Math.round(Math.abs(v.vel) * 3.6), sEl = el('speedoVal');
+        if (Math.floor(sv / 10) !== Math.floor((sEl._last || 0) / 10)) {   // pulse on each 10 km/h
+          sEl.classList.remove('pop'); void sEl.offsetWidth; sEl.classList.add('pop');
+        }
+        sEl._last = sv; sEl.textContent = sv;
+      }
       /* ── chase camera: critically-damped spring that leads into turns and looks
          into slides. replaces the old slow linear lerp that felt swimmy. ── */
       if (!dragging && camId === null) {

@@ -6,20 +6,20 @@ gradient atmosphere, animated UI), not realism.
 Rubric: 0–10 each, where a *cohesive stylized open-world* (Messenger/Sable-class direction) = 10.
 **Stop when** avg ≥ **8.8**, OR a sprint gains **< 0.2**, OR **6 sprints** done.
 
-| Dimension                       | Base(8.1 cycle) | S1 | S2 | S3 | S4 | S5 |
-|---------------------------------|:--:|:--:|:--:|:--:|:--:|:--:|
-| Art-direction cohesion ★        | 7  | 8  | 9  | 9  | 9  |    |
-| Atmosphere & sky/fog            | 7  | 8  | 8  | 8  | 8  |    |
-| Stylization / signature look ★  | 5  | 6  | 8  | 9  | 9  |    |
-| Materials & surfaces            | 8  | 8  | 8  | 9  | 9  |    |
-| Lighting mood                   | 8  | 8  | 8  | 8  | 8  |    |
-| Controls & camera feel          | 8  | 8  | 8  | 8  | 8  |    |
-| World detail & district variety | 8  | 8  | 8  | 8  | 8  |    |
-| UI / first-impression polish    | 6  | 6  | 6  | 6  | 6  |    |
-| Character & expression          | 5  | 5  | 5  | 6  | 8  |    |
-| Performance (auto)              | 9  | 9  | 9  | 9  | 9  |    |
-| Stability (auto)                | 9  | 9  | 9  | 9  | 9  |    |
-| **Average**                     | **7.3** | **7.5** | **7.8** | **8.1** | **8.3** |  |
+| Dimension                       | Base | S1 | S2 | S3 | S4 | S5 | S6 |
+|---------------------------------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| Art-direction cohesion ★        | 7  | 8  | 9  | 9  | 9  | 9  |    |
+| Atmosphere & sky/fog            | 7  | 8  | 8  | 8  | 8  | 8  |    |
+| Stylization / signature look ★  | 5  | 6  | 8  | 9  | 9  | 9  |    |
+| Materials & surfaces            | 8  | 8  | 8  | 9  | 9  | 9  |    |
+| Lighting mood                   | 8  | 8  | 8  | 8  | 8  | 8  |    |
+| Controls & camera feel          | 8  | 8  | 8  | 8  | 8  | 8  |    |
+| World detail & district variety | 8  | 8  | 8  | 8  | 8  | 8  |    |
+| UI / first-impression polish    | 6  | 6  | 6  | 6  | 6  | 8  |    |
+| Character & expression          | 5  | 5  | 5  | 6  | 8  | 8  |    |
+| Performance (auto)              | 9  | 9  | 9  | 9  | 9  | 9  |    |
+| Stability (auto)                | 9  | 9  | 9  | 9  | 9  | 9  |    |
+| **Average**                     | **7.3** | **7.5** | **7.8** | **8.1** | **8.3** | **8.5** |  |
 
 ★ = the dimensions the _Messenger_ thesis most directly targets (where the realism path left the most headroom).
 
@@ -65,5 +65,14 @@ User direction: **"lean in harder"** on the Messenger/Sable look. Delivered glob
 - Verified on foot AND in-vehicle (positions via `focusPos()`); `?qa=1` `emote(i)` hook added.
 - Character silhouette already lifted in S2/S3 (ink outline + rim glow); this adds the expression layer.
 - 1–4 discoverability hint to be surfaced in S5's UI pass.
+
+## S5 — UI & first-impression (Δ +0.2) — gates: renders ✅ · 0 console ✅ · 0 page ✅ · load 4.3s ✅ · 60fps(proxy) ✅
+Messenger's UI animates every detail. Added (pure-CSS, zero gameplay risk + one tiny JS pop):
+- **Title/overlay entrance**: box springs up (cubic-bezier), eyebrow→title→sub→body→buttons
+  stagger in, the gradient title gets a slow sheen sweep, primary buttons breathe a glow pulse.
+- **HUD entrance**: objective / clock / speedo / minimap / stats ease-in when first shown.
+- **Speedo pop**: the km/h readout pulses each time you cross a 10 km/h boundary (JS toggles a class).
+- **Emote discoverability**: "1–4 — EMOTE" added to both controls cards.
+- Verified: title screen renders clean, 0 errors. UI/first-impression 6 → 8.
 
 Notes per sprint appended below as the loop runs.
