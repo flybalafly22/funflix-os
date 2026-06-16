@@ -3109,6 +3109,7 @@
   let dragging = false, lastMX = 0, lastMY = 0;
   const BASE_FOV = 60;
   let camFov = BASE_FOV;
+  let camAccelKick = 0, camPrevSpd = 0;   // FOV punch on hard acceleration → sense of launch
   const camLook = new THREE.Vector3();   // smoothed look-ahead target
 
   canvas.addEventListener('mousedown', e => { dragging = true; lastMX = e.clientX; lastMY = e.clientY; });
@@ -3619,8 +3620,11 @@
       v.lat = (v.lat || 0) + demand * dt * 4.2;
       let gripLoss = clamp((Math.abs(v.lat) - gripMax) / gripMax, 0, 1);
       if (handbrake && speed > 4) { v.lat += dir * steer * speed * dt * 1.4; gripLoss = Math.max(gripLoss, 0.6); }
-      /* tires scrub the lateral velocity back toward zero (more grip = faster recovery) */
-      const recover = (handbrake ? 1.4 : 5.2) * (isBike ? 1.4 : 1);
+      /* tires scrub the lateral velocity back toward zero (more grip = faster recovery).
+         counter-steer assist: steering INTO the slide recovers grip ~1.7x faster, so a
+         drift is something you catch and hold on purpose, not an ice-rink surprise. */
+      const counterSteer = gripLoss > 0.2 && Math.abs(steer) > 0.12 && Math.sign(steer) === Math.sign(v.lat);
+      const recover = (handbrake ? 1.4 : 5.2) * (isBike ? 1.4 : 1) * (counterSteer ? 1.7 : 1);
       v.lat *= Math.max(0, 1 - recover * dt);
       v.lat = clamp(v.lat, -16, 16);
       v.drift = gripLoss;
@@ -4128,7 +4132,13 @@
       const spd = currentV ? Math.abs(currentV.vel) : 0;
       const spdF = currentV ? clamp(spd / KINDS[currentV.kind].maxV, 0, 1) : 0;
       gradeSpdF = spdF;
-      const camDistTarget = camDistT + spdF * 2.4;                 // a touch more trail flat-out
+      /* acceleration kick: flooring it widens the FOV + lengthens the boom briefly,
+         hard braking gently eases both back — a visceral sense of launch/weight */
+      const camAccel = (spd - camPrevSpd) / Math.max(dt, 0.001);
+      camPrevSpd = spd;
+      const kickTarget = clamp(camAccel * 0.32, -2.5, 6.5);
+      camAccelKick += (kickTarget - camAccelKick) * Math.min(1, dt * 6);
+      const camDistTarget = camDistT + spdF * 2.4 + Math.max(0, camAccelKick) * 0.14;
       camDist += (camDistTarget - camDist) * Math.min(1, dt * 5);
       /* on foot, ease the camera behind the direction you're facing so you always see ahead */
       if (!currentV && !dragging && camId === null && moving) {
@@ -4160,8 +4170,8 @@
       camLook.lerp(new THREE.Vector3(lookX, pivotY, lookZ), Math.min(1, dt * 6));
       camera.lookAt(camLook.x, camLook.y, camLook.z);
       /* mild FOV punch with speed — kept gentle so it isn't nauseating */
-      const fovTarget = BASE_FOV + spdF * 7;
-      camFov += (fovTarget - camFov) * Math.min(1, dt * 3);
+      const fovTarget = BASE_FOV + spdF * 7 + camAccelKick;
+      camFov += (fovTarget - camFov) * Math.min(1, dt * 4);
       if (Math.abs(camera.fov - camFov) > 0.05) { camera.fov = camFov; camera.updateProjectionMatrix(); }
     }
 

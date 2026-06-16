@@ -8,17 +8,17 @@ User priorities (verbatim): "work on the graphics", "car controls especially are
 
 | Dimension                  | Base | I1 | I2 | I3 | I4 | I5 |
 |----------------------------|:---:|:--:|:--:|:--:|:--:|:--:|
-| Controls — vehicle feel ★  | 4 | 7 | 7 | 7 | 7 |  |
-| Camera & game-feel         | 6 | 7 | 7 | 7 | 7 |  |
-| Lighting & atmosphere      | 6 | 6 | 8 | 8 | 8 |  |
-| Materials & surfaces       | 5 | 5 | 7 | 7 | 8 |  |
-| VFX & post-processing      | 6 | 6 | 7 | 7 | 8 |  |
-| World detail & density     | 6 | 6 | 7 | 8 | 8 |  |
-| Vehicle/character fidelity | 5 | 5 | 5 | 5 | 7 |  |
-| Map scale & layout variety | 5 | 5 | 5 | 8 | 8 |  |
-| Performance (auto)         | 9 | 9 | 9 | 9 | 9 |  |
-| Stability (auto)           | 9 | 9 | 9 | 9 | 9 |  |
-| **Average**                | **6.1** | **6.5** | **7.1** | **7.5** | **7.9** |  |
+| Controls — vehicle feel ★  | 4 | 7 | 7 | 7 | 7 | 8 |
+| Camera & game-feel         | 6 | 7 | 7 | 7 | 7 | 8 |
+| Lighting & atmosphere      | 6 | 6 | 8 | 8 | 8 | 8 |
+| Materials & surfaces       | 5 | 5 | 7 | 7 | 8 | 8 |
+| VFX & post-processing      | 6 | 6 | 7 | 7 | 8 | 8 |
+| World detail & density     | 6 | 6 | 7 | 8 | 8 | 8 |
+| Vehicle/character fidelity | 5 | 5 | 5 | 5 | 7 | 7 |
+| Map scale & layout variety | 5 | 5 | 5 | 8 | 8 | 8 |
+| Performance (auto)         | 9 | 9 | 9 | 9 | 9 | 9 |
+| Stability (auto)           | 9 | 9 | 9 | 9 | 9 | 9 |
+| **Average**                | **6.1** | **6.5** | **7.1** | **7.5** | **7.9** | **8.1** |
 
 I1 (Controls & camera) gates: renders ✅ · 0 console ✅ · 0 page ✅ · load 4.16s ✅ · 60fps ✅ · drive 0 errors ✅ (Δ +0.4)
   - chase cam: critically-damped spring (k scales 55→125 with speed), steer-lead into corners, looks into slides — kills the swimmy follow
@@ -46,6 +46,26 @@ I4 (VFX + surface polish) gates: renders ✅ · 0 console ✅ · 0 page ✅ · l
     sweep across car paint, glass curtain walls and water (lifts EVERY reflective surface at once)
   - car paint: envMapIntensity 1.2→1.7, tighter clearcoat → premium metallic-paint read
   - trees: single squashed sphere → layered base lobe + sunlit offset upper tuft (two-tone) → fuller foliage
+
+I5 (Feel & polish) gates: renders ✅ · 0 console ✅ · 0 page ✅ · load 4.17s ✅ · 60fps ✅ · drive 0 errors ✅ (Δ +0.2)
+  - acceleration FOV kick: flooring it widens FOV + lengthens the boom briefly, braking eases both back → launch/weight
+  - counter-steer drift assist: steering INTO a slide recovers grip ~1.7x faster → controllable, intentional drifts
+  - smoother FOV settle (lerp dt*3→dt*4)
+
+## LOOP TERMINATED at Iteration 5 — avg 8.1/10
+Stop triggered two ways: target (≥8.0) reached AND iteration cap (5) reached.
+Total lift: 6.1 → 8.1 (+2.0) over 5 passes, 0 console/page errors throughout, 60fps held, load <5s.
+User's #1 complaint (car controls) 4 → 8: spring chase-cam + steer-lead + torque curve + brake/reverse
+blend + smoothed steer + low-speed steering + accel FOV kick + counter-steer drift assist.
+
+HONEST CEILING: 8.1/10 is on a rubric where a modern open-world AAA title = 10. Costa Vista is now a
+clean, varied, reflective, alive browser open-world with feel-good driving and a ~50%-larger multi-district
+map. The remaining gap to 10 is the irreducible browser part: true vehicle/ragdoll physics, mocap-grade
+character/vehicle models, streamed world scale, and baked-GI lighting. The loop closed the gap browser tech
+allows; the rest is a platform ceiling, not an iteration count.
+
+Council credits: ideation/design lead (qa/backlog.md top-12), + integrating engineer across controls,
+lighting/materials (graphic-design + 3D + VFX tracks), map/world (level-design track), QA harness/drive/tour.
 
 ★ = user's explicit #1 complaint.
 
