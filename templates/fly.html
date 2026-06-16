@@ -368,11 +368,13 @@
       uTime: { value: 0 },
       uSpeed: { value: 0 },    // 0..1 — drives a radial speed vignette + streak hint
       uNight: { value: 0 },    // 0..1 — gently cools/contrasts the night grade
+      uStylize: { value: 0.30 },  // 0..1 — Messenger/Sable-style posterized tone cohesion
+      uBands: { value: 7.0 },     // tone steps the luminance snaps to when stylized
     },
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
       uniform sampler2D tDiffuse;
-      uniform float uVignette, uContrast, uSaturation, uTime, uSpeed, uNight;
+      uniform float uVignette, uContrast, uSaturation, uTime, uSpeed, uNight, uStylize, uBands;
       uniform vec3 uLift, uGain;
       varying vec2 vUv;
       void main(){
@@ -385,6 +387,19 @@
         /* saturation */
         float l = dot(c, vec3(0.299, 0.587, 0.114));
         c = mix(vec3(l), c, uSaturation);
+        /* ── stylized tone cohesion (Messenger/Sable) ──
+           snap luminance to a few soft bands while keeping hue/chroma, so the frame
+           reads as art-directed flat tones rather than noisy gradients. An ordered
+           2x2 dither on the band boundary keeps the steps from looking like 8-bit
+           banding. Blended by uStylize so it's a taste knob, not a switch. */
+        if (uStylize > 0.001) {
+          float luma = max(dot(c, vec3(0.299, 0.587, 0.114)), 1e-4);
+          vec2 ip = floor(gl_FragCoord.xy);
+          float dith = (mod(ip.x + mod(ip.y, 2.0) * 2.0 + mod(ip.y, 1.0), 4.0) / 4.0 - 0.5) / uBands;
+          float ql = clamp(floor((luma + dith) * uBands + 0.5) / uBands, 0.0, 1.4);
+          vec3 poster = c * (ql / luma);
+          c = mix(c, poster, uStylize);
+        }
         /* vignette — tightens with speed for a sense of velocity */
         vec2 d = vUv - 0.5;
         float r2 = dot(d, d) * 2.0;
@@ -1502,6 +1517,28 @@
   starMat.fog = false;
   scene.add(new THREE.Points(starGeo, starMat));
 
+  /* ── gradient atmospheric sky dome (Messenger/Sable calm): zenith → warm horizon.
+     The horizon tracks the day/night sky colour (== fog colour) so the fogged city
+     melts seamlessly into the sky. Outputs LINEAR colour (the composer buffer is
+     linear in r128), fog:false so it's never greyed out, depthWrite:false +
+     renderOrder -1 so it sits behind everything (stars/clouds/sun draw over it). */
+  const skyDomeMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: {
+      uZenith:  { value: new THREE.Color(0x24407a) },
+      uHorizon: { value: new THREE.Color(0x7fc4f5) },
+      uExp:     { value: 0.66 },
+    },
+    vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `
+      uniform vec3 uZenith, uHorizon; uniform float uExp; varying vec3 vDir;
+      void main(){ float h = clamp(vDir.y, 0.0, 1.0); gl_FragColor = vec4(mix(uHorizon, uZenith, pow(h, uExp)), 1.0); }`,
+  });
+  const skyDome = new THREE.Mesh(new THREE.SphereGeometry(600, 32, 16), skyDomeMat);
+  skyDome.renderOrder = -1; skyDome.frustumCulled = false;
+  scene.add(skyDome);
+  const zenithDeep = new THREE.Color(0x1e3a73), zTmp = new THREE.Color();
+
   const SKY_STOPS = [
     [0.00, 0x070a1e], [0.20, 0x1a1640], [0.27, 0xff9d76], [0.36, 0x8ec9f0],
     [0.50, 0x7fc4f5], [0.66, 0xf7b267], [0.75, 0xff6f91], [0.81, 0x5a3d8a],
@@ -1542,6 +1579,10 @@
     skyAt(dayT);
     scene.background.copy(skyCol);
     scene.fog.color.copy(skyCol);
+    /* gradient dome: horizon = sky/fog colour, zenith a deeper, cooler tone (more so by day) */
+    zTmp.copy(skyCol).multiplyScalar(0.5).lerp(zenithDeep, 0.4 * dayF);
+    skyDomeMat.uniforms.uHorizon.value.copy(skyCol).convertSRGBToLinear();
+    skyDomeMat.uniforms.uZenith.value.copy(zTmp).convertSRGBToLinear();
     hemiL.color.copy(skyCol).lerp(new THREE.Color(0xffffff), 0.45);
     windowMats.forEach(m => m.emissiveIntensity = 0.05 + nightF * 0.85);
     lampGlowMat.opacity = nightF;
