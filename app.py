@@ -40,6 +40,10 @@ def game():
 def fly():
     return render_template("fly.html")
 
+@app.route("/play/the-fly")
+def the_fly():
+    return render_template("the_fly.html")
+
 @app.route("/meme")
 def meme():
     return render_template("meme.html")
