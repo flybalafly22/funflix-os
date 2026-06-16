@@ -366,27 +366,38 @@
       uLift: { value: new THREE.Vector3(0.0, 0.004, 0.012) },   // cool shadows
       uGain: { value: new THREE.Vector3(1.03, 1.005, 0.97) },   // warm highlights
       uTime: { value: 0 },
+      uSpeed: { value: 0 },    // 0..1 — drives a radial speed vignette + streak hint
+      uNight: { value: 0 },    // 0..1 — gently cools/contrasts the night grade
     },
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
       uniform sampler2D tDiffuse;
-      uniform float uVignette, uContrast, uSaturation, uTime;
+      uniform float uVignette, uContrast, uSaturation, uTime, uSpeed, uNight;
       uniform vec3 uLift, uGain;
       varying vec2 vUv;
       void main(){
         vec4 tex = texture2D(tDiffuse, vUv);
         vec3 c = tex.rgb;
-        /* lift / gain split-tone */
-        c = c * uGain + uLift;
+        /* lift / gain split-tone — pushed a touch cooler + deeper at night */
+        c = c * uGain + uLift + vec3(-0.004, 0.0, 0.010) * uNight;
         /* contrast around mid grey */
-        c = (c - 0.5) * uContrast + 0.5;
+        c = (c - 0.5) * (uContrast + uNight * 0.05) + 0.5;
         /* saturation */
         float l = dot(c, vec3(0.299, 0.587, 0.114));
         c = mix(vec3(l), c, uSaturation);
-        /* vignette */
+        /* vignette — tightens with speed for a sense of velocity */
         vec2 d = vUv - 0.5;
-        float vig = smoothstep(0.85, 0.30, dot(d, d) * 2.0);
-        c *= mix(1.0, vig, uVignette);
+        float r2 = dot(d, d) * 2.0;
+        float vigAmt = uVignette + uSpeed * 0.34;
+        float vig = smoothstep(0.85, 0.30 - uSpeed * 0.16, r2);
+        c *= mix(1.0, vig, vigAmt);
+        /* radial speed-streaks: faint additive lines that sweep outward at pace */
+        if (uSpeed > 0.02) {
+          float ang = atan(d.y, d.x);
+          float streak = pow(smoothstep(0.18, 0.5, r2), 1.5)
+                       * (0.5 + 0.5 * sin(ang * 60.0 + uTime * 40.0));
+          c += streak * uSpeed * 0.06;
+        }
         /* faint animated grain — breaks up software-render banding */
         float g = fract(sin(dot(vUv * (uTime * 0.0 + 1.0) + uTime, vec2(12.9898, 78.233))) * 43758.5453);
         c += (g - 0.5) * 0.012;
@@ -1370,13 +1381,26 @@
   scene.add(sun);
   scene.add(sun.target);
 
-  /* the player's vehicle gets real headlight beams after dark */
+  /* the player's vehicle gets real headlight beams after dark (capped: 2 SpotLights,
+     only when driving + dark — see main loop). Beyond that, all lighting is fake
+     (emissive + additive glow sprites) so the bloom pass does the heavy lifting. */
   const headLamps = [0, 1].map(() => {
     const sl = new THREE.SpotLight(0xfff0cc, 0, 55, 0.5, 0.45, 1.2);
     sl.castShadow = false;
     scene.add(sl); scene.add(sl.target);
     return sl;
   });
+
+  /* additive glow sprites that ride the player car: 2 warm head-glows, 2 red
+     tail-flares (brighter on the brakes), and a soft forward beam pool on the
+     road. All pooled once, repositioned each frame, opacity gated by nightF. */
+  const headGlowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xfff0c4, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 });
+  const tailGlowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a2a, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 });
+  const beamPoolMat = new THREE.MeshBasicMaterial({ map: poolTex, color: 0xfff0c4, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 });
+  const headGlows = [0, 1].map(() => { const s = new THREE.Sprite(headGlowMat); s.scale.set(2.4, 2.4, 1); scene.add(s); return s; });
+  const tailGlows = [0, 1].map(() => { const s = new THREE.Sprite(tailGlowMat); s.scale.set(1.5, 1.5, 1); scene.add(s); return s; });
+  const beamPool = new THREE.Mesh(new THREE.PlaneGeometry(8, 20), beamPoolMat);
+  beamPool.rotation.x = -Math.PI / 2; beamPool.position.y = 0.07; scene.add(beamPool);
 
   const sunSprite = makeGlow(0xffc46b, 90);
   sunSprite.material.fog = false;
@@ -1458,6 +1482,9 @@
     lampGlowMat.opacity = nightF;
     lampPoolMat.opacity = nightF * 0.85;
     carPoolMat.opacity = 0.06 + nightF * 0.6;
+    /* every car's head/tail lamps glow brighter after dark (shared mats, ~free) */
+    hlMat.emissiveIntensity = 0.5 + nightF * 1.6;
+    tlMat.emissiveIntensity = 0.6 + nightF * 1.7;
     shinyMats.forEach(m => m.envMapIntensity = 0.3 + dayF * 1.1);
     const sF = clamp(1 - Math.abs(dayT - 0.75) * 9, 0, 1);
     waterTmp.copy(waterDay).lerp(waterNight, nightF).lerp(waterSunset, sF * 0.45);
@@ -2644,6 +2671,19 @@
         audioState: () => AC ? AC.state : 'none',
         nodes: () => ({ engine: !!engineGain, siren: !!sirenGain, screech: !!screechGain, amb: !!ambGain, master: !!master }),
         autoHunt: () => autoHunt,
+        setTime: tt => { dayT = ((tt % 1) + 1) % 1; },   // 0..1 of day; 0.85≈night, 0.55≈afternoon
+        getTime: () => dayT,
+        getNightF: () => lastNightF,
+        freeRoam: () => { try { audioInit(); } catch (e) {} hideOverlay(); startFreeRoam(); },
+        inVehicle: () => !!currentV,
+        vehKind: () => currentV ? currentV.kind : null,
+        lights: () => ({
+          spot: headLamps.map(s => +s.intensity.toFixed(2)),
+          head: +headGlowMat.opacity.toFixed(2),
+          tail: +tailGlowMat.opacity.toFixed(2),
+          beam: +beamPoolMat.opacity.toFixed(2),
+          braking: playerBraking,
+        }),
       };
     }
   } catch (e) {}
@@ -3345,16 +3385,29 @@
   /* ════════ MAIN LOOP ════════ */
   const clock = new THREE.Clock();
   let shake = 0;
+  let lastNightF = 0;        // exposed to QA bridge; mirrors sky.nightF each frame
+  let hitPause = 0;          // brief timescale dip on hard impacts (game-feel juice)
+  let playerBraking = false; // drives brighter taillights on the player car
+  let gradeSpdF = 0;         // smoothed speed factor feeding the speed-vignette uniform
+  let gradeSpdSm = 0;        // eased so the speed vignette never pops
   const camPos = new THREE.Vector3(38, 8, 28);
   let fpsAcc = 0, fpsN = 0, slowT = 0, perfStage = 0, hudAcc = 0;
 
   function tick() {
     requestAnimationFrame(tick);
-    const dt = Math.min(clock.getDelta(), 0.05);
+    const rawDt = Math.min(clock.getDelta(), 0.05);
+    /* hit-pause: a few ms of timescale dip on hard collisions makes impacts land.
+       scales the *sim* dt only; rendering/rAF cadence is untouched. */
+    let dt = rawDt;
+    if (hitPause > 0) {
+      hitPause = Math.max(0, hitPause - rawDt);
+      dt = rawDt * 0.18;          // ~82% slow-mo while the pause is active
+    }
     const t = clock.elapsedTime;
     const frozen = overlayOpen || dialogOpen() || cine;
 
     const sky = updateDayNight(frozen && !cine ? 0 : dt);
+    lastNightF = sky.nightF;
     updateFX(dt);
     /* a badly wrecked car you're driving trails smoke from the crumpled hood */
     if (!frozen && currentV) {
@@ -3450,6 +3503,7 @@
       const gas = pad.gas || keys.has('KeyW') || keys.has('ArrowUp');
       const brk = pad.brake || keys.has('KeyS') || keys.has('ArrowDown');
       const handbrake = keys.has('Space');
+      playerBraking = (brk && v.vel > 0.3) || (handbrake && Math.abs(v.vel) > 1);
       const prevVel = v.vel;
       if (gas) v.vel = Math.min(maxV, v.vel + accel * dt);
       else if (brk) v.vel = Math.max(-9, v.vel - 24 * dt);
@@ -3506,6 +3560,8 @@
           const norm = Math.min(1, (impactSpeed - 5) / 22);
           damageVehicle(v, norm * 0.6);
           shake = Math.min(0.85, impactSpeed * 0.05 + 0.2);
+          /* only the car the player is driving gets the cinematic hit-pause */
+          if (v === currentV) hitPause = Math.max(hitPause, 0.04 + norm * 0.07);
           sfxCrash(norm);
           if (vehBlocked) { shoveTraffic(nx, nz, v.mesh, vForward(v), 0.6 + norm * 1.4); addWanted(0.5 + norm * 0.9); }
           else addWanted(0.25 + norm * 0.4);   // ramming property still draws heat
@@ -3602,10 +3658,12 @@
       if (!dragging && camId === null) camYaw = lerpAngle(camYaw, v.heading + Math.PI, Math.min(1, dt * 1.8));
     } else if (AC && engineGain) {
       /* on foot or paused: silence the engine + screech */
+      playerBraking = false;
       engineGain.gain.setTargetAtTime(0, AC.currentTime, 0.08);
       if (engineNoiseG) engineNoiseG.gain.setTargetAtTime(0, AC.currentTime, 0.08);
       if (screechGain) screechGain.gain.setTargetAtTime(0, AC.currentTime, 0.08);
     }
+    if (!currentV) playerBraking = false;
 
     /* ════════ WANTED LEVEL + auto police (free roam only) ════════ */
     if (!frozen) {
@@ -3956,6 +4014,7 @@
     const f = focusPos();
     if (cine) {
       /* scripted establishing orbit over the plaza */
+      gradeSpdF = 0;
       cineT += dt;
       const a = cineT * 0.3;
       camera.position.set(36 + Math.cos(a) * 26, 13 - Math.min(6, cineT * 0.55), Math.sin(a) * 26);
@@ -3966,6 +4025,7 @@
       /* speed factor 0..1 used to widen FOV + lengthen the boom at pace */
       const spd = currentV ? Math.abs(currentV.vel) : 0;
       const spdF = currentV ? clamp(spd / KINDS[currentV.kind].maxV, 0, 1) : 0;
+      gradeSpdF = spdF;
       const camDistTarget = camDistT + spdF * 2.4;                 // a touch more trail flat-out
       camDist += (camDistTarget - camDist) * Math.min(1, dt * 5);
       /* on foot, ease the camera behind the direction you're facing so you always see ahead */
@@ -4006,23 +4066,54 @@
     sun.position.set(f.x + sky.sx * 165, Math.max(34, sky.elev * 165 + 12), f.z + 62);
     sun.target.position.set(f.x, 0, f.z);
 
-    /* headlight beams */
-    if (currentV && sky.nightF > 0.25) {
+    /* ── player vehicle lights: real spotlights + fake glow sprites, night-gated ── */
+    const carLit = currentV && sky.nightF > 0.18;
+    if (carLit) {
+      const nF = sky.nightF;
       const fw = new THREE.Vector3(Math.sin(currentV.heading), 0, Math.cos(currentV.heading));
       const rt = new THREE.Vector3(fw.z, 0, -fw.x);
+      const px = currentV.mesh.position.x, pz = currentV.mesh.position.z;
+      const isBike = currentV.kind === 'bike';
+      const headZ = isBike ? 1.0 : 2.3, tailZ = isBike ? -0.9 : -2.3, sideX = isBike ? 0 : 0.7;
       headLamps.forEach((sl, i) => {
-        const side = i === 0 ? -0.7 : 0.7;
-        sl.intensity = 2.4 * sky.nightF;
-        sl.position.set(
-          currentV.mesh.position.x + fw.x * 2.2 + rt.x * side,
-          0.75,
-          currentV.mesh.position.z + fw.z * 2.2 + rt.z * side
-        );
+        const side = i === 0 ? -sideX : sideX;
+        sl.intensity = (isBike && i === 1) ? 0 : 2.4 * nF;   // bike = single lamp
+        sl.position.set(px + fw.x * headZ + rt.x * side, 0.75, pz + fw.z * headZ + rt.z * side);
         sl.target.position.set(sl.position.x + fw.x * 14, 0.2, sl.position.z + fw.z * 14);
       });
-    } else headLamps.forEach(sl => sl.intensity = 0);
+      /* warm head-glow sprites at the lamps */
+      headGlowMat.opacity = nF * 0.85;
+      headGlows.forEach((s, i) => {
+        const side = i === 0 ? -sideX : sideX;
+        s.visible = !(isBike && i === 1);
+        s.position.set(px + fw.x * (headZ + 0.1) + rt.x * side, 0.72, pz + fw.z * (headZ + 0.1) + rt.z * side);
+      });
+      /* forward beam pool on the road, ahead of the car */
+      beamPoolMat.opacity = nF * 0.5;
+      beamPool.position.set(px + fw.x * 9, 0.07, pz + fw.z * 9);
+      beamPool.rotation.z = -currentV.heading;
+      /* red tail flares — brighter under braking */
+      tailGlowMat.opacity = nF * (playerBraking ? 1.0 : 0.5);
+      const tScale = playerBraking ? 2.1 : 1.4;
+      tailGlows.forEach((s, i) => {
+        const side = i === 0 ? -0.62 : 0.62;
+        s.visible = !(isBike && i === 1);
+        s.scale.set(tScale, tScale, 1);
+        s.position.set(px + fw.x * tailZ + rt.x * side, 0.74, pz + fw.z * tailZ + rt.z * side);
+      });
+    } else {
+      headLamps.forEach(sl => sl.intensity = 0);
+      headGlowMat.opacity = 0; tailGlowMat.opacity = 0; beamPoolMat.opacity = 0;
+    }
 
-    if (gradePass) gradePass.uniforms.uTime.value = t;
+    if (gradePass) {
+      gradePass.uniforms.uTime.value = t;
+      /* speed vignette only engages above ~45% of top speed, eased in/out */
+      const spdTarget = clamp((gradeSpdF - 0.45) / 0.55, 0, 1);
+      gradeSpdSm += (spdTarget - gradeSpdSm) * Math.min(1, rawDt * 4);
+      gradePass.uniforms.uSpeed.value = gradeSpdSm;
+      gradePass.uniforms.uNight.value = sky.nightF;
+    }
     if (composer) composer.render();
     else renderer.render(scene, camera);
   }
