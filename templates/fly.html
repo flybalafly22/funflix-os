@@ -420,11 +420,64 @@
       }`,
   };
 
+  /* ── silhouette OUTLINE pass (Messenger/Sable ink line) ──
+     A depth-only Laplacian: outline where linearised depth jumps (object silhouettes
+     + depth steps between objects). Reads a separate half-res depth target so the
+     composer's own depth is never sampled-while-written (no feedback). Sky and the
+     far distance are skipped so the calm horizon stays clean. Runs BEFORE bloom so
+     the dark lines never bloom or soften. */
+  const OutlineShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      tDepth:   { value: null },
+      uTexel:   { value: new THREE.Vector2(1 / 640, 1 / 360) },
+      uNear:    { value: 0.1 },
+      uFar:     { value: 700.0 },
+      uColor:   { value: new THREE.Color(0x121620) },
+      uStrength:{ value: 0.90 },
+      uThresh:  { value: 0.0012 },
+      uThick:   { value: 1.3 },
+    },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      #include <packing>
+      varying vec2 vUv;
+      uniform sampler2D tDiffuse, tDepth;
+      uniform vec2 uTexel; uniform float uNear, uFar, uStrength, uThresh, uThick; uniform vec3 uColor;
+      float lin(vec2 uv){
+        float d = texture2D(tDepth, uv).x;
+        float vz = perspectiveDepthToViewZ(d, uNear, uFar);
+        return (-vz - uNear) / (uFar - uNear);
+      }
+      void main(){
+        vec3 col = texture2D(tDiffuse, vUv).rgb;
+        vec2 t = uTexel * uThick;
+        float c  = lin(vUv);
+        float dl = lin(vUv + vec2(-t.x, 0.0)), dr = lin(vUv + vec2(t.x, 0.0));
+        float du = lin(vUv + vec2(0.0, -t.y)), dd = lin(vUv + vec2(0.0, t.y));
+        float diff = abs(dl + dr + du + dd - 4.0 * c);     // depth Laplacian
+        float edge = smoothstep(uThresh, uThresh * 3.0, diff);
+        float distFade = 1.0 - smoothstep(0.55, 0.95, c);  // calm far distance
+        float a = edge * uStrength * distFade;
+        if (c > 0.985) a = 0.0;                            // never outline the sky
+        gl_FragColor = vec4(mix(col, uColor, a), 1.0);
+      }`,
+  };
+
   /* subtle bloom — sun, neon, headlights glow like a modern title (desktop only) */
-  let composer = null, gradePass = null;
+  let composer = null, gradePass = null, outlinePass = null, depthRT = null;
   if (!IS_TOUCH && THREE.EffectComposer && THREE.UnrealBloomPass && THREE.RenderPass && THREE.ShaderPass && THREE.GammaCorrectionShader) {
     composer = new THREE.EffectComposer(renderer);
     composer.addPass(new THREE.RenderPass(scene, camera));
+    /* half-res depth target for the outline (depthWrite:false sprites/sky excluded for free) */
+    depthRT = new THREE.WebGLRenderTarget(640, 360, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+    depthRT.depthTexture = new THREE.DepthTexture(640, 360);
+    depthRT.depthTexture.type = THREE.UnsignedIntType;
+    outlinePass = new THREE.ShaderPass(OutlineShader);
+    outlinePass.uniforms.tDepth.value = depthRT.depthTexture;
+    outlinePass.uniforms.uNear.value = camera.near;
+    outlinePass.uniforms.uFar.value = camera.far;
+    composer.addPass(outlinePass);
     /* tamer bloom: lower strength + higher threshold so daylight whites don't smear */
     composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(800, 600), 0.34, 0.5, 0.92));
     gradePass = new THREE.ShaderPass(GradeShader);
@@ -437,6 +490,11 @@
     if (!w || !h) return;
     renderer.setSize(w, h, false);
     if (composer) composer.setSize(w, h);
+    if (depthRT) {
+      const hw = Math.max(2, Math.floor(w * 0.5)), hh = Math.max(2, Math.floor(h * 0.5));
+      depthRT.setSize(hw, hh);
+      outlinePass.uniforms.uTexel.value.set(1 / hw, 1 / hh);
+    }
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -2804,6 +2862,9 @@
           player.position.x = best.mesh.position.x; player.position.z = best.mesh.position.z;
           enterVehicle(best); return true;
         },
+        setOutline: o => { if (outlinePass) { for (const k in o) { const u = outlinePass.uniforms[k]; if (u) (u.value.set ? u.value.set(o[k]) : (u.value = o[k])); } } return !!outlinePass; },
+        setStylize: v => { if (gradePass) gradePass.uniforms.uStylize.value = v; },
+        gfx: () => ({ outline: !!outlinePass, stylize: gradePass ? gradePass.uniforms.uStylize.value : null, strength: outlinePass ? outlinePass.uniforms.uStrength.value : null }),
         resetCar: (x, z, heading) => {
           if (!currentV) return false;
           currentV.mesh.position.x = x; currentV.mesh.position.z = z;
@@ -4291,6 +4352,14 @@
       gradeSpdSm += (spdTarget - gradeSpdSm) * Math.min(1, rawDt * 4);
       gradePass.uniforms.uSpeed.value = gradeSpdSm;
       gradePass.uniforms.uNight.value = sky.nightF;
+    }
+    if (outlinePass) {
+      /* depth prepass for the outline: render the scene into the half-res depth
+         target (depthWrite:false sky/sprites/glows stay out of it for free), then
+         the composer's outline pass reads this depth. */
+      renderer.setRenderTarget(depthRT);
+      renderer.render(scene, camera);
+      renderer.setRenderTarget(null);
     }
     if (composer) composer.render();
     else renderer.render(scene, camera);
