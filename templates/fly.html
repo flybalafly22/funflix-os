@@ -743,13 +743,28 @@
   /* ════════ ENVIRONMENT REFLECTIONS ════════ */
   {
     const envScene = new THREE.Scene();
-    const ec = cnv(64, 64);
+    const ec = cnv(256, 256);
     const g = ec.getContext('2d');
-    const gr = g.createLinearGradient(0, 0, 0, 64);
-    gr.addColorStop(0, '#7fc4f5'); gr.addColorStop(0.45, '#d8ecf8');
-    gr.addColorStop(0.55, '#f4ddbd'); gr.addColorStop(0.62, '#9a8f78'); gr.addColorStop(1, '#55584e');
-    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-    const sky = new THREE.Mesh(new THREE.SphereGeometry(50, 16, 12), new THREE.MeshBasicMaterial({ map: tex(ec, true), side: THREE.BackSide }));
+    /* richer sky: deeper zenith, pale then warm horizon band, then ground */
+    const gr = g.createLinearGradient(0, 0, 0, 256);
+    gr.addColorStop(0, '#6cb3ee'); gr.addColorStop(0.40, '#bfe2f6');
+    gr.addColorStop(0.52, '#eef2f0'); gr.addColorStop(0.58, '#f6e0bc');
+    gr.addColorStop(0.64, '#9a8f78'); gr.addColorStop(1, '#4d5048');
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+    /* soft cloud bands — broad, low-contrast so reflections shimmer not stripe */
+    g.globalAlpha = 0.5;
+    for (let cI = 0; cI < 5; cI++) {
+      const cy = 30 + cI * 18 + Math.random() * 8;
+      const cl = g.createLinearGradient(0, cy - 7, 0, cy + 7);
+      cl.addColorStop(0, 'rgba(255,255,255,0)'); cl.addColorStop(0.5, 'rgba(255,255,255,0.85)'); cl.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = cl; g.fillRect(0, cy - 7, 256, 14);
+    }
+    g.globalAlpha = 1;
+    /* bright sun hotspot — gives car paint + glass a moving specular highlight */
+    const sun2 = g.createRadialGradient(176, 44, 2, 176, 44, 46);
+    sun2.addColorStop(0, 'rgba(255,250,232,1)'); sun2.addColorStop(0.3, 'rgba(255,240,200,0.7)'); sun2.addColorStop(1, 'rgba(255,240,200,0)');
+    g.fillStyle = sun2; g.fillRect(130, 0, 92, 92);
+    const sky = new THREE.Mesh(new THREE.SphereGeometry(50, 24, 16), new THREE.MeshBasicMaterial({ map: tex(ec, true), side: THREE.BackSide }));
     envScene.add(sky);
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(envScene).texture;
@@ -1613,8 +1628,8 @@
     g.add(chassis);
     g.userData.chassis = chassis;
     const paint = new THREE.MeshPhysicalMaterial({
-      color, metalness: 0.9, roughness: 0.3,
-      clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.2,
+      color, metalness: 0.86, roughness: 0.26,
+      clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.7,
     });
     shinyMats.push(paint);
 
@@ -1954,7 +1969,8 @@
     const binMat  = new THREE.MeshStandardMaterial({ color: 0x3c5a42, roughness: 0.7, metalness: 0.25 });
     const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b4a30, roughness: 0.85 });
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a4330, roughness: 0.95 });
-    const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f6b3a, roughness: 0.95 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x3a6334, roughness: 0.95 });
+    const leafMatHi = new THREE.MeshStandardMaterial({ color: 0x57864a, roughness: 0.92 });  // sunlit upper tuft
     const lampHeadMat = new THREE.MeshStandardMaterial({ color: 0x14161a, emissive: 0xffd98a, emissiveIntensity: 0.12, roughness: 0.5 });
 
     /* lamppost = tall pole + arm + head, three instanced meshes sharing placements */
@@ -1968,7 +1984,8 @@
     const benchSeatGeo = new THREE.BoxGeometry(1.8, 0.1, 0.5); benchSeatGeo.translate(0, 0.48, 0);
     const benchBackGeo = new THREE.BoxGeometry(1.8, 0.5, 0.1); benchBackGeo.translate(0, 0.75, -0.22);
     const trunkGeo = new THREE.CylinderGeometry(0.18, 0.26, 2.6, 7); trunkGeo.translate(0, 1.3, 0);
-    const canopyGeo = new THREE.SphereGeometry(1.5, 9, 7); canopyGeo.scale(1, 0.85, 1); canopyGeo.translate(0, 3.1, 0);
+    const canopyGeo = new THREE.SphereGeometry(1.6, 9, 7); canopyGeo.scale(1.05, 0.8, 1.05); canopyGeo.translate(0, 2.95, 0);
+    const canopyHiGeo = new THREE.SphereGeometry(1.12, 8, 6); canopyHiGeo.scale(1, 0.9, 1); canopyHiGeo.translate(0.25, 3.9, -0.15);  // offset upper tuft → layered foliage
     const signPoleGeo = new THREE.CylinderGeometry(0.05, 0.05, 2.6, 6); signPoleGeo.translate(0, 1.3, 0);
     const signGeo = new THREE.BoxGeometry(0.62, 0.42, 0.04); signGeo.translate(0, 2.4, 0);
 
@@ -1999,6 +2016,7 @@
     placeInstanced(benchBackGeo, woodMat, benches, 0, false);
     placeInstanced(trunkGeo, trunkMat, trees, 0, true);
     placeInstanced(canopyGeo, leafMat, trees, 0, true);
+    placeInstanced(canopyHiGeo, leafMatHi, trees, 0, true);   // sunlit upper layer → fuller, less ball-on-stick
     placeInstanced(signPoleGeo, poleMat, signs, 0, false);
     placeInstanced(signGeo, darkMat, signs, 0, false);
 
