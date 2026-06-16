@@ -2338,6 +2338,68 @@
   scene.add(player);
   let py = 0, vy = 0, onGround = true;
 
+  /* ── emote system (Messenger-style expression): tap 1–4 to pop a procedural
+     emoji above the player/car — it springs in, floats up, and fades. All drawn
+     on canvas (no assets). Billboarded, depth-tested off so it reads like a UI bubble. */
+  function makeEmoji(kind) {
+    const c = cnv(128, 128), x = c.getContext('2d');
+    const cx = 64, cy = 66;
+    if (kind === 1) {                       // ❤ heart
+      x.fillStyle = '#ff5a7a';
+      x.beginPath();
+      x.moveTo(cx, 104);
+      x.bezierCurveTo(8, 64, 26, 20, cx, 44);
+      x.bezierCurveTo(102, 20, 120, 64, cx, 104);
+      x.fill();
+      x.fillStyle = 'rgba(255,255,255,0.45)'; x.beginPath(); x.ellipse(44, 50, 9, 13, -0.5, 0, 7); x.fill();
+    } else {                                // face emotes on a warm disc
+      x.fillStyle = '#ffd23f'; x.beginPath(); x.arc(cx, cy, 46, 0, 7); x.fill();
+      x.fillStyle = 'rgba(0,0,0,0.10)'; x.beginPath(); x.arc(cx, cy + 4, 46, 0.2, Math.PI - 0.2); x.fill();
+      x.fillStyle = '#23202a';
+      if (kind === 3) {                     // 😎 cool — shades
+        x.fillRect(28, 52, 30, 16); x.fillRect(70, 52, 30, 16); x.fillRect(58, 57, 12, 5);
+        x.lineWidth = 6; x.strokeStyle = '#23202a'; x.beginPath(); x.arc(cx, 70, 18, 0.15, Math.PI - 0.15); x.stroke();
+      } else {                              // eyes
+        if (kind === 4) { x.lineWidth = 6; x.strokeStyle = '#23202a';   // 😂 laugh — arc eyes
+          x.beginPath(); x.arc(46, 56, 9, Math.PI + 0.3, -0.3); x.stroke();
+          x.beginPath(); x.arc(82, 56, 9, Math.PI + 0.3, -0.3); x.stroke();
+          x.fillStyle = '#23202a'; x.beginPath(); x.ellipse(cx, 80, 15, 11, 0, 0, 7); x.fill();
+          x.fillStyle = '#ff7a8c'; x.beginPath(); x.ellipse(cx, 86, 9, 6, 0, 0, 7); x.fill();
+        } else {                            // 🙂 smile (kind 2 default)
+          x.beginPath(); x.arc(46, 56, 6, 0, 7); x.fill();
+          x.beginPath(); x.arc(82, 56, 6, 0, 7); x.fill();
+          x.lineWidth = 6; x.strokeStyle = '#23202a'; x.beginPath(); x.arc(cx, 70, 18, 0.2, Math.PI - 0.2); x.stroke();
+        }
+      }
+    }
+    return tex(c, true);
+  }
+  const emoteTex = [makeEmoji(2), makeEmoji(1), makeEmoji(3), makeEmoji(4)];  // keys 1..4
+  const emoteSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTex[0], transparent: true, depthWrite: false, depthTest: false, opacity: 0 }));
+  emoteSprite.material.fog = false; emoteSprite.renderOrder = 20; emoteSprite.visible = false;
+  scene.add(emoteSprite);
+  let emoteT = 0; const EMOTE_DUR = 1.9;
+  function spawnEmote(i) {
+    if (overlayOpen || dialogOpen()) return;
+    emoteSprite.material.map = emoteTex[i]; emoteSprite.material.needsUpdate = true;
+    emoteT = EMOTE_DUR;
+    try { sfxBlip(); } catch (e) {}
+  }
+  function updateEmote(dt) {
+    if (emoteT <= 0) { if (emoteSprite.visible) emoteSprite.visible = false; return; }
+    emoteT -= dt;
+    const life = clamp(1 - emoteT / EMOTE_DUR, 0, 1);
+    const fp = focusPos();
+    const baseY = (currentV ? 2.0 : 2.3) + life * 1.1;        // float up
+    emoteSprite.position.set(fp.x, baseY, fp.z);
+    const pop = 1 - Math.pow(1 - Math.min(1, life * 4.5), 3); // ease-out spring in
+    const settle = 1 + Math.sin(Math.min(1, life * 4.5) * Math.PI) * 0.16;
+    const s = pop * settle * 1.25;
+    emoteSprite.scale.set(s, s, 1);
+    emoteSprite.material.opacity = emoteT < 0.45 ? clamp(emoteT / 0.45, 0, 1) : 1;
+    emoteSprite.visible = true;
+  }
+
   /* Rico */
   const rico = buildHuman({ shirt: 0x2aa399, pants: 0x3a3f48, skin: 0xc98e62, hair: 0x191920 });
   rico.position.set(-84, 0, 88);
@@ -2897,6 +2959,7 @@
         },
         setOutline: o => { if (outlinePass) { for (const k in o) { const u = outlinePass.uniforms[k]; if (u) (u.value.set ? u.value.set(o[k]) : (u.value = o[k])); } } return !!outlinePass; },
         setStylize: v => { if (gradePass) gradePass.uniforms.uStylize.value = v; },
+        emote: i => { spawnEmote(i | 0); return true; },
         gfx: () => ({ outline: !!outlinePass, stylize: gradePass ? gradePass.uniforms.uStylize.value : null, strength: outlinePass ? outlinePass.uniforms.uStrength.value : null }),
         resetCar: (x, z, heading) => {
           if (!currentV) return false;
@@ -3355,6 +3418,10 @@
     if (e.code === 'KeyF') { doVehicle(); return; }
     if (e.code === 'KeyR') { if (currentV) toggleRadio(); return; }
     if (e.code === 'KeyM') { setMuted(!muted); toast('AUDIO', muted ? 'MUTED' : 'UNMUTED'); return; }
+    if (e.code === 'Digit1') { spawnEmote(0); return; }
+    if (e.code === 'Digit2') { spawnEmote(1); return; }
+    if (e.code === 'Digit3') { spawnEmote(2); return; }
+    if (e.code === 'Digit4') { spawnEmote(3); return; }
     if (e.code === 'Space') { e.preventDefault(); doJump(); }
     keys.add(e.code);
   });
@@ -4386,6 +4453,7 @@
       gradePass.uniforms.uSpeed.value = gradeSpdSm;
       gradePass.uniforms.uNight.value = sky.nightF;
     }
+    updateEmote(rawDt);
     if (outlinePass) {
       /* depth prepass for the outline: render the scene into the half-res depth
          target (depthWrite:false sky/sprites/glows stay out of it for free), then

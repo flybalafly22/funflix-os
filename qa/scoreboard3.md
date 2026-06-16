@@ -8,18 +8,18 @@ Rubric: 0–10 each, where a *cohesive stylized open-world* (Messenger/Sable-cla
 
 | Dimension                       | Base(8.1 cycle) | S1 | S2 | S3 | S4 | S5 |
 |---------------------------------|:--:|:--:|:--:|:--:|:--:|:--:|
-| Art-direction cohesion ★        | 7  | 8  | 9  | 9  |    |    |
-| Atmosphere & sky/fog            | 7  | 8  | 8  | 8  |    |    |
-| Stylization / signature look ★  | 5  | 6  | 8  | 9  |    |    |
-| Materials & surfaces            | 8  | 8  | 8  | 9  |    |    |
-| Lighting mood                   | 8  | 8  | 8  | 8  |    |    |
-| Controls & camera feel          | 8  | 8  | 8  | 8  |    |    |
-| World detail & district variety | 8  | 8  | 8  | 8  |    |    |
-| UI / first-impression polish    | 6  | 6  | 6  | 6  |    |    |
-| Character & expression          | 5  | 5  | 5  | 6  |    |    |
-| Performance (auto)              | 9  | 9  | 9  | 9  |    |    |
-| Stability (auto)                | 9  | 9  | 9  | 9  |    |    |
-| **Average**                     | **7.3** | **7.5** | **7.8** | **8.1** |  |  |
+| Art-direction cohesion ★        | 7  | 8  | 9  | 9  | 9  |    |
+| Atmosphere & sky/fog            | 7  | 8  | 8  | 8  | 8  |    |
+| Stylization / signature look ★  | 5  | 6  | 8  | 9  | 9  |    |
+| Materials & surfaces            | 8  | 8  | 8  | 9  | 9  |    |
+| Lighting mood                   | 8  | 8  | 8  | 8  | 8  |    |
+| Controls & camera feel          | 8  | 8  | 8  | 8  | 8  |    |
+| World detail & district variety | 8  | 8  | 8  | 8  | 8  |    |
+| UI / first-impression polish    | 6  | 6  | 6  | 6  | 6  |    |
+| Character & expression          | 5  | 5  | 5  | 6  | 8  |    |
+| Performance (auto)              | 9  | 9  | 9  | 9  | 9  |    |
+| Stability (auto)                | 9  | 9  | 9  | 9  | 9  |    |
+| **Average**                     | **7.3** | **7.5** | **7.8** | **8.1** | **8.3** |  |
 
 ★ = the dimensions the _Messenger_ thesis most directly targets (where the realism path left the most headroom).
 
@@ -57,5 +57,13 @@ User direction: **"lean in harder"** on the Messenger/Sable look. Delivered glob
   feeds bloom → premium edge. Player-only on humans (gated) so pedestrian crowds don't recompile.
   - Bug found + fixed in QA: injected `transformed` at `<defaultnormal_vertex>` (before it's
     declared) → vertex compile error; moved the injection to `<begin_vertex>`. Verified 0 errors.
+
+## S4 — Character & expression: emote system (Δ +0.2) — gates: renders ✅ · 0 console ✅ · 0 page ✅ · load 4.2s ✅ · 60fps(proxy) ✅ · drive 0 errors ✅
+- **Procedural emote system** (Messenger's emoji communication): tap **1–4** → a canvas-drawn
+  emoji (🙂 / ❤ / 😎 / 😂) springs in above the player (or the car when driving), floats up and
+  fades. Billboarded sprite, depth-test off so it reads like a UI bubble, no external assets.
+- Verified on foot AND in-vehicle (positions via `focusPos()`); `?qa=1` `emote(i)` hook added.
+- Character silhouette already lifted in S2/S3 (ink outline + rim glow); this adds the expression layer.
+- 1–4 discoverability hint to be surfaced in S5's UI pass.
 
 Notes per sprint appended below as the loop runs.
