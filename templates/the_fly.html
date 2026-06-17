@@ -5,76 +5,357 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>THE FLY — a tiny round world</title>
 <style>
-  :root { --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-          --disp: "Segoe UI", system-ui, sans-serif; }
+  /* ── TUNABLES ───────────────────────────────────────────────────────────
+     --accent-gold   : warm key-action gold (buttons, labels)
+     --accent-rose   : soft rose used for hints and highlights
+     --accent-mint   : minty letter counter
+     --panel-bg      : dark glass panel background
+     --panel-border  : panel rim light
+     --body-text     : general HUD text
+     --muted-text    : secondary / help text
+     ────────────────────────────────────────────────────────────────────── */
+  :root {
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --disp: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --round: "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+
+    --accent-gold  : #ffd98a;
+    --accent-amber : #ffbc5a;
+    --accent-rose  : #ffafc6;
+    --accent-mint  : #7ee8c6;
+    --accent-sky   : #a5d4f5;
+
+    --panel-bg     : rgba(12, 16, 28, 0.58);
+    --panel-border : rgba(255, 255, 255, 0.10);
+    --panel-glow   : rgba(255, 220, 140, 0.06);
+    --body-text    : #e8eff8;
+    --muted-text   : #8fa3bb;
+    --shadow-soft  : 0 8px 32px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.18);
+    --shadow-glow  : 0 0 28px rgba(255,210,120,0.18);
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #0d1220; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e1a; }
   #wrap { position: fixed; inset: 0; }
   canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
+  /* ── shared glass panel ─────────────────────────────────────────────── */
   .panel {
     position: absolute; z-index: 20;
-    background: rgba(14,18,30,0.62);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 12px;
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    color: #eef2f7; font-family: var(--mono);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    color: var(--body-text);
+    font-family: var(--mono);
+    box-shadow: var(--shadow-soft);
   }
 
-  /* HUD */
-  #hudTop { top: 16px; left: 50%; transform: translateX(-50%); padding: 9px 18px;
-            font-size: 12px; letter-spacing: 0.14em; display: none; text-align: center; }
-  #hudTop .t { color: #ffd98a; }
-  #hudCount { top: 16px; right: 16px; padding: 9px 15px; font-size: 12px; letter-spacing: 0.12em; display: none; }
-  #hudCount b { color: #8be0c6; font-size: 15px; }
-  #hint { bottom: 22px; left: 50%; transform: translateX(-50%); padding: 9px 18px;
-          font-size: 11px; letter-spacing: 0.14em; color: #dfe6ef; display: none; opacity: 0; transition: opacity 0.25s; }
-  #hint .k { color: #ffb3c8; }
-  #help { bottom: 16px; left: 16px; padding: 8px 13px; font-size: 9.5px; letter-spacing: 0.10em;
-          color: #9fb0c4; line-height: 1.7; display: none; }
-  #help b { color: #eef2f7; }
+  /* ── HUD TOP — "LETTER FOR X" banner ───────────────────────────────── */
+  #hudTop {
+    top: 18px; left: 50%; transform: translateX(-50%);
+    padding: 10px 22px 9px;
+    font-size: 10px; letter-spacing: 0.18em;
+    display: none; text-align: center;
+    min-width: 180px;
+    animation: slideDown 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  /* hudTopTitle has class .t applied to it in the HTML;
+     JS sets .textContent = 'LETTER FOR X' — style as the gold accent line */
+  #hudTop .t,
+  #hudTopTitle {
+    display: block;
+    color: var(--accent-gold);
+    font-size: 11px; letter-spacing: 0.22em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  #hudTopSub {
+    font-size: 9px; letter-spacing: 0.20em;
+    color: var(--muted-text);
+    margin-top: 5px;
+    text-transform: uppercase;
+  }
 
-  /* compass / target arrow */
-  #compass { top: 56px; left: 50%; transform: translateX(-50%); display: none;
-             width: 26px; height: 26px; z-index: 21; pointer-events: none; }
+  /* ── HUD COUNT — letters delivered ─────────────────────────────────── */
+  #hudCount {
+    top: 18px; right: 18px;
+    padding: 9px 16px;
+    font-size: 10px; letter-spacing: 0.18em;
+    display: none;
+    animation: fadeInRight 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  #hudCount .count-label {
+    color: var(--muted-text);
+    font-size: 8.5px; letter-spacing: 0.24em;
+    display: block; margin-bottom: 3px;
+  }
+  #hudCount .count-value {
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  #hudCount b { color: var(--accent-mint); font-size: 18px; font-weight: 700; line-height: 1; }
+  #countTot   { color: var(--muted-text); font-size: 11px; }
 
-  /* title */
-  #title { position: absolute; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center;
-           background: radial-gradient(120% 90% at 50% 18%, rgba(36,54,92,0.30), rgba(8,11,22,0.86)); padding: 22px; }
-  .tbox { width: min(540px, 100%); text-align: center; }
-  .eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: 0.42em; color: #ffd98a; margin-bottom: 14px;
-             animation: rise .6s ease both .05s; }
-  .bigtitle { font-family: var(--disp); font-weight: 800; font-size: clamp(54px, 13vw, 116px); line-height: 0.92;
-              letter-spacing: 0.01em; color: #fff;
-              background: linear-gradient(120deg, #ffe1a6, #ff9fb6 45%, #9fd9ff 95%);
-              -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-              background-size: 220% auto; animation: rise .6s ease both .1s, sheen 8s linear infinite; }
-  .subtitle { font-family: var(--mono); font-size: 11px; letter-spacing: 0.3em; color: #9fb0c4; margin: 14px 0 4px;
-              animation: rise .6s ease both .18s; }
-  .story { font-family: var(--mono); font-size: 12.5px; line-height: 2.0; color: #c4d0de; margin: 18px auto 26px; max-width: 440px;
-           animation: rise .65s ease both .26s; }
-  .story .hl { color: #fff; } .story .pk { color: #ff9fb6; }
-  .startbtn { font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: 0.24em;
-              color: #14233e; background: linear-gradient(135deg, #ffe1a6, #ffc0d0); border: none; border-radius: 6px;
-              padding: 15px 34px; cursor: pointer; animation: rise .65s ease both .34s, pulse 2.8s ease-in-out infinite;
-              transition: transform .1s; }
-  .startbtn:hover { transform: translateY(-2px); } .startbtn:active { transform: translateY(1px); }
-  @keyframes rise { from { opacity: 0; transform: translateY(13px); } to { opacity: 1; transform: none; } }
-  @keyframes sheen { 0% { background-position: 0% 50%; } 100% { background-position: 220% 50%; } }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 rgba(255,200,150,0); } 50% { box-shadow: 0 0 30px rgba(255,200,150,0.5); } }
+  /* ── COMPASS ────────────────────────────────────────────────────────── */
+  /* size must stay 26×26 — JS draws at hard-coded coords */
+  #compass {
+    position: absolute;
+    top: 62px; left: 50%; transform: translateX(-50%);
+    display: none;
+    width: 26px; height: 26px; z-index: 21; pointer-events: none;
+    filter: drop-shadow(0 0 5px rgba(255,185,90,0.7));
+  }
 
-  /* gentle toast */
-  #toast { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 30;
-           font-family: var(--disp); font-weight: 700; font-size: clamp(20px, 4vw, 34px); color: #fff;
-           text-shadow: 0 4px 24px rgba(0,0,0,0.5); opacity: 0; pointer-events: none; letter-spacing: 0.02em; text-align: center; }
-  #toast.show { animation: toastpop 1.8s ease both; }
-  @keyframes toastpop { 0% { opacity: 0; transform: translate(-50%,-42%) scale(0.9); }
-                        15% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-                        80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-56%) scale(1); } }
+  /* ── PROXIMITY HINT ─────────────────────────────────────────────────── */
+  #hint {
+    bottom: 26px; left: 50%; transform: translateX(-50%);
+    padding: 10px 20px;
+    font-size: 11px; letter-spacing: 0.16em;
+    color: var(--body-text);
+    display: none; opacity: 0;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+  }
+  /* key badge */
+  #hint .k {
+    display: inline-block;
+    background: rgba(255,175,198,0.18);
+    border: 1px solid rgba(255,175,198,0.40);
+    color: var(--accent-rose);
+    border-radius: 5px;
+    padding: 1px 7px;
+    font-size: 10px; letter-spacing: 0.10em;
+    margin-right: 2px;
+    font-weight: 700;
+  }
 
-  #fade { position: absolute; inset: 0; z-index: 45; background: #0d1220; opacity: 0; pointer-events: none;
-          transition: opacity 0.7s; }
+  /* ── HELP PANEL ─────────────────────────────────────────────────────── */
+  #help {
+    bottom: 18px; left: 18px;
+    padding: 11px 15px;
+    font-size: 9px; letter-spacing: 0.13em;
+    color: var(--muted-text);
+    line-height: 1.9; display: none;
+    animation: fadeInLeft 0.5s ease both 0.2s;
+  }
+  #help b { color: var(--body-text); }
+  #help .key {
+    display: inline-block;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 4px;
+    padding: 0px 6px; margin-right: 2px;
+    font-size: 8.5px;
+  }
+
+  /* ── TITLE / INTRO SCREEN ───────────────────────────────────────────── */
+  #title {
+    position: absolute; inset: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(ellipse 100% 80% at 50% 0%,   rgba(60,80,140,0.22) 0%, transparent 70%),
+      radial-gradient(ellipse 70%  60% at 80% 110%,  rgba(255,140,100,0.10) 0%, transparent 60%),
+      linear-gradient(180deg, rgba(6,9,18,0.72) 0%, rgba(8,11,22,0.88) 100%);
+  }
+
+  /* subtle shimmer overlay on intro */
+  #title::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 60% 40% at 50% 30%, rgba(255,220,140,0.04), transparent 70%);
+    animation: breathe 6s ease-in-out infinite;
+  }
+
+  .tbox {
+    position: relative;
+    width: min(560px, 100%);
+    text-align: center;
+  }
+
+  /* thin decorative rule above eyebrow */
+  .tbox::before {
+    content: '';
+    display: block;
+    width: 40px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+    margin: 0 auto 18px;
+    animation: rise 0.5s ease both 0s;
+    opacity: 0.6;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 9px; letter-spacing: 0.50em;
+    color: var(--accent-gold);
+    opacity: 0.75;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    animation: rise 0.55s ease both 0.08s;
+  }
+
+  .bigtitle {
+    font-family: var(--round);
+    font-weight: 800;
+    font-size: clamp(60px, 14vw, 120px);
+    line-height: 0.90;
+    letter-spacing: -0.01em;
+    background: linear-gradient(130deg,
+      #ffe8b0 0%,
+      #ffba6a 28%,
+      #ff9fbe 58%,
+      #b0d8ff 88%,
+      #ffe8b0 110%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 240% auto;
+    animation: rise 0.55s ease both 0.14s, sheen 9s ease-in-out infinite;
+    filter: drop-shadow(0 2px 16px rgba(255,180,90,0.20));
+  }
+
+  .subtitle {
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 0.36em;
+    color: var(--muted-text);
+    margin: 18px 0 6px;
+    animation: rise 0.55s ease both 0.22s;
+  }
+
+  /* thin rule below subtitle */
+  .subtitle::after {
+    content: '';
+    display: block;
+    width: 28px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+    margin: 12px auto 0;
+  }
+
+  .story {
+    font-family: var(--mono);
+    font-size: 12px; line-height: 2.1;
+    color: #b8c9da;
+    margin: 22px auto 30px;
+    max-width: 420px;
+    animation: rise 0.6s ease both 0.30s;
+  }
+  .story .hl { color: #e8f0fa; }
+  .story .pk { color: var(--accent-rose); }
+
+  /* start button */
+  .startbtn {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 11px; letter-spacing: 0.28em;
+    color: #12203a;
+    background: linear-gradient(140deg, #ffdfa0 0%, #ffbe70 40%, #ffcbd8 100%);
+    border: none;
+    border-radius: 50px;        /* pill shape */
+    padding: 16px 44px;
+    cursor: pointer;
+    position: relative; overflow: hidden;
+    animation: rise 0.6s ease both 0.40s, pulse 3s ease-in-out infinite;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 4px 20px rgba(255,190,100,0.28), 0 1px 4px rgba(0,0,0,0.20);
+  }
+  /* shimmer sweep on button */
+  .startbtn::before {
+    content: '';
+    position: absolute; top: 0; left: -80%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+    transform: skewX(-20deg);
+    animation: btnSheen 3.5s ease-in-out infinite 1s;
+  }
+  .startbtn:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(255,190,100,0.38); }
+  .startbtn:active { transform: translateY(1px); box-shadow: 0 2px 8px rgba(255,190,100,0.20); }
+
+  /* ── KEYFRAMES ──────────────────────────────────────────────────────── */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sheen {
+    0%   { background-position:   0% 50%; }
+    50%  { background-position: 120% 50%; }
+    100% { background-position: 240% 50%; }
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 4px 20px rgba(255,190,100,0.28), 0 0 0 0 rgba(255,200,140,0); }
+    50%      { box-shadow: 0 4px 20px rgba(255,190,100,0.28), 0 0 36px 6px rgba(255,200,140,0.22); }
+  }
+  @keyframes btnSheen {
+    0%   { left: -80%; opacity: 0; }
+    20%  { opacity: 1; }
+    60%  { left: 130%; opacity: 0; }
+    100% { left: 130%; opacity: 0; }
+  }
+  @keyframes breathe {
+    0%,100% { opacity: 0.6; }
+    50%      { opacity: 1.0; }
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0px); }
+  }
+  @keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(14px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastpop {
+    0%  { opacity: 0; transform: translate(-50%, -38%) scale(0.88); }
+    14% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+    22% { transform: translate(-50%, -50%) scale(1); }
+    78% { opacity: 1; }
+    100%{ opacity: 0; transform: translate(-50%, -58%) scale(0.96); }
+  }
+
+  /* ── TOAST ──────────────────────────────────────────────────────────── */
+  #toast {
+    position: absolute; top: 46%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 30;
+    font-family: var(--round);
+    font-weight: 700;
+    font-size: clamp(18px, 3.8vw, 32px);
+    letter-spacing: 0.03em;
+    text-align: center;
+    color: #fff;
+    text-shadow:
+      0 2px 12px rgba(255,180,90,0.55),
+      0 4px 28px rgba(0,0,0,0.45);
+    opacity: 0; pointer-events: none;
+    /* soft warm pill backing */
+    padding: 12px 28px;
+    background: rgba(14,18,30,0.48);
+    border: 1px solid rgba(255,210,120,0.22);
+    border-radius: 50px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.30), 0 0 20px rgba(255,190,90,0.12);
+  }
+  #toast.show { animation: toastpop 1.9s cubic-bezier(0.34,1.4,0.64,1) both; }
+
+  /* ── FADE OVERLAY ───────────────────────────────────────────────────── */
+  #fade {
+    position: absolute; inset: 0; z-index: 45;
+    background: #0a0e1a; opacity: 0; pointer-events: none;
+    transition: opacity 0.75s ease;
+  }
+
+  /* ── MOBILE TWEAKS ──────────────────────────────────────────────────── */
+  @media (max-width: 500px) {
+    .story { font-size: 11px; line-height: 1.95; margin-bottom: 24px; }
+    .startbtn { padding: 14px 36px; }
+    #help { font-size: 8.5px; }
+    #hudTop { font-size: 9px; padding: 8px 16px; }
+    #hudCount { padding: 8px 13px; }
+    #hudCount b { font-size: 15px; }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
@@ -88,20 +369,42 @@
 <body>
 <div id="wrap"></div>
 
-<div class="panel" id="hudTop"><span class="t" id="hudTopTitle">DELIVER THE LETTER</span><div id="hudTopSub" style="font-size:9px;letter-spacing:0.16em;color:#9fb0c4;margin-top:3px"></div></div>
-<div class="panel" id="hudCount">LETTERS <b id="countVal">0</b> / <span id="countTot">0</span></div>
-<canvas id="compass" width="26" height="26"></canvas>
-<div class="panel" id="hint"><span class="k" id="hintKey">[E]</span> <span id="hintText"></span></div>
-<div class="panel" id="help">
-  <b>WASD</b> walk &nbsp; <b>SPACE</b> fly / glide<br>
-  <b>E</b> deliver &nbsp; <b>1–4</b> wave &nbsp; <b>drag</b> look
+<!-- ── HUD: top-centre delivery banner ──────────────────────────── -->
+<div class="panel" id="hudTop">
+  <div class="t" id="hudTopTitle">DELIVER THE LETTER</div>
+  <div id="hudTopSub"></div>
 </div>
 
+<!-- ── HUD: letter counter (top-right) ─────────────────────────── -->
+<div class="panel" id="hudCount">
+  <span class="count-label">LETTERS</span>
+  <span class="count-value"><b id="countVal">0</b><span id="countTot">0</span></span>
+</div>
+
+<!-- ── compass / target arrow — DO NOT resize (JS uses 26×26) ──── -->
+<canvas id="compass" width="26" height="26"></canvas>
+
+<!-- ── proximity hint ───────────────────────────────────────────── -->
+<div class="panel" id="hint">
+  <span class="k" id="hintKey">E</span><span id="hintText"></span>
+</div>
+
+<!-- ── controls help (bottom-left) ─────────────────────────────── -->
+<div class="panel" id="help">
+  <span class="key">WASD</span> walk &nbsp;
+  <span class="key">SPACE</span> fly / glide<br>
+  <span class="key">E</span> deliver &nbsp;
+  <span class="key">1–4</span> wave &nbsp;
+  <span class="key">drag</span> look
+</div>
+
+<!-- ── toast notification ───────────────────────────────────────── -->
 <div id="toast"></div>
 
+<!-- ── title / intro screen ─────────────────────────────────────── -->
 <div id="title">
   <div class="tbox">
-    <div class="eyebrow">// FUNFLIX PRESENTS</div>
+    <div class="eyebrow">FUNFLIX PRESENTS</div>
     <div class="bigtitle">THE FLY</div>
     <div class="subtitle">A TINY ROUND WORLD</div>
     <div class="story" id="storyText">
@@ -109,9 +412,11 @@
       Everyone here has drifted a little out of touch.<br>
       Take to the air, find each neighbour, and <span class="pk">carry their letters home</span>.
     </div>
-    <button class="startbtn" id="startBtn">BEGIN</button>
+    <button class="startbtn" id="startBtn">BEGIN YOUR ROUTE</button>
   </div>
 </div>
+
+<!-- ── full-screen fade overlay ─────────────────────────────────── -->
 <div id="fade"></div>
 
 <script>
@@ -129,7 +434,7 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.82;
+  renderer.toneMappingExposure = 0.84;   // warm but not blown out — sky must read as colour, not white
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   wrap.appendChild(renderer.domElement);
@@ -152,16 +457,64 @@
     return s - Math.floor(s);
   }
   function biomeColor(dir) {
-    // latitude + a few noise octaves → grass / forest / sand / water-ish patches
-    const n = hash3(dir.x * 2.1, dir.y * 2.1, dir.z * 2.1) * 0.6
-            + hash3(dir.x * 5.3, dir.y * 5.3, dir.z * 5.3) * 0.3
-            + hash3(dir.x * 11.0, dir.y * 11.0, dir.z * 11.0) * 0.1;
+    // Three octaves of value noise → continuous biome field
+    const n0 = hash3(dir.x * 2.1,  dir.y * 2.1,  dir.z * 2.1);
+    const n1 = hash3(dir.x * 5.3,  dir.y * 5.3,  dir.z * 5.3);
+    const n2 = hash3(dir.x * 11.0, dir.y * 11.0, dir.z * 11.0);
+    const n  = n0 * 0.60 + n1 * 0.30 + n2 * 0.10;
+
+    // A second independent noise channel adds meadow/forest variation inside
+    // the grass band — keeps the green belt from looking uniform.
+    const v  = hash3(dir.x * 7.7,  dir.y * 3.3,  dir.z * 9.1) * 0.55
+             + hash3(dir.x * 17.2, dir.y * 12.9, dir.z * 5.5) * 0.45;
+
+    // Smooth-step blending helper — no hard cutoff lines
+    const ss = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+    // ── Biome palette (warm golden-hour harmonics) ──
+    // Teal shallows  → muted periwinkle-teal, echoes the sky's blue while staying warm
+    const SEA   = new THREE.Color(0x6bb0b8);   // soft teal shallows (slightly warmer)
+    // Warm sand      → peachy-gold, mirrors the foggy horizon
+    const SAND  = new THREE.Color(0xd9b880);   // warm ochre sand
+    // Lush grass     → yellow-leaning spring green, reads against the periwinkle sky
+    const GRASS = new THREE.Color(0x85b85e);   // spring meadow green
+    // Wildflower meadow → slightly more saturated, hints of olive-gold
+    const MEADOW = new THREE.Color(0x7aad5a);  // richer meadow (just a touch)
+    // Forest floor   → deeper warm green, grounds the dense patches
+    const FOREST = new THREE.Color(0x5e9148);  // soft deep green (not too dark)
+    // Mossy earth    → warm olive, peeks through in scattered forest variation
+    const MOSS   = new THREE.Color(0x8a9e5c);  // warm olive-moss highlight
+
     const c = new THREE.Color();
-    if (n < 0.34) c.setHex(0x5f97a3);            // soft shallow sea
-    else if (n < 0.40) c.setHex(0xcdb98c);       // warm sand
-    else if (n < 0.66) c.setHex(0x7aa164);       // grass
-    else if (n < 0.82) c.setHex(0x6a9558);       // meadow
-    else c.setHex(0x5b864e);                      // forest floor
+
+    if (n < 0.30) {
+      // Deep sea → shallows blend
+      c.copy(SEA);
+    } else if (n < 0.40) {
+      // Shallows → sand transition (smooth)
+      const t = ss(0.30, 0.40, n);
+      c.copy(SEA).lerp(SAND, t);
+    } else if (n < 0.50) {
+      // Sand → grass transition
+      const t = ss(0.40, 0.50, n);
+      c.copy(SAND).lerp(GRASS, t);
+    } else if (n < 0.72) {
+      // Grass band — secondary noise introduces meadow/moss patches
+      const f = ss(0.50, 0.72, n);         // overall band position
+      const vBlend = ss(0.38, 0.62, v);    // secondary channel → meadow patches
+      const mossPatch = ss(0.72, 0.88, v); // rare moss highlights
+      c.copy(GRASS).lerp(MEADOW, vBlend * 0.65).lerp(MOSS, mossPatch * 0.35);
+    } else if (n < 0.86) {
+      // Meadow → forest transition
+      const t = ss(0.72, 0.86, n);
+      const vBlend = ss(0.40, 0.70, v);
+      c.copy(MEADOW).lerp(FOREST, t).lerp(MOSS, vBlend * 0.22 * t);
+    } else {
+      // Forest floor — a little moss variation
+      const mossPatch = ss(0.45, 0.75, v);
+      c.copy(FOREST).lerp(MOSS, mossPatch * 0.30);
+    }
+
     return c;
   }
   const planetGeo = new THREE.IcosahedronGeometry(R, 7);   // faceted, low-poly look
@@ -189,35 +542,86 @@
   planetMesh.castShadow = true; planetMesh.receiveShadow = true;
   PLANET.add(planetMesh);
 
-  // a faint atmosphere shell
-  const atmoMat = new THREE.MeshBasicMaterial({ color: 0xa9d8ff, transparent: true, opacity: 0.03, side: THREE.BackSide });
-  PLANET.add(new THREE.Mesh(new THREE.SphereGeometry(R + 4.5, 32, 24), atmoMat));
+  // Fresnel atmospheric-scattering shell — glows on the limb where the view grazes the sphere
+  const atmoMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uRimColor:   { value: new THREE.Color(0x8ec8f5) },  // sky-blue limb halo
+      uWarmColor:  { value: new THREE.Color(0xf5d49a) },  // warm peach/gold near south pole
+      uRimPower:   { value: 4.5 },   // tightness of the Fresnel ring — higher = thinner
+      uRimStr:     { value: 0.50 },  // overall halo brightness — eased so the limb glow doesn't wash the frame
+      uWarmBias:   { value: 0.28 },  // how far down the warm glow bleeds
+    },
+    vertexShader: [
+      'varying vec3 vNormal;',
+      'varying vec3 vViewDir;',
+      'void main(){',
+      '  vec4 mvPos = modelViewMatrix * vec4(position, 1.0);',
+      '  vViewDir  = normalize(-mvPos.xyz);',
+      '  vNormal   = normalize(normalMatrix * normal);',
+      '  gl_Position = projectionMatrix * mvPos;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3  uRimColor;',
+      'uniform vec3  uWarmColor;',
+      'uniform float uRimPower;',
+      'uniform float uRimStr;',
+      'uniform float uWarmBias;',
+      'varying vec3 vNormal;',
+      'varying vec3 vViewDir;',
+      'void main(){',
+      '  float rim = 1.0 - clamp(dot(vNormal, vViewDir), 0.0, 1.0);',
+      '  float f   = pow(rim, uRimPower) * uRimStr;',
+      // blend toward warm at the south-polar limb (vNormal.y < 0) for grounded feel
+      '  float warm = clamp(-vNormal.y + uWarmBias, 0.0, 1.0);',
+      '  vec3 col  = mix(uRimColor, uWarmColor, warm * warm);',
+      '  gl_FragColor = vec4(col * f, f);',
+      '}'
+    ].join('\n'),
+  });
+  PLANET.add(new THREE.Mesh(new THREE.SphereGeometry(R + 3.2, 48, 32), atmoMat));
 
   /* ───────── lighting ───────── */
-  const sun = new THREE.DirectionalLight(0xffe7c2, 1.25);
+  // Key — warm golden-hour sun; richer amber, gentle shadow softness
+  const sun = new THREE.DirectionalLight(0xffd97a, 1.35);
   sun.position.set(55, 82, 34);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   const sc = sun.shadow.camera; sc.near = 20; sc.far = 240; sc.left = -62; sc.right = 62; sc.top = 62; sc.bottom = -62;
-  sun.shadow.radius = 8; sun.shadow.bias = -0.00035; sun.shadow.normalBias = 0.5;
+  sun.shadow.radius = 14; sun.shadow.bias = -0.00030; sun.shadow.normalBias = 0.6;
   scene.add(sun); scene.add(sun.target);
-  // soft warm-ground sky fill = the gentle, grounded ambience
-  scene.add(new THREE.HemisphereLight(0xcfe4f5, 0x6a5742, 0.5));
-  const fill = new THREE.DirectionalLight(0xc4d6ff, 0.2); fill.position.set(-48, 28, -42); scene.add(fill);
+  // Fill — sky-dome ambience; slightly warmer sky, richer earth bounce, lower so the key sculpts
+  scene.add(new THREE.HemisphereLight(0xd4e8f8, 0x7a6048, 0.42));
+  // Secondary fill — cool-lavender front-left keeps shadows from going pure black
+  const fill = new THREE.DirectionalLight(0xb8c8e8, 0.18); fill.position.set(-48, 28, -42); scene.add(fill);
+  // Rim / back-light — cool sky-blue from behind to separate the planet from the warm sky
+  const rim = new THREE.DirectionalLight(0x9ec8e8, 0.38);
+  rim.position.set(-30, -10, -70);
+  scene.add(rim);
   // light atmospheric haze so the little world fades gently into the sky
-  scene.fog = new THREE.FogExp2(0xdfe6e4, 0.0034);
+  // warm peach-mist matches the horizon band; density lightened so far side melts softly, not abruptly
+  scene.fog = new THREE.FogExp2(0xeee0c8, 0.0022);
 
   /* environment reflections (small procedural) */
   {
     const envS = new THREE.Scene();
     const c = document.createElement('canvas'); c.width = c.height = 128;
     const g = c.getContext('2d');
+    // richer gradient: deep periwinkle zenith → pale luminous mid-sky → warm peach-cream horizon
     const gr = g.createLinearGradient(0, 0, 0, 128);
-    gr.addColorStop(0, '#7fb7ee'); gr.addColorStop(0.55, '#e7f1f6'); gr.addColorStop(1, '#cdbf9c');
+    gr.addColorStop(0,    '#6fa8d8');   // periwinkle zenith
+    gr.addColorStop(0.40, '#c8dff0');   // pale luminous mid-sky
+    gr.addColorStop(0.72, '#f0e3cc');   // warm peach band
+    gr.addColorStop(1,    '#e8cfa8');   // golden horizon
     g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-    const sg = g.createRadialGradient(92, 26, 2, 92, 26, 30);
-    sg.addColorStop(0, 'rgba(255,250,235,1)'); sg.addColorStop(1, 'rgba(255,245,220,0)');
-    g.fillStyle = sg; g.fillRect(60, 0, 64, 60);
+    // soft sun bloom — larger, softer than before
+    const sg = g.createRadialGradient(88, 22, 0, 88, 22, 38);
+    sg.addColorStop(0, 'rgba(255,248,220,1)'); sg.addColorStop(0.5, 'rgba(255,240,190,0.45)'); sg.addColorStop(1, 'rgba(255,235,175,0)');
+    g.fillStyle = sg; g.fillRect(50, 0, 78, 60);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
     const sky = new THREE.Mesh(new THREE.SphereGeometry(60, 24, 16), new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide }));
     envS.add(sky);
@@ -226,32 +630,405 @@
     pm.dispose();
   }
 
-  /* gradient sky dome (zenith → warm horizon) */
+  /* gradient sky dome — three-stop: periwinkle zenith → pale luminous band → warm peach horizon */
   const skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { uZenith: { value: new THREE.Color(0x7aa6d4) }, uHorizon: { value: new THREE.Color(0xf2e8d6) }, uExp: { value: 0.85 } },
+    uniforms: {
+      uZenith:  { value: new THREE.Color(0x4f8ac8) },   // deeper periwinkle-blue zenith — gives the sky real colour
+      uMid:     { value: new THREE.Color(0xaed4ee) },   // luminous mid-sky, still clearly blue (was near-white)
+      uHorizon: { value: new THREE.Color(0xf0cf9e) },   // warm gold horizon band — saturated, not washed
+      uMidH:    { value: 0.38 },   // height of the luminous mid-sky band (0–1)
+      uExp:     { value: 1.6  },   // curvature of zenith-to-mid ramp (higher = more dome-like)
+      uHrzExp:  { value: 3.2  },   // sharpness of horizon warm band (higher = tighter band)
+    },
     vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: 'uniform vec3 uZenith,uHorizon; uniform float uExp; varying vec3 vD; void main(){ float h = clamp(vD.y*0.5+0.5,0.0,1.0); gl_FragColor = vec4(mix(uHorizon,uZenith,pow(h,uExp)),1.0); }'
+    fragmentShader: [
+      'uniform vec3 uZenith, uMid, uHorizon;',
+      'uniform float uMidH, uExp, uHrzExp;',
+      'varying vec3 vD;',
+      'void main(){',
+      '  float h = clamp(vD.y * 0.5 + 0.5, 0.0, 1.0);',
+      // upper half: zenith blends to luminous mid-sky
+      '  float upper = pow(clamp((h - uMidH) / (1.0 - uMidH), 0.0, 1.0), uExp);',
+      '  vec3 upper_col = mix(uMid, uZenith, upper);',
+      // lower half: mid-sky melts into warm horizon with a soft exponential band
+      '  float lower = pow(clamp(h / uMidH, 0.0, 1.0), uHrzExp);',
+      '  vec3 col = mix(uHorizon, upper_col, lower);',
+      '  gl_FragColor = vec4(col, 1.0);',
+      '}'
+    ].join('\n'),
   });
   const skyDome = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), skyMat);
   skyDome.renderOrder = -1; skyDome.frustumCulled = false; scene.add(skyDome);
 
-  // drifting clouds (sprites) high above the planet
+  // drifting clouds (sprites) — warm-tinted for a painterly afternoon feel
   const cloudTex = (() => {
     const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
-    const rg = g.createRadialGradient(64, 64, 4, 64, 64, 62);
-    rg.addColorStop(0, 'rgba(255,255,255,0.95)'); rg.addColorStop(0.6, 'rgba(255,255,255,0.5)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+    // softer core, wider fade for a painterly puff
+    const rg = g.createRadialGradient(64, 64, 2, 64, 64, 64);
+    rg.addColorStop(0,   'rgba(255,252,245,0.92)');
+    rg.addColorStop(0.45,'rgba(255,248,235,0.58)');
+    rg.addColorStop(0.75,'rgba(255,242,220,0.22)');
+    rg.addColorStop(1,   'rgba(255,238,210,0)');
     g.fillStyle = rg; g.fillRect(0, 0, 128, 128);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
   })();
   const clouds = [];
   for (let i = 0; i < 14; i++) {
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.7, depthWrite: false }));
+    // warm cream tint, slightly lower opacity for a translucent painterly look
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, color: 0xfff3e0, transparent: true, opacity: 0.55, depthWrite: false }));
     const dir = new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize();
     s.userData.dir = dir; s.userData.spin = rand(0.01, 0.04) * (Math.random() < 0.5 ? -1 : 1);
     s.position.copy(dir).multiplyScalar(R + rand(10, 20));
-    s.scale.setScalar(rand(8, 18)); scene.add(s); clouds.push(s);
+    s.scale.setScalar(rand(10, 22)); scene.add(s); clouds.push(s);
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     ── AMBIENT WILDLIFE ──────────────────────────────────────────────────────
+     Self-contained module.  Adds two creature pools to the scene:
+       • BIRDS  – a small flock that orbits the planet in the upper sky,
+                  gently banking, with flapping V-shape wings.
+       • BUTTERFLIES – a handful that flutter in looping / bobbing paths
+                  near the surface, wings opening-and-closing.
+
+     PUBLIC API
+     ───────────
+       updateLife(dt, now)
+         Call once per frame from the render loop.
+         dt  = elapsed seconds this frame (same cap as the main loop, ≤ 0.05)
+         now = performance.now() milliseconds (same value the main loop uses)
+
+     WIRE-UP (do NOT modify tick() — just add one call inside it)
+     ─────────────────────────────────────────────────────────────
+       Inside `tick()`, right after the line:
+           clouds.forEach(s => { ... });
+       add:
+           updateLife(dt, now);
+
+     TUNABLES  (change freely without touching anything else)
+     ─────────────────────────────────────────────────────────
+       BIRD_COUNT       – flock size (desktop / mobile)
+       BIRD_ALT_MIN/MAX – orbit altitude above planet surface (R + these)
+       BIRD_SPEED       – base orbit angular speed (rad / s)
+       BIRD_BANK        – max wing-bank tilt (radians)
+       BIRD_FLAP_SPEED  – wing-flap frequency multiplier
+
+       BFLY_COUNT       – butterfly count (desktop / mobile)
+       BFLY_ALT_MIN/MAX – altitude band above surface
+       BFLY_DRIFT_SPEED – tangential drift speed (rad / s)
+       BFLY_BOB_AMP     – vertical bobbing amplitude
+
+     PALETTE  – warm pastels matching the world
+     ─────────────────────────────────────────────────────────────────────── */
+
+  // ── tunables ──────────────────────────────────────────────────────────────
+  const BIRD_COUNT      = IS_TOUCH ? 3 : 5;
+  const BIRD_ALT_MIN    = 8;          // R + this … R + BIRD_ALT_MAX
+  const BIRD_ALT_MAX    = 18;
+  const BIRD_SPEED      = 0.18;       // rad / s base
+  const BIRD_BANK       = 0.38;       // max wing tilt (radians)
+  const BIRD_FLAP_SPEED = 2.6;        // wing animation frequency scale
+
+  const BFLY_COUNT      = IS_TOUCH ? 3 : 6;
+  const BFLY_ALT_MIN    = 0.5;        // R + this … R + BFLY_ALT_MAX
+  const BFLY_ALT_MAX    = 3.0;
+  const BFLY_DRIFT_SPEED = 0.09;      // rad / s
+  const BFLY_BOB_AMP    = 0.55;       // metres of vertical bobbing
+
+  // ── shared palette ────────────────────────────────────────────────────────
+  const BIRD_COLORS  = [0xd4aaff, 0xffd0a0, 0xaad8f0, 0xffb8c8, 0xb8e6c0];
+  const BFLY_COLORS  = [0xffc8d8, 0xffeaaa, 0xc8eeff, 0xd8c8ff, 0xb8f0d0, 0xffccaa];
+
+  // ── wildlife scene group ─────────────────────────────────────────────────
+  const WILDLIFE = new THREE.Group();
+  scene.add(WILDLIFE);
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+  // Return a unit vector perpendicular to `up` and roughly perpendicular to
+  // a second reference so orbits are spread around the whole sphere.
+  function lifeAnyTangent(up) {
+    const ref = (Math.abs(up.y) < 0.85)
+      ? new THREE.Vector3(0, 1, 0)
+      : new THREE.Vector3(1, 0, 0);
+    return ref.sub(up.clone().multiplyScalar(ref.dot(up))).normalize();
+  }
+
+  // Align a group so its local +Y points along `up` and +Z along `fwd`.
+  function lifeOrient(obj, up, fwd) {
+    const r = new THREE.Vector3().crossVectors(up, fwd).normalize();
+    const f = new THREE.Vector3().crossVectors(r, up).normalize();
+    const m = new THREE.Matrix4().makeBasis(r, up.clone().normalize(), f);
+    obj.quaternion.setFromRotationMatrix(m);
+  }
+
+  // ═══════════════════════════
+  // BIRDS
+  // ═══════════════════════════
+  //
+  // Each bird is a tiny low-poly V-shape: a central body quad + two wing
+  // quads that rotate around a shared hinge.  Everything is a single group
+  // with no textures (coloured MeshBasicMaterial) for maximum mobile safety.
+  //
+  // Orbit model: each bird has a fixed orbit axis (a random unit vector) and
+  // a current angle around that axis.  Every frame the angle advances by
+  // BIRD_SPEED * (1 + perturb).  The bird's "up" is the radial direction from
+  // origin to its position; its "forward" is the tangent in the direction of
+  // travel, giving natural banking.
+
+  const _birdTmp1 = new THREE.Vector3();
+  const _birdTmp2 = new THREE.Vector3();
+  const _bflyAxis = new THREE.Vector3();   // butterfly: cross-product axis scratch
+
+  function makeBirdMesh(color) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide });
+
+    // Body: a very slim stretched diamond (low-poly teardrop feel)
+    const bodyGeo = new THREE.BufferGeometry();
+    const bv = new Float32Array([
+       0,    0,  0.32,   // nose
+       0.09, 0, -0.10,   // right shoulder
+       0,    0, -0.24,   // tail
+      -0.09, 0, -0.10,   // left shoulder
+    ]);
+    const bi = new Uint16Array([0,1,2, 0,2,3]);
+    bodyGeo.setAttribute('position', new THREE.BufferAttribute(bv, 3));
+    bodyGeo.setIndex(new THREE.BufferAttribute(bi, 1));
+    bodyGeo.computeVertexNormals();
+    const body = new THREE.Mesh(bodyGeo, mat);
+    g.add(body);
+
+    // Wing pivots (one per side) — we rotate these to flap
+    const wingL = new THREE.Group(); wingL.position.set(-0.09, 0, -0.06); g.add(wingL);
+    const wingR = new THREE.Group(); wingR.position.set( 0.09, 0, -0.06); g.add(wingR);
+
+    // Wing geometry: a simple elongated triangle
+    const wGeo = new THREE.BufferGeometry();
+    const wvL = new Float32Array([
+      0,    0,  0,      // root inner
+     -0.55, 0.05, -0.05,  // tip
+      0,    0, -0.22,   // root back
+    ]);
+    const wvR = new Float32Array([
+      0,    0,  0,
+      0.55, 0.05, -0.05,
+      0,    0, -0.22,
+    ]);
+    const wi = new Uint16Array([0,1,2]);
+    const wGeoL = new THREE.BufferGeometry();
+    wGeoL.setAttribute('position', new THREE.BufferAttribute(wvL, 3));
+    wGeoL.setIndex(new THREE.BufferAttribute(wi, 1));
+    wGeoL.computeVertexNormals();
+    const wGeoR = new THREE.BufferGeometry();
+    wGeoR.setAttribute('position', new THREE.BufferAttribute(wvR, 3));
+    wGeoR.setIndex(new THREE.BufferAttribute(wi.slice(), 1));
+    wGeoR.computeVertexNormals();
+
+    // slightly darker wing shade
+    const wingCol = new THREE.Color(color).multiplyScalar(0.78);
+    const wMat = new THREE.MeshBasicMaterial({ color: wingCol, side: THREE.DoubleSide, transparent: true, opacity: 0.88 });
+    wingL.add(new THREE.Mesh(wGeoL, wMat));
+    wingR.add(new THREE.Mesh(wGeoR, wMat));
+
+    g.userData.wingL = wingL;
+    g.userData.wingR = wingR;
+    return g;
+  }
+
+  const birds = [];
+  for (let i = 0; i < BIRD_COUNT; i++) {
+    const mesh = makeBirdMesh(BIRD_COLORS[i % BIRD_COLORS.length]);
+    // overall scale (tiny — these are far away)
+    mesh.scale.setScalar(rand(0.55, 0.85));
+    WILDLIFE.add(mesh);
+
+    // random orbit axis
+    const axis = new THREE.Vector3(rand(-1,1), rand(-1,1), rand(-1,1)).normalize();
+    // orbit altitude is fixed per bird
+    const alt  = R + rand(BIRD_ALT_MIN, BIRD_ALT_MAX);
+    // start at a random angle around the axis
+    const angle = rand(0, TAU);
+    // per-bird speed variation so they don't all clump
+    const speedMult = rand(0.7, 1.35);
+    // flap phase offset so wings don't all beat in sync
+    const flapOff   = rand(0, TAU);
+
+    birds.push({ mesh, axis, alt, angle, speedMult, flapOff });
+  }
+
+  // ═══════════════════════════
+  // BUTTERFLIES
+  // ═══════════════════════════
+  //
+  // Each butterfly has a "base" direction on the sphere plus a tangential
+  // drift direction.  It slowly drifts around the sphere (occasionally
+  // changing drift direction slightly) while bobbing up and down.
+  // Wings are two flat quads (left / right) that open/close on a pivot.
+
+  function makeButterflyMesh(color) {
+    const g = new THREE.Group();
+    const col = new THREE.Color(color);
+    const darkCol = col.clone().multiplyScalar(0.65);
+
+    // Wing pivot groups (hinge along local Y)
+    const pivotL = new THREE.Group(); g.add(pivotL);
+    const pivotR = new THREE.Group(); g.add(pivotR);
+
+    // Each wing: a simple quad, slightly rounded feel via two triangles
+    function makeWingGeo(side) {
+      // side = -1 (left) or +1 (right)
+      const s = side;
+      const verts = new Float32Array([
+        0,      0,     0,       // root bottom
+        s*0.42, 0.18,  0.06,   // tip top
+        s*0.48, 0,     0.28,   // tip mid
+        s*0.22, -0.12, 0.38,   // tip bottom
+        0,      0,     0.30,   // root top (connects back to body)
+      ]);
+      const idx = new Uint16Array([0,1,2, 0,2,3, 0,3,4]);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    const wMatL = new THREE.MeshBasicMaterial({ color: col,     side: THREE.DoubleSide, transparent: true, opacity: 0.92 });
+    const wMatR = new THREE.MeshBasicMaterial({ color: col,     side: THREE.DoubleSide, transparent: true, opacity: 0.92 });
+    // small dark body strip in the centre
+    const bodyMat = new THREE.MeshBasicMaterial({ color: darkCol, side: THREE.DoubleSide });
+
+    pivotL.add(new THREE.Mesh(makeWingGeo(-1), wMatL));
+    pivotR.add(new THREE.Mesh(makeWingGeo( 1), wMatR));
+
+    // tiny body line (thin box)
+    const bodyGeo = new THREE.BoxGeometry(0.06, 0.06, 0.34);
+    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+    bodyMesh.position.z = 0.15;
+    g.add(bodyMesh);
+
+    g.userData.pivotL = pivotL;
+    g.userData.pivotR = pivotR;
+    return g;
+  }
+
+  const butterflies = [];
+  for (let i = 0; i < BFLY_COUNT; i++) {
+    const mesh = makeButterflyMesh(BFLY_COLORS[i % BFLY_COLORS.length]);
+    mesh.scale.setScalar(rand(0.28, 0.46));
+    WILDLIFE.add(mesh);
+
+    const baseDir  = new THREE.Vector3(rand(-1,1), rand(-1,1), rand(-1,1)).normalize();
+    // tangential drift direction (perpendicular to baseDir)
+    const driftDir = lifeAnyTangent(baseDir).applyAxisAngle(baseDir, rand(0, TAU));
+    const alt       = R + rand(BFLY_ALT_MIN, BFLY_ALT_MAX);
+    const speedMult = rand(0.6, 1.4);
+    const flapOff   = rand(0, TAU);
+    const bobOff    = rand(0, TAU);
+    // occasionally nudge drift angle
+    const driftAngle = rand(0, TAU);
+
+    butterflies.push({ mesh, baseDir, driftDir, alt, speedMult, flapOff, bobOff, driftAngle,
+                       driftNudgeTimer: rand(2, 5) });
+  }
+
+  // ═══════════════════════════
+  // UPDATE FUNCTION  (call from tick)
+  // ═══════════════════════════
+  //
+  // updateLife(dt, now)
+  //   dt  — frame delta in seconds (same as in tick)
+  //   now — performance.now() in milliseconds (same as in tick)
+  //
+  // Advances bird orbits, wing flapping, banking, and butterfly drifting,
+  // bobbing, and wing opening/closing.  Persistent scratch vectors
+  // (_birdTmp1/2, _bflyAxis) avoid per-frame heap allocation.
+
+  function updateLife(dt, now) {
+    const t = now * 0.001;   // seconds, for sin/cos
+
+    // ── birds ─────────────────────────────────────────────────────────────
+    for (let i = 0; i < birds.length; i++) {
+      const b = birds[i];
+
+      // advance orbit angle
+      b.angle += BIRD_SPEED * b.speedMult * dt;
+
+      // position on the orbit circle around b.axis
+      // pick two perpendicular axes to b.axis
+      _birdTmp1.copy(lifeAnyTangent(b.axis));                           // tangent1
+      _birdTmp2.crossVectors(b.axis, _birdTmp1).normalize();            // tangent2
+      b.mesh.position
+        .copy(_birdTmp1).multiplyScalar(Math.cos(b.angle) * b.alt)
+        .addScaledVector(_birdTmp2, Math.sin(b.angle) * b.alt);
+
+      // "up" = radial direction from centre
+      const up  = b.mesh.position.clone().normalize();
+      // "fwd" = tangent in direction of travel = derivative of orbit = -sin*t1 + cos*t2
+      const fwd = _birdTmp1.clone().multiplyScalar(-Math.sin(b.angle))
+                            .addScaledVector(_birdTmp2, Math.cos(b.angle)).normalize();
+
+      lifeOrient(b.mesh, up, fwd);
+
+      // gentle bank: after orient, apply a small additional roll around local Z
+      // so birds tilt into curves.  rotateZ is additive but bankAngle oscillates,
+      // keeping the net drift bounded.
+      const bankAngle = Math.sin(t * 0.55 + i * 1.3) * BIRD_BANK;
+      b.mesh.rotateZ(bankAngle * 0.06);   // additive lean after orientation set
+
+      // wing flap
+      const flapAmp   = 0.55 + Math.sin(t * 0.8 + i) * 0.15;  // amplitude varies gently
+      const flapAngle = Math.sin(t * BIRD_FLAP_SPEED * b.speedMult + b.flapOff) * flapAmp;
+      b.mesh.userData.wingL.rotation.z =  flapAngle;
+      b.mesh.userData.wingR.rotation.z = -flapAngle;
+    }
+
+    // ── butterflies ───────────────────────────────────────────────────────
+    for (let i = 0; i < butterflies.length; i++) {
+      const bf = butterflies[i];
+
+      // nudge drift direction every few seconds so they meander
+      bf.driftNudgeTimer -= dt;
+      if (bf.driftNudgeTimer <= 0) {
+        bf.driftNudgeTimer = rand(2.5, 6);
+        bf.driftAngle += rand(-0.8, 0.8);
+        // rebuild driftDir: rotate the perpendicular around baseDir
+        bf.driftDir.copy(lifeAnyTangent(bf.baseDir))
+                   .applyAxisAngle(bf.baseDir, bf.driftAngle);
+      }
+
+      // advance baseDir along driftDir (surface crawl)
+      const ang = BFLY_DRIFT_SPEED * bf.speedMult * dt;
+      _bflyAxis.crossVectors(bf.baseDir, bf.driftDir).normalize();
+      bf.baseDir.applyAxisAngle(_bflyAxis, ang).normalize();
+      // keep driftDir perpendicular after the step
+      bf.driftDir.sub(bf.baseDir.clone().multiplyScalar(bf.driftDir.dot(bf.baseDir))).normalize();
+
+      // vertical bob above the base altitude
+      const bob = Math.sin(t * 2.1 * bf.speedMult + bf.bobOff) * BFLY_BOB_AMP;
+      const r   = bf.alt + bob;
+
+      bf.mesh.position.copy(bf.baseDir).multiplyScalar(r);
+
+      // orient: up = radial, fwd = drift direction
+      lifeOrient(bf.mesh, bf.baseDir.clone(), bf.driftDir.clone());
+
+      // wings open / close  (pivotL rotates around local Z)
+      // max open = ~0.9 rad (roughly horizontal), closed = ~0.05
+      const openT    = (Math.sin(t * 4.5 * bf.speedMult + bf.flapOff) + 1) * 0.5;  // 0..1
+      const wingOpen = lerp(0.08, 0.82, openT);
+      bf.mesh.userData.pivotL.rotation.z =  wingOpen;
+      bf.mesh.userData.pivotR.rotation.z = -wingOpen;
+    }
+  }
+
+  /* ── WIRE-UP REMINDER (do not modify tick — just add this line) ──────────
+     Inside tick(), immediately after:
+         clouds.forEach(s => { s.position.applyAxisAngle(s.userData.dir, s.userData.spin * dt); s.material.rotation += dt * 0.05; });
+     add:
+         updateLife(dt, now);
+  ──────────────────────────────────────────────────────────────────────── */
+
 
   /* ───────── stylization: rim light helper ───────── */
   function addRimLight(material, opts) {
@@ -274,37 +1051,53 @@
   /* ───────── post: outline + grade(posterize) + bloom ───────── */
   const GradeShader = {
     uniforms: {
-      tDiffuse: { value: null }, uVignette: { value: 0.20 }, uContrast: { value: 1.04 }, uSaturation: { value: 0.97 },
-      uStylize: { value: 0.0 }, uBands: { value: 6.0 }, uTime: { value: 0 },
+      tDiffuse:    { value: null },
+      uVignette:   { value: 0.18 },
+      uContrast:   { value: 1.03 },
+      uSaturation: { value: 1.04 },
+      uStylize:    { value: 0.0 },
+      uBands:      { value: 6.0 },
+      uTime:       { value: 0 },
+      uShadowLift: { value: new THREE.Vector3(0.020, 0.012, 0.000) },  // warm amber lift in shadows
+      uHighGain:   { value: new THREE.Vector3(1.020, 1.005, 0.950) },  // gentle warm gain — eased so highlights don't clip
     },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: `
-      uniform sampler2D tDiffuse; uniform float uVignette,uContrast,uSaturation,uStylize,uBands,uTime; varying vec2 vUv;
+      uniform sampler2D tDiffuse;
+      uniform float uVignette,uContrast,uSaturation,uStylize,uBands,uTime;
+      uniform vec3 uShadowLift, uHighGain;
+      varying vec2 vUv;
       void main(){
         vec3 c = texture2D(tDiffuse, vUv).rgb;
         c = (c - 0.5) * uContrast + 0.5;
         float l = dot(c, vec3(0.299,0.587,0.114));
         c = mix(vec3(l), c, uSaturation);
+        // golden-hour split-tone: lift warms shadows, gain warms highlights
+        float lum = clamp(dot(c, vec3(0.299,0.587,0.114)), 0.0, 1.0);
+        float shadowW = 1.0 - smoothstep(0.0, 0.55, lum);
+        float highW   = smoothstep(0.45, 1.0, lum);
+        c += uShadowLift * shadowW;
+        c *= mix(vec3(1.0), uHighGain, highW);
         if (uStylize > 0.001){
-          float lum = max(dot(c, vec3(0.299,0.587,0.114)), 1e-4);
+          float lm = max(dot(c, vec3(0.299,0.587,0.114)), 1e-4);
           vec2 ip = floor(gl_FragCoord.xy);
           float dith = (mod(ip.x + mod(ip.y,2.0)*2.0, 4.0)/4.0 - 0.5) / uBands;
-          float ql = clamp(floor((lum + dith) * uBands + 0.5)/uBands, 0.0, 1.4);
-          c = mix(c, c * (ql/lum), uStylize);
+          float ql = clamp(floor((lm + dith) * uBands + 0.5)/uBands, 0.0, 1.4);
+          c = mix(c, c * (ql/lm), uStylize);
         }
         vec2 d = vUv - 0.5; float r2 = dot(d,d) * 2.0;
-        float vig = smoothstep(0.9, 0.28, r2);
+        float vig = smoothstep(0.95, 0.30, r2);
         c *= mix(1.0, vig, uVignette);
         float g = fract(sin(dot(vUv + uTime, vec2(12.9898,78.233))) * 43758.5453);
-        c += (g - 0.5) * 0.012;
+        c += (g - 0.5) * 0.010;
         gl_FragColor = vec4(max(c,0.0), 1.0);
       }`,
   };
   const OutlineShader = {
     uniforms: {
       tDiffuse: { value: null }, tDepth: { value: null }, uTexel: { value: new THREE.Vector2(1/640,1/360) },
-      uNear: { value: 0.1 }, uFar: { value: 900.0 }, uColor: { value: new THREE.Color(0x4a5560) },
-      uStrength: { value: 0.28 }, uThresh: { value: 0.0017 }, uThick: { value: 1.0 },
+      uNear: { value: 0.1 }, uFar: { value: 900.0 }, uColor: { value: new THREE.Color(0x524845) },  // warm dark brown-grey
+      uStrength: { value: 0.18 }, uThresh: { value: 0.0022 }, uThick: { value: 1.0 },  // softer, less ink-y
     },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: `
@@ -337,7 +1130,7 @@
       outlinePass.uniforms.uNear.value = camera.near; outlinePass.uniforms.uFar.value = camera.far;
       composer.addPass(outlinePass);
     }
-    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(800, 600), 0.2, 0.7, 0.95));
+    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(800, 600), 0.16, 0.50, 0.96));  // gentle: only true highlights bloom, the pale sky must NOT
     gradePass = new THREE.ShaderPass(GradeShader);
     composer.addPass(gradePass);
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
@@ -381,33 +1174,249 @@
     m.rotation.x = -Math.PI / 2; m.position.y = 0.05; m.renderOrder = 1; return m;
   }
 
-  const propMatTrunk = new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 0.95 });
-  const leafMats = [0x86b06a, 0x9cc07e, 0x76a368, 0xb6c97e].map(h => new THREE.MeshStandardMaterial({ color: h, roughness: 0.9 }));
-  leafMats.forEach(m => addRimLight(m, { strength: 0.2 }));
+  // ── TUNABLES: tree colours / scale ──────────────────────────────────────────
+  // propMatTrunk.color → warm bark hue;  leafMats[] → canopy palette (4 entries)
+  // scatter(70, makeTree, [0.8, 1.5]) → count and size range of trees
+  // ────────────────────────────────────────────────────────────────────────────
+  const propMatTrunk = new THREE.MeshStandardMaterial({ color: 0x9a7252, roughness: 0.96 }); // warmer cinnamon bark
+  // Leaf palette: warm spring greens + a golden-chartreuse for variety — stays pastel
+  const leafMats = [
+    0x8dc46e,  // spring meadow green
+    0xa0cc7c,  // bright young leaf
+    0x7eb867,  // classic leafy green
+    0xbdd47a,  // sunny chartreuse-lime
+    0x6faa5d,  // deep canopy (for contrast)
+  ].map(h => new THREE.MeshStandardMaterial({ color: h, roughness: 0.88 }));
+  leafMats.forEach(m => addRimLight(m, { color: new THREE.Color(0xfff5d6), strength: 0.22 }));
+
+  // Trunk material for the spindly "sapling" variant
+  const propMatSaplingTrunk = new THREE.MeshStandardMaterial({ color: 0xb89468, roughness: 0.97 });
+  addRimLight(propMatSaplingTrunk, { color: new THREE.Color(0xffe8c0), strength: 0.14 });
+
   function makeTree() {
     const g = new THREE.Group();
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.23, 1.25, 7), propMatTrunk);
-    trunk.position.y = 0.6; trunk.castShadow = true; g.add(trunk);
-    const lm = leafMats[(Math.random() * leafMats.length) | 0];
-    // soft rounded canopy — overlapping smooth lobes, not hard cones
-    [[0, 1.65, 0, 1.05], [0.48, 1.95, 0.12, 0.78], [-0.42, 1.9, -0.18, 0.7], [0.04, 2.45, 0, 0.6]].forEach(([x, y, z, r]) => {
-      const lobe = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), lm);
-      lobe.position.set(x, y, z); lobe.castShadow = true; g.add(lobe);
-    });
-    g.add(groundBlob(0.95));
+    const variant = Math.random(); // 0..1 drives which tree shape we get
+
+    if (variant < 0.35) {
+      // ── Round puffy tree (Messenger-style) ────────────────────────────
+      const trunkH = rand(1.1, 1.45);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.21, trunkH, 7), propMatTrunk);
+      trunk.position.y = trunkH * 0.46; trunk.castShadow = true; g.add(trunk);
+      const lm = leafMats[(Math.random() * leafMats.length) | 0];
+      const baseR = rand(0.95, 1.15);
+      // main rounded puff + smaller satellite lobes for an organic silhouette
+      [[0, trunkH + 0.62, 0, baseR],
+       [rand(0.3,0.6), trunkH + 0.88, rand(-0.15,0.15), baseR * 0.72],
+       [rand(-0.5,-0.25), trunkH + 0.84, rand(-0.2,0.1), baseR * 0.65],
+       [rand(-0.1,0.1), trunkH + 1.38, 0, baseR * 0.55]
+      ].forEach(([x, y, z, r]) => {
+        const lobe = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), lm);
+        lobe.position.set(x, y, z); lobe.rotation.set(rand(0,0.5), rand(0,TAU), rand(0,0.4));
+        lobe.castShadow = true; g.add(lobe);
+      });
+      g.add(groundBlob(baseR * 0.9));
+
+    } else if (variant < 0.65) {
+      // ── Tall slender tree with tiered canopy ──────────────────────────
+      const trunkH = rand(1.6, 2.1);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.19, trunkH, 6), propMatTrunk);
+      trunk.position.y = trunkH * 0.48; trunk.castShadow = true; g.add(trunk);
+      const lm = leafMats[(Math.random() * leafMats.length) | 0];
+      // Three tiers stacked, each slightly smaller — reads as a storybook fir
+      [[0, trunkH * 0.72, 0, 0.88],
+       [0, trunkH * 0.97, 0, 0.70],
+       [0, trunkH * 1.20, 0, 0.50],
+       [0, trunkH * 1.38, 0, 0.32]
+      ].forEach(([x, y, z, r]) => {
+        const lobe = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), lm);
+        lobe.position.set(x, y, z); lobe.castShadow = true; g.add(lobe);
+      });
+      g.add(groundBlob(0.82));
+
+    } else {
+      // ── Tiny sapling — sweet small tree for variety ───────────────────
+      const trunkH = rand(0.55, 0.90);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.13, trunkH, 5), propMatSaplingTrunk);
+      trunk.position.y = trunkH * 0.46; trunk.castShadow = true; g.add(trunk);
+      const lm = leafMats[(Math.random() * leafMats.length) | 0];
+      const r = rand(0.52, 0.72);
+      const cap = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), lm);
+      cap.position.set(rand(-0.08,0.08), trunkH + r * 0.55, rand(-0.08,0.08));
+      cap.castShadow = true; g.add(cap);
+      // one small side-bud
+      const bud = new THREE.Mesh(new THREE.IcosahedronGeometry(r * 0.52, 1), lm);
+      bud.position.set(rand(0.18,0.28), trunkH + r * 0.22, 0); bud.castShadow = true; g.add(bud);
+      g.add(groundBlob(r * 0.82));
+    }
+
     return g;
   }
-  const houseWall = [0xeadbbe, 0xe4c6d0, 0xc9dbde, 0xe9d0a8].map(h => new THREE.MeshStandardMaterial({ color: h, roughness: 0.88 }));
-  houseWall.forEach(m => addRimLight(m, { strength: 0.16 }));
-  const roofMats = [0xc26a5c, 0x607e98, 0x876b9b, 0xd0a45c].map(h => new THREE.MeshStandardMaterial({ color: h, roughness: 0.82 }));
+  // ── TUNABLES: house colours ──────────────────────────────────────────────────
+  // houseWall[] → wall palette;  roofMats[] → roof palette (add/change hex values)
+  // scatter(10, makeHouse, [0.9, 1.2]) in scatter calls → count and scale
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Wall palette — warm creamy pastels that harmonise with the golden-hour sky
+  const houseWall = [
+    0xf0dfc4,  // warm cream
+    0xeacdd8,  // blush rose
+    0xcfe0e4,  // soft sky-teal
+    0xf2e2ac,  // warm butter yellow
+    0xd8ccec,  // gentle lavender
+    0xe2d5c3,  // toasty bisque
+  ].map(h => new THREE.MeshStandardMaterial({ color: h, roughness: 0.88 }));
+  houseWall.forEach(m => addRimLight(m, { color: new THREE.Color(0xfff0d8), strength: 0.18 }));
+
+  // Roof palette — deeper saturated hues; the roof is the pop of colour
+  const roofMats = [
+    0xc4594a,  // terracotta red
+    0x4e7a9c,  // slate blue
+    0x7d5e9a,  // soft plum
+    0xcf9040,  // ochre gold
+    0x5e8e6a,  // forest green
+    0xb84d6e,  // rose crimson
+  ].map(h => new THREE.MeshStandardMaterial({ color: h, roughness: 0.78 }));
+  roofMats.forEach(m => addRimLight(m, { color: new THREE.Color(0xffe8d0), strength: 0.14 }));
+
+  // Chimney material — warm grey brick
+  const chimneyMat = new THREE.MeshStandardMaterial({ color: 0xb09880, roughness: 0.92 });
+
   function makeHouse() {
     const g = new THREE.Group();
     const w = rand(1.4, 2.0), d = rand(1.4, 2.0), hh = rand(1.2, 1.7);
-    const body = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), houseWall[(Math.random() * houseWall.length) | 0]);
+    const wallMat = houseWall[(Math.random() * houseWall.length) | 0];
+    const roofMat = roofMats[(Math.random() * roofMats.length) | 0];
+
+    // Body
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat);
     body.position.y = hh / 2; body.castShadow = true; body.receiveShadow = true; g.add(body);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.84, 1.0, 4), roofMats[(Math.random() * roofMats.length) | 0]);
-    roof.position.y = hh + 0.5; roof.rotation.y = Math.PI / 4; roof.castShadow = true; g.add(roof);
-    g.add(groundBlob(Math.max(w, d) * 0.72));
+
+    // Peaked roof — slight overhang (scale > 1)
+    const roofSpan = Math.max(w, d);
+    const roofH = rand(0.85, 1.15);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(roofSpan * 0.88, roofH, 4), roofMat);
+    roof.position.y = hh + roofH * 0.5; roof.rotation.y = Math.PI / 4; roof.castShadow = true; g.add(roof);
+
+    // Chimney — a small rectangular stack, slightly offset
+    if (Math.random() < 0.70) {   // ~70 % of houses have a chimney
+      const chW = rand(0.18, 0.26), chH = rand(0.28, 0.52);
+      const chimney = new THREE.Mesh(new THREE.BoxGeometry(chW, chH, chW), chimneyMat);
+      chimney.position.set(w * 0.22 * (Math.random() < 0.5 ? 1 : -1),
+                           hh + roofH * 0.72 + chH * 0.5,
+                           d * 0.12 * (Math.random() < 0.5 ? 1 : -1));
+      chimney.castShadow = true; g.add(chimney);
+    }
+
+    g.add(groundBlob(Math.max(w, d) * 0.76));
+    return g;
+  }
+
+  // ── NEW PROP: makeFlowerCluster() ─────────────────────────────────────────
+  // A tiny cluster of flower stems + round petal heads — low poly, pure pastel.
+  // ── TUNABLES: flowerPetalCols[] → petal hues; flowerStemMat.color → stem green
+  //             scatter(55, makeFlowerCluster, [0.55, 1.0]) → count & size
+  // ────────────────────────────────────────────────────────────────────────────
+  const flowerStemMat = new THREE.MeshStandardMaterial({ color: 0x82b85a, roughness: 0.95 });
+  const flowerPetalCols = [
+    0xffb3c8,  // soft rose-pink
+    0xffd98a,  // warm golden-yellow
+    0xc4a8e8,  // gentle lavender
+    0xff9eb0,  // hot pink (kept soft)
+    0xa8d8ea,  // sky-teal
+    0xf0c06a,  // peach-orange
+    0xffffff,  // pure white
+  ];
+  const flowerPetalMats = flowerPetalCols.map(h =>
+    addRimLight(new THREE.MeshStandardMaterial({ color: h, roughness: 0.85 }), { color: new THREE.Color(0xfff8e0), strength: 0.30 })
+  );
+  function makeFlowerCluster() {
+    const g = new THREE.Group();
+    const count = 3 + ((Math.random() * 5) | 0);   // 3..7 flowers per cluster
+    for (let i = 0; i < count; i++) {
+      // stem
+      const stemH = rand(0.22, 0.45);
+      const ox = rand(-0.32, 0.32), oz = rand(-0.32, 0.32);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.028, stemH, 4), flowerStemMat);
+      stem.position.set(ox, stemH * 0.5, oz); g.add(stem);
+      // petal head — small sphere with a dot centre
+      const pm = flowerPetalMats[(Math.random() * flowerPetalMats.length) | 0];
+      const head = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.10, 0.16), 1), pm);
+      head.position.set(ox, stemH + 0.08, oz); head.castShadow = false; g.add(head);
+      // centre dot (slightly darker, small)
+      const centre = new THREE.Mesh(new THREE.IcosahedronGeometry(0.055, 0), new THREE.MeshStandardMaterial({ color: 0xffde6a, roughness: 0.9 }));
+      centre.position.set(ox, stemH + 0.09, oz); g.add(centre);
+    }
+    g.add(groundBlob(0.45));
+    return g;
+  }
+
+  // ── NEW PROP: makeRock() ──────────────────────────────────────────────────
+  // Rounded boulders in warm-grey / dusty-rose tones. Poly count is tiny.
+  // ── TUNABLES: rockMats[] → boulder colours; scatter(35, makeRock, ...) → count
+  // ────────────────────────────────────────────────────────────────────────────
+  const rockMats = [
+    0xc0b4a2,  // warm stone grey
+    0xb8a898,  // dusty taupe
+    0xcdb8a4,  // sandstone beige
+    0xb0a8b4,  // lavender-grey
+    0xc8b09a,  // warm clay
+  ].map(h => addRimLight(new THREE.MeshStandardMaterial({ color: h, roughness: 0.92, metalness: 0 }),
+    { color: new THREE.Color(0xfff0d8), strength: 0.16 }));
+
+  function makeRock() {
+    const g = new THREE.Group();
+    const n = 1 + ((Math.random() * 3) | 0);   // 1..3 boulders per prop
+    const rm = rockMats[(Math.random() * rockMats.length) | 0];
+    for (let i = 0; i < n; i++) {
+      const r = rand(0.22, 0.52);
+      // Slightly squashed icosahedron = organic boulder shape
+      const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), rm);
+      rock.scale.set(rand(0.75, 1.25), rand(0.55, 0.90), rand(0.75, 1.20));
+      rock.rotation.set(rand(0, TAU), rand(0, TAU), rand(0, TAU));
+      rock.position.set(rand(-0.3, 0.3) * i, r * 0.45, rand(-0.3, 0.3) * i);
+      rock.castShadow = true; rock.receiveShadow = true; g.add(rock);
+    }
+    const blobR = n > 1 ? 0.55 : 0.38;
+    g.add(groundBlob(blobR));
+    return g;
+  }
+
+  // ── NEW PROP: makeGrassTuft() ─────────────────────────────────────────────
+  // Wispy upright blades — made from thin elongated icosahedra (no PlaneGeometry
+  // so it avoids any two-sided material budget overhead).
+  // ── TUNABLES: grassTuftCols[] → blade colours; scatter count below
+  // NOTE: if you want the blades to sway, wire this one-liner in tick(),
+  //   AFTER the existing "residents idle bob" line:
+  //   grassTufts.forEach((t, i) => { t.children.forEach((b, j) => { b.rotation.z = Math.sin(now * 0.0014 + i * 0.9 + j * 0.4) * 0.10; }); });
+  //   Insert anchor: just after `residents.forEach(r => { ... });` (line ~701 in original).
+  // ─────────────────────────────────────────────────────────────────────────
+  const grassTuftCols = [
+    0x90c464,  // vivid spring grass
+    0xa4cc72,  // lighter grass
+    0x7aac55,  // mid green
+    0xb8cc6c,  // golden-edge grass
+  ].map(h => addRimLight(new THREE.MeshStandardMaterial({ color: h, roughness: 0.88 }),
+    { color: new THREE.Color(0xfff5c0), strength: 0.20 }));
+
+  const grassTufts = [];   // exposed array so the render-loop hook can animate them
+
+  function makeGrassTuft() {
+    const g = new THREE.Group();
+    const blades = 4 + ((Math.random() * 5) | 0);   // 4..8 blades
+    const gm = grassTuftCols[(Math.random() * grassTuftCols.length) | 0];
+    for (let i = 0; i < blades; i++) {
+      const h = rand(0.30, 0.60), w = rand(0.04, 0.075);
+      const blade = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 0), gm);
+      blade.scale.set(w, h, w * 0.6);
+      const angle = (i / blades) * TAU + rand(-0.3, 0.3);
+      const lean  = rand(0.08, 0.22);
+      blade.position.set(Math.cos(angle) * lean * 0.5, h * 0.5, Math.sin(angle) * lean * 0.5);
+      // lean outward slightly so the tuft fans open
+      blade.rotation.set(0, angle, lean); blade.userData.baseZ = lean;
+      g.add(blade);
+    }
+    g.add(groundBlob(0.35));
+    grassTufts.push(g);
     return g;
   }
 
@@ -425,17 +1434,111 @@
   }
   scatter(70, makeTree, [0.8, 1.5]);
   scatter(10, makeHouse, [0.9, 1.2]);
+  // ── new props ──────────────────────────────────────────────────────────────
+  // ── TUNABLES: adjust the three counts below to taste ──────────────────────
+  scatter(55, makeFlowerCluster, [0.55, 1.05]);  // flower clusters across the globe
+  scatter(35, makeRock,          [0.70, 1.30]);  // boulder groups in grassy/forest zones
+  scatter(45, makeGrassTuft,     [0.65, 1.20]);  // wispy grass tufts
 
   /* ───────── residents (delivery targets) ───────── */
-  const residentBodyCols = [0xff9fb6, 0x8ed1c6, 0xffd98a, 0xb6a9e6, 0x9fd0ff, 0xf0a36a];
+  // Richer palette — warm pastels with character
+  // TUNABLE: swap hex values to recolour individual residents
+  const residentBodyCols = [0xff9fb6, 0x8ed1c6, 0xffd98a, 0xb6a9e6, 0x9fd0ff, 0xf0a36a, 0xa8d88c, 0xffb3d0, 0xc4b8f0];
+
+  // Hat-style variants by resident index (cycles through)
+  // 0 = floppy brim, 1 = small cap, 2 = tall pointy, 3 = hair tuft, 4 = no hat
+  const HAT_STYLES = [1, 3, 0, 2, 4, 3, 1, 0, 2];
+  // Hat colours to pair with body colours
+  const HAT_COLS   = [0xff6688, 0x4db8a8, 0xe8b840, 0x8870cc, 0x5598e0, 0xd06828, 0x68b850, 0xdd7090, 0x8874d8];
+  // Skin-tone variety — cycle through a small warm set
+  const SKIN_TONES = [0xf5d0a0, 0xf2c8a4, 0xe8b888, 0xf8d8b0, 0xefc898, 0xf4d4a8, 0xead0a0, 0xf6ccb0, 0xe8bf96];
+
+  let _residentIdx = 0; // tracks which variant to assign per call
+
   function makePerson(col) {
     const g = new THREE.Group();
-    const bodyMat = addRimLight(new THREE.MeshStandardMaterial({ color: col, roughness: 0.88 }), { strength: 0.24 });
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.4, 18, 16), bodyMat);
-    body.scale.set(0.92, 1.34, 0.92); body.position.y = 0.66; body.castShadow = true; g.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 18, 16), new THREE.MeshStandardMaterial({ color: 0xf0cba4, roughness: 0.88 }));
-    head.position.y = 1.22; head.castShadow = true; g.add(head);
-    g.add(groundBlob(0.6));
+    const idx = _residentIdx++ % HAT_STYLES.length;
+    const hatStyle = HAT_STYLES[idx];
+    const hatCol   = HAT_COLS[idx];
+    const skinCol  = SKIN_TONES[idx];
+
+    // ── Body shape variety: some rounder, some taller ──
+    // TUNABLE: bodyScaleY range for body-shape variety
+    const bodyScaleY = 1.18 + (idx % 3) * 0.12;  // 1.18 / 1.30 / 1.42 cycle
+    const bodyScaleXZ = 1.0 - (idx % 3) * 0.05;  // slightly narrower when taller
+
+    const bodyMat = addRimLight(new THREE.MeshStandardMaterial({
+      color: col, roughness: 0.86,
+      emissive: new THREE.Color(col), emissiveIntensity: 0.04
+    }), { strength: 0.26 });
+    // CONTRACT: body must be children[0] — the loop bobs g.children[0].position.y
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 14), bodyMat);
+    body.scale.set(bodyScaleXZ, bodyScaleY, bodyScaleXZ);
+    body.position.y = 0.66; body.castShadow = true; g.add(body); // children[0]
+
+    // ── Arms: two small rounded stubs on the sides ──
+    const armMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.88 });
+    [-1, 1].forEach(side => {
+      const arm = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), armMat);
+      arm.scale.set(0.7, 1.1, 0.7);
+      arm.position.set(side * 0.38, 0.70, 0.0); g.add(arm);
+    });
+
+    // ── Head: round, slightly larger for chibi charm ──
+    const headMat = new THREE.MeshStandardMaterial({ color: skinCol, roughness: 0.80 });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 14), headMat);
+    head.position.y = 1.25; head.castShadow = true; g.add(head);
+
+    // ── Face: dot eyes + blush spots ──
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1a1020 });
+    const blushMat = new THREE.MeshBasicMaterial({ color: 0xff9090, transparent: true, opacity: 0.45 });
+    [-0.09, 0.09].forEach(xo => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.038, 6, 5), eyeMat);
+      eye.position.set(xo, 1.28, 0.24); g.add(eye);
+      const blush = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 4), blushMat);
+      blush.scale.set(1.2, 0.6, 0.4);
+      blush.position.set(xo * 1.4, 1.22, 0.23); g.add(blush);
+    });
+    // small highlight dots on eyes (white)
+    const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    [-0.09, 0.09].forEach(xo => {
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.016, 4, 3), hlMat);
+      hl.position.set(xo + 0.02, 1.30, 0.265); g.add(hl);
+    });
+
+    // ── Hat / hair by style variant ──
+    const hatMat = new THREE.MeshStandardMaterial({ color: hatCol, roughness: 0.78 });
+    if (hatStyle === 0) {
+      // floppy wide-brim hat: flat cylinder brim + low dome crown
+      const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.40, 0.06, 14), hatMat);
+      brim.position.set(0, 1.50, 0); g.add(brim);
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 0.22, 12), hatMat);
+      crown.position.set(0, 1.58, 0); g.add(crown);
+    } else if (hatStyle === 1) {
+      // small rounded cap: hemisphere sitting on top
+      const capMat = new THREE.MeshStandardMaterial({ color: hatCol, roughness: 0.75 });
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 8, 0, TAU, 0, Math.PI * 0.52), capMat);
+      cap.position.set(0, 1.44, 0.02); g.add(cap);
+      // peak (visor): tiny box
+      const peak = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.12), capMat);
+      peak.position.set(0, 1.42, 0.28); g.add(peak);
+    } else if (hatStyle === 2) {
+      // tall pointy witch/wizard hat
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.52, 10), hatMat);
+      cone.position.set(0, 1.62, 0); g.add(cone);
+      const brim2 = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.34, 0.06, 12), hatMat);
+      brim2.position.set(0, 1.44, 0); g.add(brim2);
+    } else if (hatStyle === 3) {
+      // fluffy hair tuft: cluster of small spheres
+      const hairMat = new THREE.MeshStandardMaterial({ color: hatCol, roughness: 0.92 });
+      [[0,1.54,0,0.14],[-0.10,1.50,0.04,0.10],[0.10,1.50,0.04,0.10],[0,1.48,0.06,0.09]].forEach(([x,y,z,r]) => {
+        const tuft = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), hairMat);
+        tuft.position.set(x, y, z); g.add(tuft);
+      });
+    }
+    // hatStyle === 4: bare head, nothing added
+
+    g.add(groundBlob(0.62));
     g.userData.bob = Math.random() * TAU;
     return g;
   }
@@ -482,20 +1585,146 @@
   scene.add(player);
   const courier = new THREE.Group(); player.add(courier);
   {
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 14), addRimLight(new THREE.MeshStandardMaterial({ color: 0xff9a6a, roughness: 0.55 }), { color: new THREE.Color(0xfff0d0), strength: 0.5 }));
-    body.scale.set(1, 1.15, 1); body.position.y = 0.62; body.castShadow = true; courier.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 14), new THREE.MeshStandardMaterial({ color: 0xf2cda3, roughness: 0.6 }));
-    head.position.y = 1.18; head.castShadow = true; courier.add(head);
-    const goggle = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.05, 8, 16), new THREE.MeshStandardMaterial({ color: 0x2a2f3a, roughness: 0.4, metalness: 0.4 }));
-    goggle.position.set(0, 1.22, 0.24); courier.add(goggle);
-    const sat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.22), new THREE.MeshStandardMaterial({ color: 0xc06a4a, roughness: 0.7, flatShading: true }));
-    sat.position.set(0.34, 0.6, -0.1); sat.castShadow = true; courier.add(sat);
-    // wings
-    const wingMat = addRimLight(new THREE.MeshStandardMaterial({ color: 0xeef6ff, roughness: 0.5, metalness: 0.0, transparent: true, opacity: 0.8, side: THREE.DoubleSide }), { strength: 0.45 });
-    const wingGeo = new THREE.PlaneGeometry(0.9, 0.55);
-    const wingL = new THREE.Mesh(wingGeo, wingMat); wingL.position.set(-0.36, 0.8, -0.18); courier.add(wingL);
-    const wingR = new THREE.Mesh(wingGeo, wingMat); wingR.position.set(0.36, 0.8, -0.18); courier.add(wingR);
-    courier.userData = { wingL, wingR };
+    // ── Body (thorax): warm amber-orange, slightly plump & round ──
+    // CONTRACT: body must be children[0] — the loop bobs courier.children[0].position.y
+    const bodyMat = addRimLight(new THREE.MeshStandardMaterial({
+      color: 0xff8c4a, roughness: 0.52, metalness: 0.04,
+      emissive: new THREE.Color(0xff6020), emissiveIntensity: 0.06
+    }), { color: new THREE.Color(0xffe0b0), strength: 0.55 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.44, 18, 14), bodyMat);
+    body.scale.set(1.05, 1.18, 0.98); body.position.y = 0.62; body.castShadow = true; courier.add(body); // children[0]
+
+    // ── Abdomen stripe: tiny darkened ring behind body for insect silhouette ──
+    const abdomen = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.22, 0.18, 12),
+      new THREE.MeshStandardMaterial({ color: 0xe05820, roughness: 0.7, emissive: new THREE.Color(0xc03000), emissiveIntensity: 0.04 })
+    );
+    abdomen.position.set(0, 0.28, -0.1); abdomen.rotation.x = 0.22; body.add(abdomen);
+
+    // ── Head: round & large — cute chibi proportions ──
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xf5d4aa, roughness: 0.62 });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 18, 14), headMat);
+    head.position.y = 1.22; head.castShadow = true; courier.add(head);
+
+    // ── Compound-eye goggles: two side-by-side lenses with emissive glint ──
+    const gogMat = new THREE.MeshStandardMaterial({ color: 0x1a2030, roughness: 0.25, metalness: 0.55,
+      emissive: new THREE.Color(0x88ddff), emissiveIntensity: 0.55 });
+    const gogGeo = new THREE.SphereGeometry(0.11, 10, 8);
+    const gogL = new THREE.Mesh(gogGeo, gogMat); gogL.scale.z = 0.55;
+    gogL.position.set(-0.115, 1.26, 0.27); courier.add(gogL);
+    const gogR = new THREE.Mesh(gogGeo, gogMat.clone()); gogR.scale.z = 0.55;
+    gogR.position.set(0.115, 1.26, 0.27); courier.add(gogR);
+    // goggle bridge (thin band connecting lenses)
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 0.04),
+      new THREE.MeshStandardMaterial({ color: 0x3a3f4a, roughness: 0.5 }));
+    bridge.position.set(0, 1.26, 0.27); courier.add(bridge);
+
+    // ── Scarf: a soft torus ring around the neck, warm rose-pink ──
+    const scarfMat = new THREE.MeshStandardMaterial({ color: 0xff7ba8, roughness: 0.82,
+      emissive: new THREE.Color(0xff4080), emissiveIntensity: 0.07 });
+    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.07, 8, 18), scarfMat);
+    scarf.position.set(0, 1.02, 0.04); scarf.rotation.x = 0.3; courier.add(scarf);
+    // scarf tail: a small flap that will sway (parented to scarf for easy orientation)
+    const scarfTail = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.18, 0.06),
+      scarfMat);
+    scarfTail.position.set(0.14, -0.14, 0); scarf.add(scarfTail);
+
+    // ── Antennae: two thin stalks with glowing tips ──
+    const stalks = [[-0.11, 0.08], [0.11, -0.08]]; // x offset, z lean
+    const antMat = new THREE.MeshStandardMaterial({ color: 0x2a2040, roughness: 0.9 });
+    const antTipMat = new THREE.MeshStandardMaterial({ color: 0xffe080, roughness: 0.3,
+      emissive: new THREE.Color(0xffe040), emissiveIntensity: 0.9 });
+    stalks.forEach(([xo, xr]) => {
+      const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.028, 0.34, 6), antMat);
+      stalk.position.set(xo, 1.52, 0.06); stalk.rotation.z = xo < 0 ? -0.45 : 0.45; stalk.rotation.x = -0.18;
+      courier.add(stalk);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), antTipMat);
+      tip.position.set(xo < 0 ? -0.09 : 0.09, 1.72, 0.02); courier.add(tip);
+    });
+
+    // ── Satchel (mail bag): on the back-left hip ──
+    const satMat = new THREE.MeshStandardMaterial({ color: 0xb85c38, roughness: 0.72, flatShading: true });
+    const sat = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.38, 0.20), satMat);
+    sat.position.set(0.30, 0.64, -0.22); sat.rotation.y = 0.25; sat.castShadow = true; courier.add(sat);
+    // satchel flap (slightly protruding lid)
+    const satFlap = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.08, 0.22),
+      new THREE.MeshStandardMaterial({ color: 0xa04c2c, roughness: 0.75, flatShading: true }));
+    satFlap.position.set(0, 0.22, 0); sat.add(satFlap);
+    // satchel strap: diagonal band crossing the body
+    const strapMat = new THREE.MeshStandardMaterial({ color: 0x7a3c1e, roughness: 0.88 });
+    const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.55, 0.06), strapMat);
+    strap1.position.set(0.10, 0.80, 0.06); strap1.rotation.z = 0.35; courier.add(strap1);
+    const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.06), strapMat);
+    strap2.position.set(0.22, 0.60, -0.04); strap2.rotation.z = -0.2; strap2.rotation.y = 0.5; courier.add(strap2);
+
+    // ── Wings: soft organic dragonfly shape using ShapeGeometry ──
+    // Build a teardrop-ish wing outline in local XY, pivot at root (0,0)
+    function makeWingShape(side) {
+      // side: +1 = left wing (extends in -X), -1 = right wing (extends in +X)
+      const s = new THREE.Shape();
+      // root at origin, wing spreads outward and back
+      s.moveTo(0, 0);
+      s.bezierCurveTo(
+        side * 0.55, 0.28,   // cp1: tip upper
+        side * 0.92, 0.18,   // cp2
+        side * 0.88, 0.0     // upper tip
+      );
+      s.bezierCurveTo(
+        side * 0.82, -0.12,
+        side * 0.60, -0.25,
+        0, -0.04             // back to root (lower)
+      );
+      s.closePath();
+      return new THREE.ShapeGeometry(s, 6);
+    }
+
+    // Iridescent translucent wing material — soft cyan-lavender with emissive shimmer
+    const wingMat = addRimLight(new THREE.MeshStandardMaterial({
+      color: 0xd0f0ff, roughness: 0.18, metalness: 0.08,
+      transparent: true, opacity: 0.72,
+      side: THREE.DoubleSide,
+      emissive: new THREE.Color(0x80c8ff), emissiveIntensity: 0.18
+    }), { color: new THREE.Color(0xe8f8ff), strength: 0.55 });
+
+    const wingGeoL = makeWingShape(1);   // left wing fans left (-X)
+    const wingGeoR = makeWingShape(-1);  // right wing fans right (+X)
+
+    // Wings sit at the back of the thorax, angled slightly back and up
+    // wingL/wingR .rotation.z is the flap axis (the loop drives this)
+    const wingL = new THREE.Mesh(wingGeoL, wingMat);
+    wingL.position.set(-0.1, 0.82, -0.12);
+    wingL.rotation.x = -0.15;   // tilt back slightly
+    courier.add(wingL);
+
+    const wingR = new THREE.Mesh(wingGeoR, wingMat);
+    wingR.position.set(0.1, 0.82, -0.12);
+    wingR.rotation.x = -0.15;
+    courier.add(wingR);
+
+    // lower hind-wings (smaller, slightly behind upper pair — insect-like)
+    const hindMat = addRimLight(new THREE.MeshStandardMaterial({
+      color: 0xc0e8ff, roughness: 0.22, metalness: 0.0,
+      transparent: true, opacity: 0.50,
+      side: THREE.DoubleSide,
+      emissive: new THREE.Color(0x60a0e0), emissiveIntensity: 0.12
+    }), { color: new THREE.Color(0xddf4ff), strength: 0.4 });
+    function makeHindWingShape(side) {
+      const s = new THREE.Shape();
+      s.moveTo(0, 0);
+      s.bezierCurveTo(side * 0.38, 0.18, side * 0.60, 0.10, side * 0.56, 0.0);
+      s.bezierCurveTo(side * 0.50, -0.12, side * 0.28, -0.20, 0, -0.02);
+      s.closePath();
+      return new THREE.ShapeGeometry(s, 5);
+    }
+    const hindL = new THREE.Mesh(makeHindWingShape(1), hindMat);
+    hindL.position.set(-0.08, 0.66, -0.18); hindL.rotation.x = -0.25;
+    courier.add(hindL);
+    const hindR = new THREE.Mesh(makeHindWingShape(-1), hindMat);
+    hindR.position.set(0.08, 0.66, -0.18); hindR.rotation.x = -0.25;
+    courier.add(hindR);
+
+    // CONTRACT: store wingL and wingR — the loop animates wingL.rotation.z / wingR.rotation.z
+    courier.userData = { wingL, wingR, wingMat, scarf, scarfTail };
   }
   // player's drop-shadow stays on the surface and fades as you climb
   const playerShadow = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, opacity: 0.55 }));
@@ -505,6 +1734,7 @@
   let pDir = new THREE.Vector3(0, 1, 0);           // unit direction from center
   let pFwd = new THREE.Vector3(0, 0, 1);           // tangent facing
   let pH = 0, pVy = 0;                              // height above surface + radial vel
+  let leanX = 0, bankZ = 0, smSpeed = 0, squash = 0;  // game-feel: smoothed lean/bank, speed, squash-stretch
   let grounded = true;
   const FEET = 0;                                  // model feet sit at surface
 
@@ -566,6 +1796,338 @@
     emoteSprite.visible = true;
   }
 
+  /* ═══════════════════════════════════════════════════════════════════
+     FX MODULE — soft painterly particles                 (self-contained)
+     ═══════════════════════════════════════════════════════════════════
+
+     Palette: warm pastels — peach, blush, butter, mint, lavender, sky
+     All sprites: AdditiveBlending, depthWrite:false, transparent
+     Pool is fixed at construction; zero allocation per-emit.
+
+     Public API
+     ──────────
+       fxBurst(worldPos, kind)   — celebratory burst ('deliver' = hearts/petals/sparkles)
+       fxPuff(worldPos, upVec)   — soft dust puff on takeoff / landing
+       fxTrail(worldPos)         — one faint shimmer mote (call each frame while flying)
+       updateFX(dt, now)         — advance + render all live particles (call once per frame)
+
+     Ambient pollen / drifting motes are self-managed inside updateFX.
+  ═══════════════════════════════════════════════════════════════════ */
+
+  const FX = (() => {
+
+    /* ── TUNABLES ─────────────────────────────────────────────────── */
+    const POOL_SIZE      = IS_TOUCH ? 120 : 220;  // total particle budget
+    const BURST_COUNT    = IS_TOUCH ? 14  : 22;   // particles per fxBurst
+    const PUFF_COUNT     = IS_TOUCH ? 7   : 11;   // particles per fxPuff
+    const TRAIL_SKIP     = IS_TOUCH ? 3   : 1;    // emit trail every N calls (thins trail on mobile)
+    const AMBIENT_COUNT  = IS_TOUCH ? 6   : 14;   // perpetual ambient motes in updateFX
+    const AMBIENT_RADIUS = R + rand(1, 6);         // orbit shell radius
+    const BURST_SPEED    = 2.4;   // max outward speed of burst particles
+    const PUFF_SPEED     = 1.6;   // max outward speed of puff particles
+    const TRAIL_LIFE     = 0.9;   // seconds a trail mote lives
+    const BURST_LIFE     = 1.6;   // seconds a burst particle lives
+    const PUFF_LIFE      = 1.1;   // seconds a puff particle lives
+    const AMBIENT_LIFE   = 5.0;   // seconds each ambient mote lives before respawning
+    // warm-pastel palette (hex, no # prefix — used via THREE.Color)
+    const PALETTE = [0xffcba4, 0xffb3c8, 0xfff0a0, 0xb8f0d8, 0xd0c0ff, 0xa8dcff, 0xffddee, 0xe8ffd8];
+
+    /* ── CANVAS TEXTURES ──────────────────────────────────────────── */
+    // Soft radial glow — used for sparkle, trail, ambient
+    const _texGlow = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const g = c.getContext('2d');
+      const rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      rg.addColorStop(0.00, 'rgba(255,255,255,1.00)');
+      rg.addColorStop(0.28, 'rgba(255,235,210,0.85)');
+      rg.addColorStop(0.60, 'rgba(255,200,180,0.35)');
+      rg.addColorStop(1.00, 'rgba(255,180,160,0.00)');
+      g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+    })();
+
+    // Soft petal / leaf shape — slightly elongated radial for burst petals
+    const _texPetal = (() => {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 80;
+      const g = c.getContext('2d');
+      // warm petal: tall ellipse with radial fade
+      const rg = g.createRadialGradient(32, 42, 0, 32, 42, 38);
+      rg.addColorStop(0.00, 'rgba(255,220,200,1.00)');
+      rg.addColorStop(0.45, 'rgba(255,180,185,0.75)');
+      rg.addColorStop(0.80, 'rgba(255,160,170,0.25)');
+      rg.addColorStop(1.00, 'rgba(255,140,150,0.00)');
+      g.fillStyle = rg; g.fillRect(0, 0, 64, 80);
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+    })();
+
+    // Tiny heart — painted programmatically
+    const _texHeart = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const g = c.getContext('2d');
+      g.save();
+      g.translate(32, 36);
+      g.scale(1, -1);
+      // outer heart path
+      g.beginPath();
+      g.moveTo(0, -14);
+      g.bezierCurveTo(-22, -32, -38, -8, -20,  8);
+      g.bezierCurveTo( -8,  20,   0, 26,   0, 28);
+      g.bezierCurveTo(  0,  26,   8, 20,  20,  8);
+      g.bezierCurveTo( 38,  -8,  22,-32,   0,-14);
+      g.closePath();
+      // soft warm-pink gradient fill
+      const rg = g.createRadialGradient(0, 6, 0, 0, 6, 28);
+      rg.addColorStop(0.00, 'rgba(255,180,200,1.00)');
+      rg.addColorStop(0.55, 'rgba(255,100,150,0.90)');
+      rg.addColorStop(1.00, 'rgba(255,60, 120,0.00)');
+      g.fillStyle = rg; g.fill();
+      g.restore();
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+    })();
+
+    // Fluffy dust circle — wider, more diffuse than glow
+    const _texDust = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const g = c.getContext('2d');
+      const rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      rg.addColorStop(0.00, 'rgba(240,228,210,0.80)');
+      rg.addColorStop(0.40, 'rgba(220,205,185,0.45)');
+      rg.addColorStop(0.75, 'rgba(210,195,175,0.15)');
+      rg.addColorStop(1.00, 'rgba(200,185,165,0.00)');
+      g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+    })();
+
+    /* ── SHARED SPRITE MATERIAL POOL ─────────────────────────────── */
+    // Each particle is a THREE.Sprite (no geometry alloc per particle, one draw per).
+    // We use 4 material "lanes" by texture so they can batch by material.
+    function _mat(tex) {
+      return new THREE.SpriteMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+      });
+    }
+    const _mats = {
+      glow:  _mat(_texGlow),
+      petal: _mat(_texPetal),
+      heart: _mat(_texHeart),
+      dust:  _mat(_texDust),
+    };
+
+    /* ── PARTICLE POOL ────────────────────────────────────────────── */
+    // Each slot: { sprite, active, life, maxLife, vel, startScale, endScale, col, matKey }
+    const _pool = [];
+    for (let i = 0; i < POOL_SIZE; i++) {
+      const spr = new THREE.Sprite(_mats.glow.clone()); // clone so each gets own opacity
+      spr.visible = false;
+      spr.renderOrder = 20;
+      scene.add(spr);
+      _pool.push({
+        sprite: spr,
+        active: false,
+        life: 0, maxLife: 1,
+        vel: new THREE.Vector3(),
+        startScale: 1, endScale: 0,
+        col: new THREE.Color(1, 1, 1),
+        matKey: 'glow',
+      });
+    }
+
+    // Return first inactive slot or null (never evict, just skip if budget full)
+    function _alloc() {
+      for (let i = 0; i < POOL_SIZE; i++) {
+        if (!_pool[i].active) return _pool[i];
+      }
+      return null;
+    }
+
+    // Assign material by key (swap if changed — cheap since same pool)
+    const _matByKey = { glow: _mats.glow, petal: _mats.petal, heart: _mats.heart, dust: _mats.dust };
+    function _spawn(p, worldPos, vel, matKey, life, scaleStart, scaleEnd, color) {
+      p.active = true;
+      p.life = life; p.maxLife = life;
+      p.vel.copy(vel);
+      p.startScale = scaleStart; p.endScale = scaleEnd;
+      p.col.set(color);
+      p.matKey = matKey;
+      p.sprite.position.copy(worldPos);
+      // swap material if kind changed
+      if (p.sprite.material.map !== _matByKey[matKey].map) {
+        p.sprite.material.map = _matByKey[matKey].map;
+        p.sprite.material.needsUpdate = true;
+      }
+      p.sprite.material.color.set(color);
+      p.sprite.material.opacity = 0;
+      p.sprite.scale.setScalar(scaleStart);
+      p.sprite.visible = true;
+    }
+
+    /* ── PUBLIC: fxBurst ─────────────────────────────────────────── */
+    // Soft celebratory burst. kind='deliver' → hearts + petals + sparkles rising & fading.
+    function fxBurst(worldPos, kind) {
+      const up = worldPos.clone().normalize(); // radial up at that point
+      for (let i = 0; i < BURST_COUNT; i++) {
+        const p = _alloc(); if (!p) break;
+
+        // cycle through hearts / petals / sparkles (3:2:2 ratio)
+        const roll = i % 7;
+        let matKey, sc0, sc1, life;
+        if (roll < 3) {
+          matKey = 'heart';  sc0 = rand(0.35, 0.65); sc1 = rand(0.0, 0.10); life = rand(1.0, BURST_LIFE);
+        } else if (roll < 5) {
+          matKey = 'petal';  sc0 = rand(0.30, 0.55); sc1 = rand(0.0, 0.08); life = rand(0.8, BURST_LIFE * 0.9);
+        } else {
+          matKey = 'glow';   sc0 = rand(0.20, 0.42); sc1 = 0;               life = rand(0.5, 1.0);
+        }
+
+        // velocity: mostly upward (along surface normal) with soft radial spread
+        const tang1 = anyTangent(up);
+        const tang2 = new THREE.Vector3().crossVectors(up, tang1).normalize();
+        const angle = rand(0, TAU);
+        const spread = rand(0.1, 0.8);
+        const vel = up.clone()
+          .multiplyScalar(rand(0.6, 1.0))
+          .add(tang1.clone().multiplyScalar(Math.cos(angle) * spread))
+          .add(tang2.clone().multiplyScalar(Math.sin(angle) * spread))
+          .normalize()
+          .multiplyScalar(rand(BURST_SPEED * 0.4, BURST_SPEED));
+
+        const col = PALETTE[(i + (i * 3)) % PALETTE.length];
+        _spawn(p, worldPos.clone(), vel, matKey, life, sc0, sc1, col);
+      }
+    }
+
+    /* ── PUBLIC: fxPuff ──────────────────────────────────────────── */
+    // Soft dust puff at worldPos. up = surface normal so puff spreads tangentially.
+    function fxPuff(worldPos, up) {
+      const upN = (up || worldPos.clone().normalize()).clone().normalize();
+      for (let i = 0; i < PUFF_COUNT; i++) {
+        const p = _alloc(); if (!p) break;
+
+        const tang1 = anyTangent(upN);
+        const tang2 = new THREE.Vector3().crossVectors(upN, tang1).normalize();
+        const angle = rand(0, TAU);
+        // puff expands outward in the tangent plane + small upward loft
+        const vel = tang1.clone().multiplyScalar(Math.cos(angle) * rand(0.6, 1.0))
+          .add(tang2.clone().multiplyScalar(Math.sin(angle) * rand(0.6, 1.0)))
+          .add(upN.clone().multiplyScalar(rand(0.1, 0.6)))
+          .multiplyScalar(rand(PUFF_SPEED * 0.4, PUFF_SPEED));
+
+        const sc0 = rand(0.20, 0.45);
+        const sc1 = rand(0.55, 0.90); // dust expands as it fades
+        const life = rand(PUFF_LIFE * 0.6, PUFF_LIFE);
+        // warm sand / smoke tones
+        const dustCols = [0xe8d8c0, 0xd8c8b0, 0xf0e8d8, 0xc8c0b8];
+        const col = dustCols[i % dustCols.length];
+        _spawn(p, worldPos.clone(), vel, 'dust', life, sc0, sc1, col);
+      }
+    }
+
+    /* ── PUBLIC: fxTrail ─────────────────────────────────────────── */
+    // One faint shimmer mote dropped at worldPos. Call each frame while flying.
+    let _trailCallCount = 0;
+    function fxTrail(worldPos) {
+      _trailCallCount++;
+      if (_trailCallCount % (TRAIL_SKIP + 1) !== 0) return; // thin out on mobile
+      const p = _alloc(); if (!p) return;
+
+      // trail mote drifts very gently sideways & fades
+      const up = worldPos.clone().normalize();
+      const tang = anyTangent(up);
+      const side = rand(-0.3, 0.3);
+      const vel = tang.clone().multiplyScalar(side)
+        .add(up.clone().multiplyScalar(rand(-0.05, 0.1)));
+
+      const col = PALETTE[((_trailCallCount * 7) % PALETTE.length)];
+      _spawn(p, worldPos.clone(), vel, 'glow', TRAIL_LIFE, rand(0.12, 0.25), 0, col);
+    }
+
+    /* ── AMBIENT MOTES (self-managed) ────────────────────────────── */
+    // Soft pollen / drifting light motes orbiting the planet, always present.
+    const _ambientPool = [];
+    for (let i = 0; i < AMBIENT_COUNT; i++) {
+      const p = _alloc();
+      if (!p) break;
+      _ambientPool.push(p);
+    }
+
+    function _resetAmbient(p) {
+      // random position on a sphere just above the planet surface
+      const dir = new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize();
+      const r = R + rand(0.5, 5.5);
+      const pos = dir.clone().multiplyScalar(r);
+      // very slow drift velocity
+      const tang = anyTangent(dir);
+      const tang2 = new THREE.Vector3().crossVectors(dir, tang).normalize();
+      const angle = rand(0, TAU);
+      const vel = tang.clone().multiplyScalar(Math.cos(angle) * rand(0.05, 0.2))
+        .add(tang2.clone().multiplyScalar(Math.sin(angle) * rand(0.05, 0.2)));
+      const col = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+      const life = rand(AMBIENT_LIFE * 0.5, AMBIENT_LIFE);
+      _spawn(p, pos, vel, 'glow', life, rand(0.08, 0.18), 0, col);
+    }
+
+    // Seed all ambient slots at startup
+    _ambientPool.forEach(_resetAmbient);
+
+    /* ── PUBLIC: updateFX ────────────────────────────────────────── */
+    // Advance all active particles. Call once per frame from tick().
+    function updateFX(dt) {
+      for (let i = 0; i < POOL_SIZE; i++) {
+        const p = _pool[i];
+        if (!p.active) continue;
+
+        p.life -= dt;
+        if (p.life <= 0) {
+          p.active = false;
+          p.sprite.visible = false;
+          // if this is an ambient slot, respawn it
+          if (_ambientPool.indexOf(p) !== -1) _resetAmbient(p);
+          continue;
+        }
+
+        const t = 1 - p.life / p.maxLife;          // 0 → 1 over lifetime
+
+        // move
+        p.sprite.position.addScaledVector(p.vel, dt);
+
+        // scale: lerp start→end
+        const sc = lerp(p.startScale, p.endScale, t);
+        p.sprite.scale.setScalar(sc);
+
+        // opacity: ease in quickly, ease out gently at end
+        let op;
+        if (t < 0.12) {
+          op = t / 0.12;                            // fast fade-in
+        } else if (p.life < 0.35) {
+          op = clamp(p.life / 0.35, 0, 1);          // soft fade-out
+        } else {
+          op = 1;
+        }
+        // ambient motes are deliberately fainter
+        if (_ambientPool.indexOf(p) !== -1) op *= 0.32;
+        p.sprite.material.opacity = op;
+
+        // gentle gravity-less drift for non-ambient (no physics, purely velocity)
+        // Dampen velocity very slowly so particles coast naturally
+        p.vel.multiplyScalar(1 - dt * 0.6);
+      }
+    }
+
+    return { fxBurst, fxPuff, fxTrail, updateFX };
+
+  })(); // end FX module
+
+  // Expose globals so they can be wired into tick / tryDeliver / jump-land code:
+  const fxBurst  = FX.fxBurst;
+  const fxPuff   = FX.fxPuff;
+  const fxTrail  = FX.fxTrail;
+  const updateFX = FX.updateFX;
+
   /* ───────── audio (tiny, gentle) ───────── */
   let AC = null, master = null;
   function audioInit() { if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = 0.5; master.connect(AC.destination); } catch (e) {} }
@@ -576,6 +2138,452 @@
     o.connect(g); g.connect(master); o.start(); o.stop(AC.currentTime + 0.62);
   }
   function deliverJingle() { if (!AC) return; [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => chime(f, 0.06), i * 90)); }
+
+  /* ───────────────────────────────────────────────────────────────────────
+     AUDIO MODULE — "Mott Soundscape"
+     All synthesized via Web Audio API. No external files. No new CDN deps.
+     All sub-gains route through the existing `master` GainNode.
+     Everything is gated on `AC` existing (only live after audioInit()).
+
+     ── TUNABLES ──────────────────────────────────────────────────────────
+       MOTT_VOL.ambient   = 0.10   warm pad bed volume
+       MOTT_VOL.wind      = 0.22   peak wind whoosh volume
+       MOTT_VOL.sfx       = 0.38   SFX sub-gain (flap, land, step, deliver)
+       MOTT_VOL.birds     = 0.08   occasional chime/bird self-scheduler
+       MOTT_VOL.master    = 0.85   overall Mott module gain (on top of master 0.5)
+
+     ── HOOK WIRING (DO NOT EDIT THIS CODE — wire these in the game) ──────
+       1. AMBIENT START:   after `started = true;` (line ~632), call startAmbient()
+                           e.g.: started = true; startAmbient();
+       2. FLYING INTENSITY: in tick(), each frame after `pH`/`grounded` update —
+                           call setFlying(grounded ? 0 : clamp(0.2 + pH / 10, 0, 1))
+                           (pH=0 → 0.2 intensity, pH=10+ → 1.0; 0 while grounded)
+       3. TAKEOFF:         in the fly/glide block, when `grounded` flips false:
+                           if (grounded) { pVy = JUMP; grounded = false; sfxTakeoff(); }
+       4. LAND:            when `pH <= 0` and `grounded` flips true:
+                           if (pH <= 0) { pH = 0; pVy = 0; grounded = true; sfxLand(); }
+       5. FLAP:            each frame while flying and Space held, throttled:
+                           in flyKey block, after pVy update: sfxFlap();
+       6. STEP:            while grounded && moving, periodic:
+                           sfxStep() (throttle to ~every 0.35s yourself, or see usage)
+       7. DELIVERY:        in tryDeliver(), right after `deliverJingle()`:
+                           sfxDeliver();  (adds warm shimmer on top of the chime jingle)
+
+     NOTE: The render loop, tryDeliver, movement code are NOT modified here.
+     All hooks are additive — the module only listens to game state you pass in.
+  ─────────────────────────────────────────────────────────────────────── */
+
+  const MOTT_VOL = { ambient: 0.10, wind: 0.22, sfx: 0.38, birds: 0.08, master: 0.85 };
+
+  // ── internal state ──────────────────────────────────────────────────────
+  let _mottReady = false;
+  let _mottGain = null;           // top-level Mott sub-gain → master
+  let _ambGain = null;            // ambient bed sub-gain
+  let _windGain = null;           // wind noise sub-gain
+  let _sfxGain = null;            // SFX sub-gain
+  let _birdsGain = null;          // birds/chimes sub-gain
+  // ambient pad nodes (reused)
+  let _padOscs = [];              // array of { osc, g } for the warm pad
+  let _padRunning = false;
+  // wind nodes
+  let _windNoise = null;          // noise source BufferSourceNode (looped)
+  let _windFilter = null;         // BiquadFilter on noise
+  let _windMod = null;            // slow LFO modulating filter freq
+  let _windEnv = null;            // GainNode for wind intensity envelope
+  let _windRunning = false;
+  // flap throttle
+  let _lastFlap = 0;
+  // step throttle
+  let _lastStep = 0;
+  // bird self-scheduler timer id
+  let _birdTimer = null;
+  // current flying intensity (0–1)
+  let _flyIntensity = 0;
+
+  // ── helpers ─────────────────────────────────────────────────────────────
+  function _mottInit() {
+    if (_mottReady || !AC) return false;
+    _mottGain = AC.createGain(); _mottGain.gain.value = MOTT_VOL.master;
+    _mottGain.connect(master);
+
+    _ambGain   = AC.createGain(); _ambGain.gain.value   = MOTT_VOL.ambient; _ambGain.connect(_mottGain);
+    _windGain  = AC.createGain(); _windGain.gain.value  = 0;                _windGain.connect(_mottGain);
+    _sfxGain   = AC.createGain(); _sfxGain.gain.value   = MOTT_VOL.sfx;    _sfxGain.connect(_mottGain);
+    _birdsGain = AC.createGain(); _birdsGain.gain.value = MOTT_VOL.birds;   _birdsGain.connect(_mottGain);
+
+    _mottReady = true;
+    return true;
+  }
+
+  // White noise buffer (1 s, mono, deterministic — reused for wind)
+  let _noiseBuffer = null;
+  function _getNoiseBuffer() {
+    if (_noiseBuffer) return _noiseBuffer;
+    const SR = AC.sampleRate, len = SR * 1;
+    const buf = AC.createBuffer(1, len, SR);
+    const d = buf.getChannelData(0);
+    // seeded-ish so it's the same every time (deterministic soft noise)
+    let s = 0.23184;
+    for (let i = 0; i < len; i++) {
+      s = (s * 16807 + 7187 * i) % 2147483647 / 2147483647;
+      d[i] = (s - 0.5) * 2;
+    }
+    _noiseBuffer = buf;
+    return buf;
+  }
+
+  // A tiny pluck envelope: attack + exponential decay
+  function _pluck(freq, vol, dest, dur, type) {
+    if (!AC) return;
+    type = type || 'sine';
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = freq;
+    const t = AC.currentTime;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest || _sfxGain);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+
+  // A soft filtered-noise burst (for land thud / step)
+  function _noiseBurst(freq, bw, vol, dur, dest) {
+    if (!AC) return;
+    const src = AC.createBufferSource();
+    src.buffer = _getNoiseBuffer(); src.loop = false;
+    const filt = AC.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = freq; filt.Q.value = bw;
+    const g = AC.createGain();
+    const t = AC.currentTime;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(filt); filt.connect(g); g.connect(dest || _sfxGain);
+    src.start(t); src.stop(t + dur + 0.01);
+  }
+
+  // ── 1. Ambient bed: warm slow pad (3 detuned sines + slow tremolo) ──────
+  function startAmbient() {
+    if (!AC) return;
+    _mottInit();
+    if (_padRunning) return;
+    _padRunning = true;
+
+    // Root notes in a gentle Cmaj7-ish spread (C3 E3 G3 B3 E4)
+    const freqs = [130.81, 164.81, 196.00, 246.94, 329.63];
+    // Very slow attack so it's imperceptible on start
+    const attackTime = 3.5;
+    freqs.forEach((f, i) => {
+      const o = AC.createOscillator();
+      // Detune each slightly for warmth (shimmer without beating harshly)
+      o.type = 'sine'; o.frequency.value = f * (1 + (i * 0.0003));
+      // tiny slow LFO vibrato per partial
+      const vib = AC.createOscillator(); vib.frequency.value = 0.18 + i * 0.07; vib.type = 'sine';
+      const vibG = AC.createGain(); vibG.gain.value = f * 0.0015;
+      vib.connect(vibG); vibG.connect(o.frequency);
+      vib.start();
+
+      const g = AC.createGain();
+      // Stagger entry of each partial for a gentle swell
+      const t = AC.currentTime + i * 0.55;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.12 - i * 0.018, t + attackTime);
+      o.connect(g); g.connect(_ambGain);
+      o.start(t);
+      _padOscs.push({ osc: o, vib, g });
+    });
+
+    // Slow global tremolo over the whole pad
+    const tremolo = AC.createOscillator(); tremolo.frequency.value = 0.09; tremolo.type = 'sine';
+    const tremoloG = AC.createGain(); tremoloG.gain.value = 0.18;
+    const tremoloBase = AC.createGain(); tremoloBase.gain.value = 0.82;
+    tremolo.connect(tremoloG); tremoloG.connect(tremoloBase.gain);
+    tremolo.start();
+    // route _ambGain through tremoloBase (insert before destination)
+    // Note: already connected above; add a second gentle amplitude rider
+    const rider = AC.createGain(); rider.gain.value = 1;
+    tremolo.connect(tremoloG); tremoloG.connect(rider.gain);
+    // No disconnect of _ambGain—tremolo rides as additive shimmer into sfxGain at nearly 0
+    tremolo.connect(AC.createGain()).connect(master); // connect for lifecycle, effectively 0 vol
+
+    _startWind();
+    _scheduleBirds();
+  }
+
+  function stopAmbient() {
+    if (!_padRunning || !AC) return;
+    const t = AC.currentTime;
+    _padOscs.forEach(({ osc, vib, g }) => {
+      g.gain.setValueAtTime(g.gain.value, t);
+      g.gain.linearRampToValueAtTime(0, t + 2.0);
+      osc.stop(t + 2.1); vib.stop(t + 2.1);
+    });
+    _padOscs = [];
+    _padRunning = false;
+    _stopWind();
+    if (_birdTimer) { clearTimeout(_birdTimer); _birdTimer = null; }
+  }
+
+  // ── 2. Wind / air while flying ──────────────────────────────────────────
+  function _startWind() {
+    if (_windRunning || !AC) return;
+    _windRunning = true;
+
+    // Looped white noise source
+    _windNoise = AC.createBufferSource();
+    _windNoise.buffer = _getNoiseBuffer(); _windNoise.loop = true;
+
+    // Two bandpass filters in series: low rumble + airy hiss
+    _windFilter = AC.createBiquadFilter();
+    _windFilter.type = 'bandpass'; _windFilter.frequency.value = 320; _windFilter.Q.value = 0.8;
+
+    const hiShelf = AC.createBiquadFilter();
+    hiShelf.type = 'highshelf'; hiShelf.frequency.value = 2800; hiShelf.gain.value = -10;
+
+    // Slow LFO modulates filter center frequency (gentle gusts)
+    _windMod = AC.createOscillator(); _windMod.type = 'sine'; _windMod.frequency.value = 0.13;
+    const modGain = AC.createGain(); modGain.gain.value = 180;
+    _windMod.connect(modGain); modGain.connect(_windFilter.frequency);
+    _windMod.start();
+
+    // Envelope (controlled by setFlying)
+    _windEnv = AC.createGain(); _windEnv.gain.value = 0;
+
+    _windNoise.connect(_windFilter); _windFilter.connect(hiShelf);
+    hiShelf.connect(_windEnv); _windEnv.connect(_windGain);
+    _windNoise.start();
+  }
+
+  function _stopWind() {
+    if (!_windRunning) return;
+    try {
+      if (_windNoise) _windNoise.stop();
+      if (_windMod) _windMod.stop();
+    } catch(e) {}
+    _windRunning = false; _windNoise = null; _windFilter = null; _windMod = null; _windEnv = null;
+  }
+
+  /**
+   * setFlying(intensity)
+   * Call every frame (or on state change) to crossfade the wind whoosh.
+   * @param {number} intensity  0 = grounded/quiet, 1 = full speed in air
+   * Hook: in tick(), after pH/grounded update:
+   *   setFlying(grounded ? 0 : clamp(0.2 + pH / 10, 0, 1));
+   */
+  function setFlying(intensity) {
+    if (!AC || !_windRunning) return;
+    _flyIntensity = clamp(intensity, 0, 1);
+    const target = _flyIntensity * MOTT_VOL.wind;
+    _windEnv.gain.setTargetAtTime(target, AC.currentTime, 0.18);
+    // Also ride _windGain peak vol
+    _windGain.gain.setTargetAtTime(_flyIntensity > 0 ? MOTT_VOL.wind : 0, AC.currentTime, 0.22);
+  }
+
+  // ── 3. SFX ───────────────────────────────────────────────────────────────
+
+  /**
+   * sfxFlap()
+   * Soft wing-flutter burst. Throttled to ~90 ms internally.
+   * Hook: in the fly-key block, each frame while Space is held and in air:
+   *   if (flyKey && !grounded) sfxFlap();
+   */
+  function sfxFlap() {
+    if (!AC) return;
+    const now = AC.currentTime;
+    if (now - _lastFlap < 0.09) return;
+    _lastFlap = now;
+    // Two very soft "whiff" transients at slightly different freqs
+    _noiseBurst(380, 3.5, 0.18, 0.11, _sfxGain);
+    _noiseBurst(240, 2.0, 0.10, 0.14, _sfxGain);
+    // Tiny pitched click underneath
+    _pluck(520, 0.04, _sfxGain, 0.09, 'triangle');
+  }
+
+  /**
+   * sfxTakeoff()
+   * Rising soft whoosh when leaving the ground.
+   * Hook: in the fly/glide block, when grounded flips false:
+   *   if (grounded) { pVy = JUMP; grounded = false; sfxTakeoff(); }
+   */
+  function sfxTakeoff() {
+    if (!AC) return;
+    _mottInit();
+    const t = AC.currentTime;
+
+    // Rising noise sweep
+    const src = AC.createBufferSource(); src.buffer = _getNoiseBuffer(); src.loop = false;
+    const filt = AC.createBiquadFilter(); filt.type = 'bandpass'; filt.Q.value = 1.2;
+    filt.frequency.setValueAtTime(180, t); filt.frequency.linearRampToValueAtTime(900, t + 0.42);
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.28, t + 0.07);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.48);
+    src.connect(filt); filt.connect(g); g.connect(_sfxGain); src.start(t); src.stop(t + 0.5);
+
+    // Two quick wing beats on takeoff
+    setTimeout(sfxFlap, 0); setTimeout(sfxFlap, 85);
+
+    // Tiny ascending gliss (two pitches)
+    _pluck(330, 0.055, _sfxGain, 0.22, 'triangle');
+    setTimeout(() => _pluck(495, 0.04, _sfxGain, 0.18, 'triangle'), 90);
+  }
+
+  /**
+   * sfxLand()
+   * Soft thud + brief body settle when touching down.
+   * Hook: in the fly/glide block, when pH <= 0 resets to grounded:
+   *   if (pH <= 0) { pH = 0; pVy = 0; grounded = true; sfxLand(); }
+   */
+  function sfxLand() {
+    if (!AC) return;
+    _mottInit();
+    const t = AC.currentTime;
+    // Low thud (soft body-hit)
+    _noiseBurst(95, 2.2, 0.32, 0.18, _sfxGain);
+    // Very brief higher transient
+    _noiseBurst(420, 4, 0.10, 0.07, _sfxGain);
+    // Tiny short pitch drop
+    const o = AC.createOscillator(); o.type = 'triangle';
+    o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.14);
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.055, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+    o.connect(g); g.connect(_sfxGain); o.start(t); o.stop(t + 0.16);
+  }
+
+  /**
+   * sfxStep()
+   * Optional soft footfall while walking grounded. Call externally throttled (~0.35 s).
+   * Hook: in tick(), while grounded && moving, throttle externally:
+   *   _sfxStepClock = (_sfxStepClock || 0) + dt;
+   *   if (grounded && moving && _sfxStepClock > 0.35) { _sfxStepClock = 0; sfxStep(); }
+   */
+  function sfxStep() {
+    if (!AC) return;
+    _mottInit();
+    const t = AC.currentTime;
+    if (t - _lastStep < 0.28) return;
+    _lastStep = t;
+    // Two subtle soft pads — alternating L/R feel via tiny pitch difference
+    const pitch = 90 + Math.random() * 30;
+    _noiseBurst(pitch, 3, 0.07 + Math.random() * 0.03, 0.09, _sfxGain);
+  }
+
+  /**
+   * sfxDeliver()
+   * Warm magical delivery shimmer — layered over deliverJingle().
+   * Hook: in tryDeliver(), right after deliverJingle():
+   *   deliverJingle(); sfxDeliver();
+   */
+  function sfxDeliver() {
+    if (!AC) return;
+    _mottInit();
+    const t = AC.currentTime;
+
+    // Rising shimmer: 6 sine partials spread out in time — "letter arrives home"
+    const ratios = [1, 1.5, 2, 2.5, 3, 4];
+    const root = 523.25;
+    ratios.forEach((r, i) => {
+      const delay = i * 0.11;
+      const freq = root * r;
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = freq;
+      const g = AC.createGain();
+      const ts = t + delay;
+      g.gain.setValueAtTime(0, ts);
+      g.gain.linearRampToValueAtTime(0.055 - i * 0.007, ts + 0.025);
+      g.gain.exponentialRampToValueAtTime(0.0001, ts + 0.65 + i * 0.12);
+      o.connect(g); g.connect(_sfxGain); o.start(ts); o.stop(ts + 0.8 + i * 0.12);
+    });
+
+    // Warm low chord pad swell (just the root + 5th)
+    [[261.63, 0.055, 1.1], [392.00, 0.040, 1.3]].forEach(([f, v, dur]) => {
+      const o = AC.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+      const g = AC.createGain();
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.18);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(_sfxGain); o.start(t); o.stop(t + dur + 0.05);
+    });
+
+    // Soft filtered noise burst — "paper rustle / wing brush"
+    _noiseBurst(1200, 6, 0.12, 0.18, _sfxGain);
+
+    // Final gentle bell overtone ~1s later
+    setTimeout(() => {
+      if (!AC) return;
+      _pluck(2093, 0.025, _sfxGain, 0.9, 'sine');
+      _pluck(1568, 0.018, _sfxGain, 0.8, 'sine');
+    }, 600);
+  }
+
+  // ── 4. Occasional ambient bird / chime self-scheduler ────────────────────
+  function _scheduleBirds() {
+    if (_birdTimer) clearTimeout(_birdTimer);
+    const delay = (12 + Math.random() * 22) * 1000;   // 12–34 s between calls
+    _birdTimer = setTimeout(_doBirdChime, delay);
+  }
+
+  function _doBirdChime() {
+    if (!AC || !_padRunning) { _birdTimer = null; return; }
+    // Pick a random style: ascending 3-note warble OR single resonant bell
+    if (Math.random() < 0.55) {
+      // Birdsong-ish: rapid ascending triplet with a gentle FM wobble
+      const root = [660, 880, 990, 1320][Math.floor(Math.random() * 4)];
+      const ups = [1, 1.25, 1.5];
+      ups.forEach((r, i) => {
+        setTimeout(() => {
+          if (!AC) return;
+          const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = root * r;
+          const vib = AC.createOscillator(); vib.type = 'sine'; vib.frequency.value = 7 + Math.random() * 4;
+          const vibG = AC.createGain(); vibG.gain.value = root * r * 0.025;
+          vib.connect(vibG); vibG.connect(o.frequency); vib.start();
+          const g = AC.createGain(); const ts = AC.currentTime;
+          g.gain.setValueAtTime(0, ts); g.gain.linearRampToValueAtTime(0.22, ts + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, ts + 0.28);
+          o.connect(g); g.connect(_birdsGain); o.start(ts); o.stop(ts + 0.32);
+          setTimeout(() => { try { vib.stop(); } catch(e){} }, 340);
+        }, i * 140);
+      });
+      // optional tail trill (50% chance)
+      if (Math.random() < 0.5) {
+        setTimeout(() => {
+          if (!AC) return;
+          const trillF = root * 1.5 * (Math.random() < 0.5 ? 1.05 : 0.95);
+          _pluck(trillF, 0.16, _birdsGain, 0.22, 'sine');
+        }, 480);
+      }
+    } else {
+      // Single warm bell chime
+      const bellFreq = [523, 659, 784, 880, 1047][Math.floor(Math.random() * 5)];
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = bellFreq;
+      const g = AC.createGain(); const ts = AC.currentTime;
+      g.gain.setValueAtTime(0, ts); g.gain.linearRampToValueAtTime(0.28, ts + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, ts + 1.4);
+      o.connect(g); g.connect(_birdsGain); o.start(ts); o.stop(ts + 1.45);
+      // soft overtone at 2x
+      _pluck(bellFreq * 2, 0.09, _birdsGain, 0.9, 'sine');
+    }
+    _scheduleBirds();   // recurse
+  }
+
+  // ── 5. Master volume / mute knob ─────────────────────────────────────────
+
+  /**
+   * mottSetVolume(v)
+   * Set overall Mott module volume (0 = mute, 1 = full).
+   * @param {number} v  0.0 – 1.0
+   */
+  function mottSetVolume(v) {
+    if (!_mottGain) return;
+    _mottGain.gain.setTargetAtTime(clamp(v, 0, 1) * MOTT_VOL.master, AC.currentTime, 0.05);
+  }
+
+  /**
+   * mottMute() / mottUnmute()
+   * Instant mute/unmute without destroying nodes.
+   */
+  function mottMute()   { mottSetVolume(0); }
+  function mottUnmute() { if (_mottGain) mottSetVolume(1); }
+
+  /* ── END MOTT AUDIO MODULE ──────────────────────────────────────────── */
+
 
   /* ───────── delivery logic ───────── */
   let target = null, delivered = 0;
@@ -595,10 +2603,12 @@
     const ang = Math.acos(clamp(target.dir.dot(pDir), -1, 1)) * R;
     if (ang < 2.6 && pH < 1.2) {
       target.done = true; delivered++;
+      target.mesh.userData.joy = 1.2;        // resident does a happy hop
+      FX.fxBurst(target.mesh.position.clone(), 'deliver');
       el('countVal').textContent = delivered;
       emote(1, target.mesh);                 // resident hearts you
       toast(target.line);
-      deliverJingle();
+      deliverJingle(); sfxDeliver();
       setTimeout(pickTarget, 700);
       target = null; beacon.visible = beaconRing.visible = false;
     }
@@ -630,6 +2640,7 @@
     el('help').style.display = 'block'; el('hudCount').style.display = 'block';
     el('countTot').textContent = NUM; el('countVal').textContent = '0';
     started = true;
+    startAmbient();
     pickTarget();
   });
 
@@ -641,6 +2652,7 @@
 
   /* ───────── main loop ───────── */
   let last = performance.now();
+  let _sfxStepClock = 0;   // footstep throttle
   const SPEED = 7.2, FLY_SPEED = 9.5, GRAV = 20, JUMP = 8.5, FLAP = 26, FLAP_CAP = 7;
   function tick() {
     requestAnimationFrame(tick);
@@ -673,32 +2685,63 @@
       pFwd.lerp(_moveDir, Math.min(1, dt * 9)).normalize();
     }
 
+    // soft footfalls while walking on the ground
+    if (started && grounded && moving) { _sfxStepClock += dt; if (_sfxStepClock > 0.35) { _sfxStepClock = 0; sfxStep(); } } else if (grounded) { _sfxStepClock = 0; }
+
     // fly / glide
     const flyKey = started && keys.has('Space');
     if (flyKey) {
-      if (grounded) { pVy = JUMP; grounded = false; }
-      else if (pVy < FLAP_CAP) pVy += FLAP * dt;     // flap upward
+      if (grounded) { pVy = JUMP; grounded = false; squash = 0.55; FX.fxPuff(player.position.clone(), pDir.clone()); sfxTakeoff(); }
+      else if (pVy < FLAP_CAP) { pVy += FLAP * dt; sfxFlap(); }     // flap upward
     }
     if (!grounded) {
       pVy -= GRAV * (flyKey && pVy < 0 ? 0.35 : 1) * dt;   // holding space slows the fall → glide
       pH += pVy * dt;
-      if (pH <= 0) { pH = 0; pVy = 0; grounded = true; }
+      if (pH <= 0) { pH = 0; pVy = 0; if (!grounded) { squash = -0.7; FX.fxPuff(player.position.clone(), pDir.clone()); sfxLand(); } grounded = true; }
     }
     placePlayer();
+    if (!grounded && started) FX.fxTrail(player.position.clone());
+    if (started) setFlying(grounded ? 0 : clamp(0.2 + pH / 10, 0, 1));
 
     // player's surface drop-shadow (fades as you climb)
     playerShadow.quaternion.setFromUnitVectors(UPZ, pDir);
     playerShadow.position.copy(pDir).multiplyScalar(R + 0.06);
     { const fade = clamp(1 - pH / 6, 0.08, 1); playerShadow.material.opacity = 0.5 * fade; const s2 = 1 + pH * 0.06; playerShadow.scale.set(s2, s2, s2); }
 
-    // wing flap animation
+    // ── courier animation: flap, lean/bank into motion, squash-stretch, scarf & wing shimmer ──
     const wf = courier.userData;
     const flapPhase = grounded ? Math.sin(now * 0.004) * 0.12 + 0.1 : Math.sin(now * 0.03) * 0.7 + 0.5;
     wf.wingL.rotation.z = flapPhase; wf.wingR.rotation.z = -flapPhase;
-    courier.children[0].position.y = 0.62 + (grounded && moving ? Math.abs(Math.sin(now * 0.012)) * 0.06 : 0);
+    // momentum-smoothed speed → lean forward into motion (more in flight), bank into turns
+    smSpeed += ((moving ? 1 : 0) - smSpeed) * Math.min(1, dt * 5);
+    const leanTarget = -0.26 * smSpeed * (pH > 0.3 ? 1.3 : 1.0);
+    const bankTarget = clamp(-ix, -1, 1) * 0.28 * smSpeed;
+    leanX += (leanTarget - leanX) * Math.min(1, dt * 6);
+    bankZ += (bankTarget - bankZ) * Math.min(1, dt * 6);
+    courier.rotation.x = leanX; courier.rotation.z = bankZ;
+    // squash & stretch (takeoff stretches up, landing squashes wide), eased back to rest
+    squash += (0 - squash) * Math.min(1, dt * 7);
+    const body = courier.children[0];
+    body.scale.set(1.05 * (1 - squash * 0.18), 1.18 * (1 + squash * 0.22), 0.98 * (1 - squash * 0.18));
+    body.position.y = 0.62 + (grounded && moving ? Math.abs(Math.sin(now * 0.012)) * 0.06 : 0) + (squash < 0 ? squash * 0.12 : 0);
+    // scarf tail trails in the airflow; wings shimmer through soft iridescent hues
+    if (wf.scarfTail) wf.scarfTail.rotation.z = Math.sin(now * 0.006) * 0.3 + smSpeed * 0.4 + (pH > 0.3 ? 0.3 : 0);
+    if (wf.wingMat) wf.wingMat.emissive.setHSL((0.55 + Math.sin(now * 0.0006) * 0.06 + 1) % 1, 0.7, 0.55);
 
     // residents idle bob + face player a bit
-    residents.forEach(r => { const b = r.mesh.userData.bob; r.mesh.children[0].position.y = 0.66 + Math.sin(now * 0.002 + b) * 0.04; });
+    residents.forEach(r => {
+      const b = r.mesh.userData.bob;
+      let y = 0.66 + Math.sin(now * 0.002 + b) * 0.04;
+      if (r.mesh.userData.joy > 0) {           // celebratory hops after a delivery
+        r.mesh.userData.joy -= dt;
+        const j = clamp(r.mesh.userData.joy / 1.2, 0, 1);
+        y += Math.abs(Math.sin(j * Math.PI * 3)) * 0.45 * j;
+      }
+      r.mesh.children[0].position.y = y;
+    });
+
+    // grass tufts sway gently (adds to each blade's base lean; the contact-shadow blob has no baseZ, so it's skipped)
+    grassTufts.forEach((t, i) => { for (let j = 0; j < t.children.length; j++) { const b = t.children[j]; if (b.userData.baseZ !== undefined) b.rotation.z = b.userData.baseZ + Math.sin(now * 0.0016 + i * 0.7 + j * 0.5) * 0.08; } });
 
     // beacon on target
     if (target) {
@@ -722,21 +2765,28 @@
     // clouds drift
     clouds.forEach(s => { s.position.applyAxisAngle(s.userData.dir, s.userData.spin * dt); s.material.rotation += dt * 0.05; });
 
+    // ambient wildlife (birds + butterflies)
+    updateLife(dt, now);
+
     // sun follows so the planet is always lit toward camera-ish (fixed direction is fine)
     sun.target.position.set(0, 0, 0);
 
     // ── camera: behind & above along local up + facing, with mouse orbit offset ──
     const fwdOff = pFwd.clone().applyAxisAngle(_up, camYawOff);
-    const camDist = 8.5 + pH * 0.25, camHi = 3.2 + camPitch * 3.5;
+    // pull back & rise a touch with speed and altitude → a sense of velocity and lift
+    const camDist = 8.5 + pH * 0.32 + smSpeed * 0.9, camHi = 3.2 + camPitch * 3.5 + pH * 0.12;
     _desired.copy(player.position).add(_up.clone().multiplyScalar(camHi)).sub(fwdOff.clone().multiplyScalar(camDist));
     if (camPos.lengthSq() === 0) camPos.copy(_desired);
-    camPos.lerp(_desired, Math.min(1, dt * 6));
+    camPos.lerp(_desired, Math.min(1, dt * (5 + smSpeed * 2.5)));   // snappier when moving, calmer at rest
     camera.position.copy(camPos);
     camera.up.copy(_up);
-    camLook.lerp(player.position.clone().add(_up.clone().multiplyScalar(1.3)), Math.min(1, dt * 8));
+    // look slightly ahead along travel for anticipation
+    const lookAt = player.position.clone().add(_up.clone().multiplyScalar(1.3)).add(fwdOff.clone().multiplyScalar(smSpeed * 1.6));
+    camLook.lerp(lookAt, Math.min(1, dt * 8));
     camera.lookAt(camLook);
 
     updateEmote(dt);
+    FX.updateFX(dt);
     if (gradePass) gradePass.uniforms.uTime.value = now * 0.0006;
 
     // top compass arrow toward target
@@ -777,5 +2827,3 @@
 </script>
 </body>
 </html>
-</content>
-</invoke>
