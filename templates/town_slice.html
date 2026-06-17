@@ -7,16 +7,81 @@
 <title>THE FLY — town</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #c8d8e8; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #c8d8e8; font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
   #wrap { position: fixed; inset: 0; }
   canvas { display: block; width: 100%; height: 100%; }
-  #tag { position: absolute; left: 14px; bottom: 12px; z-index: 5; font: 500 11px ui-monospace, Menlo, monospace;
-         color: #fff; background: rgba(10,14,22,0.55); padding: 6px 10px; border-radius: 8px;
-         backdrop-filter: blur(6px); letter-spacing: .04em; }
+
+  /* ── HUD ── */
+  #hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+  #task {
+    position: absolute; left: 16px; top: 14px; min-width: 210px;
+    background: rgba(14,20,30,0.62); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 14px;
+    padding: 11px 15px; color: #fff; box-shadow: 0 8px 28px rgba(0,0,0,.28);
+  }
+  #task .lbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #ffd27a; font-weight: 700; }
+  #task .dst { font-size: 19px; font-weight: 800; margin-top: 2px; letter-spacing: .01em; }
+  #task .sub { font-size: 11px; opacity: .7; margin-top: 3px; }
+  #score {
+    position: absolute; right: 16px; top: 14px; text-align: right;
+    background: rgba(14,20,30,0.62); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 14px;
+    padding: 10px 16px; color: #fff; box-shadow: 0 8px 28px rgba(0,0,0,.28);
+  }
+  #score .n { font-size: 26px; font-weight: 800; line-height: 1; color: #7fe0a0; }
+  #score .l { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; opacity: .65; margin-top: 3px; }
+  /* compass needle to the target */
+  #compass {
+    position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
+    width: 54px; height: 54px; border-radius: 50%;
+    background: rgba(14,20,30,0.55); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.16); display: grid; place-items: center;
+    box-shadow: 0 6px 22px rgba(0,0,0,.28);
+  }
+  #needle { font-size: 22px; color: #ffd27a; transition: transform .08s linear; text-shadow: 0 0 8px rgba(255,200,90,.7); }
+  #dist { position: absolute; left: 50%; top: 74px; transform: translateX(-50%); font-size: 11px; color: #fff;
+          background: rgba(14,20,30,0.5); padding: 2px 9px; border-radius: 8px; font-weight: 700; }
+  #hint {
+    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    font: 600 11px ui-monospace, Menlo, monospace; color: #fff; opacity: .82;
+    background: rgba(10,14,22,0.5); padding: 7px 13px; border-radius: 10px;
+    backdrop-filter: blur(6px); letter-spacing: .03em; text-align: center; white-space: nowrap;
+  }
+  #toast {
+    position: absolute; left: 50%; top: 38%; transform: translate(-50%,-50%) scale(.8);
+    font-size: 30px; font-weight: 900; color: #fff; text-shadow: 0 4px 18px rgba(0,0,0,.5);
+    opacity: 0; transition: opacity .25s, transform .25s; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  /* touch controls */
+  #touch { position: absolute; inset: 0; pointer-events: none; }
+  .tpad { position: absolute; pointer-events: auto; -webkit-user-select: none; user-select: none; touch-action: none; }
+  #stick { left: 20px; bottom: 22px; width: 128px; height: 128px; border-radius: 50%;
+           background: rgba(255,255,255,.10); border: 1.5px solid rgba(255,255,255,.25); }
+  #knob  { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px;
+           border-radius: 50%; background: rgba(255,255,255,.32); border: 1.5px solid rgba(255,255,255,.5); }
+  #btnUp, #btnDn { right: 24px; width: 64px; height: 64px; border-radius: 50%;
+                   background: rgba(255,255,255,.14); border: 1.5px solid rgba(255,255,255,.3);
+                   color: #fff; font-size: 26px; display: grid; place-items: center; font-weight: 800; }
+  #btnUp { bottom: 96px; } #btnDn { bottom: 22px; }
+  @media (hover: hover) and (pointer: fine) { #touch { display: none; } }
 </style>
 </head>
 <body>
-<div id="wrap"><div id="tag">THE FLY · town — drag to orbit · scroll to zoom</div></div>
+<div id="wrap"></div>
+<div id="hud">
+  <div id="task"><div class="lbl">Pick up letter</div><div class="dst">—</div><div class="sub"></div></div>
+  <div id="score"><div class="n">0</div><div class="l">delivered</div></div>
+  <div id="compass"><div id="needle">▲</div></div>
+  <div id="dist">—</div>
+  <div id="toast"></div>
+  <div id="hint">W/S throttle · A/D turn · Space ascend · Shift descend</div>
+  <div id="touch">
+    <div id="stick" class="tpad"><div id="knob"></div></div>
+    <div id="btnUp" class="tpad">▲</div>
+    <div id="btnDn" class="tpad">▼</div>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
@@ -260,6 +325,7 @@ const matChrome   = new THREE.MeshStandardMaterial({ color: 0xc0c4cc, roughness:
 ═══════════════════════════════════════════════ */
 const root = new THREE.Group(); scene.add(root);
 const winGlass = [], winLit = [], winFrame = [];
+const ADDR = [];   // delivery anchors: { name, pos }
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3();
 
 /* ═══════════════════════════════════════════════
@@ -269,6 +335,16 @@ const SW = 7.4;   // half street width
 const SDW = 5.2;  // sidewalk depth
 const CH = 0.24;  // curb / raised sidewalk height
 const BL = 88;    // block length
+
+// big base ground beneath everything (so nothing reads as void from the air)
+const baseGroundTex = (() => {
+  const c = cnv(128,128), g = c.getContext('2d');
+  g.fillStyle = '#9aa18c'; g.fillRect(0,0,128,128);
+  for (let i=0;i<2400;i++){ g.fillStyle = `rgba(0,0,0,${Math.random()*0.05})`; g.fillRect(Math.random()*128,Math.random()*128,1,1); }
+  return tex(c, { repeat: [22,22], aniso: 4 });
+})();
+const base = new THREE.Mesh(new THREE.PlaneGeometry(420, 420), new THREE.MeshStandardMaterial({ map: baseGroundTex, roughness: 1 }));
+base.rotation.x = -Math.PI/2; base.position.y = -0.04; base.receiveShadow = true; root.add(base);
 
 const road = new THREE.Mesh(new THREE.PlaneGeometry(BL, SW*2), matAsphalt);
 road.rotation.x = -Math.PI/2; road.receiveShadow = true; root.add(road);
@@ -429,6 +505,9 @@ function makeBuilding(cx, cz, w, d, floors, faceSign, wallHex, shopName, signBg,
   // windows
   const faceZ = cz + faceSign*(d/2);
   addWindows(cx, faceZ, w-0.8, h, floors, 0);
+
+  // register this shop as a delivery address (anchor a bit out toward the street)
+  ADDR.push({ name: shopName, pos: new THREE.Vector3(cx, 2.2, faceZ + faceSign*1.2) });
 
   // side-wall windows (rough)
   if (Math.random() < 0.5) {
@@ -906,14 +985,161 @@ npcDefs.forEach(([sh,pa,sk,ha], i) => {
 });
 
 /* ═══════════════════════════════════════════════
-   CAMERA ORBIT
+   PLAYER — the Fly (courier)
 ═══════════════════════════════════════════════ */
-let yaw = -0.65, pitch = 0.18, dist = 22, drag = false, lx = 0, ly = 0;
-const target = new THREE.Vector3(2, 3.0, 0);
-canvas.addEventListener('pointerdown', e => { drag=true; lx=e.clientX; ly=e.clientY; canvas.setPointerCapture(e.pointerId); });
-canvas.addEventListener('pointerup',   () => drag=false);
-canvas.addEventListener('pointermove', e => { if(!drag) return; yaw -= (e.clientX-lx)*0.005; pitch = clamp(pitch+(e.clientY-ly)*0.004, 0.06, 1.1); lx=e.clientX; ly=e.clientY; });
-canvas.addEventListener('wheel',       e => { dist = clamp(dist+e.deltaY*0.02, 10, 80); }, { passive: true });
+function makeFly() {
+  const g = new THREE.Group();
+  // body
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2b2f38, roughness: 0.55, metalness: 0.15 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 18, 14), bodyMat);
+  body.scale.set(1, 0.86, 1.35); body.castShadow = true; g.add(body);
+  // belly stripe
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.43, 16, 12), new THREE.MeshStandardMaterial({ color: 0xe0b558, roughness: 0.6 }));
+  belly.scale.set(0.7, 0.55, 1.0); belly.position.set(0, -0.16, 0.1); g.add(belly);
+  // head
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 12), bodyMat);
+  head.position.set(0, 0.18, 0.5); head.castShadow = true; g.add(head);
+  // goggles
+  const goggMat = new THREE.MeshStandardMaterial({ color: 0x4a3320, roughness: 0.5 });
+  const goggLens = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x2a90b0, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.4 });
+  [-0.13,0.13].forEach(dx => {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.035, 8, 14), goggMat);
+    ring.position.set(dx, 0.22, 0.72); g.add(ring);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.09, 14), goggLens);
+    lens.position.set(dx, 0.22, 0.735); g.add(lens);
+  });
+  // strap
+  const strap = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.03, 6, 18), goggMat);
+  strap.position.set(0, 0.22, 0.5); strap.rotation.y = Math.PI/2; g.add(strap);
+  // antennae
+  [-0.1,0.1].forEach(dx => {
+    const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.22,5), bodyMat);
+    ant.position.set(dx, 0.42, 0.55); ant.rotation.x = -0.4; g.add(ant);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.04,8,6), new THREE.MeshStandardMaterial({ color: 0xffd060, emissive: 0xffb020, emissiveIntensity: 0.8 }));
+    tip.position.set(dx, 0.53, 0.49); g.add(tip);
+  });
+  // scarf
+  const scarfMat = new THREE.MeshStandardMaterial({ color: 0xd0473e, roughness: 0.8, side: THREE.DoubleSide });
+  const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.07, 6, 16), scarfMat);
+  scarf.position.set(0, 0.02, 0.34); scarf.rotation.x = 1.4; g.add(scarf);
+  const tail = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.6), scarfMat);
+  tail.position.set(-0.18, -0.05, 0.15); tail.rotation.set(0.3, 0.4, 0.3); g.add(tail);
+  g.userData.scarfTail = tail;
+  // satchel (mail bag)
+  const bag = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.18), new THREE.MeshStandardMaterial({ color: 0x8a5a30, roughness: 0.85 }));
+  bag.position.set(0.32, -0.1, -0.05); bag.castShadow = true; g.add(bag);
+  const flap = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.2), new THREE.MeshStandardMaterial({ color: 0x6e441f, roughness: 0.85 }));
+  flap.position.set(0.32, 0.04, -0.05); g.add(flap);
+  // wings
+  const wingMat = new THREE.MeshStandardMaterial({ color: 0xeaf4ff, transparent: true, opacity: 0.5, roughness: 0.2, metalness: 0.1, side: THREE.DoubleSide, emissive: 0x88b0d0, emissiveIntensity: 0.15 });
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0,0); wingShape.quadraticCurveTo(0.5, 0.5, 1.0, 0.18);
+  wingShape.quadraticCurveTo(0.85,-0.05, 0.55,-0.2); wingShape.quadraticCurveTo(0.25,-0.2, 0,0);
+  const wingGeo = new THREE.ShapeGeometry(wingShape);
+  const wingL = new THREE.Mesh(wingGeo, wingMat); wingL.position.set(-0.18, 0.25, -0.05); g.add(wingL);
+  const wingR = new THREE.Mesh(wingGeo, wingMat); wingR.position.set(0.18, 0.25, -0.05); wingR.scale.x = -1; g.add(wingR);
+  g.userData.wingL = wingL; g.userData.wingR = wingR;
+  return g;
+}
+const fly = makeFly(); scene.add(fly);
+
+// soft shadow blob under the fly (always reads even when high)
+const blob = new THREE.Mesh(new THREE.CircleGeometry(0.8, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.26, depthWrite: false }));
+blob.rotation.x = -Math.PI/2; scene.add(blob);
+
+// carried letter (shown on the fly while carrying)
+const letterMat = new THREE.MeshStandardMaterial({ color: 0xf4ecd6, roughness: 0.7 });
+const carriedLetter = new THREE.Group();
+{
+  const env = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.28, 0.05), letterMat);
+  const stamp = new THREE.Mesh(new THREE.PlaneGeometry(0.1,0.1), new THREE.MeshStandardMaterial({ color: 0xc0463e, roughness: 0.7 }));
+  stamp.position.set(0.12, 0.07, 0.027); env.add(stamp);
+  carriedLetter.add(env);
+}
+carriedLetter.visible = false; fly.add(carriedLetter); carriedLetter.position.set(0, 0.45, 0.15);
+
+/* ═══════════════════════════════════════════════
+   GAME STATE — delivery loop
+═══════════════════════════════════════════════ */
+const PLAY = { minX: -BL/2+5, maxX: BL/2-5, minZ: -(SW+SDW+2.5), maxZ: SW+SDW+2.5, minY: 2.0, maxY: 30 };
+const P = { pos: new THREE.Vector3(0, 7, -4), yaw: 0, speed: 0, vy: 0, bank: 0, pitch: 0 };
+const MAXF = 17, MAXB = 6, ACCEL = 3.2, YAWRATE = 2.0, CLIMB = 9;
+
+let carrying = false, pickup = null, dropoff = null, delivered = 0;
+const elTaskLbl = document.querySelector('#task .lbl');
+const elTaskDst = document.querySelector('#task .dst');
+const elTaskSub = document.querySelector('#task .sub');
+const elScore   = document.querySelector('#score .n');
+const elNeedle  = document.getElementById('needle');
+const elDist    = document.getElementById('dist');
+const elToast   = document.getElementById('toast');
+
+// marker beam shown over the current objective
+const beamMat = new THREE.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide });
+const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.4, 26, 16, 1, true), beamMat);
+scene.add(beam);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.12, 8, 28), new THREE.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.8, depthWrite: false }));
+ring.rotation.x = -Math.PI/2; scene.add(ring);
+// floating envelope at the objective
+const objLetter = new THREE.Group();
+{
+  const env = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.62, 0.1), letterMat);
+  env.castShadow = true;
+  const fold = new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.34), new THREE.MeshStandardMaterial({ color: 0xdcd0b0, roughness: 0.7 }));
+  fold.position.set(0,0.05,0.052); env.add(fold);
+  const stamp = new THREE.Mesh(new THREE.PlaneGeometry(0.22,0.22), new THREE.MeshStandardMaterial({ color: 0xc0463e, roughness: 0.7, emissive: 0x802820, emissiveIntensity: 0.2 }));
+  stamp.position.set(0.26,0.13,0.053); env.add(stamp);
+  objLetter.add(env);
+}
+scene.add(objLetter);
+
+function showToast(txt, col) { elToast.textContent = txt; elToast.style.color = col || '#fff'; elToast.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => elToast.classList.remove('show'), 1100); }
+
+function setObjective() {
+  const target = carrying ? dropoff : pickup;
+  beamMat.color.set(carrying ? 0x7fe0a0 : 0xffd060);
+  ring.material.color.set(carrying ? 0x7fe0a0 : 0xffd060);
+  beam.position.set(target.pos.x, 13, target.pos.z);
+  ring.position.set(target.pos.x, 0.3, target.pos.z);
+  objLetter.position.set(target.pos.x, 3.4, target.pos.z);
+  objLetter.visible = !carrying;
+  elTaskLbl.textContent = carrying ? 'Deliver to' : 'Pick up at';
+  elTaskDst.textContent = target.name;
+  elTaskSub.textContent = carrying ? 'fly to the glowing shop' : 'grab the floating letter';
+}
+function newTask() {
+  pickup = pick(ADDR);
+  do { dropoff = pick(ADDR); } while (dropoff === pickup);
+  carrying = false; carriedLetter.visible = false;
+  setObjective();
+}
+newTask();
+
+/* ═══════════════════════════════════════════════
+   INPUT — keyboard + touch
+═══════════════════════════════════════════════ */
+const keys = {};
+addEventListener('keydown', e => { keys[e.code] = true; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault(); });
+addEventListener('keyup',   e => { keys[e.code] = false; });
+
+// touch joystick
+let tThrottle = 0, tYaw = 0, tVert = 0;
+const stick = document.getElementById('stick'), knob = document.getElementById('knob');
+let stickId = null, sCx = 0, sCy = 0;
+stick.addEventListener('pointerdown', e => { stickId = e.pointerId; const r = stick.getBoundingClientRect(); sCx = r.left+r.width/2; sCy = r.top+r.height/2; stick.setPointerCapture(e.pointerId); });
+stick.addEventListener('pointermove', e => {
+  if (e.pointerId !== stickId) return;
+  let dx = e.clientX - sCx, dy = e.clientY - sCy;
+  const R = 50, len = Math.hypot(dx,dy); if (len > R) { dx*=R/len; dy*=R/len; }
+  knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  tYaw = -dx / R; tThrottle = -dy / R;
+});
+const stickEnd = e => { if (e.pointerId !== stickId) return; stickId = null; tYaw = 0; tThrottle = 0; knob.style.transform = 'translate(0,0)'; };
+stick.addEventListener('pointerup', stickEnd); stick.addEventListener('pointercancel', stickEnd);
+const bindBtn = (id, val) => { const el = document.getElementById(id);
+  el.addEventListener('pointerdown', e => { e.preventDefault(); tVert = val; });
+  el.addEventListener('pointerup',   () => tVert = 0); el.addEventListener('pointercancel', () => tVert = 0); };
+bindBtn('btnUp', 1); bindBtn('btnDn', -1);
 
 function resize() {
   const w = wrap.clientWidth, h = wrap.clientHeight;
@@ -925,21 +1151,96 @@ window.addEventListener('resize', resize); resize();
 /* ═══════════════════════════════════════════════
    LOOP
 ═══════════════════════════════════════════════ */
+const camPos = new THREE.Vector3(0, 12, -16);
 let last = performance.now();
 function tick() {
   requestAnimationFrame(tick);
   const now = performance.now(); let dt = (now-last)/1000; last = now; dt = Math.min(dt, 0.05);
-  if (!drag) yaw += dt * 0.008;
-  const cp = new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch), Math.sin(pitch), Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(dist);
-  camera.position.copy(target).add(cp); camera.lookAt(target);
 
-  // NPC walk animation
+  /* ── input → intents ── */
+  let thr = tThrottle, turn = tYaw, vert = tVert;
+  if (keys['KeyW'] || keys['ArrowUp'])    thr += 1;
+  if (keys['KeyS'] || keys['ArrowDown'])  thr -= 1;
+  if (keys['KeyA'] || keys['ArrowLeft'])  turn += 1;
+  if (keys['KeyD'] || keys['ArrowRight']) turn -= 1;
+  if (keys['Space'])      vert += 1;
+  if (keys['ShiftLeft'] || keys['ShiftRight']) vert -= 1;
+  thr = clamp(thr,-1,1); turn = clamp(turn,-1,1); vert = clamp(vert,-1,1);
+
+  /* ── flight physics ── */
+  const targetSpeed = thr >= 0 ? thr*MAXF : thr*MAXB;
+  P.speed = lerp(P.speed, targetSpeed, 1 - Math.exp(-ACCEL*dt));
+  // turn rate scales a little with speed for a nicer feel
+  P.yaw += turn * YAWRATE * dt * (0.45 + 0.55*Math.min(1, Math.abs(P.speed)/MAXF));
+  const fwd = new THREE.Vector3(Math.sin(P.yaw), 0, Math.cos(P.yaw));
+  P.pos.x += fwd.x * P.speed * dt;
+  P.pos.z += fwd.z * P.speed * dt;
+  P.vy = lerp(P.vy, vert*CLIMB, 1 - Math.exp(-6*dt));
+  P.pos.y += P.vy * dt;
+  // bounds
+  P.pos.x = clamp(P.pos.x, PLAY.minX, PLAY.maxX);
+  P.pos.z = clamp(P.pos.z, PLAY.minZ, PLAY.maxZ);
+  P.pos.y = clamp(P.pos.y, PLAY.minY, PLAY.maxY);
+  // visual bank + pitch
+  P.bank  = lerp(P.bank, -turn*0.5, 1 - Math.exp(-8*dt));
+  P.pitch = lerp(P.pitch, -P.speed/MAXF*0.18 - P.vy*0.02, 1 - Math.exp(-6*dt));
+
+  fly.position.copy(P.pos);
+  fly.rotation.set(0,0,0);
+  fly.rotateY(P.yaw); fly.rotateX(P.pitch); fly.rotateZ(P.bank);
+  // wing flap
+  const flap = Math.sin(now*0.03) * (0.5 + Math.min(1,Math.abs(P.speed)/MAXF)*0.6);
+  fly.userData.wingL.rotation.z = 0.3 + flap;
+  fly.userData.wingR.rotation.z = -0.3 - flap;
+  fly.userData.scarfTail.rotation.x = 0.3 + Math.sin(now*0.012)*0.25 + Math.min(1,Math.abs(P.speed)/MAXF)*0.5;
+  // shadow blob
+  blob.position.set(P.pos.x, 0.03, P.pos.z);
+  const hgt = clamp((P.pos.y-1)/26, 0, 1);
+  blob.scale.setScalar(1 + hgt*1.4); blob.material.opacity = 0.28*(1-hgt*0.55);
+
+  /* ── camera chase ── */
+  const desired = new THREE.Vector3(
+    P.pos.x - fwd.x*13, P.pos.y + 5.5, P.pos.z - fwd.z*13
+  );
+  camPos.lerp(desired, 1 - Math.exp(-5*dt));
+  camera.position.copy(camPos);
+  camera.lookAt(P.pos.x + fwd.x*5, P.pos.y + 0.5, P.pos.z + fwd.z*5);
+
+  /* ── objective marker anim ── */
+  const tgt = carrying ? dropoff : pickup;
+  beam.rotation.y += dt*0.4;
+  ring.scale.setScalar(1 + Math.sin(now*0.004)*0.08);
+  objLetter.rotation.y += dt*1.5;
+  objLetter.position.y = 3.4 + Math.sin(now*0.003)*0.25;
+
+  /* ── proximity → pickup / deliver ── */
+  const dx = P.pos.x - tgt.pos.x, dz = P.pos.z - tgt.pos.z;
+  const planar = Math.hypot(dx, dz);
+  elDist.textContent = planar < 60 ? Math.round(planar) + ' m' : '—';
+  // compass needle: world bearing to target relative to camera heading
+  const bearing = Math.atan2(tgt.pos.x - P.pos.x, tgt.pos.z - P.pos.z);
+  elNeedle.style.transform = `rotate(${(P.yaw - bearing)}rad)`;
+
+  if (planar < 4.2) {
+    if (!carrying) {
+      carrying = true; carriedLetter.visible = true;
+      showToast('✉ Letter picked up', '#ffd27a');
+      setObjective();
+    } else {
+      delivered++; elScore.textContent = delivered;
+      showToast('★ Delivered! +1', '#7fe0a0');
+      // little burst at the door
+      fxBurst(tgt.pos);
+      newTask();
+    }
+  }
+
+  /* ── NPC walk animation ── */
   npcs.forEach(n => {
     n.position.x += n.userData.speed * dt;
     if (n.position.x > BL/2-6) n.userData.speed = -Math.abs(n.userData.speed);
     if (n.position.x < -BL/2+6) n.userData.speed =  Math.abs(n.userData.speed);
     n.rotation.y = n.userData.speed > 0 ? Math.PI/2 : -Math.PI/2;
-    // leg swing
     const t = now*0.004 + n.userData.phase;
     const swing = Math.sin(t*2.2) * 0.36;
     let li = 0;
@@ -950,8 +1251,34 @@ function tick() {
     n.position.y = CH + Math.abs(Math.sin(t*2.2))*0.03;
   });
 
+  updateFX(dt);
+
   if (composer) composer.render(); else renderer.render(scene, camera);
 }
+
+/* ── tiny particle burst pool for deliveries ── */
+const fxPool = [];
+const fxGeo = new THREE.SphereGeometry(0.12, 6, 5);
+function fxBurst(pos) {
+  const cols = [0x7fe0a0, 0xffd060, 0xffffff, 0xff9a6a];
+  for (let i = 0; i < 16; i++) {
+    let p = fxPool.find(x => !x.mesh.visible);
+    if (!p) { p = { mesh: new THREE.Mesh(fxGeo, new THREE.MeshBasicMaterial({ transparent: true })) }; scene.add(p.mesh); fxPool.push(p); }
+    p.mesh.visible = true; p.mesh.material.color.set(pick(cols)); p.mesh.material.opacity = 1;
+    p.mesh.position.set(pos.x, 2.6, pos.z);
+    const a = Math.random()*TAU, up = rand(2,5), sp = rand(2,5);
+    p.vel = new THREE.Vector3(Math.cos(a)*sp, up, Math.sin(a)*sp); p.life = 1;
+  }
+}
+function updateFX(dt) {
+  fxPool.forEach(p => {
+    if (!p.mesh.visible) return;
+    p.life -= dt*1.4; if (p.life <= 0) { p.mesh.visible = false; return; }
+    p.vel.y -= 9*dt; p.mesh.position.addScaledVector(p.vel, dt);
+    p.mesh.material.opacity = p.life; p.mesh.scale.setScalar(0.5 + p.life*0.8);
+  });
+}
+
 requestAnimationFrame(tick);
 })();
 </script>
