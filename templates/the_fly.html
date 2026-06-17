@@ -595,7 +595,7 @@
   sun.shadow.radius = 14; sun.shadow.bias = -0.00030; sun.shadow.normalBias = 0.6;
   scene.add(sun); scene.add(sun.target);
   // Fill — sky-dome ambience; slightly warmer sky, richer earth bounce, lower so the key sculpts
-  scene.add(new THREE.HemisphereLight(0xd4e8f8, 0x7a6048, 0.42));
+  const hemi = new THREE.HemisphereLight(0xd4e8f8, 0x7a6048, 0.42); scene.add(hemi);
   // Secondary fill — cool-lavender front-left keeps shadows from going pure black
   const fill = new THREE.DirectionalLight(0xb8c8e8, 0.18); fill.position.set(-48, 28, -42); scene.add(fill);
   // Rim / back-light — cool sky-blue from behind to separate the planet from the warm sky
@@ -660,6 +660,30 @@
   });
   const skyDome = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), skyMat);
   skyDome.renderOrder = -1; skyDome.frustumCulled = false; scene.add(skyDome);
+
+  // ── gentle day cycle: a slow "golden-hour breathing" between bright midday and warm
+  //    sunset and back. Never goes dark (no stars/moon here), so it always reads pretty.
+  let _dayT = 0.30;
+  const DAY_PERIOD = 150;   // seconds for one full midday → sunset → midday breathe
+  const _sunDay = new THREE.Color(0xfff0d0), _sunSet = new THREE.Color(0xff9a52);
+  const _hzDay  = new THREE.Color(0xf0cf9e), _hzSet  = new THREE.Color(0xf2a35e);
+  const _znDay  = new THREE.Color(0x4f8ac8), _znSet  = new THREE.Color(0x3f6fb4);
+  const _mdDay  = new THREE.Color(0xaed4ee), _mdSet  = new THREE.Color(0xd8c4dc);
+  const _fgDay  = new THREE.Color(0xeee0c8), _fgSet  = new THREE.Color(0xf0c79c);
+  function updateSky(dt) {
+    _dayT += dt / DAY_PERIOD;
+    const s = 0.5 - 0.5 * Math.cos(_dayT * TAU);   // 0 = midday, 1 = golden sunset; eases both ways
+    sun.color.copy(_sunDay).lerp(_sunSet, s);
+    sun.intensity = lerp(1.45, 1.02, s);
+    sun.position.set(55, lerp(90, 40, s), lerp(34, 62, s));
+    hemi.intensity = lerp(0.46, 0.34, s);
+    fill.intensity = lerp(0.20, 0.13, s);
+    rim.intensity  = lerp(0.34, 0.52, s);          // stronger limb rim toward sunset
+    scene.fog.color.copy(_fgDay).lerp(_fgSet, s);
+    skyMat.uniforms.uHorizon.value.copy(_hzDay).lerp(_hzSet, s);
+    skyMat.uniforms.uZenith.value.copy(_znDay).lerp(_znSet, s);
+    skyMat.uniforms.uMid.value.copy(_mdDay).lerp(_mdSet, s);
+  }
 
   // drifting clouds (sprites) — warm-tinted for a painterly afternoon feel
   const cloudTex = (() => {
@@ -1420,6 +1444,473 @@
     return g;
   }
 
+  /* ═══════════════════════════════════════════════════════════════════════════
+     ── LANDMARKS & WATER FEATURES ────────────────────────────────────────────
+     Self-contained module.  Adds three HERO LANDMARKS (lighthouse, windmill,
+     bell tower) at fixed sphere directions so the player can use them as
+     wayfinding cues, plus a scattered set of small stylised PONDS.
+
+     PUBLIC API
+     ──────────
+       updateLandmarks(dt, now)
+         Call once per frame from the render loop.
+         dt  = elapsed seconds this frame (same cap as main loop, ≤ 0.05)
+         now = performance.now() milliseconds
+
+     WIRE-UP (do NOT modify tick — just add one line inside it)
+     ───────────────────────────────────────────────────────────
+       Inside tick(), immediately after:
+           updateLife(dt, now);
+       add:
+           updateLandmarks(dt, now);
+
+     TUNABLES
+     ────────
+       LH_BEAM_SPEED   – lighthouse beam rotation speed (rad / s)
+       WM_BLADE_SPEED  – windmill blade spin speed (rad / s)
+       POND_COUNT      – number of ponds scattered (desktop / mobile)
+       POND_SHIMMER    – emissiveIntensity oscillation amplitude for ponds
+       LH_COLOR        – lighthouse tower wall hex color
+       WM_COLOR        – windmill tower hex color
+       BT_COLOR        – bell tower stone hex color
+       POND_COLOR      – water disc hex color
+
+     LANDMARK PLACEMENT DIRECTIONS (fixed, normalised unit vectors)
+     ──────────────────────────────────────────────────────────────
+       Lighthouse  : dir ≈ (0.58, 0.58, 0.58)   — octant +x+y+z
+       Windmill    : dir ≈ (-0.80, 0.45, -0.40)  — octant -x+y-z
+       Bell Tower  : dir ≈ (0.35, -0.70, 0.62)   — octant +x-y+z (south side)
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  // ── TUNABLES ──────────────────────────────────────────────────────────────
+  const LH_BEAM_SPEED  = 1.1;    // rad / s — lighthouse beam rotation
+  const WM_BLADE_SPEED = 0.9;    // rad / s — windmill blade spin
+  const POND_COUNT     = IS_TOUCH ? 5 : 10;  // number of ponds
+  const POND_SHIMMER   = 0.18;   // emissiveIntensity oscillation amplitude
+  const LH_COLOR       = 0xf5ecd4;  // warm cream tower
+  const WM_COLOR       = 0xe8dcc0;  // pale wheat windmill
+  const BT_COLOR       = 0xd4c8b0;  // sandstone bell tower
+  const POND_COLOR     = 0x8ecfdf;  // soft teal-sky water
+
+  // ── animated object registries ────────────────────────────────────────────
+  const _lhBeams   = [];    // { pivot: THREE.Group } — lighthouse beam pivots
+  const _wmBlades  = [];    // { blades: THREE.Group, speedMult: number }
+  const _ponds     = [];    // { mat: THREE.MeshStandardMaterial, phase: number }
+
+  // ── shared helper materials ────────────────────────────────────────────────
+  const _lhStoneMat = addRimLight(
+    new THREE.MeshStandardMaterial({ color: LH_COLOR, roughness: 0.82 }),
+    { color: new THREE.Color(0xfff5d8), strength: 0.22 }
+  );
+  const _lhStripeMat = new THREE.MeshStandardMaterial({ color: 0xc84848, roughness: 0.78 }); // red stripe band
+  const _lhCapMat    = new THREE.MeshStandardMaterial({ color: 0x3a3020, roughness: 0.55, metalness: 0.25 });
+  const _lhGlassMat  = new THREE.MeshStandardMaterial({
+    color: 0xfff8c0, roughness: 0.10, metalness: 0.05,
+    emissive: new THREE.Color(0xfff080), emissiveIntensity: 0.95,
+    transparent: true, opacity: 0.82
+  });
+  const _lhBeamMat   = new THREE.MeshStandardMaterial({
+    color: 0xfff5a0, roughness: 0.0, metalness: 0.0,
+    emissive: new THREE.Color(0xffee80), emissiveIntensity: 1.2,
+    transparent: true, opacity: 0.28, depthWrite: false,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+  });
+
+  const _wmStoneMat  = addRimLight(
+    new THREE.MeshStandardMaterial({ color: WM_COLOR, roughness: 0.88 }),
+    { color: new THREE.Color(0xfff8e0), strength: 0.18 }
+  );
+  const _wmBladeMat  = addRimLight(
+    new THREE.MeshStandardMaterial({ color: 0xf0e8d0, roughness: 0.80, side: THREE.DoubleSide }),
+    { color: new THREE.Color(0xfffad0), strength: 0.25 }
+  );
+  const _wmCapMat    = new THREE.MeshStandardMaterial({ color: 0x8a6840, roughness: 0.75 });
+
+  const _btStoneMat  = addRimLight(
+    new THREE.MeshStandardMaterial({ color: BT_COLOR, roughness: 0.85 }),
+    { color: new THREE.Color(0xfff0d8), strength: 0.20 }
+  );
+  const _btRoofMat   = new THREE.MeshStandardMaterial({ color: 0x5a7888, roughness: 0.72 });
+  const _btBellMat   = new THREE.MeshStandardMaterial({ color: 0xc8a840, roughness: 0.42, metalness: 0.45,
+    emissive: new THREE.Color(0xc09020), emissiveIntensity: 0.12 });
+
+  // ── 1. LIGHTHOUSE ─────────────────────────────────────────────────────────
+  //
+  // Structure (bottom → top, all in local +Y up):
+  //   • ground blob (contact shadow)
+  //   • tapering octagonal tower, height ~5.5u, painted cream with one red stripe
+  //   • small gallery ledge (flat disc) just below lamp room
+  //   • octagonal lamp room (slightly shorter cylinder) with glass walls
+  //   • dome cap (ConeGeometry)
+  //   • beam pivot group: one flat cone slice (AdditiveBlending) that rotates on Y
+  //
+  function makeLighthouse() {
+    const g = new THREE.Group();
+
+    // tower: tapered cylinder, 8-sided
+    const tower = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.38, 0.58, 5.5, 8),
+      _lhStoneMat
+    );
+    tower.position.y = 5.5 * 0.5;
+    tower.castShadow = true; tower.receiveShadow = true;
+    g.add(tower);
+
+    // decorative red stripe band ~2/3 up
+    const stripe = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.46, 0.46, 0.28, 8),
+      _lhStripeMat
+    );
+    stripe.position.y = 3.6;
+    g.add(stripe);
+
+    // gallery ledge (slightly wider flat disc at the top of the tower)
+    const ledge = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.62, 0.62, 0.12, 12),
+      _lhCapMat
+    );
+    ledge.position.y = 5.5 + 0.06;
+    g.add(ledge);
+
+    // lamp room: short octagonal cylinder, glass walls
+    const lampRoom = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.44, 0.44, 0.72, 8),
+      _lhGlassMat
+    );
+    lampRoom.position.y = 5.5 + 0.12 + 0.72 * 0.5;
+    g.add(lampRoom);
+
+    // dome cap on top
+    const cap = new THREE.Mesh(
+      new THREE.ConeGeometry(0.46, 0.55, 8),
+      _lhCapMat
+    );
+    cap.position.y = 5.5 + 0.12 + 0.72 + 0.55 * 0.5;
+    cap.castShadow = true;
+    g.add(cap);
+
+    // finial spike
+    const finial = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.022, 0.042, 0.35, 5),
+      _lhCapMat
+    );
+    finial.position.y = 5.5 + 0.12 + 0.72 + 0.55 + 0.175;
+    g.add(finial);
+
+    // ── beam: a pivot Group at lamp height that rotates on local Y each frame ──
+    const beamPivot = new THREE.Group();
+    beamPivot.position.y = 5.5 + 0.12 + 0.72 * 0.5;
+
+    // Beam is a wide flat cone (pointing outward from pivot) — AdditiveBlending so it
+    // softly glows against both sky and ground.
+    const beamGeo = new THREE.ConeGeometry(0.65, 4.5, 6, 1, true);
+    // rotate the cone so it points along +Z (horizontal) instead of +Y
+    beamGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+    const beam = new THREE.Mesh(beamGeo, _lhBeamMat);
+    beam.position.z = 4.5 * 0.5 + 0.44; // offset forward so root is at lamp edge
+    beamPivot.add(beam);
+    g.add(beamPivot);
+
+    // also add a small warm point light inside the lamp room (emissive handles visual,
+    // but a PointLight gives real illumination on nearby surfaces)
+    const lamp = new THREE.PointLight(0xfff080, 1.2, 16, 2.0);
+    lamp.position.y = 5.5 + 0.12 + 0.72 * 0.5;
+    g.add(lamp);
+
+    g.add(groundBlob(1.1));
+
+    // register the pivot for animation
+    _lhBeams.push({ pivot: beamPivot });
+
+    return g;
+  }
+
+  // ── 2. WINDMILL ───────────────────────────────────────────────────────────
+  //
+  // Structure:
+  //   • round tapering stone tower, height ~4.2u
+  //   • conical thatched cap on top
+  //   • blade hub: a small cylinder on the front face of the cap
+  //   • blades group (4 rectangular sails on a central cross hub) that spins
+  //
+  function makeWindmill() {
+    const g = new THREE.Group();
+
+    // tower: slightly tapered, 6-sided for poly style
+    const tower = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.62, 0.80, 4.2, 6),
+      _wmStoneMat
+    );
+    tower.position.y = 4.2 * 0.5;
+    tower.castShadow = true; tower.receiveShadow = true;
+    g.add(tower);
+
+    // a tiny door arch detail at the base (slim box)
+    const door = new THREE.Mesh(
+      new THREE.BoxGeometry(0.30, 0.55, 0.10),
+      new THREE.MeshStandardMaterial({ color: 0x7a5030, roughness: 0.90 })
+    );
+    door.position.set(0, 0.28, 0.82);
+    g.add(door);
+
+    // thatched conical cap
+    const thatCap = new THREE.Mesh(
+      new THREE.ConeGeometry(0.78, 1.1, 6),
+      _wmCapMat
+    );
+    thatCap.position.y = 4.2 + 1.1 * 0.5;
+    thatCap.castShadow = true;
+    g.add(thatCap);
+
+    // ── blade hub & blades ──
+    // Hub: small octagonal disc on front of the cap, slightly raised from the tower top
+    const hubH = 4.2 + 0.55;   // on the front face of the cap, slightly below peak
+    const hub = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.14, 0.14, 0.22, 8),
+      _wmCapMat
+    );
+    hub.rotation.x = Math.PI / 2;   // cylinder axis along Z (pointing out front)
+    hub.position.set(0, hubH, 0.70);
+    g.add(hub);
+
+    // Blades group — rotate this on the Z axis each frame
+    const bladesGroup = new THREE.Group();
+    bladesGroup.position.set(0, hubH, 0.70);
+
+    // 4 sails: thin elongated rectangles arranged as a + cross
+    const bladeW = 0.22, bladeH = 2.0, bladeD = 0.06;
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * TAU;
+      const sail = new THREE.Mesh(
+        new THREE.BoxGeometry(bladeW, bladeH, bladeD),
+        _wmBladeMat
+      );
+      // place sail so its inner edge is at the hub centre
+      sail.position.set(
+        Math.sin(angle) * (bladeH * 0.5 + 0.16),
+        Math.cos(angle) * (bladeH * 0.5 + 0.16),
+        0
+      );
+      sail.rotation.z = angle;
+      sail.castShadow = true;
+      bladesGroup.add(sail);
+    }
+    g.add(bladesGroup);
+
+    g.add(groundBlob(1.2));
+
+    const speedMult = rand(0.80, 1.20);  // gentle per-instance speed variation
+    _wmBlades.push({ blades: bladesGroup, speedMult });
+
+    return g;
+  }
+
+  // ── 3. BELL / CLOCK TOWER ─────────────────────────────────────────────────
+  //
+  // Structure:
+  //   • square stone base, height ~2.8u
+  //   • narrower belfry section (open arches — approximated as a thinner box), h ~1.4u
+  //   • pointed slate roof cone
+  //   • small hanging bell (golden sphere inside belfry)
+  //
+  function makeBellTower() {
+    const g = new THREE.Group();
+
+    // wide stone base
+    const base = new THREE.Mesh(
+      new THREE.BoxGeometry(1.35, 2.8, 1.35),
+      _btStoneMat
+    );
+    base.position.y = 2.8 * 0.5;
+    base.castShadow = true; base.receiveShadow = true;
+    g.add(base);
+
+    // corner pilasters (thin vertical strips on each corner for detail)
+    const pilMat = new THREE.MeshStandardMaterial({ color: 0xc4b8a0, roughness: 0.88 });
+    [[-0.63, -0.63], [-0.63, 0.63], [0.63, -0.63], [0.63, 0.63]].forEach(([px, pz]) => {
+      const pil = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.9, 0.14), pilMat);
+      pil.position.set(px, 2.9 * 0.5, pz);
+      g.add(pil);
+    });
+
+    // belfry section: narrower, slightly open feel
+    const belfry = new THREE.Mesh(
+      new THREE.BoxGeometry(1.02, 1.4, 1.02),
+      _btStoneMat
+    );
+    belfry.position.y = 2.8 + 1.4 * 0.5;
+    belfry.castShadow = true;
+    g.add(belfry);
+
+    // four belfry arch openings (thin cutout effect via dark inset quads)
+    const archMat = new THREE.MeshBasicMaterial({ color: 0x1a1810, side: THREE.DoubleSide });
+    [[0, 0, 0.52], [0, 0, -0.52], [0.52, 0, 0], [-0.52, 0, 0]].forEach(([ax, ay, az], i) => {
+      const arch = new THREE.Mesh(new THREE.PlaneGeometry(0.40, 0.72), archMat);
+      arch.position.set(ax, 2.8 + 0.70, az);
+      arch.rotation.y = (i < 2) ? 0 : Math.PI / 2;
+      g.add(arch);
+    });
+
+    // pointed slate roof
+    const roof = new THREE.Mesh(
+      new THREE.ConeGeometry(0.80, 1.05, 4),
+      _btRoofMat
+    );
+    roof.position.y = 2.8 + 1.4 + 1.05 * 0.5;
+    roof.rotation.y = Math.PI / 4;  // align square cone diagonals
+    roof.castShadow = true;
+    g.add(roof);
+
+    // small cross finial
+    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.32, 0.06), _btRoofMat);
+    crossV.position.y = 2.8 + 1.4 + 1.05 + 0.16;
+    g.add(crossV);
+    const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.06, 0.06), _btRoofMat);
+    crossH.position.y = 2.8 + 1.4 + 1.05 + 0.22;
+    g.add(crossH);
+
+    // golden bell hanging in belfry
+    const bell = new THREE.Mesh(
+      new THREE.SphereGeometry(0.20, 8, 6, 0, TAU, 0, Math.PI * 0.62),
+      _btBellMat
+    );
+    bell.position.y = 2.8 + 0.70;
+    bell.rotation.x = Math.PI;  // open end faces down
+    g.add(bell);
+
+    // bell clapper
+    const clapper = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06, 5, 4),
+      _btBellMat
+    );
+    clapper.position.y = 2.8 + 0.40;
+    g.add(clapper);
+
+    g.add(groundBlob(1.0));
+    return g;
+  }
+
+  // ── 4. POND ───────────────────────────────────────────────────────────────
+  //
+  // A flat round disc sitting just above the surface.  MeshStandardMaterial
+  // with transparency + gentle emissive gives it a translucent reflective look.
+  // The emissiveIntensity oscillates each frame in updateLandmarks for shimmer.
+  //
+  function makePond() {
+    const g = new THREE.Group();
+
+    const radius = rand(1.2, 2.4);
+
+    // Water disc — flat circle, transparent teal, slightly emissive sky reflection
+    const mat = new THREE.MeshStandardMaterial({
+      color: POND_COLOR,
+      roughness: 0.10,
+      metalness: 0.18,
+      transparent: true,
+      opacity: 0.72,
+      depthWrite: false,
+      emissive: new THREE.Color(0x5abcd8),
+      emissiveIntensity: 0.18,
+      side: THREE.DoubleSide
+    });
+    addRimLight(mat, { color: new THREE.Color(0xe8f8ff), strength: 0.45 });
+
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(radius, 20), mat);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = 0.05;   // just proud of the surface
+    disc.renderOrder = 2;
+    g.add(disc);
+
+    // soft ground-blob beneath (darker, sets the wet shadow)
+    const blobMesh = new THREE.Mesh(
+      new THREE.CircleGeometry(radius * 0.88, 18),
+      new THREE.MeshBasicMaterial({
+        color: 0x3a6878, transparent: true, opacity: 0.22,
+        depthWrite: false, fog: true
+      })
+    );
+    blobMesh.rotation.x = -Math.PI / 2;
+    blobMesh.position.y = 0.03;
+    blobMesh.renderOrder = 1;
+    g.add(blobMesh);
+
+    const phase = rand(0, TAU);
+    _ponds.push({ mat, phase });
+
+    return g;
+  }
+
+  // ── FIXED HERO LANDMARK PLACEMENT ─────────────────────────────────────────
+  //
+  // Three distinct octant directions, chosen to be maximally spread and to avoid
+  // coinciding with the equatorial resident belt.
+  //
+  // To adjust positions: change the .normalize() vector below.
+  //
+  {
+    // ── Lighthouse: +x+y+z octant, "north-east hill" ──
+    const lhDir = new THREE.Vector3(0.58, 0.58, 0.58).normalize();
+    const lh = makeLighthouse();
+    lh.scale.setScalar(1.0);
+    orient(lh, lhDir.clone(), anyTangent(lhDir));
+    lh.position.copy(lhDir).multiplyScalar(R);
+    PLANET.add(lh);
+
+    // ── Windmill: -x+y-z octant, "west meadow" ──
+    const wmDir = new THREE.Vector3(-0.80, 0.45, -0.40).normalize();
+    const wm = makeWindmill();
+    wm.scale.setScalar(1.0);
+    orient(wm, wmDir.clone(), anyTangent(wmDir));
+    wm.position.copy(wmDir).multiplyScalar(R);
+    PLANET.add(wm);
+
+    // ── Bell Tower: +x-y+z octant, "south cape" ──
+    const btDir = new THREE.Vector3(0.35, -0.70, 0.62).normalize();
+    const bt = makeBellTower();
+    bt.scale.setScalar(1.0);
+    orient(bt, btDir.clone(), anyTangent(btDir));
+    bt.position.copy(btDir).multiplyScalar(R);
+    PLANET.add(bt);
+  }
+
+  // ── ANIMATION FUNCTION ────────────────────────────────────────────────────
+  //
+  // updateLandmarks(dt, now)
+  //   dt  — frame delta in seconds (same as tick)
+  //   now — performance.now() in milliseconds (same as tick)
+  //
+  // Rotates lighthouse beam pivot on local Y, advances windmill blade Z rotation,
+  // and oscillates pond emissiveIntensity for a gentle shimmer.
+
+  function updateLandmarks(dt, now) {
+    const t = now * 0.001;   // seconds
+
+    // ── lighthouse beam rotation ───────────────────────────────────────────
+    for (let i = 0; i < _lhBeams.length; i++) {
+      _lhBeams[i].pivot.rotation.y += LH_BEAM_SPEED * dt;
+    }
+
+    // ── windmill blade spin ────────────────────────────────────────────────
+    for (let i = 0; i < _wmBlades.length; i++) {
+      _wmBlades[i].blades.rotation.z += WM_BLADE_SPEED * _wmBlades[i].speedMult * dt;
+    }
+
+    // ── pond shimmer ───────────────────────────────────────────────────────
+    for (let i = 0; i < _ponds.length; i++) {
+      const p = _ponds[i];
+      // gentle undulation: base 0.18, oscillates ±POND_SHIMMER
+      p.mat.emissiveIntensity = 0.18 + Math.sin(t * 1.4 + p.phase) * POND_SHIMMER;
+    }
+  }
+
+  /* ── WIRE-UP REMINDER (do NOT modify tick — just add this line) ──────────
+     Inside tick(), immediately after:
+         updateLife(dt, now);
+     add:
+         updateLandmarks(dt, now);
+  ──────────────────────────────────────────────────────────────────────── */
+
+
   // scatter decorative props on free spots (kept away from poles & residents later)
   const decoDirs = [];
   function scatter(count, makeFn, scaleRange) {
@@ -1432,13 +1923,14 @@
       PLANET.add(m); decoDirs.push(dir);
     }
   }
-  scatter(70, makeTree, [0.8, 1.5]);
-  scatter(10, makeHouse, [0.9, 1.2]);
+  // counts scale down on touch devices to keep draw calls mobile-friendly
+  scatter(IS_TOUCH ? 40 : 70, makeTree, [0.8, 1.5]);
+  scatter(IS_TOUCH ? 7 : 10, makeHouse, [0.9, 1.2]);
   // ── new props ──────────────────────────────────────────────────────────────
-  // ── TUNABLES: adjust the three counts below to taste ──────────────────────
-  scatter(55, makeFlowerCluster, [0.55, 1.05]);  // flower clusters across the globe
-  scatter(35, makeRock,          [0.70, 1.30]);  // boulder groups in grassy/forest zones
-  scatter(45, makeGrassTuft,     [0.65, 1.20]);  // wispy grass tufts
+  scatter(IS_TOUCH ? 22 : 44, makeFlowerCluster, [0.55, 1.05]);  // flower clusters across the globe
+  scatter(IS_TOUCH ? 16 : 30, makeRock,          [0.70, 1.30]);  // boulder groups in grassy/forest zones
+  scatter(IS_TOUCH ? 20 : 38, makeGrassTuft,     [0.65, 1.20]);  // wispy grass tufts
+  scatter(POND_COUNT, makePond,                  [0.85, 1.30]);  // stylised water ponds
 
   /* ───────── residents (delivery targets) ───────── */
   // Richer palette — warm pastels with character
@@ -2767,6 +3259,8 @@
 
     // ambient wildlife (birds + butterflies)
     updateLife(dt, now);
+    updateSky(dt);
+    updateLandmarks(dt, now);   // lighthouse beam, windmill blades, pond shimmer
 
     // sun follows so the planet is always lit toward camera-ish (fixed direction is fine)
     sun.target.position.set(0, 0, 0);
@@ -2818,6 +3312,7 @@
       deliver: () => tryDeliver(),
       press: c => keys.add(c), release: c => keys.delete(c),
       emote: i => emote(i | 0),
+      setDay: t => { _dayT = t; },
     };
   }
 
