@@ -11,6 +11,7 @@
     { id: 'IV',  name: 'Flyuserfly',  desc: 'a noir, playable', path: '/game' },
     { id: 'V',   name: 'Costa Vista', desc: 'open world',     path: '/play/city-game' },
     { id: 'VI',  name: 'The Study',   desc: 'bio-analytics',  path: '/study' },
+    { id: 'VII', name: 'The Fly',     desc: 'tiny-planet courier', path: '/play/the-fly' },
   ];
   const here = location.pathname.replace(/\/+$/, '') || '/';
   const current = MODULES.find(m => m.path === here) || MODULES[0];
@@ -62,6 +63,10 @@
     const a = e.target.closest('[data-nav]');
     if (a && a.href) { e.preventDefault(); nav(a.getAttribute('href')); }
   });
+  // Clear the page-transition fade on load AND on back/forward-cache restore.
+  // Without this, hitting the browser Back button restores the page from bfcache
+  // with body.fade-out still applied (opacity:0) → the page looks blank / "doesn't load".
+  window.addEventListener('pageshow', () => { document.body.classList.remove('fade-out'); });
 
   document.getElementById('hudCta').addEventListener('click', () => {
     if (typeof window.openAccess === 'function') window.openAccess();
