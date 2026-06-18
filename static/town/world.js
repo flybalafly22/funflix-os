@@ -14,6 +14,8 @@ const SDW = 6;          // sidewalk depth
 const CH = 0.25;        // curb / sidewalk height
 const ROWZ = 19;        // building row centerline (z = ±ROWZ)
 const PLAZA_HALF = 18;  // plaza spans x ∈ [-18,18] on the +Z side
+const PARK_CX = -74;    // park center x on the -Z side
+const PARK_HALF = 20;   // park spans x ∈ [PARK_CX±PARK_HALF] on the -Z side
 
 /* the designed shop roster — identity authored by hand */
 const ROSTER = [
@@ -136,8 +138,9 @@ function build(ctx) {
     let x = -AVX + 5;
     let ri = (side > 0 ? 0 : 7);
     while (x < AVX - 6) {
-      // leave a gap on the +Z side for the plaza
+      // leave a gap on the +Z side for the plaza, and on the -Z side for the park
       if (side > 0 && x > -PLAZA_HALF - 4 && x < PLAZA_HALF + 4) { x = PLAZA_HALF + 4; continue; }
+      if (side < 0 && x > PARK_CX - PARK_HALF - 2 && x < PARK_CX + PARK_HALF + 2) { x = PARK_CX + PARK_HALF + 2; continue; }
       const spec = ROSTER[ri % ROSTER.length]; ri++;
       const { w, d } = specToDims(spec, ri);
       const cx = x + w / 2;
@@ -160,6 +163,60 @@ function build(ctx) {
     addresses.push({ name: spec[0], pos: new T.Vector3(cx, 3.0, z - d / 2 - 1.8) });
   });
 
+  /* ── TOWN PARK (on the -Z side, off-center) ── */
+  (function buildPark() {
+    const z0 = -SW, z1 = -(ROWZ + 7);          // park depth (into -Z)
+    const cz = (z0 + z1) / 2;                    // park center z
+    const pw = PARK_HALF * 2, pd = z0 - z1;
+    // grass
+    const grassTex = (() => {
+      const c = L.cnv(128, 128), g = c.getContext('2d');
+      g.fillStyle = '#6f9a52'; g.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 80; i++) { g.globalAlpha = L.rand(0.04, 0.1); g.fillStyle = L.chance(0.5) ? '#5c8a44' : '#80aa60'; g.beginPath(); g.arc(L.rand(0, 128), L.rand(0, 128), L.rand(4, 16), 0, TAU); g.fill(); }
+      g.globalAlpha = 1; L.grain(g, 128, 128, 1200, 0.05);
+      return L.finishTex(c, { repeat: [6, 6], aniso: 8 });
+    })();
+    const grass = L.box(pw, CH, pd, L.std({ map: grassTex, roughness: 1 }), { x: PARK_CX, y: CH / 2, z: cz, receive: true }); root.add(grass);
+    // low hedge border
+    const hedgeMat = L.std({ color: 0x4f7a3c, roughness: 0.96 });
+    for (let x = PARK_CX - PARK_HALF; x <= PARK_CX + PARK_HALF; x += 1.4) { root.add(L.box(1.4, 0.7, 0.5, hedgeMat, { x, y: CH + 0.35, z: z0 })); root.add(L.box(1.4, 0.7, 0.5, hedgeMat, { x, y: CH + 0.35, z: z1 })); }
+    for (let z = z1; z <= z0; z += 1.4) { root.add(L.box(0.5, 0.7, 1.4, hedgeMat, { x: PARK_CX - PARK_HALF, y: CH + 0.35, z })); root.add(L.box(0.5, 0.7, 1.4, hedgeMat, { x: PARK_CX + PARK_HALF, y: CH + 0.35, z })); }
+    // cross paths
+    const pathMat = L.std({ color: 0xc8b894, roughness: 0.95 });
+    root.add(L.box(pw - 2, 0.02, 2.4, pathMat, { x: PARK_CX, y: CH + 0.02, z: cz, cast: false }));
+    root.add(L.box(2.4, 0.02, pd - 2, pathMat, { x: PARK_CX, y: CH + 0.02, z: cz, cast: false }));
+    // pond
+    const pond = new T.Mesh(new T.CylinderGeometry(4.2, 4.2, 0.2, 28), L.std({ color: 0x3f7fb0, roughness: 0.12, metalness: 0.3, transparent: true, opacity: 0.88 }));
+    pond.position.set(PARK_CX + 8, CH + 0.04, cz - 5); root.add(pond);
+    root.add(L.cyl(4.6, 4.8, 0.3, 28, L.std({ color: 0xb8b09a, roughness: 0.9 }), { x: PARK_CX + 8, y: CH + 0.12, z: cz - 5 }));
+    // gazebo (bandstand)
+    (function gazebo() {
+      const gx = PARK_CX - 8, gz = cz + 4;
+      root.add(L.cyl(2.6, 2.8, 0.35, 12, L.std({ color: 0xc4bca8, roughness: 0.92 }), { x: gx, y: CH + 0.17, z: gz, receive: true }));
+      for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; root.add(L.cyl(0.1, 0.1, 2.6, 7, L.MAT.wood('#8a6a44'), { x: gx + Math.cos(a) * 2.3, y: CH + 1.5, z: gz + Math.sin(a) * 2.3 })); }
+      const roof = new T.Mesh(new T.ConeGeometry(3.1, 1.6, 12), L.std({ color: 0x8a5d4e, roughness: 0.9 })); roof.position.set(gx, CH + 3.6, gz); roof.castShadow = true; root.add(roof);
+    })();
+    // statue near the avenue edge
+    (function statue() {
+      const sx = PARK_CX + 12, sz = z0 - 3;
+      root.add(L.box(1.6, 1.0, 1.6, L.std({ color: 0xb0a890, roughness: 0.9 }), { x: sx, y: CH + 0.5, z: sz }));
+      root.add(L.cyl(0.5, 0.6, 0.5, 10, L.std({ color: 0x9a9078, roughness: 0.9 }), { x: sx, y: CH + 1.25, z: sz }));
+      const figMat = L.std({ color: 0x8c8470, roughness: 0.85, metalness: 0.2 });
+      root.add(L.cyl(0.28, 0.34, 1.4, 10, figMat, { x: sx, y: CH + 2.2, z: sz }));
+      root.add(L.sphere(0.3, 12, figMat, { x: sx, y: CH + 3.1, z: sz }));
+    })();
+    // trees, benches, flower beds scattered on the grass
+    const slots = [[-15, -3], [-12, 6], [-4, -7], [3, 5], [13, -6], [15, 4], [6, 9], [-7, -9]];
+    slots.forEach(([dx, dz], i) => {
+      const x = PARK_CX + dx, z = cz + dz;
+      if (i % 3 === 0) { const b = P.makeBench(); b.position.set(x, CH, z); b.rotation.y = L.rand(0, TAU); root.add(b); }
+      else if (i % 3 === 1) { const pl = P.makePlanter(); pl.position.set(x, CH, z); root.add(pl); }
+      else { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); }
+    });
+    // a few park strollers
+    for (let k = 0; k < 4; k++) { const n = C.makeNPC(); n.position.set(PARK_CX + L.rand(-PARK_HALF + 3, PARK_HALF - 3), CH, cz + L.rand(-pd / 2 + 3, pd / 2 - 3)); n.userData.npc = { speed: L.rand(0.4, 0.9) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), lane: n.position.z, kind: 'plaza', cx: n.position.x }; root.add(n); npcs.push(n); }
+  })();
+
   /* ── STREET FURNITURE along sidewalks ── */
   [1, -1].forEach(side => {
     const zBase = side * (SW + 0.7);
@@ -169,6 +226,7 @@ function build(ctx) {
     let x = -AVX + 6, idx = 0;
     while (x < AVX - 6) {
       if (side > 0 && x > -PLAZA_HALF - 2 && x < PLAZA_HALF + 2) { x = PLAZA_HALF + 2; idx++; continue; }
+      if (side < 0 && x > PARK_CX - PARK_HALF && x < PARK_CX + PARK_HALF) { x = PARK_CX + PARK_HALF; idx++; continue; }
       const type = SEQ[idx % SEQ.length]; idx++;
       let obj;
       switch (type) {
