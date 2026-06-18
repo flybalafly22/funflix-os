@@ -426,60 +426,71 @@ function makeCar(opts) {
   opts = opts || {};
   const g = new T.Group();
   const col = opts.color || L.pick(L.PAL.carBody);
-  const bm = L.std({ color: parseInt(col.replace('#', '0x')), roughness: 0.36, metalness: 0.45, envMapIntensity: 1.3 });
+  const bm = L.std({ color: parseInt(col.replace('#', '0x')), roughness: 0.34, metalness: 0.42, envMapIntensity: 1.35 });
+  const sill = L.MAT.flat('#33373e');           // dark lower cladding (two-tone)
   const trimDark = L.MAT.flat('#2a2e34');
-  const glass = L.MAT.glassTint;
-  const kind = L.pick(['sedan', 'sedan', 'hatch', 'van']);   // bias toward sedan
+  const glass = L.MAT.glassTint, chrome = L.MAT.chrome;
+  const kind = L.pick(['sedan', 'sedan', 'hatch', 'wagon']);
 
-  const len = 4.3, wid = 1.84, hl = len / 2;
-  // — lower body: stacked + beveled boxes for a rounded silhouette (length on Z) —
-  g.add(L.box(1.7, 0.34, len, bm, { y: 0.42 }));                       // sill slab
-  g.add(L.box(wid, 0.5, len, bm, { y: 0.72 }));                        // main body
-  g.add(L.box(1.9, 0.34, len - 0.18, bm, { y: 1.0 }));                 // shoulder (slightly proud)
-  g.add(L.box(1.78, 0.22, len - 0.6, bm, { y: 1.18 }));                // belt taper
-  // hood (front +Z, lower) + trunk (-Z) bevels
-  g.add(L.box(1.7, 0.16, 0.9, bm, { y: 1.04, z: hl - 0.5, cast: false }));
-  g.add(L.box(1.7, 0.16, 0.7, bm, { y: 1.04, z: -hl + 0.4, cast: false }));
+  const len = 4.3, wid = 1.82, hl = len / 2;
+  // — body: graduated boxes + two-tone dark sill, softly chamfered nose/tail —
+  g.add(L.box(wid, 0.30, len, sill, { y: 0.40 }));                          // dark sill band
+  g.add(L.box(wid, 0.46, len, bm, { y: 0.78 }));                           // main body
+  g.add(L.box(wid - 0.05, 0.30, len - 0.32, bm, { y: 1.04 }));             // shoulder (proud)
+  g.add(L.box(wid - 0.16, 0.16, 1.05, bm, { y: 1.10, z: hl - 0.58, cast: false }));   // hood (front +Z)
+  g.add(L.box(wid - 0.16, 0.16, 0.85, bm, { y: 1.10, z: -hl + 0.48, cast: false }));  // trunk (-Z)
+  g.add(L.box(wid - 0.44, 0.42, 0.18, bm, { y: 0.74, z: hl - 0.01, cast: false }));   // nose chamfer
+  g.add(L.box(wid - 0.44, 0.42, 0.18, bm, { y: 0.74, z: -hl + 0.01, cast: false }));  // tail chamfer
 
-  // — greenhouse (cabin) varies by kind, biased toward the rear (-Z) —
-  let cabLen, cabZ, cabY = 1.42, cabH = 0.62;
-  if (kind === 'van') { cabLen = 2.7; cabZ = 0.1; cabH = 0.95; cabY = 1.55; }
-  else if (kind === 'hatch') { cabLen = 1.9; cabZ = -0.3; }
-  else { cabLen = 2.1; cabZ = -0.15; }
-  g.add(L.box(1.62, cabH, cabLen, bm, { z: cabZ, y: cabY }));
-  g.add(L.box(1.5, 0.1, cabLen - 0.2, bm, { z: cabZ, y: cabY + cabH / 2 + 0.04, cast: false }));  // roof
-  g.add(L.box(1.66, cabH - 0.16, cabLen - 0.16, glass, { z: cabZ, y: cabY, cast: false }));        // side glass band
-  // pillars (front/rear of cabin)
-  [-1, 1].forEach(s => g.add(L.box(0.08, cabH, 0.08, bm, { z: cabZ + s * (cabLen / 2 - 0.06), y: cabY, cast: false })));
-
-  // — bumpers (front +Z, rear -Z) + grille + plates —
-  g.add(L.box(wid + 0.08, 0.24, 0.16, trimDark, { y: 0.42, z: hl, cast: false }));
-  g.add(L.box(wid + 0.08, 0.24, 0.16, trimDark, { y: 0.42, z: -hl, cast: false }));
-  g.add(L.box(1.0, 0.12, 0.04, L.MAT.chrome, { y: 0.86, z: hl - 0.02, cast: false }));   // grille (front)
-  g.add(L.box(0.5, 0.14, 0.02, M.plateW, { y: 0.5, z: hl + 0.01, cast: false }));
-  g.add(L.box(0.5, 0.14, 0.02, M.plateW, { y: 0.5, z: -hl - 0.01, cast: false }));
-
-  // — lights: headlights warm at +Z (front), taillights red at -Z (rear) —
-  [0.62, -0.62].forEach(hx => {
-    g.add(L.box(0.32, 0.18, 0.1, L.MAT.emissive('#fff0b0', 0.5), { x: hx, y: 0.82, z: hl - 0.02, cast: false }));
-    g.add(L.box(0.3, 0.16, 0.1, L.MAT.emissive('#cc1414', 0.7), { x: hx, y: 0.84, z: -hl + 0.02, cast: false }));
-  });
-
-  // — side mirrors (near the front of the cabin, on each side) —
+  // — greenhouse: side glass + curved roof + raked windshield/backlight —
+  let cabLen, cabZ, cabH = 0.58, cabY = 1.40;
+  if (kind === 'wagon') { cabLen = 2.45; cabZ = -0.25; cabH = 0.64; }
+  else if (kind === 'hatch') { cabLen = 1.85; cabZ = -0.42; }
+  else { cabLen = 1.98; cabZ = -0.2; }
+  const cabFront = cabZ + cabLen / 2, cabRear = cabZ - cabLen / 2;
+  g.add(L.box(1.58, cabH, cabLen, glass, { z: cabZ, y: cabY, cast: false }));         // side glass
+  // curved roof — flattened half-cylinder spanning the cabin (axis along X = width)
+  const roof = L.cyl(cabLen * 0.54, cabLen * 0.54, 1.52, 16, bm, { z: cabZ, y: cabY + cabH / 2 - 0.06, cast: false });
+  roof.rotation.z = Math.PI / 2; roof.scale.x = 0.40;     // flatten height (world Y)
+  g.add(roof);
+  // body-color pillars at the cabin corners
   [-1, 1].forEach(s => {
-    g.add(L.cyl(0.02, 0.02, 0.12, 5, trimDark, { x: s * (wid / 2 - 0.04), y: 1.3, z: cabZ + cabLen / 2 - 0.05, cast: false }));
-    g.add(L.box(0.04, 0.08, 0.1, bm, { x: s * (wid / 2 + 0.02), y: 1.32, z: cabZ + cabLen / 2 - 0.05, cast: false }));
+    g.add(L.box(0.09, cabH + 0.02, 0.09, bm, { x: s * 0.78, z: cabFront, y: cabY, cast: false }));
+    g.add(L.box(0.09, cabH + 0.02, 0.09, bm, { x: s * 0.78, z: cabRear, y: cabY, cast: false }));
+  });
+  // raked windshield + backlight (slanted tinted glass)
+  const ws = L.box(1.5, cabH + 0.32, 0.05, glass, { z: cabFront + 0.16, y: cabY - 0.04, cast: false }); ws.rotation.x = -0.5; g.add(ws);
+  const bl = L.box(1.5, cabH + 0.24, 0.05, glass, { z: cabRear - 0.15, y: cabY - 0.04, cast: false }); bl.rotation.x = 0.55; g.add(bl);
+
+  // — bumpers + chrome grille + plates —
+  g.add(L.box(wid + 0.06, 0.22, 0.14, trimDark, { y: 0.44, z: hl + 0.02, cast: false }));
+  g.add(L.box(wid + 0.06, 0.22, 0.14, trimDark, { y: 0.44, z: -hl - 0.02, cast: false }));
+  g.add(L.box(0.92, 0.1, 0.05, chrome, { y: 0.84, z: hl - 0.01, cast: false }));       // grille bar
+  g.add(L.box(0.5, 0.13, 0.02, M.plateW, { y: 0.52, z: hl + 0.045, cast: false }));
+  g.add(L.box(0.5, 0.13, 0.02, M.plateW, { y: 0.52, z: -hl - 0.045, cast: false }));
+
+  // — round chrome-ringed headlights (+Z) + red taillights (-Z) —
+  [0.6, -0.6].forEach(hx => {
+    const ring = L.cyl(0.14, 0.14, 0.07, 12, chrome, { x: hx, y: 0.88, z: hl - 0.02, cast: false }); ring.rotation.x = Math.PI / 2; g.add(ring);
+    const lens = L.cyl(0.1, 0.1, 0.08, 12, L.MAT.emissive('#fff2c4', 0.5), { x: hx, y: 0.88, z: hl + 0.02, cast: false }); lens.rotation.x = Math.PI / 2; g.add(lens);
+    g.add(L.box(0.28, 0.13, 0.06, L.MAT.emissive('#cc1414', 0.7), { x: hx, y: 0.9, z: -hl - 0.01, cast: false }));
   });
 
-  // — wheels with chrome rims: axle along local X (rotation.z = PI/2); world spins rotation.x —
+  // — door handles + side mirrors —
+  [-1, 1].forEach(s => {
+    g.add(L.box(0.04, 0.05, 0.16, chrome, { x: s * (wid / 2 + 0.02), y: 0.98, z: cabZ + 0.55, cast: false }));   // handle
+    g.add(L.box(0.05, 0.08, 0.11, bm, { x: s * (wid / 2 + 0.05), y: 1.30, z: cabFront - 0.05, cast: false }));    // mirror
+  });
+
+  // — wheels: tire + chrome dish + lug; axle along local X (rotation.z = PI/2) —
   const wheels = [];
-  [[0.92, 1.32], [-0.92, 1.32], [0.92, -1.32], [-0.92, -1.32]].forEach(([wx, wz]) => {
-    g.add(L.box(0.18, 0.3, 0.78, bm, { x: wx * 0.98, y: 0.66, z: wz, cast: false }));   // wheel arch flare
-    const tire = L.cyl(0.37, 0.37, 0.26, 16, L.MAT.rubber, { x: wx, y: 0.37, z: wz });
+  [[wid / 2 + 0.0, 1.30], [-(wid / 2), 1.30], [wid / 2, -1.30], [-(wid / 2), -1.30]].forEach(([wx, wz]) => {
+    g.add(L.box(0.15, 0.34, 0.94, bm, { x: wx * 0.92, y: 0.64, z: wz, cast: false }));   // wheel arch flare
+    const tire = L.cyl(0.38, 0.38, 0.26, 18, L.MAT.rubber, { x: wx, y: 0.38, z: wz });
     tire.rotation.z = Math.PI / 2; g.add(tire); wheels.push(tire);
-    const rim = L.cyl(0.23, 0.23, 0.28, 12, L.MAT.chrome, { x: wx, y: 0.37, z: wz, cast: false });
-    rim.rotation.z = Math.PI / 2; g.add(rim);
-    g.add(L.sphere(0.08, 8, L.MAT.metalLight, { x: wx, y: 0.37, z: wz, cast: false }));
+    const dish = L.cyl(0.24, 0.24, 0.28, 14, chrome, { x: wx, y: 0.38, z: wz, cast: false });
+    dish.rotation.z = Math.PI / 2; g.add(dish);
+    g.add(L.sphere(0.07, 8, L.MAT.metalLight, { x: wx, y: 0.38, z: wz, cast: false }));   // center lug
   });
 
   g.userData.wheels = wheels;

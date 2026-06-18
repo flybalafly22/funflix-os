@@ -632,6 +632,13 @@ function build(ctx) {
     root.add(bd); birds.push(bd);
   }
 
+  /* ── PERF: townsfolk/dogs/pigeons don't cast shadows (hundreds of tiny meshes
+     re-rendered into the shadow map every frame). Buildings/trees/cars/the Fly
+     still cast — those carry the scene's shadow read. ── */
+  npcs.forEach(n => n.traverse(o => { o.castShadow = false; }));
+  dogs.forEach(d => d.traverse(o => { o.castShadow = false; }));
+  pigeons.forEach(p => p.traverse(o => { o.castShadow = false; }));
+
   /* ── UPDATE ── */
   const bounds = { minX: -AVX + 4, maxX: AVX - 4, minZ: -(ROWZ + 11), maxZ: ROWZ + 13, minY: 2.2, maxY: 42 };
   const spawn = new T.Vector3(0, 9, -4);
