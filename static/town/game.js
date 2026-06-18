@@ -55,7 +55,7 @@ function start(ctx, world) {
   const css = document.createElement('style');
   css.textContent = `
     #flyTimerWrap { position:absolute; left:16px; top:96px; width:220px;
-      background:rgba(14,20,30,.62); backdrop-filter:blur(10px);
+      background:rgba(28,22,16,.6); backdrop-filter:blur(10px);
       border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px 12px;
       box-shadow:0 8px 28px rgba(0,0,0,.28); }
     #flyTimerWrap .row { display:flex; justify-content:space-between; align-items:baseline; }
@@ -65,7 +65,7 @@ function start(ctx, world) {
     #flyTimerBar i { display:block; height:100%; width:100%; border-radius:4px;
       background:linear-gradient(90deg,#7fe0a0,#ffd27a); transition:width .12s linear, background .3s; }
     #flyCombo { position:absolute; right:16px; top:78px; text-align:right;
-      background:rgba(14,20,30,.62); backdrop-filter:blur(10px);
+      background:rgba(28,22,16,.6); backdrop-filter:blur(10px);
       border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px 16px;
       box-shadow:0 8px 28px rgba(0,0,0,.28); opacity:0; transition:opacity .25s, transform .25s;
       transform:translateY(-6px); }
@@ -75,7 +75,7 @@ function start(ctx, world) {
     #flyComboBar { margin-top:5px; height:4px; border-radius:3px; background:rgba(255,255,255,.16); overflow:hidden; }
     #flyComboBar i { display:block; height:100%; width:100%; background:#ffd27a; }
     #flyBest { position:absolute; right:16px; top:150px; text-align:right; font-size:10px;
-      letter-spacing:.06em; line-height:1.5; opacity:.78; background:rgba(14,20,30,.42);
+      letter-spacing:.06em; line-height:1.5; opacity:.78; background:rgba(28,22,16,.42);
       padding:6px 12px; border-radius:10px; backdrop-filter:blur(6px); }
     #flyBest b { color:#7fe0a0; font-weight:800; }
     #flyMap { position:absolute; right:16px; bottom:16px; width:150px; height:150px;
@@ -447,7 +447,7 @@ function start(ctx, world) {
     // town footprint
     const [bx0, by0] = mapXY(bounds.minX, bounds.minZ);
     const [bx1, by1] = mapXY(bounds.maxX, bounds.maxZ);
-    g.fillStyle = 'rgba(40,52,40,0.55)';
+    g.fillStyle = 'rgba(46,40,28,0.55)';
     g.fillRect(bx0, by0, bx1 - bx0, by1 - by0);
     // central avenue band (z≈0 runs across the map) — abstract street
     const [, ay] = mapXY(0, 0);

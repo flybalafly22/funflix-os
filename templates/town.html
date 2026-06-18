@@ -8,13 +8,13 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #e6d2b0;
-               font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #fff; }
+               font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #fff5e9; }
   #wrap { position: fixed; inset: 0; }
   canvas { display: block; width: 100%; height: 100%; }
 
   /* ── loading ── */
   #load { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center;
-          background: radial-gradient(120% 120% at 50% 30%, #2a3a52, #131a26); transition: opacity .6s; }
+          background: radial-gradient(120% 120% at 50% 30%, #3a2c1e, #15100a); transition: opacity .6s; }
   #load.hide { opacity: 0; pointer-events: none; }
   #load .t { font-size: 30px; font-weight: 900; letter-spacing: .04em; }
   #load .b { margin-top: 14px; width: 180px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
@@ -24,27 +24,27 @@
   /* ── HUD ── */
   #hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
   #task { position: absolute; left: 16px; top: 14px; min-width: 220px;
-          background: rgba(14,20,30,.62); backdrop-filter: blur(10px);
+          background: rgba(28,22,16,.6); backdrop-filter: blur(10px);
           border: 1px solid rgba(255,255,255,.14); border-radius: 14px; padding: 11px 15px;
           box-shadow: 0 8px 28px rgba(0,0,0,.28); }
   #task .lbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #ffd27a; font-weight: 800; }
   #task .dst { font-size: 20px; font-weight: 800; margin-top: 2px; }
   #task .sub { font-size: 11px; opacity: .7; margin-top: 3px; }
   #score { position: absolute; right: 16px; top: 14px; text-align: right;
-           background: rgba(14,20,30,.62); backdrop-filter: blur(10px);
+           background: rgba(28,22,16,.6); backdrop-filter: blur(10px);
            border: 1px solid rgba(255,255,255,.14); border-radius: 14px; padding: 10px 16px;
            box-shadow: 0 8px 28px rgba(0,0,0,.28); }
   #score .n { font-size: 26px; font-weight: 800; line-height: 1; color: #7fe0a0; }
   #score .l { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; opacity: .65; margin-top: 3px; }
   #compass { position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
-             width: 54px; height: 54px; border-radius: 50%; background: rgba(14,20,30,.55);
+             width: 54px; height: 54px; border-radius: 50%; background: rgba(28,22,16,.55);
              backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.16);
              display: grid; place-items: center; box-shadow: 0 6px 22px rgba(0,0,0,.28); }
   #needle { font-size: 22px; color: #ffd27a; transition: transform .08s linear; text-shadow: 0 0 8px rgba(255,200,90,.7); }
   #dist { position: absolute; left: 50%; top: 74px; transform: translateX(-50%); font-size: 11px;
-          background: rgba(14,20,30,.5); padding: 2px 9px; border-radius: 8px; font-weight: 700; }
+          background: rgba(28,22,16,.5); padding: 2px 9px; border-radius: 8px; font-weight: 700; }
   #hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
-          font: 600 11px ui-monospace, Menlo, monospace; opacity: .82; background: rgba(10,14,22,.5);
+          font: 600 11px ui-monospace, Menlo, monospace; opacity: .82; background: rgba(24,18,12,.5);
           padding: 7px 13px; border-radius: 10px; backdrop-filter: blur(6px); white-space: nowrap; }
   #toast { position: absolute; left: 50%; top: 36%; transform: translate(-50%,-50%) scale(.8);
            font-size: 30px; font-weight: 900; text-shadow: 0 4px 18px rgba(0,0,0,.5); opacity: 0;

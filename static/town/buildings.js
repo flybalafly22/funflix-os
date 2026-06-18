@@ -38,6 +38,90 @@ function mix(h1, h2, t) {
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1);
 }
 
+/* ── ROOF PALETTE / MATERIAL (ART BIBLE §2.3, §5.4) ──────────────────────────
+   Rooftops are the player's #1 aerial surface. Bias selection ~65% toward the
+   THREE terracotta tiles (the first three entries of PAL.roofs) so the roofscape
+   reads as one warm tiled field; the weathered timber / slate-green / oxblood
+   tones are the minority relief. */
+function pickRoof() {
+  const roofs = L.PAL.roofs;               // [terracotta×3, ...relief]
+  const terra = roofs.slice(0, 3);         // a85f43 / 9c5740 / b56b48
+  return L.chance(0.65) ? L.pick(terra) : L.pick(roofs);
+}
+/* matte roof-tile material (§3.1: roof tile roughness 0.88, metalness 0) */
+function roofTileMat(hex) {
+  return L.std({ color: parseInt(hex.replace('#', '0x')), roughness: 0.88, metalness: 0 });
+}
+
+/* ── PITCHED / HIPPED TILED ROOF CAP ─────────────────────────────────────────
+   A low tiled cap that gives an archetype silhouette interest from the air
+   (replaces the flat parapet when used). Two ridge orientations:
+     ridge 'x' → gable faces ±Z (slopes shed toward ±X)
+     ridge 'z' → gable faces ±X (slopes shed toward ±Z)
+   When hip is true, the ends are also sloped (4-sided hipped cap = no gable).
+   Returns nothing; adds straight to g. Caller supplies eave height (topY). */
+function pitchedRoof(g, w, d, topY, roofHex, opts) {
+  opts = opts || {};
+  const tileMat = roofTileMat(roofHex);
+  const eaveMat = roofTileMat(darker(roofHex, 0.82));
+  const ridgeAlongX = opts.ridge !== 'z';        // default ridge runs along X (gables ±Z)
+  const span = ridgeAlongX ? w : d;              // horizontal distance the slopes cover
+  const len  = ridgeAlongX ? d : w;              // ridge length
+  const capH = opts.capH != null ? opts.capH : Math.min(span * 0.28, 1.7);
+  const over = 0.28;                             // eave overhang
+  const slopeW = Math.sqrt((span / 2) * (span / 2) + capH * capH) + over;
+  const tilt = Math.atan2(capH, span / 2);
+  // two main slopes
+  for (const side of [-1, 1]) {
+    const slope = L.box(
+      ridgeAlongX ? slopeW : len + over * 2,
+      0.16,
+      ridgeAlongX ? len + over * 2 : slopeW,
+      tileMat,
+      { x: ridgeAlongX ? side * span / 4 : 0, y: topY + capH / 2, z: ridgeAlongX ? 0 : side * span / 4 }
+    );
+    slope.rotation[ridgeAlongX ? 'z' : 'x'] = (ridgeAlongX ? side : -side) * tilt;
+    g.add(slope);
+  }
+  // ridge cap beam
+  g.add(L.box(
+    ridgeAlongX ? 0.2 : len + 0.1,
+    0.14,
+    ridgeAlongX ? len + 0.1 : 0.2,
+    eaveMat,
+    { y: topY + capH + 0.02, cast: false }
+  ));
+  if (opts.hip) {
+    // hipped: triangular end slopes instead of gable walls (4-sided cap)
+    for (const end of [-1, 1]) {
+      const endTilt = Math.atan2(capH, len / 2);
+      const endSlopeW = Math.sqrt((len / 2) * (len / 2) + capH * capH) + over;
+      const es = L.box(
+        ridgeAlongX ? w + over * 2 : endSlopeW,
+        0.15,
+        ridgeAlongX ? endSlopeW : d + over * 2,
+        tileMat,
+        { x: ridgeAlongX ? 0 : end * len / 4, y: topY + capH / 2, z: ridgeAlongX ? end * len / 4 : 0 }
+      );
+      es.rotation[ridgeAlongX ? 'x' : 'z'] = (ridgeAlongX ? -end : end) * endTilt;
+      g.add(es);
+    }
+  } else {
+    // gable end walls fill the triangle under each slope end
+    const gw = ridgeAlongX ? w : d;
+    const wallMat = opts.gableMat || tileMat;
+    for (const end of [-1, 1]) {
+      const gable = new T.Shape();
+      gable.moveTo(-gw / 2, 0); gable.lineTo(gw / 2, 0); gable.lineTo(0, capH); gable.lineTo(-gw / 2, 0);
+      const gGeo = new T.ExtrudeGeometry(gable, { depth: 0.18, bevelEnabled: false });
+      const gm = new T.Mesh(gGeo, wallMat);
+      if (ridgeAlongX) { gm.position.set(0, topY, end * (d / 2 - 0.09)); }
+      else { gm.position.set(end * (w / 2 - 0.09), topY, 0); gm.rotation.y = Math.PI / 2; }
+      gm.castShadow = true; g.add(gm);
+    }
+  }
+}
+
 /* a thin railing built from balusters + top/bottom rails (added straight to g) */
 function railing(g, cx, y, z, span, height, mat, bars) {
   const n = bars || Math.max(4, Math.round(span / 0.42));
@@ -252,7 +336,7 @@ function bladeSign(g, spec, w, frontZ, neon) {
   if (neon) {
     const glow = L.pick(['#40a8e0', '#ff8060', '#d060f0', '#f0a830', '#30c8f0', '#50e0a0']);
     const nT = L.neonTex(name, glow);
-    const bl = new T.Mesh(new T.PlaneGeometry(1.3, 0.7), L.std({ map: nT, emissive: parseInt(glow.replace('#', '0x')), emissiveMap: nT, emissiveIntensity: 1.9, roughness: 0.25 }));
+    const bl = new T.Mesh(new T.PlaneGeometry(1.3, 0.7), L.std({ map: nT, emissive: parseInt(glow.replace('#', '0x')), emissiveMap: nT, emissiveIntensity: 1.5, roughness: 0.25 }));
     bl.position.set(armX - 0.45, y, frontZ + 0.42); bl.rotation.y = Math.PI / 2; g.add(bl);
     const bl2 = bl.clone(); bl2.rotation.y = -Math.PI / 2; bl2.position.z = frontZ + 0.38; g.add(bl2);
   } else {
@@ -341,11 +425,13 @@ function make(spec) {
   g.add(L.box(w, h, d, wallMat, { y: h / 2, receive: true }));
 
   // archetype-specific window proportions
-  let winW = 0.95, winH = 1.35, litP = 0.24, doSides = (w > 8 || d > 9), doBack = false;
-  if (arch === 'apartment') { winW = 0.85; winH = 1.4; litP = 0.3; doSides = true; }
-  else if (arch === 'civic') { winW = 1.05; winH = 1.9; litP = 0.18; doSides = true; }
-  else if (arch === 'townhouse') { winW = 0.8; winH = 1.4; litP = 0.22; }
-  else if (arch === 'cafe') { winW = 1.0; winH = 1.45; litP = 0.34; }
+  // litP kept modest per §4.10 (emissive discipline: bloom threshold raised to
+  // 0.86) so lit windows GLOW without the town reading as a christmas tree by day.
+  let winW = 0.95, winH = 1.35, litP = 0.20, doSides = (w > 8 || d > 9), doBack = false;
+  if (arch === 'apartment') { winW = 0.85; winH = 1.4; litP = 0.24; doSides = true; }
+  else if (arch === 'civic') { winW = 1.05; winH = 1.9; litP = 0.16; doSides = true; }
+  else if (arch === 'townhouse') { winW = 0.8; winH = 1.4; litP = 0.20; }
+  else if (arch === 'cafe') { winW = 1.0; winH = 1.45; litP = 0.26; }
 
   /* ── COMMON STRUCTURE: bands + cornice ── */
   bandsAndCornice(g, w, d, h, floors, trimMat, { cornice: true });
@@ -508,20 +594,10 @@ function make(spec) {
   let roofOpts = { garden: (arch === 'apartment' || arch === 'civic') };
   // townhouse: pitched cap / mansard + chimney
   if (arch === 'townhouse') {
+    // classic pitched tiled cap (terracotta-biased), gable ends + a chimney
     const capH = L.rand(1.2, 1.8);
-    // simple pitched roof from two sloped boxes
-    const roofMat = L.MAT.wood(L.pick(L.PAL.roofs));
-    const slopeW = Math.sqrt((w / 2) * (w / 2) + capH * capH) + 0.2;
-    for (const side of [-1, 1]) {
-      const slope = L.box(slopeW, 0.16, d + 0.4, roofMat, { x: side * w / 4, y: h + capH / 2, z: 0 });
-      slope.rotation.z = side * Math.atan2(capH, w / 2); g.add(slope);
-    }
-    // gable end fill
-    const gable = new T.Shape();
-    gable.moveTo(-w / 2, 0); gable.lineTo(w / 2, 0); gable.lineTo(0, capH); gable.lineTo(-w / 2, 0);
-    const gGeo = new T.ExtrudeGeometry(gable, { depth: 0.2, bevelEnabled: false });
-    const gm = new T.Mesh(gGeo, wallMat); gm.position.set(0, h, frontZ - 0.1); gm.castShadow = true; g.add(gm);
-    const gm2 = gm.clone(); gm2.position.z = backZ - 0.1; g.add(gm2);
+    const roofHex = pickRoof();
+    pitchedRoof(g, w, d, h, roofHex, { ridge: 'x', capH, gableMat: wallMat });
     // chimney
     g.add(L.box(0.7, 1.4, 0.7, L.MAT.brick(darker(wallHex, 0.8)), { x: w / 4, y: h + capH + 0.2, z: -d / 4 }));
     g.add(L.box(0.85, 0.2, 0.85, L.MAT.flat('#3a3530'), { x: w / 4, y: h + capH + 0.9, z: -d / 4, cast: false }));
@@ -535,7 +611,29 @@ function make(spec) {
     }
     rooftop(g, w, d, h, wallMat, roofOpts);
   } else {
-    rooftop(g, w, d, h, wallMat, roofOpts);
+    // shop / cafe / corner / apartment: mix flat-parapet with the occasional
+    // low TILED pitched/hipped cap so the aerial roofscape gets silhouette
+    // interest and reads terracotta-dominant (§3.4 / §5.4). Corner buildings
+    // keep flat parapets (their chamfer wedge wants a clean top).
+    const wantPitch = arch !== 'corner' && L.chance(arch === 'apartment' ? 0.4 : 0.5);
+    if (wantPitch) {
+      const roofHex = pickRoof();
+      // shallow cap; ridge runs along the longer plan axis, ends sometimes hipped
+      const ridge = w >= d ? 'x' : 'z';
+      const hip = L.chance(0.4);
+      const capH = L.rand(0.9, 1.5);
+      // tar deck under the cap (kept for grounded look), but no parapet
+      g.add(L.box(w - 0.3, 0.08, d - 0.3, L.MAT.flat('#46423b'), { y: h + 0.04, cast: false }));
+      pitchedRoof(g, w, d, h, roofHex, { ridge, hip, capH, gableMat: wallMat });
+      // a tasteful chimney or roof vent poking through (clutter, §5.4)
+      if (L.chance(0.5)) {
+        const cx = L.jitter(w / 4), cz = -L.rand(0, d / 4);
+        g.add(L.box(0.5, 1.0, 0.5, L.MAT.brick(darker(wallHex, 0.8)), { x: cx, y: h + capH + 0.3, z: cz }));
+        g.add(L.box(0.62, 0.14, 0.62, L.MAT.flat('#3a3530'), { x: cx, y: h + capH + 0.85, z: cz, cast: false }));
+      }
+    } else {
+      rooftop(g, w, d, h, wallMat, roofOpts);
+    }
   }
 
   /* ════════ EXTRAS (shared, flagged) ════════ */
@@ -563,7 +661,7 @@ function make(spec) {
   if (has('neon') && spec.name && arch !== 'shop' && arch !== 'cafe' && arch !== 'corner') {
     const glow = L.pick(['#40a8e0', '#ff8060', '#d060f0', '#f0a830', '#30c8f0']);
     const nT = L.neonTex(spec.name, glow);
-    const nSign = new T.Mesh(new T.PlaneGeometry(2.8, 0.6), L.std({ map: nT, emissive: parseInt(glow.replace('#', '0x')), emissiveMap: nT, emissiveIntensity: 1.8, roughness: 0.25 }));
+    const nSign = new T.Mesh(new T.PlaneGeometry(2.8, 0.6), L.std({ map: nT, emissive: parseInt(glow.replace('#', '0x')), emissiveMap: nT, emissiveIntensity: 1.5, roughness: 0.25 }));
     nSign.position.set(0, GROUND_H + 0.9, frontZ + 0.15); g.add(nSign);
   }
   // MURAL (painted wall graphic on a side wall)

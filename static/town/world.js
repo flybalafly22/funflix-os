@@ -24,78 +24,85 @@ const CROSSZ1 = (ROWZ + 8);   // northern end (+Z)
 const CROSSROWX = CROSSX - (SW + SDW + 4.5);  // west building row centerline (fronts face +X toward street)
 const CROSSROWX2 = CROSSX + (SW + SDW + 4.5); // east building row centerline (fronts face -X)
 
-/* the designed shop roster — identity authored by hand */
+/* the designed shop roster — identity authored by hand
+   §2.9/§5.1 WALL AUDIT: every authored `wall` is re-snapped into the §2.2
+   warm-dominant family. Cool reliefs (sage #9fb0a0 / faded-blue #9eb2bd /
+   olive #aeb39a) are held to ~1-in-4 per block; greens lean to the -Z row
+   (park side). signColor + awning accents are LEFT UNTOUCHED (accent budget). */
 const ROSTER = [
   // name, wall, archetype, floors, signColor, awning(pair|null), extras
-  ['CAFÉ MOTT',    '#c9824a', 'cafe',      4, '#8b3528', ['#c44a44', '#f4ecd8'], ['balcony']],
-  ['LIBRERÍA',     '#8fa8c0', 'shop',      3, '#2f5878', ['#2f6f8e', '#e8f0f8'], ['neon']],
-  ['FLORERÍA',     '#d5b87a', 'shop',      2, '#4a7a40', ['#4a8a42', '#f4f0e0'], ['posters']],
-  ['PANADERÍA',    '#c49080', 'shop',      2, '#8a4a28', ['#c87a3a', '#f4ecd8'], []],
-  ['RELOJERÍA',    '#a0b898', 'apartment', 5, '#283858', ['#3a5d92', '#f4ecd8'], ['balcony']],
-  ['TABACOS',      '#c8c09a', 'townhouse', 3, '#5a3820', null,                   ['posters']],
-  ['BOTÁNICA',     '#b880a8', 'shop',      4, '#5a2870', ['#8a3898', '#f4ecd8'], ['neon']],
-  ['PESCADERÍA',   '#9aa8c8', 'shop',      2, '#28404a', ['#2a5568', '#e0e8f0'], []],
-  ['EL BUZÓN',     '#d4a060', 'civic',     4, '#7a4018', ['#b85828', '#f4ecd8'], ['balcony']],
-  ['SASTRE',       '#a0c890', 'townhouse', 2, '#284828', null,                   []],
-  ['FERRETERÍA',   '#c09070', 'shop',      3, '#4a3818', ['#8a5830', '#f0e8d0'], []],
-  ['HELADOS',      '#88a0c0', 'shop',      2, '#c04040', ['#e04848', '#f0f0f0'], ['neon']],
-  ['SASTRERÍA',    '#cfa870', 'apartment', 5, '#3a2818', ['#7a5028', '#f4ecd8'], ['balcony']],
-  ['BARBERÍA',     '#9abcc4', 'shop',      3, '#1a3848', ['#2858a8', '#e8f0f8'], ['neon']],
-  ['BODEGA',       '#c49068', 'townhouse', 3, '#4a3018', ['#8a5830', '#f0e0c0'], ['posters']],
-  ['FARMACIA',     '#a8b8a0', 'shop',      2, '#286848', ['#2a8858', '#eef8ef'], []],
-  ['GALERÍA',      '#d4b890', 'civic',     5, '#382848', ['#6838a8', '#f8f0f8'], ['balcony']],
-  ['CARNICERÍA',   '#b8a0c4', 'shop',      3, '#6a2828', ['#b03838', '#f4ecd8'], []],
-  ['PAPELERÍA',    '#d8c880', 'shop',      4, '#28404a', ['#3a5878', '#f4ecd8'], ['neon']],
-  ['ÓPTICA',       '#c0a080', 'apartment', 3, '#284858', ['#3a78b8', '#e8f0f8'], ['balcony']],
-  ['VERDURERÍA',   '#a8c8a8', 'shop',      2, '#305038', ['#4a8050', '#eef4ee'], ['posters']],
-  ['PELUQUERÍA',   '#c8a0b0', 'shop',      4, '#682040', ['#b03870', '#f8eef4'], []],
-  ['BAZAR',        '#a0b0c8', 'townhouse', 2, '#3a2858', null,                   ['posters']],
-  ['TINTORERÍA',   '#d0a878', 'shop',      4, '#50280a', ['#9a4818', '#f4ecd8'], ['neon']],
-  ['ZAPATERÍA',    '#b89a78', 'shop',      3, '#3a2a1a', ['#7a5a30', '#f0e8d0'], []],
-  ['JOYERÍA',      '#9ab0c8', 'civic',     4, '#1a2a48', ['#2a4a88', '#e8eef8'], ['balcony']],
-  ['MÚSICA',       '#caa0b8', 'shop',      3, '#3a1a48', ['#7a2a98', '#f4ecf8'], ['neon']],
-  ['JUGUETES',     '#e0b870', 'shop',      2, '#c05020', ['#e87838', '#fff0e0'], ['posters']],
-  ['EL FARO',      '#90b0b8', 'apartment', 5, '#1a4858', ['#2a7898', '#e8f4f8'], ['balcony']],
-  ['MERCADO',      '#cbb488', 'civic',     3, '#4a3a1a', ['#8a6a28', '#f4ecd8'], []],
-  ['VINOS',        '#a87858', 'townhouse', 3, '#3a1818', null,                   ['posters']],
-  ['CERÁMICA',     '#c8a888', 'shop',      2, '#6a3a1a', ['#a85a28', '#f4ecd8'], []],
-  ['CONFITERÍA',   '#e0b8a0', 'shop',      2, '#a8482a', ['#d86838', '#fff0e0'], ['posters']],
-  ['LAVANDERÍA',   '#a8c0c8', 'shop',      3, '#2a5868', ['#3a7898', '#e8f0f8'], []],
-  ['FOTOGRAFÍA',   '#9aa0b8', 'townhouse', 2, '#28284a', null,                   ['posters']],
-  ['CESTERÍA',     '#cab078', 'shop',      2, '#5a3a18', ['#9a6a28', '#f4ecd8'], []],
-  ['QUESERÍA',     '#d8c890', 'shop',      2, '#6a5018', ['#a88028', '#f4ecd8'], ['posters']],
-  ['DROGUERÍA',    '#a0c0a8', 'shop',      3, '#28583a', ['#2a8858', '#eef8ef'], ['neon']],
+  ['CAFÉ MOTT',    '#cf9a6e', 'cafe',      4, '#8b3528', ['#c44a44', '#f4ecd8'], ['balcony']], // terracotta tan (market)
+  ['LIBRERÍA',     '#caa074', 'shop',      3, '#2f5878', ['#2f6f8e', '#e8f0f8'], ['neon']],    // clay (was cool blue)
+  ['FLORERÍA',     '#d9b07e', 'shop',      2, '#4a7a40', ['#4a8a42', '#f4f0e0'], ['posters']], // wheat
+  ['PANADERÍA',    '#c99a8a', 'shop',      2, '#8a4a28', ['#c87a3a', '#f4ecd8'], []],          // rose-clay
+  ['RELOJERÍA',    '#9eb2bd', 'apartment', 5, '#283858', ['#3a5d92', '#f4ecd8'], ['balcony']], // faded sky-blue relief
+  ['TABACOS',      '#e3c79a', 'townhouse', 3, '#5a3820', null,                   ['posters']], // cream-ochre
+  ['BOTÁNICA',     '#caa074', 'shop',      4, '#5a2870', ['#8a3898', '#f4ecd8'], ['neon']],    // clay (was mauve)
+  ['PESCADERÍA',   '#9fb0a0', 'shop',      2, '#28404a', ['#2a5568', '#e0e8f0'], []],          // sage relief (was cool blue)
+  ['EL BUZÓN',     '#d8a877', 'civic',     4, '#7a4018', ['#b85828', '#f4ecd8'], ['balcony']], // warm sand
+  ['SASTRE',       '#9fb0a0', 'townhouse', 2, '#284828', null,                   []],          // sage relief
+  ['FERRETERÍA',   '#c08a63', 'shop',      3, '#4a3818', ['#8a5830', '#f0e8d0'], []],          // burnt sienna
+  ['HELADOS',      '#e3c79a', 'shop',      2, '#c04040', ['#e04848', '#f0f0f0'], ['neon']],    // cream-ochre (was cool blue)
+  ['SASTRERÍA',    '#d4a890', 'apartment', 5, '#3a2818', ['#7a5028', '#f4ecd8'], ['balcony']], // faded coral
+  ['BARBERÍA',     '#9eb2bd', 'shop',      3, '#1a3848', ['#2858a8', '#e8f0f8'], ['neon']],    // faded sky-blue relief
+  ['BODEGA',       '#cf9a6e', 'townhouse', 3, '#4a3018', ['#8a5830', '#f0e0c0'], ['posters']], // terracotta tan
+  ['FARMACIA',     '#aeb39a', 'shop',      2, '#286848', ['#2a8858', '#eef8ef'], []],          // olive-stone relief (park side)
+  ['GALERÍA',      '#e0bd8c', 'civic',     5, '#382848', ['#6838a8', '#f8f0f8'], ['balcony']], // pale ochre
+  ['CARNICERÍA',   '#c99a8a', 'shop',      3, '#6a2828', ['#b03838', '#f4ecd8'], []],          // rose-clay (was mauve)
+  ['PAPELERÍA',    '#e3c79a', 'shop',      4, '#28404a', ['#3a5878', '#f4ecd8'], ['neon']],    // cream-ochre
+  ['ÓPTICA',       '#caa074', 'apartment', 3, '#284858', ['#3a78b8', '#e8f0f8'], ['balcony']], // clay
+  ['VERDURERÍA',   '#9fb0a0', 'shop',      2, '#305038', ['#4a8050', '#eef4ee'], ['posters']], // sage relief (greengrocer)
+  ['PELUQUERÍA',   '#d4a890', 'shop',      4, '#682040', ['#b03870', '#f8eef4'], []],          // faded coral (was mauve)
+  ['BAZAR',        '#caa074', 'townhouse', 2, '#3a2858', null,                   ['posters']], // clay (was cool blue)
+  ['TINTORERÍA',   '#d9b07e', 'shop',      4, '#50280a', ['#9a4818', '#f4ecd8'], ['neon']],    // wheat
+  ['ZAPATERÍA',    '#caa074', 'shop',      3, '#3a2a1a', ['#7a5a30', '#f0e8d0'], []],          // clay
+  ['JOYERÍA',      '#9eb2bd', 'civic',     4, '#1a2a48', ['#2a4a88', '#e8eef8'], ['balcony']], // faded sky-blue relief
+  ['MÚSICA',       '#c99a8a', 'shop',      3, '#3a1a48', ['#7a2a98', '#f4ecf8'], ['neon']],    // rose-clay (was mauve)
+  ['JUGUETES',     '#e3c79a', 'shop',      2, '#c05020', ['#e87838', '#fff0e0'], ['posters']], // cream-ochre
+  ['EL FARO',      '#9fb0a0', 'apartment', 5, '#1a4858', ['#2a7898', '#e8f4f8'], ['balcony']], // sage relief (park side)
+  ['MERCADO',      '#d9b07e', 'civic',     3, '#4a3a1a', ['#8a6a28', '#f4ecd8'], []],          // wheat
+  ['VINOS',        '#c08a63', 'townhouse', 3, '#3a1818', null,                   ['posters']], // burnt sienna
+  ['CERÁMICA',     '#caa074', 'shop',      2, '#6a3a1a', ['#a85a28', '#f4ecd8'], []],          // clay
+  ['CONFITERÍA',   '#e3c79a', 'shop',      2, '#a8482a', ['#d86838', '#fff0e0'], ['posters']], // cream-ochre
+  ['LAVANDERÍA',   '#9eb2bd', 'shop',      3, '#2a5868', ['#3a7898', '#e8f0f8'], []],          // faded sky-blue relief
+  ['FOTOGRAFÍA',   '#d4a890', 'townhouse', 2, '#28284a', null,                   ['posters']], // faded coral (was cool blue)
+  ['CESTERÍA',     '#d9b07e', 'shop',      2, '#5a3a18', ['#9a6a28', '#f4ecd8'], []],          // wheat
+  ['QUESERÍA',     '#e3c79a', 'shop',      2, '#6a5018', ['#a88028', '#f4ecd8'], ['posters']], // cream-ochre
+  ['DROGUERÍA',    '#aeb39a', 'shop',      3, '#28583a', ['#2a8858', '#eef8ef'], ['neon']],    // olive-stone relief (park side)
 ];
 
-/* the cross-street roster (fronts will face the avenue side-street) */
+/* the cross-street roster (fronts will face the avenue side-street)
+   §5.1 CROSS-STREET zone: artisan, slightly more saturated warm but still
+   capped in the §2.2 family; cool reliefs held ~1-in-4. Accents untouched. */
 const CROSS_ROSTER = [
-  ['LIBROS RAROS', '#bca0c8', 'shop',      3, '#3a2858', ['#6838a8', '#f8f0f8'], ['neon']],
-  ['CAFÉ ESQUINA', '#d09858', 'cafe',      4, '#8b3528', ['#c44a44', '#f4ecd8'], ['balcony']],
-  ['ARTESANÍAS',   '#c8b088', 'shop',      2, '#6a4818', ['#a87838', '#f4ecd8'], ['posters']],
-  ['SOMBRERERÍA',  '#b0a0c0', 'townhouse', 3, '#3a2858', null,                   []],
-  ['EL CORREO',    '#d4a060', 'civic',     4, '#7a4018', ['#b85828', '#f4ecd8'], ['balcony']],
-  ['ANTICUARIO',   '#a8b0a0', 'apartment', 5, '#3a4828', ['#5a7838', '#f4ecd8'], ['balcony']],
-  ['CHOCOLATERÍA', '#caa088', 'shop',      2, '#6a3818', ['#a85838', '#fff0e0'], ['neon']],
-  ['VIDRIERÍA',    '#9ac0c8', 'shop',      3, '#1a4858', ['#2a7898', '#e8f4f8'], []],
-  ['EL MERCADILLO','#cbb488', 'civic',     3, '#4a3a1a', ['#8a6a28', '#f4ecd8'], []],
-  ['PERFUMERÍA',   '#d0a8c0', 'shop',      4, '#682050', ['#b03888', '#f8eef8'], ['neon']],
-  ['CARPINTERÍA',  '#b89868', 'townhouse', 2, '#4a3018', null,                   ['posters']],
-  ['MARISQUERÍA',  '#9ab0c8', 'shop',      2, '#284a58', ['#2a6888', '#e8f0f8'], []],
-  ['TEJIDOS',      '#c8a0a8', 'apartment', 4, '#5a2838', ['#a04868', '#f8eef0'], ['balcony']],
-  ['EL ESTANCO',   '#c8c09a', 'townhouse', 3, '#5a3820', null,                   ['posters']],
+  ['LIBROS RAROS', '#caa074', 'shop',      3, '#3a2858', ['#6838a8', '#f8f0f8'], ['neon']],    // clay (was mauve)
+  ['CAFÉ ESQUINA', '#cf9a6e', 'cafe',      4, '#8b3528', ['#c44a44', '#f4ecd8'], ['balcony']], // terracotta tan
+  ['ARTESANÍAS',   '#d9b07e', 'shop',      2, '#6a4818', ['#a87838', '#f4ecd8'], ['posters']], // wheat
+  ['SOMBRERERÍA',  '#9eb2bd', 'townhouse', 3, '#3a2858', null,                   []],          // faded sky-blue relief (was mauve)
+  ['EL CORREO',    '#d8a877', 'civic',     4, '#7a4018', ['#b85828', '#f4ecd8'], ['balcony']], // warm sand
+  ['ANTICUARIO',   '#9fb0a0', 'apartment', 5, '#3a4828', ['#5a7838', '#f4ecd8'], ['balcony']], // sage relief
+  ['CHOCOLATERÍA', '#c08a63', 'shop',      2, '#6a3818', ['#a85838', '#fff0e0'], ['neon']],    // burnt sienna (artisan)
+  ['VIDRIERÍA',    '#9eb2bd', 'shop',      3, '#1a4858', ['#2a7898', '#e8f4f8'], []],          // faded sky-blue relief (was cool)
+  ['EL MERCADILLO','#d9b07e', 'civic',     3, '#4a3a1a', ['#8a6a28', '#f4ecd8'], []],          // wheat
+  ['PERFUMERÍA',   '#d4a890', 'shop',      4, '#682050', ['#b03888', '#f8eef8'], ['neon']],    // faded coral (was mauve)
+  ['CARPINTERÍA',  '#caa074', 'townhouse', 2, '#4a3018', null,                   ['posters']], // clay
+  ['MARISQUERÍA',  '#9eb2bd', 'shop',      2, '#284a58', ['#2a6888', '#e8f0f8'], []],          // faded sky-blue relief (was cool)
+  ['TEJIDOS',      '#c99a8a', 'apartment', 4, '#5a2838', ['#a04868', '#f8eef0'], ['balcony']], // rose-clay
+  ['EL ESTANCO',   '#e3c79a', 'townhouse', 3, '#5a3820', null,                   ['posters']], // cream-ochre
 ];
 
-/* extra civic landmarks that anchor the cross-street / far blocks */
+/* extra civic landmarks that anchor the cross-street / far blocks
+   §5.1 CIVIC SPINE: cooler & paler stone-cream walls (restrained, gravitas). */
 const LANDMARK_SPECS = [
-  ['ESTACIÓN',     '#d0c4a8', 'civic', 4, '#3a3018', null, []],
-  ['CONSERVATORIO','#b8a8c8', 'civic', 5, '#2a1840', ['#5a2878', '#f4ecf8'], ['balcony']],
+  ['ESTACIÓN',     '#e3c79a', 'civic', 4, '#3a3018', null, []],                              // stone-cream (paler civic)
+  ['CONSERVATORIO','#9eb2bd', 'civic', 5, '#2a1840', ['#5a2878', '#f4ecf8'], ['balcony']],   // slate-blue relief (was mauve)
 ];
 
-/* civic anchors that frame the plaza */
+/* civic anchors that frame the plaza — §5.1 civic-spine stone-cream */
 const PLAZA_SPECS = [
-  ['AYUNTAMIENTO', '#d8c8a0', 'civic', 4, '#3a2a48', null, ['balcony']],
-  ['TEATRO MOTT',  '#c0a8c8', 'civic', 5, '#2a1838', ['#5a2878', '#f4ecf8'], ['balcony']],
-  ['BIBLIOTECA',   '#a8c0b0', 'civic', 4, '#1a3a2a', null, ['balcony']],
+  ['AYUNTAMIENTO', '#e3c79a', 'civic', 4, '#3a2a48', null, ['balcony']],                     // stone-cream
+  ['TEATRO MOTT',  '#e0bd8c', 'civic', 5, '#2a1838', ['#5a2878', '#f4ecf8'], ['balcony']],   // pale-ochre stone-cream (was mauve)
+  ['BIBLIOTECA',   '#9fb0a0', 'civic', 4, '#1a3a2a', null, ['balcony']],                     // sage relief (civic)
 ];
 
 function build(ctx) {
@@ -196,6 +203,9 @@ function build(ctx) {
   [[-13, 1], [13, 1]].forEach(([x, s]) => { const cf = P.makeCafe(); cf.position.set(x, CH, SW + 4); root.add(cf); });
   [[-9, 0], [9, 0], [0, 1]].forEach(([dx, dz]) => { const st = P.makeMarketStall(); st.position.set(dx, CH, SW + 11 + dz * 2); st.rotation.y = Math.PI; root.add(st); });
   [[-15, SW + 12], [15, SW + 12], [-7, SW + 13], [7, SW + 13]].forEach(([x, z]) => { const tr = P.makeTree({ big: true }); tr.position.set(x, CH, z); root.add(tr); });
+  // §5.3 focal-heart density bump: planters & lamps ring the founter plaza (densest here)
+  for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.4; const pl = P.makePlanter(); pl.position.set(Math.cos(a) * 9.5, CH, SW + 6 + Math.sin(a) * 9.5); root.add(pl); }
+  [[-11, SW + 2], [11, SW + 2], [-11, SW + 10], [11, SW + 10]].forEach(([x, z]) => { const lp = P.makeLamp(); lp.position.set(x, CH, z); root.add(lp); });
 
   /* ── BUILDING ROWS ── */
   function specToDims(spec, i) {
@@ -290,9 +300,11 @@ function build(ctx) {
   /* ── CLOCK TOWER landmark (behind the plaza, tall silhouette) ── */
   (function clockTower() {
     const tx = 0, tz = ROWZ + 22;
-    const stoneA = L.std({ color: 0xe2d6b8, roughness: 0.9 });
-    const stoneB = L.std({ color: 0xd2c2a0, roughness: 0.9 });
-    const trim = L.std({ color: 0xbfae8a, roughness: 0.85 });
+    // §5.2 beacon: warm cream stone that CATCHES THE SUN (matte, lifted toward
+    // the §2.4 cream family so the shaft glows on the sun-side at golden hour).
+    const stoneA = L.std({ color: 0xeadbb6, roughness: 0.9 });   // sunlit cream stone
+    const stoneB = L.std({ color: 0xdcc8a0, roughness: 0.9 });   // shaded cream stone
+    const trim = L.std({ color: 0xc6b48c, roughness: 0.85 });
     root.add(L.box(7.5, 1.0, 7.5, stoneB, { x: tx, y: 0.5, z: tz, receive: true }));      // plinth
     root.add(L.box(6.0, 22, 6.0, stoneA, { x: tx, y: 11, z: tz }));                         // shaft
     for (let f = 1; f <= 6; f++) root.add(L.box(6.3, 0.3, 6.3, trim, { x: tx, y: 2 + f * 3, z: tz, cast: false }));  // string courses
@@ -315,8 +327,11 @@ function build(ctx) {
     root.add(L.box(6.6, 0.5, 6.6, trim, { x: tx, y: 22.3, z: tz, cast: false }));
     root.add(L.box(5.2, 3.0, 5.2, stoneB, { x: tx, y: 24, z: tz }));                          // belfry openings level
     [[-1.4, 0], [1.4, 0], [0, -1.4], [0, 1.4]].forEach(([dx, dz]) => root.add(L.box(dx === 0 ? 1.6 : 0.2, 2.0, dz === 0 ? 1.6 : 0.2, L.MAT.glassLit, { x: tx + dx * 1.9, y: 24, z: tz + dz * 1.9, cast: false })));
-    const spire = new T.Mesh(new T.ConeGeometry(4.4, 6.0, 4), L.std({ color: 0x8a5d4e, roughness: 0.85 })); spire.position.set(tx, 28.5, tz); spire.rotation.y = Math.PI / 4; spire.castShadow = true; root.add(spire);
-    root.add(L.sphere(0.4, 10, L.MAT.emissive('#ffd27a', 0.8), { x: tx, y: 31.8, z: tz, cast: false }));
+    const spire = new T.Mesh(new T.ConeGeometry(4.4, 6.0, 4), L.std({ color: 0x6f7d68, roughness: 0.85 })); spire.position.set(tx, 28.5, tz); spire.rotation.y = Math.PI / 4; spire.castShadow = true; root.add(spire);  // §5.1 civic slate-green roof
+    // §5.2 finial beacon: warm-gold glow (hero) + a faint halo sphere so it
+    // reads as a beacon from down the avenue. Kept low-intensity per §4.10.
+    root.add(L.sphere(0.4, 10, L.MAT.emissive('#ffd27a', 0.95), { x: tx, y: 31.8, z: tz, cast: false }));
+    root.add(L.sphere(0.7, 10, L.MAT.emissive('#ffe0a0', 0.28), { x: tx, y: 31.8, z: tz, cast: false }));
     addresses.push({ name: 'TORRE DEL RELOJ', pos: new T.Vector3(tx, 3.2, tz - 4.0) });
   })();
 
@@ -385,6 +400,18 @@ function build(ctx) {
       default: return P.makeTree();
     }
   }
+  /* ── DENSITY GRADIENT (§5.3) ──
+     The plaza (avenue x≈0) and the 4-way intersection (x=CROSSX) are the focal
+     hearts: props cluster tightest there and thin toward the avenue ends/park.
+     Returns a 0..1 "near-focus" weight from the nearer of the two focal points. */
+  function focusW(x) {
+    const dPlaza = Math.abs(x), dCross = Math.abs(x - CROSSX);
+    const d = Math.min(dPlaza, dCross);
+    return L.clamp(1 - d / 95, 0, 1);            // 1 at a heart → ~0 at the ends
+  }
+  // spacing step: keep the existing jitter, but scale it wider as we leave a heart.
+  function densStep(x, lo, hi) { return L.rand(lo, hi) * (1.0 + 0.85 * (1 - focusW(x))); }
+
   /* ── STREET FURNITURE along the avenue sidewalks ── */
   [1, -1].forEach(side => {
     const zBase = side * (SW + 0.7);
@@ -398,7 +425,7 @@ function build(ctx) {
       if (x > CROSSX - (SW + SDW) && x < CROSSX + (SW + SDW)) { x = CROSSX + (SW + SDW); idx++; continue; }
       const obj = makeFurniture(SEQ[idx % SEQ.length]); idx++;
       obj.position.set(x, CH, zBase); if (side < 0) obj.rotation.y = Math.PI; root.add(obj);
-      x += L.rand(5.5, 8.5);
+      x += densStep(x, 5.5, 8.5);
     }
     // utility poles
     [-120, -60, -20, 40, 120].forEach(px => { if (Math.abs(px - CROSSX) < SW + SDW) return; const up = P.makeUtilPole(); up.position.set(px, 0, side * (SW + SDW - 0.6)); root.add(up); });
@@ -412,7 +439,9 @@ function build(ctx) {
       if (z > -(SW + SDW) && z < (SW + SDW)) { z = (SW + SDW); idx++; continue; }
       const obj = makeFurniture(SEQ[idx % SEQ.length]); idx++;
       obj.position.set(xBase, CH, z); obj.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2; root.add(obj);
-      z += L.rand(5.5, 8.0);
+      // §5.3: dense at the intersection (z≈0), thinning toward the block ends
+      const cw = L.clamp(1 - Math.abs(z) / (CROSSZ1 - 4), 0, 1);
+      z += L.rand(5.5, 8.0) * (1.0 + 0.7 * (1 - cw));
     }
     [CROSSZ0 + 8, -16, 16, CROSSZ1 - 8].forEach(pz => { if (Math.abs(pz) < SW + SDW) return; const up = P.makeUtilPole(); up.position.set(CROSSX + side * (SW + SDW - 0.6), 0, pz); root.add(up); });
   });
@@ -531,11 +560,28 @@ function build(ctx) {
       prev = { y, z };
     }
   }
-  for (let x = -AVX + 20; x < AVX - 20; x += 22) {
-    if (Math.abs(x) < PLAZA_HALF + 6) continue;
-    if (x > PARK_CX - PARK_HALF - 6 && x < PARK_CX + PARK_HALF + 6) continue;
-    stringLights(x);
+  // §5.3/§5.5: festoon clusters tight near the plaza & intersection hearts and
+  // spreads out toward the avenue ends. Existing per-strand sag/jitter kept.
+  for (let x = -AVX + 20; x < AVX - 20; ) {
+    const skipPlaza = Math.abs(x) < PLAZA_HALF + 6;
+    const skipPark = x > PARK_CX - PARK_HALF - 6 && x < PARK_CX + PARK_HALF + 6;
+    if (!skipPlaza && !skipPark) stringLights(x);
+    x += 22 * (1.0 + 0.7 * (1 - focusW(x)));        // ~13m apart at a heart → ~37m at the ends
   }
+  // a couple of festoon strands flanking the plaza mouth so the focal heart glows
+  [-PLAZA_HALF - 7, PLAZA_HALF + 7].forEach(x => stringLights(x));
+  // a festoon strand across the cross-street at the intersection
+  (function crossFestoon() {
+    const S = SW + SDW + 3, H = 7.6, sag = 2.0, N = 12, x = CROSSX;
+    const bulbMat = L.MAT.emissive('#ffd27a', 1.3), cordMat = L.MAT.flat('#2a2620');
+    let prev = null;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, zz = -S + 2 * S * t, y = H - 4 * sag * t * (1 - t);
+      if (i % 2 === 0) root.add(L.sphere(0.12, 8, bulbMat, { x, y, z: zz, cast: false }));
+      if (prev) { const dy = y - prev.y, dz = zz - prev.z, len = Math.hypot(dy, dz); const seg = L.box(0.025, 0.025, len, cordMat, { x, y: (y + prev.y) / 2, z: (zz + prev.z) / 2, cast: false }); seg.rotation.x = -Math.atan2(dy, dz); root.add(seg); }
+      prev = { y, z: zz };
+    }
+  })();
 
   /* ── HANGING BANNERS over the street ── */
   [[-44, '#c44a44', '#f4ecd8'], [44, '#2f7060', '#f4ecd8'], [96, '#3a5d92', '#f4ecd8']].forEach(([x, a, b]) => {

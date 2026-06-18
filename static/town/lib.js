@@ -343,9 +343,9 @@ function std(opts) {
 }
 
 const MAT = {
-  wall:     hex => std({ map: plasterTex(hex), normalMap: plasterNormal(), normalScale: new T.Vector2(0.35, 0.35), roughness: 0.92 }),
-  wallFlat: hex => std({ color: parseInt(hex.replace('#', '0x')), normalMap: plasterNormal(), normalScale: new T.Vector2(0.3, 0.3), roughness: 0.92 }),
-  brick:    hex => std({ map: brickTex(hex), normalMap: brickNormal(), normalScale: new T.Vector2(0.7, 0.7), roughness: 0.95 }),
+  wall:     hex => std({ map: plasterTex(hex), normalMap: plasterNormal(), normalScale: new T.Vector2(0.28, 0.28), roughness: 0.92 }),
+  wallFlat: hex => std({ color: parseInt(hex.replace('#', '0x')), normalMap: plasterNormal(), normalScale: new T.Vector2(0.24, 0.24), roughness: 0.92 }),
+  brick:    hex => std({ map: brickTex(hex), normalMap: brickNormal(), normalScale: new T.Vector2(0.55, 0.55), roughness: 0.95 }),
   wood:     hex => std({ map: woodTex(hex), roughness: 0.85 }),
   trim:     hex => std({ color: parseInt((hex || pick(PAL.trims)).replace('#', '0x')), roughness: 0.82 }),
   glass:        std({ color: 0x18283a, roughness: 0.06, metalness: 0.92, envMapIntensity: 1.6 }),

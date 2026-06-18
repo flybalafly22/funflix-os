@@ -426,7 +426,7 @@ function makeCar(opts) {
   opts = opts || {};
   const g = new T.Group();
   const col = opts.color || L.pick(L.PAL.carBody);
-  const bm = L.std({ color: parseInt(col.replace('#', '0x')), roughness: 0.3, metalness: 0.5, envMapIntensity: 1.5 });
+  const bm = L.std({ color: parseInt(col.replace('#', '0x')), roughness: 0.36, metalness: 0.45, envMapIntensity: 1.3 });
   const trimDark = L.MAT.flat('#2a2e34');
   const glass = L.MAT.glassTint;
   const kind = L.pick(['sedan', 'sedan', 'hatch', 'van']);   // bias toward sedan
@@ -531,7 +531,7 @@ function makeTruck(opts) {
   opts = opts || {};
   const g = new T.Group();
   const col = opts.color || L.pick(['#d8d0c4', '#3a5a8a', '#b03838', '#4a7a40', '#c8783a', '#5a6a78']);
-  const bm = L.std({ color: parseInt(col.replace('#', '0x')), roughness: 0.4, metalness: 0.45, envMapIntensity: 1.3 });
+  const bm = L.std({ color: parseInt(col.replace('#', '0x')), roughness: 0.42, metalness: 0.4, envMapIntensity: 1.2 });
   const glass = L.MAT.glassTint, trimDark = L.MAT.flat('#23262c');
 
   // — cab (toward +Z, the front) —

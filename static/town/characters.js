@@ -25,13 +25,17 @@ const GLASS_FRAME = L.std({ color: 0x2a2622, roughness: 0.5, metalness: 0.3 });
 const GLASS_LENS = L.std({ color: 0xbfe6ef, roughness: 0.2, metalness: 0.2, transparent: true, opacity: 0.55 });
 const GREY_HAIR = L.std({ color: 0xc8c4bc, roughness: 0.92 });
 
-const PANTS_PAL = ['#394050', '#5a4830', '#3a4868', '#282828', '#484840', '#3a3838', '#6a4a2e', '#2e3a44', '#5a3a4a'];
-const SHOE_PAL  = ['#1a1410', '#2a1c12', '#33240f', '#15151a', '#3a2418', '#222'];
-const ACCENT_PAL = ['#d8c84a', '#c84040', '#3a7a90', '#e0a040', '#8060b0', '#d0473e', '#40906a'];
-const COAT_PAL = ['#3a4458', '#5a4030', '#384038', '#52384a', '#2e3848', '#4a3a2a', '#36504a'];
-const BAG_PAL = ['#6a4a2e', '#3a4458', '#5a3030', '#384038', '#52423a'];
-const PACK_PAL = ['#3a5a4a', '#4a3a5a', '#5a4030', '#2e3848', '#7a4a3a'];
-const APRON_PAL = ['#7a4a2e', '#3a5a4a', '#5a3a4a', '#8a6a3a', '#444a52'];
+// ── local accessory palettes, harmonized to the warm town (ARTBIBLE §2.8) ──
+// earthy neutrals dominant; cool tones are muted/dusty (never electric blue);
+// accents pull from the §2.5 muted-jewel awning family. The Fly's brand scarf
+// red (#d0473e) is deliberately NOT reused here so the hero stays unique.
+const PANTS_PAL = ['#4a4a52', '#5a4830', '#3f5060', '#2c2824', '#4c4a40', '#3a342e', '#6a4a2e', '#445258', '#5a3a44'];
+const SHOE_PAL  = ['#241a12', '#2a1c12', '#33240f', '#1c1814', '#3a2418', '#2a221a'];
+const ACCENT_PAL = ['#cf8a3c', '#c8504a', '#3f7d6e', '#d8b14a', '#8a5288', '#b0506a', '#3f9468'];
+const COAT_PAL = ['#44505a', '#5a4030', '#3d463c', '#52384a', '#3a4650', '#4a3a2a', '#3a5048'];
+const BAG_PAL = ['#6a4a2e', '#444c54', '#6a3838', '#3d463c', '#52423a'];
+const PACK_PAL = ['#3f5a4a', '#4a3a5a', '#5a4030', '#3a4650', '#7a4a3a'];
+const APRON_PAL = ['#7a4a2e', '#3f5a4a', '#5a3a4a', '#8a6a3a', '#4c4a48'];
 
 /* a soft rounded "limb": a tapered cylinder with sphere caps, grown DOWN from y=0.
    returns a Group so the caller can drop it into a pivot group cleanly. */
@@ -243,7 +247,7 @@ function makeNPC(opts) {
   const hatRoll = L.rand(0, 1);
   if (hatRoll < 0.13) {
     // brimmed hat
-    const hatMat = cloth(L.pick(['#3a2c1c', '#4a3a22', '#2a2a30', '#5a3030']));
+    const hatMat = cloth(L.pick(['#3a2c1c', '#4a3a22', '#322e2a', '#5a3030']));
     torso.add(L.cyl(0.20, 0.22, 0.01, 14, hatMat, { y: headY + 0.16, cast: false }));
     torso.add(L.cyl(0.135, 0.14, 0.16, 12, hatMat, { y: headY + 0.24, cast: false }));
     // hat band
@@ -424,8 +428,10 @@ function makeFly() {
 
   // ── GOGGLES (expressive emissive lenses + glints) ──
   const goggMat = L.std({ color: 0x4a3320, roughness: 0.45, metalness: 0.2 });
-  const lensMat = L.std({ color: 0x9fe8ff, emissive: 0x2a90b0, emissiveIntensity: 0.7, roughness: 0.18, metalness: 0.4 });
-  const lensHighlight = L.std({ color: 0xffffff, emissive: 0xeaffff, emissiveIntensity: 0.6, roughness: 0.2 });
+  // brand glint, kept subtle so it doesn't blow out under bloom (ARTBIBLE §4.10)
+  // and never out-saturates the hero scarf (§2.8): softer cyan, lower emissive.
+  const lensMat = L.std({ color: 0xb6e6f2, emissive: 0x2a7d96, emissiveIntensity: 0.5, roughness: 0.18, metalness: 0.4 });
+  const lensHighlight = L.std({ color: 0xffffff, emissive: 0xeaffff, emissiveIntensity: 0.45, roughness: 0.2 });
   [-0.13, 0.13].forEach(dx => {
     const ring = new T.Mesh(new T.TorusGeometry(0.105, 0.04, 8, 16), goggMat);
     ring.position.set(dx, 0.27, 0.74); g.add(ring);
@@ -441,7 +447,7 @@ function makeFly() {
   strap.position.set(0, 0.27, 0.5); strap.rotation.y = Math.PI / 2; strap.scale.set(1, 1, 0.9); g.add(strap);
 
   // ── ANTENNAE (curved up, glowing tips) ──
-  const tipMat = L.MAT.emissive('#ffb020', 0.9);
+  const tipMat = L.MAT.emissive('#ffb020', 0.8);   // warm brand glint, kept subtle (§4.10)
   [-0.1, 0.1].forEach(dx => {
     const ant = L.cyl(0.014, 0.014, 0.26, 6, darkMat, { x: dx, y: 0.5, z: 0.5, cast: false });
     ant.rotation.x = -0.45; g.add(ant);
