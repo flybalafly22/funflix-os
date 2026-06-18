@@ -233,7 +233,7 @@ function awningTex(a, b, stripes = 10) {
 function roadTex() {
   return cached('road', () => {
     const w = 256, h = 256, c = cnv(w, h), g = c.getContext('2d');
-    g.fillStyle = '#3a3e46'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#4a4640'; g.fillRect(0, 0, w, h);   // warm graphite (ART BIBLE §2.6)
     for (let i = 0; i < 6000; i++) { const lite = chance(0.5); g.fillStyle = `rgba(${lite ? '255,255,255' : '0,0,0'},${_rng() * 0.07})`; g.fillRect(_rng() * w, _rng() * h, 1, 1); }
     // cracks
     for (let i = 0; i < 6; i++) { g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = 1; g.beginPath(); let x = rand(0, w), y = rand(0, h); g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += jitter(30); y += jitter(30); g.lineTo(x, y); } g.stroke(); }
@@ -244,7 +244,7 @@ function roadTex() {
 function sidewalkTex() {
   return cached('sidewalk', () => {
     const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
-    g.fillStyle = '#bcb4a4'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#cabda4'; g.fillRect(0, 0, w, h);   // warm stone (ART BIBLE §2.6)
     g.strokeStyle = 'rgba(0,0,0,0.16)'; g.lineWidth = 2;
     for (let x = 0; x <= w; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
     for (let y = 0; y <= h; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
@@ -256,8 +256,8 @@ function sidewalkTex() {
 function dirtTex() {
   return cached('dirt', () => {
     const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
-    g.fillStyle = '#9aa183'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 60; i++) { g.globalAlpha = rand(0.03, 0.08); g.fillStyle = chance(0.5) ? '#7c8466' : '#b4ba9c'; g.beginPath(); g.arc(rand(0, w), rand(0, h), rand(6, 20), 0, TAU); g.fill(); }
+    g.fillStyle = '#b3a07e'; g.fillRect(0, 0, w, h);   // warm dust (ART BIBLE §2.6)
+    for (let i = 0; i < 60; i++) { g.globalAlpha = rand(0.03, 0.08); g.fillStyle = chance(0.5) ? '#9a8866' : '#c6b491'; g.beginPath(); g.arc(rand(0, w), rand(0, h), rand(6, 20), 0, TAU); g.fill(); }
     g.globalAlpha = 1; grain(g, w, h, 1500, 0.05);
     const t = finishTex(c, { repeat: [24, 24], aniso: 4 });
     t.userData.normal = dirtNormal(); t.userData.normalScale = 0.4; return t;
@@ -309,17 +309,18 @@ function shadeHex(hex, mul) {
 }
 
 /* ════════ MATERIAL PALETTE + FACTORIES (cached) ════════ */
+// Palette per ART BIBLE §2 — warm-dominant + cool relief, shared cream unifier.
 const PAL = {
-  walls:  ['#d8a86a', '#c98a63', '#a9b48f', '#8fa8c0', '#d9bd80', '#c096a8', '#e0c389', '#9aae97', '#cf926f', '#86a0ad', '#dcc7a0', '#b5896f'],
-  roofs:  ['#8a5d4e', '#5c6b78', '#7d6e86', '#b0844f', '#6f7d5e', '#9a5848'],
-  trims:  ['#f7f2e6', '#eadfca', '#f1e6d0', '#e6dcc4'],
-  signbg: ['#8b3528', '#2f5878', '#4a7a40', '#7a4828', '#5a2870', '#28404a', '#b03838', '#286848'],
-  awning: [['#c44a44', '#f4ecd8'], ['#2f7060', '#f4ecd8'], ['#3a5d92', '#f4ecd8'], ['#c8893f', '#f6efdc'], ['#7a4f86', '#f4ecd8'], ['#b03860', '#f6efdc'], ['#347', '#f4ecd8']],
-  carBody:['#cf4b46', '#3f72ae', '#2a8e68', '#e0c240', '#d8d0c4', '#40444e', '#c8783a', '#a8c8d8', '#e89060', '#6a4a8a', '#3a5a4a', '#b0b4bc'],
-  cloth:  ['#d96f8a', '#4a8090', '#e0b840', '#7868b0', '#40a068', '#c84040', '#8090d0', '#d08840', '#6090a0', '#b04080', '#5080a0', '#e09050', '#30a868'],
-  hair:   ['#2a1d14', '#4a3322', '#6b4a2c', '#1a1a1f', '#7a5a3a', '#3a2410', '#866', '#321'],
-  skin:   ['#f0c090', '#e0b888', '#f4c8a0', '#c88060', '#d8a080', '#e8c090', '#caa07a', '#b78a64'],
-  foliage:['#5a8c48', '#6ea058', '#5c9450', '#4a7c3c', '#79a85f', '#5e8a44'],
+  walls:  ['#d8a877', '#cf9a6e', '#e0bd8c', '#caa074', '#d9b07e', '#c08a63', '#e3c79a', '#c99a8a', '#d4a890', '#9fb0a0', '#9eb2bd', '#aeb39a'],
+  roofs:  ['#a85f43', '#9c5740', '#b56b48', '#7d6a52', '#6f7d68', '#8a5446'],
+  trims:  ['#f4ead2', '#efe2c6', '#f1e7d0', '#e8dabb'],
+  signbg: ['#8b3528', '#2f5878', '#3f6e3c', '#7a4828', '#5a2870', '#28484e', '#a8442f', '#2f6048'],
+  awning: [['#c8504a', '#f1e7d0'], ['#cf8a3c', '#f1e7d0'], ['#3f7d6e', '#f1e7d0'], ['#3a6a92', '#f1e7d0'], ['#8a5288', '#f3ecd9'], ['#b0506a', '#f3ecd9'], ['#d8b14a', '#f3ecd9']],
+  carBody:['#c8504a', '#3f72ae', '#3f9468', '#d8b14a', '#d8d0c4', '#40444e', '#c8783a', '#9eb2bd', '#e0986a', '#6a5da8', '#3f7d6e', '#b0b4bc'],
+  cloth:  ['#c85f5a', '#d99a44', '#3f7d8a', '#6a5da8', '#3f9468', '#b8485a', '#7088c0', '#cf8a48', '#5f8a96', '#a04878', '#5a86a8', '#d98f54', '#3f9a64'],
+  hair:   ['#2a1d14', '#4a3322', '#6b4a2c', '#1c1a1f', '#7a5a3a', '#3a2410', '#5a4a42', '#2a2018'],
+  skin:   ['#f0c79a', '#e6b889', '#f3c69d', '#c8825f', '#d89e78', '#e8c096', '#b07a52', '#8a5a3c'],
+  foliage:['#5e9047', '#6fa356', '#5a9450', '#4d8240', '#7aab5d', '#588a44'],
 };
 
 const _matCache = new Map();

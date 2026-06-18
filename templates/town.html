@@ -7,7 +7,7 @@
 <title>THE FLY</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #b9d2e6;
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #e6d2b0;
                font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #fff; }
   #wrap { position: fixed; inset: 0; }
   canvas { display: block; width: 100%; height: 100%; }
@@ -93,6 +93,7 @@
 <!-- screen-space AO (SAO) + its shader deps; wrapped in try/catch at use site -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/UnpackDepthRGBAShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/DepthLimitedBlurShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/SAOShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SAOPass.js"></script>
 
 <!-- THE FLY town modules (load order matters: lib → assets → world → game) -->
@@ -113,30 +114,30 @@ const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-p
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputEncoding = T.sRGBEncoding;
 renderer.toneMapping = T.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.92;
+renderer.toneMappingExposure = 0.98;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
 wrap.appendChild(renderer.domElement);
 
 const scene = new T.Scene();
-scene.fog = new T.FogExp2(0xd6e3ee, 0.0024);
+scene.fog = new T.FogExp2(0xe6d2b0, 0.0022);
 const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
 
 /* lighting rig — golden-hour / dusk: warm low key light raking long shadows */
-const sun = new T.DirectionalLight(0xffd197, 2.05);
-sun.position.set(66, 40, 34); sun.castShadow = true;
+const sun = new T.DirectionalLight(0xffd09a, 2.2);
+sun.position.set(58, 30, 40); sun.castShadow = true;
 sun.shadow.mapSize.set(4096, 4096);
 { const c = sun.shadow.camera; c.near = 5; c.far = 360; c.left = -130; c.right = 130; c.top = 130; c.bottom = -130; }
 sun.shadow.radius = 4; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;
 scene.add(sun, sun.target);
-const hemi = new T.HemisphereLight(0xbcd0ea, 0x6a5238, 0.46); scene.add(hemi);
-const fill = new T.DirectionalLight(0xb8d0f4, 0.28); fill.position.set(-34, 22, -30); scene.add(fill);
-const bounce = new T.DirectionalLight(0xffe0a0, 0.16); bounce.position.set(0, -10, 22); scene.add(bounce);
+const hemi = new T.HemisphereLight(0xbfd2ec, 0x6b5236, 0.50); scene.add(hemi);
+const fill = new T.DirectionalLight(0xa9c6ef, 0.30); fill.position.set(-34, 22, -30); scene.add(fill);
+const bounce = new T.DirectionalLight(0xffd9a0, 0.20); bounce.position.set(0, -8, 22); scene.add(bounce);
 
 /* sky dome */
 const skyMat = new T.ShaderMaterial({
   side: T.BackSide, depthWrite: false, fog: false,
-  uniforms: { uZ: { value: new T.Color(0x3f78bc) }, uM: { value: new T.Color(0xa8c2e0) }, uH: { value: new T.Color(0xf6c486) } },
+  uniforms: { uZ: { value: new T.Color(0x4f86c4) }, uM: { value: new T.Color(0xb7cfe2) }, uH: { value: new T.Color(0xf3cf95) } },
   vertexShader: 'varying vec3 vd; void main(){ vd=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
   fragmentShader: 'uniform vec3 uZ,uM,uH; varying vec3 vd; void main(){ float h=clamp(vd.y*0.5+0.5,0.0,1.0); vec3 c=h<0.5?mix(uH,uM,smoothstep(0.0,0.5,h)):mix(uM,uZ,smoothstep(0.5,1.0,h)); gl_FragColor=vec4(c,1.0); }'
 });
@@ -164,7 +165,7 @@ const clouds = new T.Group(); scene.add(clouds);
   const envS = new T.Scene();
   const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
   const gr = g.createLinearGradient(0, 0, 0, 64);
-  gr.addColorStop(0, '#6aa4d4'); gr.addColorStop(0.55, '#d8eaf4'); gr.addColorStop(1, '#c8b890');
+  gr.addColorStop(0, '#6f9fd0'); gr.addColorStop(0.55, '#e9dcc2'); gr.addColorStop(1, '#c9b48c');
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   const tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding;
   envS.add(new T.Mesh(new T.SphereGeometry(50, 16, 10), new T.MeshBasicMaterial({ map: tx, side: T.BackSide })));
@@ -173,8 +174,8 @@ const clouds = new T.Group(); scene.add(clouds);
 
 /* post: bloom + grade + gamma */
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.28 }, uCon: { value: 1.08 }, uSat: { value: 1.16 },
-    uLift: { value: new T.Vector3(0.008, 0.006, 0.0) }, uGain: { value: new T.Vector3(1.06, 1.02, 0.93) } },
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.30 }, uCon: { value: 1.10 }, uSat: { value: 1.14 },
+    uLift: { value: new T.Vector3(0.012, 0.008, 0.004) }, uGain: { value: new T.Vector3(1.08, 1.02, 0.90) } },
   vertexShader: 'varying vec2 v; void main(){ v=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat; uniform vec3 uLift,uGain; varying vec2 v;
     void main(){ vec3 c=texture2D(tDiffuse,v).rgb; c=(c-0.5)*uCon+0.5; float l=dot(c,vec3(0.299,0.587,0.114));
@@ -188,7 +189,7 @@ try {
   if (T.EffectComposer && T.UnrealBloomPass && T.GammaCorrectionShader) {
     composer = new T.EffectComposer(renderer);
     composer.addPass(new T.RenderPass(scene, camera));
-    composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.30, 0.5, 0.82));
+    composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.26, 0.55, 0.86));
     composer.addPass(new T.ShaderPass(GradeShader));
     composer.addPass(new T.ShaderPass(T.GammaCorrectionShader));
     // screen-space ambient occlusion for contact-shadow depth (optional; safe-guarded)
@@ -196,7 +197,7 @@ try {
       if (T.SAOPass) {
         const sao = new T.SAOPass(scene, camera, false, true);
         if (T.SAOPass.OUTPUT) sao.params.output = T.SAOPass.OUTPUT.Default;
-        sao.params.saoBias = 0.4; sao.params.saoIntensity = 0.010;
+        sao.params.saoBias = 0.4; sao.params.saoIntensity = 0.016;
         sao.params.saoScale = 6; sao.params.saoKernelRadius = 28;
         sao.params.saoBlur = true; sao.params.saoBlurRadius = 6;
         composer.insertPass(sao, 1);
