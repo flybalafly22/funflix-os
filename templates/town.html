@@ -125,7 +125,7 @@ sun.shadow.mapSize.set(4096, 4096);
 { const c = sun.shadow.camera; c.near = 5; c.far = 320; c.left = -110; c.right = 110; c.top = 110; c.bottom = -110; }
 sun.shadow.radius = 4; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;
 scene.add(sun, sun.target);
-const hemi = new T.HemisphereLight(0xc8dcf2, 0x7a6850, 0.62); scene.add(hemi);
+const hemi = new T.HemisphereLight(0xc8dcf2, 0x7a6850, 0.52); scene.add(hemi);
 const fill = new T.DirectionalLight(0xb8d0f4, 0.28); fill.position.set(-34, 22, -30); scene.add(fill);
 const bounce = new T.DirectionalLight(0xffe0a0, 0.16); bounce.position.set(0, -10, 22); scene.add(bounce);
 
@@ -169,8 +169,8 @@ const clouds = new T.Group(); scene.add(clouds);
 
 /* post: bloom + grade + gamma */
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.26 }, uCon: { value: 1.05 }, uSat: { value: 1.12 },
-    uLift: { value: new T.Vector3(0.010, 0.007, 0.0) }, uGain: { value: new T.Vector3(1.04, 1.01, 0.94) } },
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.28 }, uCon: { value: 1.08 }, uSat: { value: 1.16 },
+    uLift: { value: new T.Vector3(0.008, 0.006, 0.0) }, uGain: { value: new T.Vector3(1.06, 1.02, 0.93) } },
   vertexShader: 'varying vec2 v; void main(){ v=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat; uniform vec3 uLift,uGain; varying vec2 v;
     void main(){ vec3 c=texture2D(tDiffuse,v).rgb; c=(c-0.5)*uCon+0.5; float l=dot(c,vec3(0.299,0.587,0.114));

@@ -163,6 +163,39 @@ function build(ctx) {
     addresses.push({ name: spec[0], pos: new T.Vector3(cx, 3.0, z - d / 2 - 1.8) });
   });
 
+  /* ── CLOCK TOWER landmark (behind the plaza, tall silhouette) ── */
+  (function clockTower() {
+    const tx = 0, tz = ROWZ + 22;
+    const stoneA = L.std({ color: 0xe2d6b8, roughness: 0.9 });
+    const stoneB = L.std({ color: 0xd2c2a0, roughness: 0.9 });
+    const trim = L.std({ color: 0xbfae8a, roughness: 0.85 });
+    root.add(L.box(7.5, 1.0, 7.5, stoneB, { x: tx, y: 0.5, z: tz, receive: true }));      // plinth
+    root.add(L.box(6.0, 22, 6.0, stoneA, { x: tx, y: 11, z: tz }));                         // shaft
+    for (let f = 1; f <= 6; f++) root.add(L.box(6.3, 0.3, 6.3, trim, { x: tx, y: 2 + f * 3, z: tz, cast: false }));  // string courses
+    // clock faces on all 4 sides
+    const clockTex = (() => {
+      const c = L.cnv(128, 128), g = c.getContext('2d');
+      g.fillStyle = '#f4eede'; g.beginPath(); g.arc(64, 64, 60, 0, TAU); g.fill();
+      g.strokeStyle = '#2a2620'; g.lineWidth = 5; g.beginPath(); g.arc(64, 64, 58, 0, TAU); g.stroke();
+      for (let h = 0; h < 12; h++) { const a = h / 12 * TAU; g.lineWidth = h % 3 === 0 ? 5 : 2; g.beginPath(); g.moveTo(64 + Math.cos(a) * 50, 64 + Math.sin(a) * 50); g.lineTo(64 + Math.cos(a) * 44, 64 + Math.sin(a) * 44); g.stroke(); }
+      g.lineWidth = 5; g.beginPath(); g.moveTo(64, 64); g.lineTo(64 + Math.cos(-1.2) * 30, 64 + Math.sin(-1.2) * 30); g.stroke();
+      g.lineWidth = 3; g.beginPath(); g.moveTo(64, 64); g.lineTo(64 + Math.cos(1.7) * 42, 64 + Math.sin(1.7) * 42); g.stroke();
+      return L.finishTex(c, { aniso: 8 });
+    })();
+    const faceMat = L.std({ map: clockTex, roughness: 0.6 });
+    const fY = 20.5, off = 3.06;
+    [[0, off, 0], [0, -off, Math.PI], [off, 0, Math.PI / 2], [-off, 0, -Math.PI / 2]].forEach(([dx, dz, ry]) => {
+      const face = new T.Mesh(new T.CircleGeometry(2.0, 24), faceMat); face.position.set(tx + dx, fY, tz + dz); face.rotation.y = ry; root.add(face);
+    });
+    // belfry + spire
+    root.add(L.box(6.6, 0.5, 6.6, trim, { x: tx, y: 22.3, z: tz, cast: false }));
+    root.add(L.box(5.2, 3.0, 5.2, stoneB, { x: tx, y: 24, z: tz }));                          // belfry openings level
+    [[-1.4, 0], [1.4, 0], [0, -1.4], [0, 1.4]].forEach(([dx, dz]) => root.add(L.box(dx === 0 ? 1.6 : 0.2, 2.0, dz === 0 ? 1.6 : 0.2, L.MAT.glassLit, { x: tx + dx * 1.9, y: 24, z: tz + dz * 1.9, cast: false })));
+    const spire = new T.Mesh(new T.ConeGeometry(4.4, 6.0, 4), L.std({ color: 0x8a5d4e, roughness: 0.85 })); spire.position.set(tx, 28.5, tz); spire.rotation.y = Math.PI / 4; spire.castShadow = true; root.add(spire);
+    root.add(L.sphere(0.4, 10, L.MAT.emissive('#ffd27a', 0.8), { x: tx, y: 31.8, z: tz, cast: false }));
+    addresses.push({ name: 'TORRE DEL RELOJ', pos: new T.Vector3(tx, 3.2, tz - 4.0) });
+  })();
+
   /* ── TOWN PARK (on the -Z side, off-center) ── */
   (function buildPark() {
     const z0 = -SW, z1 = -(ROWZ + 7);          // park depth (into -Z)
