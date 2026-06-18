@@ -56,6 +56,7 @@ function finishTex(c, opts = {}) {
   t.encoding = T.sRGBEncoding;
   t.anisotropy = opts.aniso || 4;
   if (opts.repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(opts.repeat[0], opts.repeat[1]); }
+  if (!t.userData) t.userData = {};
   return t;
 }
 
@@ -66,6 +67,110 @@ function grain(g, w, h, n, amax) {
 
 const _texCache = new Map();
 function cached(key, build) { if (_texCache.has(key)) return _texCache.get(key); const v = build(); _texCache.set(key, v); return v; }
+
+/* ════════ PROCEDURAL NORMAL MAPS (bump → normal) ════════
+   Build a tiling grayscale "bump" canvas, convert it to a tangent-space normal
+   map via Sobel gradient, wrap it and cache it. These give flat boxes tactile
+   surface relief without extra geometry. Kept small (128²) and cached. */
+function _normalFromBump(bumpCanvas, strength) {
+  const w = bumpCanvas.width, h = bumpCanvas.height;
+  const sg = bumpCanvas.getContext('2d').getImageData(0, 0, w, h).data;
+  const out = cnv(w, h), og = out.getContext('2d'), od = og.createImageData(w, h), o = od.data;
+  const at = (x, y) => sg[((((y + h) % h) * w + ((x + w) % w)) << 2)] / 255; // height in [0,1], tiling
+  const s = strength == null ? 2.0 : strength;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // Sobel gradient (tiling)
+      const tl = at(x - 1, y - 1), t = at(x, y - 1), tr = at(x + 1, y - 1);
+      const l = at(x - 1, y), r = at(x + 1, y);
+      const bl = at(x - 1, y + 1), b = at(x, y + 1), br = at(x + 1, y + 1);
+      const dx = (tr + 2 * r + br) - (tl + 2 * l + bl);
+      const dy = (bl + 2 * b + br) - (tl + 2 * t + tr);
+      let nx = -dx * s, ny = -dy * s, nz = 1.0;
+      const inv = 1 / Math.sqrt(nx * nx + ny * ny + nz * nz);
+      nx *= inv; ny *= inv; nz *= inv;
+      const i = (y * w + x) << 2;
+      o[i]     = (nx * 0.5 + 0.5) * 255;
+      o[i + 1] = (ny * 0.5 + 0.5) * 255;
+      o[i + 2] = (nz * 0.5 + 0.5) * 255;
+      o[i + 3] = 255;
+    }
+  }
+  og.putImageData(od, 0, 0);
+  return out;
+}
+// run a builder with its own seeded RNG, then restore the global stream so
+// procedural normal-map generation never perturbs deterministic authoring.
+function _isolatedSeed(seed, fn) { const prev = _rng; _rng = mulberry32(seed); try { return fn(); } finally { _rng = prev; } }
+// finish a normal-map canvas: LINEAR encoding (normals are data, not color), tiling
+function _finishNormal(c, repeat, aniso) {
+  const t = new T.CanvasTexture(c);
+  t.encoding = T.LinearEncoding;
+  t.wrapS = t.wrapT = T.RepeatWrapping;
+  t.anisotropy = aniso || 4;
+  if (repeat) t.repeat.set(repeat[0], repeat[1]);
+  return t;
+}
+// painted/plaster bump: gentle low-frequency mottling + faint hairline cracks
+function plasterNormal() {
+  return cached('n_plaster', () => _isolatedSeed(51, () => {
+    const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
+    g.fillStyle = '#808080'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { g.globalAlpha = rand(0.04, 0.12); g.fillStyle = chance(0.5) ? '#b8b8b8' : '#505050'; g.beginPath(); g.arc(rand(0, w), rand(0, h), rand(4, 16), 0, TAU); g.fill(); }
+    g.globalAlpha = 0.5; grain(g, w, h, 1400, 0.05);
+    g.globalAlpha = 1;
+    return _finishNormal(_normalFromBump(c, 1.4), [2, 3], 8);
+  }));
+}
+// brick bump: raised bricks, recessed mortar grid (matches brickTex layout)
+function brickNormal() {
+  return cached('n_brick', () => _isolatedSeed(73, () => {
+    const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
+    const bh = 9, bw = 28, gap = 2;
+    g.fillStyle = '#404040'; g.fillRect(0, 0, w, h); // mortar = low
+    for (let row = 0, y = 0; y < h; row++, y += bh + gap) {
+      const off = (row % 2) ? (bw + gap) / 2 : 0;
+      for (let x = -bw; x < w; x += bw + gap) {
+        g.fillStyle = '#c0c0c0'; g.fillRect(x + off + 1, y + 1, bw - 2, bh - 2); // raised brick
+        g.fillStyle = `rgba(0,0,0,${rand(0.04, 0.12)})`; g.fillRect(x + off + 1, y + 1, bw - 2, bh - 2);
+      }
+    }
+    grain(g, w, h, 900, 0.05);
+    return _finishNormal(_normalFromBump(c, 2.6), [3, 4], 8);
+  }));
+}
+// asphalt bump: fine high-frequency speckle + a few cracks (matches roadTex)
+function roadNormal() {
+  return cached('n_road', () => _isolatedSeed(91, () => {
+    const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
+    g.fillStyle = '#808080'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 5000; i++) { g.fillStyle = `rgba(${chance(0.5) ? '210,210,210' : '60,60,60'},${rng() * 0.5})`; g.fillRect(rng() * w, rng() * h, 1, 1); }
+    for (let i = 0; i < 4; i++) { g.strokeStyle = 'rgba(20,20,20,0.7)'; g.lineWidth = 1; g.beginPath(); let x = rand(0, w), y = rand(0, h); g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += jitter(20); y += jitter(20); g.lineTo(x, y); } g.stroke(); }
+    return _finishNormal(_normalFromBump(c, 1.6), [6, 14], 8);
+  }));
+}
+// paving-slab bump: grooved grid (matches sidewalkTex)
+function sidewalkNormal() {
+  return cached('n_sidewalk', () => _isolatedSeed(31, () => {
+    const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
+    g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#383838'; g.lineWidth = 3;
+    for (let x = 0; x <= w; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+    for (let y = 0; y <= h; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    g.globalAlpha = 0.4; grain(g, w, h, 700, 0.06); g.globalAlpha = 1;
+    return _finishNormal(_normalFromBump(c, 2.0), [8, 4], 8);
+  }));
+}
+// dirt/plaza bump: soft lumps (matches dirtTex)
+function dirtNormal() {
+  return cached('n_dirt', () => _isolatedSeed(17, () => {
+    const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
+    g.fillStyle = '#808080'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 80; i++) { g.globalAlpha = rand(0.06, 0.18); g.fillStyle = chance(0.5) ? '#b0b0b0' : '#505050'; g.beginPath(); g.arc(rand(0, w), rand(0, h), rand(6, 20), 0, TAU); g.fill(); }
+    g.globalAlpha = 0.4; grain(g, w, h, 1200, 0.06); g.globalAlpha = 1;
+    return _finishNormal(_normalFromBump(c, 1.5), [24, 24], 4);
+  }));
+}
 
 /* — painted plaster (the main wall surface) — */
 function plasterTex(hex) {
@@ -132,7 +237,8 @@ function roadTex() {
     for (let i = 0; i < 6000; i++) { const lite = chance(0.5); g.fillStyle = `rgba(${lite ? '255,255,255' : '0,0,0'},${_rng() * 0.07})`; g.fillRect(_rng() * w, _rng() * h, 1, 1); }
     // cracks
     for (let i = 0; i < 6; i++) { g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = 1; g.beginPath(); let x = rand(0, w), y = rand(0, h); g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += jitter(30); y += jitter(30); g.lineTo(x, y); } g.stroke(); }
-    return finishTex(c, { repeat: [6, 14], aniso: 8 });
+    const t = finishTex(c, { repeat: [6, 14], aniso: 8 });
+    t.userData.normal = roadNormal(); t.userData.normalScale = 0.45; return t;
   });
 }
 function sidewalkTex() {
@@ -143,7 +249,8 @@ function sidewalkTex() {
     for (let x = 0; x <= w; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
     for (let y = 0; y <= h; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
     grain(g, w, h, 800, 0.05);
-    return finishTex(c, { repeat: [8, 4], aniso: 8 });
+    const t = finishTex(c, { repeat: [8, 4], aniso: 8 });
+    t.userData.normal = sidewalkNormal(); t.userData.normalScale = 0.5; return t;
   });
 }
 function dirtTex() {
@@ -152,7 +259,8 @@ function dirtTex() {
     g.fillStyle = '#9aa183'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 60; i++) { g.globalAlpha = rand(0.03, 0.08); g.fillStyle = chance(0.5) ? '#7c8466' : '#b4ba9c'; g.beginPath(); g.arc(rand(0, w), rand(0, h), rand(6, 20), 0, TAU); g.fill(); }
     g.globalAlpha = 1; grain(g, w, h, 1500, 0.05);
-    return finishTex(c, { repeat: [24, 24], aniso: 4 });
+    const t = finishTex(c, { repeat: [24, 24], aniso: 4 });
+    t.userData.normal = dirtNormal(); t.userData.normalScale = 0.4; return t;
   });
 }
 
@@ -221,14 +329,22 @@ function std(opts) {
   if (_matCache.has(k)) return _matCache.get(k);
   const o = Object.assign({ roughness: 0.9, metalness: 0.0 }, opts);
   if (o.colorHex) { o.color = parseInt(o.colorHex.replace('#', '0x')); delete o.colorHex; }
+  // auto-attach a procedural normal map for surface textures that carry one
+  // (road/sidewalk/dirt are built via std() directly, so this gives them relief
+  //  without changing the call signature). Caller-supplied normalMap wins.
+  if (!o.normalMap && o.map && o.map.userData && o.map.userData.normal) {
+    o.normalMap = o.map.userData.normal;
+    const ns = o.map.userData.normalScale || 0.4;
+    o.normalScale = new T.Vector2(ns, ns);
+  }
   const m = new T.MeshStandardMaterial(o);
   _matCache.set(k, m); return m;
 }
 
 const MAT = {
-  wall:     hex => std({ map: plasterTex(hex), roughness: 0.92 }),
-  wallFlat: hex => std({ color: parseInt(hex.replace('#', '0x')), roughness: 0.92 }),
-  brick:    hex => std({ map: brickTex(hex), roughness: 0.95 }),
+  wall:     hex => std({ map: plasterTex(hex), normalMap: plasterNormal(), normalScale: new T.Vector2(0.35, 0.35), roughness: 0.92 }),
+  wallFlat: hex => std({ color: parseInt(hex.replace('#', '0x')), normalMap: plasterNormal(), normalScale: new T.Vector2(0.3, 0.3), roughness: 0.92 }),
+  brick:    hex => std({ map: brickTex(hex), normalMap: brickNormal(), normalScale: new T.Vector2(0.7, 0.7), roughness: 0.95 }),
   wood:     hex => std({ map: woodTex(hex), roughness: 0.85 }),
   trim:     hex => std({ color: parseInt((hex || pick(PAL.trims)).replace('#', '0x')), roughness: 0.82 }),
   glass:        std({ color: 0x18283a, roughness: 0.06, metalness: 0.92, envMapIntensity: 1.6 }),
@@ -287,6 +403,7 @@ window.FLY.lib = {
   setSeed, rng, rand, randInt, pick, chance, jitter, shuffle,
   cnv, finishTex, grain, shadeHex,
   plasterTex, brickTex, woodTex, awningTex, roadTex, sidewalkTex, dirtTex, signTex, neonTex, posterTex,
+  plasterNormal, brickNormal, roadNormal, sidewalkNormal, dirtNormal,
   PAL, MAT, std,
   box, cyl, sphere, instanced, decal, compose,
 };

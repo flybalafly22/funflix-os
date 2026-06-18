@@ -90,6 +90,10 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<!-- screen-space AO (SAO) + its shader deps; wrapped in try/catch at use site -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/UnpackDepthRGBAShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/DepthLimitedBlurShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SAOPass.js"></script>
 
 <!-- THE FLY town modules (load order matters: lib → assets → world → game) -->
 <script src="{{ url_for('static', filename='town/lib.js') }}"></script>
@@ -118,21 +122,21 @@ const scene = new T.Scene();
 scene.fog = new T.FogExp2(0xd6e3ee, 0.0024);
 const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
 
-/* lighting rig — warm late-afternoon */
-const sun = new T.DirectionalLight(0xffe4b6, 1.85);
-sun.position.set(40, 60, 26); sun.castShadow = true;
+/* lighting rig — golden-hour / dusk: warm low key light raking long shadows */
+const sun = new T.DirectionalLight(0xffd197, 2.05);
+sun.position.set(66, 40, 34); sun.castShadow = true;
 sun.shadow.mapSize.set(4096, 4096);
-{ const c = sun.shadow.camera; c.near = 5; c.far = 320; c.left = -110; c.right = 110; c.top = 110; c.bottom = -110; }
+{ const c = sun.shadow.camera; c.near = 5; c.far = 360; c.left = -130; c.right = 130; c.top = 130; c.bottom = -130; }
 sun.shadow.radius = 4; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;
 scene.add(sun, sun.target);
-const hemi = new T.HemisphereLight(0xc8dcf2, 0x7a6850, 0.52); scene.add(hemi);
+const hemi = new T.HemisphereLight(0xbcd0ea, 0x6a5238, 0.46); scene.add(hemi);
 const fill = new T.DirectionalLight(0xb8d0f4, 0.28); fill.position.set(-34, 22, -30); scene.add(fill);
 const bounce = new T.DirectionalLight(0xffe0a0, 0.16); bounce.position.set(0, -10, 22); scene.add(bounce);
 
 /* sky dome */
 const skyMat = new T.ShaderMaterial({
   side: T.BackSide, depthWrite: false, fog: false,
-  uniforms: { uZ: { value: new T.Color(0x4a8cc8) }, uM: { value: new T.Color(0xaccae6) }, uH: { value: new T.Color(0xf2dcae) } },
+  uniforms: { uZ: { value: new T.Color(0x3f78bc) }, uM: { value: new T.Color(0xa8c2e0) }, uH: { value: new T.Color(0xf6c486) } },
   vertexShader: 'varying vec3 vd; void main(){ vd=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
   fragmentShader: 'uniform vec3 uZ,uM,uH; varying vec3 vd; void main(){ float h=clamp(vd.y*0.5+0.5,0.0,1.0); vec3 c=h<0.5?mix(uH,uM,smoothstep(0.0,0.5,h)):mix(uM,uZ,smoothstep(0.5,1.0,h)); gl_FragColor=vec4(c,1.0); }'
 });
@@ -184,9 +188,20 @@ try {
   if (T.EffectComposer && T.UnrealBloomPass && T.GammaCorrectionShader) {
     composer = new T.EffectComposer(renderer);
     composer.addPass(new T.RenderPass(scene, camera));
-    composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.24, 0.5, 0.85));
+    composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.30, 0.5, 0.82));
     composer.addPass(new T.ShaderPass(GradeShader));
     composer.addPass(new T.ShaderPass(T.GammaCorrectionShader));
+    // screen-space ambient occlusion for contact-shadow depth (optional; safe-guarded)
+    try {
+      if (T.SAOPass) {
+        const sao = new T.SAOPass(scene, camera, false, true);
+        if (T.SAOPass.OUTPUT) sao.params.output = T.SAOPass.OUTPUT.Default;
+        sao.params.saoBias = 0.4; sao.params.saoIntensity = 0.010;
+        sao.params.saoScale = 6; sao.params.saoKernelRadius = 28;
+        sao.params.saoBlur = true; sao.params.saoBlurRadius = 6;
+        composer.insertPass(sao, 1);
+      }
+    } catch (e) { /* AO is optional — ignore if unavailable */ }
   }
 } catch (e) { composer = null; }
 

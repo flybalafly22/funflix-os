@@ -570,5 +570,91 @@ function makeTruck(opts) {
   return g;
 }
 
-FLY.props = { makeLamp, makeBench, makeBin, makePlanter, makeHydrant, makeTree, makeUtilPole, makeBollard, makeFountain, makeMarketStall, makeCafe, makeCar, makeScooter, makeTruck };
+/* ════════════════════════════════════════════════════════════════════════
+   TRAM / STREETCAR — charming multi-segment vintage streetcar.
+   ORIENTATION: long axis = Z, FRONT faces +Z (cowcatcher/headlamp at +Z),
+   width along X. world.js rotates it so its length lies along the route.
+   Two articulated body segments + a rounded nose, big windows, a roof with a
+   trolley pole reaching to an overhead wire, destination sign, and wheels
+   exposed in userData.wheels (axle along local X → world spins rotation.x).
+   ════════════════════════════════════════════════════════════════════════ */
+function makeTram(opts) {
+  opts = opts || {};
+  const g = new T.Group();
+  const col = opts.color || L.pick(['#9a2f2a', '#2f6f5a', '#365a8a', '#b06a28', '#5a3a6a', '#356e4a']);
+  const bm = L.std({ color: parseInt(col.replace('#', '0x')), roughness: 0.4, metalness: 0.4, envMapIntensity: 1.3 });
+  const cream = L.MAT.flat('#efe7d4');
+  const glass = L.MAT.glassTint, trimDark = L.MAT.flat('#23262c');
+  const roofMat = L.std({ color: 0x4a4640, roughness: 0.7, metalness: 0.3 });
+
+  const wid = 2.5;
+  const bodyTopY = 2.65;
+  const segLens = [4.6, 4.6];          // two articulated cars
+  const segZ = [2.6, -2.6];            // segment centers along Z (front first)
+  const wheels = [];
+
+  function segment(cz, len, isFront) {
+    // lower skirt + main body + cream upper band + roof
+    g.add(L.box(wid, 0.5, len, trimDark, { z: cz, y: 0.55, cast: false }));        // skirt
+    g.add(L.box(wid, 1.0, len, bm, { z: cz, y: 1.2 }));                            // lower body (colour)
+    g.add(L.box(wid + 0.04, 0.9, len - 0.1, cream, { z: cz, y: 2.0, cast: false })); // cream window band
+    g.add(L.box(wid + 0.02, 0.16, len, bm, { z: cz, y: 1.55, cast: false }));      // belt moulding
+    // big side windows (a glass band, divided by pillars)
+    g.add(L.box(wid + 0.06, 0.74, len - 0.5, glass, { z: cz, y: 2.0, cast: false }));
+    const winN = Math.max(3, Math.round((len - 0.6) / 1.2));
+    for (let i = 0; i <= winN; i++) {
+      const wz = cz - (len - 0.6) / 2 + (len - 0.6) / winN * i;
+      [-1, 1].forEach(s => g.add(L.box(0.12, 0.82, 0.06, bm, { x: s * (wid / 2 + 0.02), y: 2.0, z: wz, cast: false })));
+    }
+    // arched roof cap
+    g.add(L.box(wid - 0.1, 0.34, len - 0.06, roofMat, { z: cz, y: bodyTopY - 0.18, cast: false }));
+    g.add(L.box(wid - 0.5, 0.18, len - 0.3, roofMat, { z: cz, y: bodyTopY, cast: false }));
+  }
+  segment(segZ[0], segLens[0], true);
+  segment(segZ[1], segLens[1], false);
+  // articulation bellows between the two cars
+  for (let i = 0; i < 4; i++) g.add(L.box(wid - 0.2, 1.5, 0.12, trimDark, { z: 0.45 - i * 0.3, y: 1.6, cast: false }));
+
+  // — rounded nose at the FRONT (+Z) —
+  const noseZ = segZ[0] + segLens[0] / 2;
+  g.add(L.box(wid - 0.1, 1.7, 0.5, bm, { z: noseZ + 0.2, y: 1.55 }));
+  g.add(L.box(wid - 0.3, 1.0, 0.18, glass, { z: noseZ + 0.46, y: 2.05, cast: false }));   // windshield
+  // destination sign (lit) above the windshield
+  g.add(L.box(1.5, 0.32, 0.06, L.MAT.emissive('#ffe6a0', 0.7), { z: noseZ + 0.48, y: 2.55, cast: false }));
+  // headlamp + cowcatcher
+  g.add(L.sphere(0.16, 10, L.MAT.emissive('#fff0b0', 0.6), { z: noseZ + 0.5, y: 1.2, cast: false }));
+  g.add(L.box(wid - 0.2, 0.4, 0.3, trimDark, { z: noseZ + 0.45, y: 0.45, cast: false }));
+  // rear cap at -Z
+  const tailZ = segZ[1] - segLens[1] / 2;
+  g.add(L.box(wid - 0.1, 1.7, 0.4, bm, { z: tailZ - 0.15, y: 1.55 }));
+  [0.7, -0.7].forEach(hx => g.add(L.box(0.22, 0.26, 0.06, L.MAT.emissive('#cc1414', 0.6), { x: hx, y: 1.0, z: tailZ - 0.34, cast: false })));
+
+  // — doors (folding, hinted by recessed dark panels) on each segment, +X side —
+  [segZ[0], segZ[1]].forEach(cz => {
+    g.add(L.box(0.06, 1.5, 1.0, trimDark, { x: wid / 2 + 0.02, y: 1.5, z: cz, cast: false }));
+  });
+
+  // — trolley pole + roof gear reaching up toward the overhead wire —
+  g.add(L.box(0.5, 0.2, 1.2, trimDark, { z: 0.0, y: bodyTopY + 0.12, cast: false }));     // pole base shoe
+  const pole = L.cyl(0.04, 0.05, 2.2, 6, L.MAT.metalLight, { y: bodyTopY + 1.2, z: -0.4, cast: false });
+  pole.rotation.x = 0.32; g.add(pole);                                                    // angled back & up
+  g.add(L.sphere(0.07, 8, L.MAT.chrome, { y: bodyTopY + 2.25, z: -1.0, cast: false }));    // contact wheel
+  // roof vents / clerestory ribs
+  for (let i = 0; i < 6; i++) g.add(L.box(0.5, 0.06, 0.1, trimDark, { z: 4.4 - i * 1.6, y: bodyTopY + 0.12, cast: false }));
+
+  // — bogies / wheels: axle along local X (rotation.z = PI/2); world spins rotation.x —
+  [[0.95, segZ[0] + 1.4], [0.95, segZ[0] - 1.4], [0.95, segZ[1] + 1.4], [0.95, segZ[1] - 1.4]].forEach(([wx, wz]) => {
+    [wx, -wx].forEach(sx => {
+      const tire = L.cyl(0.42, 0.42, 0.22, 14, M.cast, { x: sx, y: 0.42, z: wz });
+      tire.rotation.z = Math.PI / 2; g.add(tire); wheels.push(tire);
+      const rim = L.cyl(0.2, 0.2, 0.24, 8, L.MAT.metalLight, { x: sx, y: 0.42, z: wz, cast: false });
+      rim.rotation.z = Math.PI / 2; g.add(rim);
+    });
+  });
+
+  g.userData.wheels = wheels;
+  return g;
+}
+
+FLY.props = { makeLamp, makeBench, makeBin, makePlanter, makeHydrant, makeTree, makeUtilPole, makeBollard, makeFountain, makeMarketStall, makeCafe, makeCar, makeScooter, makeTruck, makeTram };
 })();
