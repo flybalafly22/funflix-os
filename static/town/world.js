@@ -71,6 +71,10 @@ function build(ctx) {
   const npcs = [];
   const cars = [];
   const fountains = [];
+  const pigeons = [];
+  const dogs = [];
+  // shared player handle — game.js writes player.pos each frame so townsfolk can react
+  ctx.player = ctx.player || { pos: new T.Vector3(0, 9, 0) };
 
   /* ── GROUND ── */
   const base = new T.Mesh(new T.PlaneGeometry(660, 660), L.std({ map: L.dirtTex(), roughness: 1 }));
@@ -301,16 +305,41 @@ function build(ctx) {
     root.add(car); cars.push(car);
   }
 
-  /* ── NPCS ── */
-  function spawnNPC(x, z, sideForFacing) {
+  /* ── NPCS — walkers with a small state machine, plus seated folk & vendors ── */
+  function spawnNPC(x, z, kind, cx) {
     const n = C.makeNPC();
     n.position.set(x, CH, z);
-    n.userData.npc = { speed: L.rand(0.9, 1.7) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), lane: z, kind: 'street' };
+    const fast = kind === 'kid';
+    n.userData.npc = {
+      kind, lane: z, cx: cx == null ? x : cx,
+      speed: L.rand(kind === 'plaza' ? 0.5 : 0.9, kind === 'plaza' ? 1.1 : (fast ? 2.4 : 1.7)) * (L.chance(0.5) ? 1 : -1),
+      phase: L.rand(0, TAU),
+      state: 'walk', timer: L.rand(2, 6), wave: 0,
+    };
     root.add(n); npcs.push(n);
   }
-  [1, -1].forEach(side => { for (let k = 0; k < 9; k++) spawnNPC(L.rand(-AVX + 8, AVX - 8), side * (SW + L.rand(1.6, SDW - 1.2))); });
+  [1, -1].forEach(side => { for (let k = 0; k < 11; k++) spawnNPC(L.rand(-AVX + 8, AVX - 8), side * (SW + L.rand(1.6, SDW - 1.2)), L.chance(0.15) ? 'kid' : 'street'); });
   // plaza strollers
-  for (let k = 0; k < 6; k++) { const n = C.makeNPC(); n.position.set(L.rand(-PLAZA_HALF + 2, PLAZA_HALF - 2), CH, SW + L.rand(2, 13)); n.userData.npc = { speed: L.rand(0.5, 1.1) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), lane: n.position.z, kind: 'plaza', cx: n.position.x }; root.add(n); npcs.push(n); }
+  for (let k = 0; k < 7; k++) spawnNPC(L.rand(-PLAZA_HALF + 2, PLAZA_HALF - 2), SW + L.rand(2, 13), 'plaza');
+
+  // seated folk at café tables + on some benches, and vendors at stalls (static, idle anim)
+  function seatNPC(x, z, faceY) {
+    const n = C.makeNPC();
+    n.position.set(x, CH, z); n.rotation.y = faceY == null ? L.rand(0, TAU) : faceY;
+    // sit: rotate thighs forward, drop to seat height
+    const lm = n.userData.limbs;
+    if (lm) { lm.legL.rotation.x = -1.4; lm.legR.rotation.x = -1.4; }
+    n.position.y = CH + 0.18;
+    n.userData.npc = { kind: 'seated', phase: L.rand(0, TAU), wave: 0 };
+    root.add(n); npcs.push(n);
+  }
+  [[-13, 1], [13, 1]].forEach(([cx]) => { for (let t = 0; t < 3; t++) { const tx = cx + (t - 1) * 2.4; if (L.chance(0.6)) seatNPC(tx + 0.6, SW + 4, -Math.PI / 2); if (L.chance(0.5)) seatNPC(tx - 0.6, SW + 4, Math.PI / 2); } });
+  // a vendor standing at each market stall area (static, faces the street)
+  [[-9, SW + 11], [9, SW + 11], [0, SW + 13]].forEach(([x, z]) => {
+    const n = C.makeNPC(); n.position.set(x, CH, z); n.rotation.y = Math.PI;
+    n.userData.npc = { kind: 'vendor', phase: L.rand(0, TAU), wave: 0 };
+    root.add(n); npcs.push(n);
+  });
 
   /* ── STRING LIGHTS across the avenue (cozy festoon) ── */
   function stringLights(x0) {
@@ -346,15 +375,22 @@ function build(ctx) {
   /* ── AMBIENT LIFE: pigeons, dogs, circling birds ── */
   const birds = [];
   if (C.makePigeon) {
-    for (let k = 0; k < 14; k++) {
+    for (let k = 0; k < 16; k++) {
       const pg = C.makePigeon();
       const onPlaza = L.chance(0.4);
-      pg.position.set(onPlaza ? L.rand(-PLAZA_HALF, PLAZA_HALF) : L.rand(-AVX + 10, AVX - 10), CH + 0.02, onPlaza ? SW + L.rand(2, 12) : L.pick([1, -1]) * (SW + L.rand(1.5, SDW - 1)));
-      pg.rotation.y = L.rand(0, TAU); root.add(pg);
+      const gy = CH + 0.02;
+      pg.position.set(onPlaza ? L.rand(-PLAZA_HALF, PLAZA_HALF) : L.rand(-AVX + 10, AVX - 10), gy, onPlaza ? SW + L.rand(2, 12) : L.pick([1, -1]) * (SW + L.rand(1.5, SDW - 1)));
+      pg.rotation.y = L.rand(0, TAU);
+      pg.userData.pg = { gy, home: pg.position.clone(), phase: L.rand(0, TAU), flee: 0, hop: L.rand(1, 4) };
+      root.add(pg); pigeons.push(pg);
     }
   }
   if (C.makeDog) {
-    [[-30, 1], [40, -1]].forEach(([x, s]) => { const d = C.makeDog(); d.position.set(x, CH, s * (SW + 2.2)); d.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2; root.add(d); });
+    [[-30, 1], [40, -1], [PARK_CX + 6, -1]].forEach(([x, s]) => {
+      const d = C.makeDog(); d.position.set(x, CH, s * (SW + 2.2));
+      d.userData.dog = { speed: L.rand(1.4, 2.2) * (L.chance(0.5) ? 1 : -1), lane: s * (SW + 2.2), home: x, range: L.rand(10, 22), phase: L.rand(0, TAU) };
+      root.add(d); dogs.push(d);
+    });
   }
   // simple circling birds high up
   const birdMat = L.MAT.flat('#3a3540');
@@ -371,27 +407,77 @@ function build(ctx) {
   const bounds = { minX: -AVX + 4, maxX: AVX - 4, minZ: -(ROWZ + 11), maxZ: ROWZ + 13, minY: 2.2, maxY: 42 };
   const spawn = new T.Vector3(0, 9, -4);
 
+  const PP = ctx.player.pos;
   function update(dt, now) {
     const t = now * 0.004;
-    // NPCs
+    // ── NPCs: walk/pause state machine + wave when the Fly is near ──
     for (const n of npcs) {
       const u = n.userData.npc;
-      n.position.x += u.speed * dt;
-      const lim = u.kind === 'plaza' ? PLAZA_HALF - 2 : AVX - 7;
-      const cen = u.kind === 'plaza' ? (u.cx || 0) : 0;
-      if (n.position.x > (u.kind === 'plaza' ? cen + 8 : lim)) u.speed = -Math.abs(u.speed);
-      if (n.position.x < (u.kind === 'plaza' ? cen - 8 : -lim)) u.speed = Math.abs(u.speed);
+      const dxp = n.position.x - PP.x, dzp = n.position.z - PP.z;
+      const near = (dxp * dxp + dzp * dzp) < 64 && PP.y < 14;   // Fly within ~8m and low
+      u.wave = L.clamp(u.wave + (near ? dt * 4 : -dt * 4), 0, 1);
+
+      if (u.kind === 'seated' || u.kind === 'vendor') {
+        // static folk: gentle idle + look/wave at the Fly
+        C.animateWalk(n, t * 1.4 + u.phase, false);
+        if (u.wave > 0.05 && n.userData.limbs) n.userData.limbs.armR.rotation.x = -2.4 * u.wave + Math.sin(now * 0.02) * 0.4 * u.wave;
+        continue;
+      }
+
+      // walkers
+      u.timer -= dt;
+      if (u.state === 'walk') {
+        if (u.timer <= 0 && L.chance(0.5)) { u.state = 'pause'; u.timer = L.rand(1.2, 3.5); }
+        else if (u.timer <= 0) { u.speed = -u.speed; u.timer = L.rand(3, 7); }
+      } else { // pause
+        if (u.timer <= 0) { u.state = 'walk'; u.timer = L.rand(3, 7); }
+      }
+      const moving = u.state === 'walk' && u.wave < 0.4;
+      if (moving) n.position.x += u.speed * dt;
+      const lim = u.kind === 'plaza' ? (u.cx + 8) : AVX - 7;
+      const lo = u.kind === 'plaza' ? (u.cx - 8) : -(AVX - 7);
+      if (n.position.x > lim) u.speed = -Math.abs(u.speed);
+      if (n.position.x < lo) u.speed = Math.abs(u.speed);
       n.rotation.y = u.speed > 0 ? Math.PI / 2 : -Math.PI / 2;
-      C.animateWalk(n, t * 3 + u.phase, true);
-      n.position.y = CH + Math.abs(Math.sin((t * 3 + u.phase))) * 0.03;
+      C.animateWalk(n, t * 3 + u.phase, moving);
+      n.position.y = CH + (moving ? Math.abs(Math.sin(t * 3 + u.phase)) * 0.03 : 0);
+      // wave (raise right arm) at the Fly
+      if (u.wave > 0.05 && n.userData.limbs) n.userData.limbs.armR.rotation.x = -2.4 * u.wave + Math.sin(now * 0.02) * 0.4 * u.wave;
     }
-    // traffic
+    // ── dogs: trot back and forth, with a little bob ──
+    for (const d of dogs) {
+      const u = d.userData.dog;
+      d.position.x += u.speed * dt;
+      if (d.position.x > u.home + u.range) u.speed = -Math.abs(u.speed);
+      if (d.position.x < u.home - u.range) u.speed = Math.abs(u.speed);
+      d.rotation.y = u.speed > 0 ? Math.PI / 2 : -Math.PI / 2;
+      d.position.y = CH + Math.abs(Math.sin(now * 0.012 + u.phase)) * 0.05;
+    }
+    // ── pigeons: idle hop/peck; scatter (fly up & away) when the Fly buzzes them ──
+    for (const pg of pigeons) {
+      const u = pg.userData.pg;
+      const dxp = pg.position.x - PP.x, dzp = pg.position.z - PP.z;
+      if ((dxp * dxp + dzp * dzp) < 36 && PP.y < 12 && u.flee <= 0) u.flee = 2.2;
+      if (u.flee > 0) {
+        u.flee -= dt;
+        pg.position.y += (3.5 - (pg.position.y - u.gy)) * dt * 1.2;
+        pg.position.x += Math.sign(dxp || 1) * dt * 3.0;
+        pg.rotation.y += dt * 2;
+      } else {
+        // settle back down and hop occasionally
+        pg.position.y += (u.gy - pg.position.y) * dt * 2.0;
+        u.hop -= dt;
+        if (u.hop <= 0) { u.hop = L.rand(1.5, 4); pg.rotation.y = L.rand(0, TAU); }
+        pg.position.y = u.gy + Math.abs(Math.sin(now * 0.006 + u.phase)) * 0.04;
+      }
+    }
+    // ── traffic ──
     for (const car of cars) {
       const d = car.userData.drive;
       car.position.x += d.dir * d.speed * dt;
       if (d.dir > 0 && car.position.x > AVX - 8) car.position.x = -AVX + 8;
       if (d.dir < 0 && car.position.x < -AVX + 8) car.position.x = AVX - 8;
-      if (car.userData.wheels) car.userData.wheels.forEach(w => w.rotation.y += d.speed * dt * 1.5);
+      if (car.userData.wheels) car.userData.wheels.forEach(w => w.rotation.x += d.speed * dt * 1.5);
     }
     // fountain water shimmer
     for (const f of fountains) f.userData.water.forEach((w, i) => { w.position.y += Math.sin(now * 0.005 + i) * 0.0006; });

@@ -11,6 +11,8 @@
 function start(ctx, world) {
   const { scene, camera, lib } = ctx;
   const L = lib, T = L.T, TAU = L.TAU;
+  ctx.player = ctx.player || { pos: new T.Vector3() };
+  const player = ctx.player;
   const C = FLY.characters;
   const clamp = L.clamp, lerp = L.lerp, pick = L.pick, rand = L.rand;
 
@@ -151,7 +153,7 @@ function start(ctx, world) {
     P.bank = lerp(P.bank, -turn * 0.5, L.dampT(dt, 8));
     P.pitch = lerp(P.pitch, -P.speed / MAXF * 0.18 - P.vy * 0.02, L.dampT(dt, 6));
 
-    fly.position.copy(P.pos);
+    fly.position.copy(P.pos); player.pos.copy(P.pos);
     fly.rotation.set(0, 0, 0); fly.rotateY(P.yaw); fly.rotateX(P.pitch); fly.rotateZ(P.bank);
     const flap = Math.sin(now * 0.03) * (0.5 + Math.min(1, Math.abs(P.speed) / MAXF) * 0.6);
     fly.userData.wingL.rotation.z = 0.3 + flap; fly.userData.wingR.rotation.z = -0.3 - flap;
