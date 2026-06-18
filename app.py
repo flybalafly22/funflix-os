@@ -42,6 +42,10 @@ def fly():
 
 @app.route("/play/the-fly")
 def the_fly():
+    return render_template("town.html")
+
+@app.route("/play/the-fly-classic")
+def the_fly_classic():
     return render_template("the_fly.html")
 
 @app.route("/play/town-slice")

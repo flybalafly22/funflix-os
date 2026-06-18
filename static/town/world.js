@@ -279,6 +279,61 @@ function build(ctx) {
   // plaza strollers
   for (let k = 0; k < 6; k++) { const n = C.makeNPC(); n.position.set(L.rand(-PLAZA_HALF + 2, PLAZA_HALF - 2), CH, SW + L.rand(2, 13)); n.userData.npc = { speed: L.rand(0.5, 1.1) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), lane: n.position.z, kind: 'plaza', cx: n.position.x }; root.add(n); npcs.push(n); }
 
+  /* ── STRING LIGHTS across the avenue (cozy festoon) ── */
+  function stringLights(x0) {
+    const S = ROWZ - 4, H = 7.6, sag = 2.4, N = 14;
+    const bulbHex = L.pick(['#ffd27a', '#ff9a6a', '#aee0ff', '#ffe070', '#ffb0c0']);
+    const bulbMat = L.MAT.emissive(bulbHex, 1.3);
+    const cordMat = L.MAT.flat('#2a2620');
+    let prev = null;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, z = -S + 2 * S * t, y = H - 4 * sag * t * (1 - t);
+      if (i % 2 === 0) root.add(L.sphere(0.12, 8, bulbMat, { x: x0, y, z, cast: false }));
+      if (prev) {
+        const dy = y - prev.y, dz = z - prev.z, len = Math.hypot(dy, dz);
+        const seg = L.box(0.025, 0.025, len, cordMat, { x: x0, y: (y + prev.y) / 2, z: (z + prev.z) / 2, cast: false });
+        seg.rotation.x = -Math.atan2(dy, dz); root.add(seg);
+      }
+      prev = { y, z };
+    }
+  }
+  for (let x = -AVX + 20; x < AVX - 20; x += 22) {
+    if (Math.abs(x) < PLAZA_HALF + 6) continue;
+    if (x > PARK_CX - PARK_HALF - 6 && x < PARK_CX + PARK_HALF + 6) continue;
+    stringLights(x);
+  }
+
+  /* ── HANGING BANNERS over the street ── */
+  [[-44, '#c44a44', '#f4ecd8'], [44, '#2f7060', '#f4ecd8'], [96, '#3a5d92', '#f4ecd8']].forEach(([x, a, b]) => {
+    const ban = L.box((ROWZ - 6) * 2, 1.1, 0.06, L.MAT.fabric(a, b, 6), { x, y: 8.2, z: 0, cast: false });
+    ban.rotation.y = Math.PI / 2; root.add(ban);
+    root.add(L.box(0.08, 0.08, (ROWZ - 6) * 2, L.MAT.flat('#2a2620'), { x, y: 8.8, z: 0, cast: false }));
+  });
+
+  /* ── AMBIENT LIFE: pigeons, dogs, circling birds ── */
+  const birds = [];
+  if (C.makePigeon) {
+    for (let k = 0; k < 14; k++) {
+      const pg = C.makePigeon();
+      const onPlaza = L.chance(0.4);
+      pg.position.set(onPlaza ? L.rand(-PLAZA_HALF, PLAZA_HALF) : L.rand(-AVX + 10, AVX - 10), CH + 0.02, onPlaza ? SW + L.rand(2, 12) : L.pick([1, -1]) * (SW + L.rand(1.5, SDW - 1)));
+      pg.rotation.y = L.rand(0, TAU); root.add(pg);
+    }
+  }
+  if (C.makeDog) {
+    [[-30, 1], [40, -1]].forEach(([x, s]) => { const d = C.makeDog(); d.position.set(x, CH, s * (SW + 2.2)); d.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2; root.add(d); });
+  }
+  // simple circling birds high up
+  const birdMat = L.MAT.flat('#3a3540');
+  for (let k = 0; k < 7; k++) {
+    const bd = new T.Group();
+    const wl = L.box(0.5, 0.04, 0.18, birdMat, { x: -0.3, cast: false });
+    const wr = L.box(0.5, 0.04, 0.18, birdMat, { x: 0.3, cast: false });
+    bd.add(wl, wr); bd.add(L.box(0.18, 0.08, 0.4, birdMat, { cast: false }));
+    bd.userData = { cx: L.rand(-60, 60), cz: L.rand(-10, 20), r: L.rand(14, 30), a: L.rand(0, TAU), sp: L.rand(0.2, 0.45), yy: L.rand(22, 34), wl, wr };
+    root.add(bd); birds.push(bd);
+  }
+
   /* ── UPDATE ── */
   const bounds = { minX: -AVX + 4, maxX: AVX - 4, minZ: -(ROWZ + 11), maxZ: ROWZ + 13, minY: 2.2, maxY: 42 };
   const spawn = new T.Vector3(0, 9, -4);
@@ -307,6 +362,14 @@ function build(ctx) {
     }
     // fountain water shimmer
     for (const f of fountains) f.userData.water.forEach((w, i) => { w.position.y += Math.sin(now * 0.005 + i) * 0.0006; });
+    // circling birds
+    for (const bd of birds) {
+      const u = bd.userData; u.a += u.sp * dt;
+      bd.position.set(u.cx + Math.cos(u.a) * u.r, u.yy + Math.sin(now * 0.001 + u.cx) * 1.2, u.cz + Math.sin(u.a) * u.r);
+      bd.rotation.y = -u.a + Math.PI / 2;
+      const flap = Math.sin(now * 0.02 + u.cx) * 0.5;
+      u.wl.rotation.z = flap; u.wr.rotation.z = -flap;
+    }
   }
 
   return { addresses, update, bounds, spawn };
