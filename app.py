@@ -48,6 +48,10 @@ def the_fly():
 def town_slice():
     return render_template("town_slice.html")
 
+@app.route("/play/town")
+def town():
+    return render_template("town.html")
+
 @app.route("/meme")
 def meme():
     return render_template("meme.html")

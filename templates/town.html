@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!-- THE FLY — the town (hand-authored, playable courier game). Bootstrap + HUD. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>THE FLY</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #b9d2e6;
+               font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #fff; }
+  #wrap { position: fixed; inset: 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  /* ── loading ── */
+  #load { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center;
+          background: radial-gradient(120% 120% at 50% 30%, #2a3a52, #131a26); transition: opacity .6s; }
+  #load.hide { opacity: 0; pointer-events: none; }
+  #load .t { font-size: 30px; font-weight: 900; letter-spacing: .04em; }
+  #load .b { margin-top: 14px; width: 180px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
+  #load .b i { display: block; height: 100%; width: 30%; background: #ffd27a; border-radius: 3px; animation: ld 1.1s ease-in-out infinite; }
+  @keyframes ld { 0%{margin-left:-30%} 100%{margin-left:100%} }
+
+  /* ── HUD ── */
+  #hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+  #task { position: absolute; left: 16px; top: 14px; min-width: 220px;
+          background: rgba(14,20,30,.62); backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,.14); border-radius: 14px; padding: 11px 15px;
+          box-shadow: 0 8px 28px rgba(0,0,0,.28); }
+  #task .lbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #ffd27a; font-weight: 800; }
+  #task .dst { font-size: 20px; font-weight: 800; margin-top: 2px; }
+  #task .sub { font-size: 11px; opacity: .7; margin-top: 3px; }
+  #score { position: absolute; right: 16px; top: 14px; text-align: right;
+           background: rgba(14,20,30,.62); backdrop-filter: blur(10px);
+           border: 1px solid rgba(255,255,255,.14); border-radius: 14px; padding: 10px 16px;
+           box-shadow: 0 8px 28px rgba(0,0,0,.28); }
+  #score .n { font-size: 26px; font-weight: 800; line-height: 1; color: #7fe0a0; }
+  #score .l { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; opacity: .65; margin-top: 3px; }
+  #compass { position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
+             width: 54px; height: 54px; border-radius: 50%; background: rgba(14,20,30,.55);
+             backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.16);
+             display: grid; place-items: center; box-shadow: 0 6px 22px rgba(0,0,0,.28); }
+  #needle { font-size: 22px; color: #ffd27a; transition: transform .08s linear; text-shadow: 0 0 8px rgba(255,200,90,.7); }
+  #dist { position: absolute; left: 50%; top: 74px; transform: translateX(-50%); font-size: 11px;
+          background: rgba(14,20,30,.5); padding: 2px 9px; border-radius: 8px; font-weight: 700; }
+  #hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+          font: 600 11px ui-monospace, Menlo, monospace; opacity: .82; background: rgba(10,14,22,.5);
+          padding: 7px 13px; border-radius: 10px; backdrop-filter: blur(6px); white-space: nowrap; }
+  #toast { position: absolute; left: 50%; top: 36%; transform: translate(-50%,-50%) scale(.8);
+           font-size: 30px; font-weight: 900; text-shadow: 0 4px 18px rgba(0,0,0,.5); opacity: 0;
+           transition: opacity .25s, transform .25s; text-align: center; }
+  #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  /* touch controls (mobile only) */
+  #touch { position: absolute; inset: 0; pointer-events: none; }
+  .tpad { position: absolute; pointer-events: auto; -webkit-user-select: none; user-select: none; touch-action: none; }
+  #stick { left: 20px; bottom: 22px; width: 128px; height: 128px; border-radius: 50%;
+           background: rgba(255,255,255,.10); border: 1.5px solid rgba(255,255,255,.25); }
+  #knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px;
+          border-radius: 50%; background: rgba(255,255,255,.32); border: 1.5px solid rgba(255,255,255,.5); }
+  #btnUp, #btnDn { right: 24px; width: 64px; height: 64px; border-radius: 50%;
+                   background: rgba(255,255,255,.14); border: 1.5px solid rgba(255,255,255,.3);
+                   font-size: 26px; display: grid; place-items: center; font-weight: 800; }
+  #btnUp { bottom: 96px; } #btnDn { bottom: 22px; }
+  @media (hover: hover) and (pointer: fine) { #touch { display: none; } }
+</style>
+</head>
+<body>
+<div id="wrap"></div>
+<div id="hud">
+  <div id="task"><div class="lbl">Loading</div><div class="dst">THE FLY</div><div class="sub">building the town…</div></div>
+  <div id="score"><div class="n">0</div><div class="l">delivered</div></div>
+  <div id="compass"><div id="needle">▲</div></div>
+  <div id="dist">—</div>
+  <div id="toast"></div>
+  <div id="hint">W/S throttle · A/D turn · Space ascend · Shift descend</div>
+  <div id="touch">
+    <div id="stick" class="tpad"><div id="knob"></div></div>
+    <div id="btnUp" class="tpad">▲</div>
+    <div id="btnDn" class="tpad">▼</div>
+  </div>
+</div>
+<div id="load"><div style="text-align:center"><div class="t">THE FLY</div><div class="b"><i></i></div></div></div>
+
+<!-- THREE r128 (classic global build) + post stack -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+<!-- THE FLY town modules (load order matters: lib → assets → world → game) -->
+<script src="{{ url_for('static', filename='town/lib.js') }}"></script>
+<script src="{{ url_for('static', filename='town/buildings.js') }}"></script>
+<script src="{{ url_for('static', filename='town/props.js') }}"></script>
+<script src="{{ url_for('static', filename='town/characters.js') }}"></script>
+<script src="{{ url_for('static', filename='town/world.js') }}"></script>
+<script src="{{ url_for('static', filename='town/game.js') }}"></script>
+
+<script>
+/* ═══════════════ BOOTSTRAP ═══════════════ */
+(function () {
+'use strict';
+const T = THREE, wrap = document.getElementById('wrap');
+
+const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputEncoding = T.sRGBEncoding;
+renderer.toneMapping = T.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = T.PCFSoftShadowMap;
+wrap.appendChild(renderer.domElement);
+
+const scene = new T.Scene();
+scene.fog = new T.FogExp2(0xd6e3ee, 0.0030);
+const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
+
+/* lighting rig — warm late-afternoon */
+const sun = new T.DirectionalLight(0xffe4b6, 1.85);
+sun.position.set(40, 60, 26); sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+{ const c = sun.shadow.camera; c.near = 5; c.far = 320; c.left = -110; c.right = 110; c.top = 110; c.bottom = -110; }
+sun.shadow.radius = 4; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;
+scene.add(sun, sun.target);
+const hemi = new T.HemisphereLight(0xc8dcf2, 0x7a6850, 0.62); scene.add(hemi);
+const fill = new T.DirectionalLight(0xb8d0f4, 0.28); fill.position.set(-34, 22, -30); scene.add(fill);
+const bounce = new T.DirectionalLight(0xffe0a0, 0.16); bounce.position.set(0, -10, 22); scene.add(bounce);
+
+/* sky dome */
+const skyMat = new T.ShaderMaterial({
+  side: T.BackSide, depthWrite: false, fog: false,
+  uniforms: { uZ: { value: new T.Color(0x4a8cc8) }, uM: { value: new T.Color(0xaccae6) }, uH: { value: new T.Color(0xf2dcae) } },
+  vertexShader: 'varying vec3 vd; void main(){ vd=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader: 'uniform vec3 uZ,uM,uH; varying vec3 vd; void main(){ float h=clamp(vd.y*0.5+0.5,0.0,1.0); vec3 c=h<0.5?mix(uH,uM,smoothstep(0.0,0.5,h)):mix(uM,uZ,smoothstep(0.5,1.0,h)); gl_FragColor=vec4(c,1.0); }'
+});
+scene.add(new T.Mesh(new T.SphereGeometry(640, 24, 14), skyMat));
+
+/* simple drifting clouds */
+const clouds = new T.Group(); scene.add(clouds);
+(function makeClouds() {
+  const cMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.9, fog: false });
+  for (let i = 0; i < 14; i++) {
+    const g = new T.Group();
+    const n = 3 + (Math.random() * 3 | 0);
+    for (let k = 0; k < n; k++) {
+      const puff = new T.Mesh(new T.SphereGeometry(6 + Math.random() * 8, 8, 6), cMat);
+      puff.position.set((Math.random() - 0.5) * 22, Math.random() * 4, (Math.random() - 0.5) * 12);
+      puff.scale.y = 0.6; g.add(puff);
+    }
+    g.position.set((Math.random() - 0.5) * 500, 90 + Math.random() * 60, (Math.random() - 0.5) * 500);
+    g.userData.drift = 0.6 + Math.random() * 0.8; clouds.add(g);
+  }
+})();
+
+/* env reflections */
+{
+  const envS = new T.Scene();
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 64);
+  gr.addColorStop(0, '#6aa4d4'); gr.addColorStop(0.55, '#d8eaf4'); gr.addColorStop(1, '#c8b890');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding;
+  envS.add(new T.Mesh(new T.SphereGeometry(50, 16, 10), new T.MeshBasicMaterial({ map: tx, side: T.BackSide })));
+  const pm = new T.PMREMGenerator(renderer); scene.environment = pm.fromScene(envS).texture; pm.dispose();
+}
+
+/* post: bloom + grade + gamma */
+const GradeShader = {
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.26 }, uCon: { value: 1.05 }, uSat: { value: 1.12 },
+    uLift: { value: new T.Vector3(0.010, 0.007, 0.0) }, uGain: { value: new T.Vector3(1.04, 1.01, 0.94) } },
+  vertexShader: 'varying vec2 v; void main(){ v=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat; uniform vec3 uLift,uGain; varying vec2 v;
+    void main(){ vec3 c=texture2D(tDiffuse,v).rgb; c=(c-0.5)*uCon+0.5; float l=dot(c,vec3(0.299,0.587,0.114));
+      c=mix(vec3(l),c,uSat); float lum=clamp(l,0.0,1.0);
+      c+=uLift*(1.0-smoothstep(0.0,0.5,lum)); c*=mix(vec3(1.0),uGain,smoothstep(0.4,1.0,lum));
+      vec2 d=v-0.5; float r=dot(d,d)*2.0; c*=mix(1.0,smoothstep(0.95,0.26,r),uVig);
+      gl_FragColor=vec4(max(c,0.0),1.0); }`
+};
+let composer = null;
+try {
+  if (T.EffectComposer && T.UnrealBloomPass && T.GammaCorrectionShader) {
+    composer = new T.EffectComposer(renderer);
+    composer.addPass(new T.RenderPass(scene, camera));
+    composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.24, 0.5, 0.85));
+    composer.addPass(new T.ShaderPass(GradeShader));
+    composer.addPass(new T.ShaderPass(T.GammaCorrectionShader));
+  }
+} catch (e) { composer = null; }
+
+/* shared context handed to every module */
+const root = new T.Group(); scene.add(root);
+const ctx = { THREE: T, lib: FLY.lib, scene, root, renderer, camera, composer, sun, hemi, fog: scene.fog };
+
+/* build the world, then start the game */
+let world = null, game = null, fatal = null;
+try {
+  world = FLY.world.build(ctx);
+  game = FLY.game.start(ctx, world);
+} catch (e) {
+  fatal = e; console.error('FLY boot error:', e);
+  document.querySelector('#task .dst').textContent = 'Boot error';
+  document.querySelector('#task .sub').textContent = String(e.message || e);
+}
+
+function resize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h, false); if (composer) composer.setSize(w, h);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize); resize();
+
+const loadEl = document.getElementById('load');
+let started = false, last = performance.now();
+function tick() {
+  requestAnimationFrame(tick);
+  const now = performance.now(); let dt = (now - last) / 1000; last = now; dt = Math.min(dt, 0.05);
+  clouds.children.forEach(c => { c.position.x += c.userData.drift * dt; if (c.position.x > 280) c.position.x = -280; });
+  if (world && world.update) world.update(dt, now);
+  if (game && game.update) game.update(dt, now);
+  if (composer) composer.render(); else renderer.render(scene, camera);
+  if (!started) { started = true; loadEl.classList.add('hide'); }
+}
+requestAnimationFrame(tick);
+
+// expose for QA / debugging
+window.__fly = { ctx, world, game, scene, camera, renderer };
+})();
+</script>
+</body>
+</html>
