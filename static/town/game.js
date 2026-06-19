@@ -20,8 +20,10 @@ function start(ctx, world) {
 
   /* ── player ── */
   const fly = C.makeFly(); scene.add(fly);
+  // FX / HUD markers live on layer 1 so the ink-outline normal pass skips them
+  const toFx = obj => obj.traverse(c => c.layers.set(1));
   const blob = new T.Mesh(new T.CircleGeometry(0.8, 20), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.26, depthWrite: false }));
-  blob.rotation.x = -Math.PI / 2; scene.add(blob);
+  blob.rotation.x = -Math.PI / 2; scene.add(blob); toFx(blob);
 
   // carried letter on the fly
   const letterMat = L.std({ color: 0xf4ecd6, roughness: 0.7 });
@@ -29,19 +31,19 @@ function start(ctx, world) {
   { const env = L.box(0.4, 0.28, 0.05, letterMat, { cast: false });
     env.add(L.box(0.1, 0.1, 0.01, L.std({ color: 0xc0463e, roughness: 0.7 }), { x: 0.12, y: 0.07, z: 0.03, cast: false }));
     carriedLetter.add(env); }
-  carriedLetter.visible = false; carriedLetter.position.set(0, 0.45, 0.15); fly.add(carriedLetter);
+  carriedLetter.visible = false; carriedLetter.position.set(0, 0.45, 0.15); fly.add(carriedLetter); toFx(carriedLetter);
 
   /* ── objective markers ── */
   const beam = new T.Mesh(new T.CylinderGeometry(1.1, 1.5, 30, 16, 1, true), new T.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.26, depthWrite: false, side: T.DoubleSide }));
-  scene.add(beam);
+  scene.add(beam); toFx(beam);
   const ring = new T.Mesh(new T.TorusGeometry(1.6, 0.13, 8, 28), new T.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.85, depthWrite: false }));
-  ring.rotation.x = -Math.PI / 2; scene.add(ring);
+  ring.rotation.x = -Math.PI / 2; scene.add(ring); toFx(ring);
   const objLetter = new T.Group();
   { const env = L.box(0.9, 0.62, 0.1, letterMat);
     env.add(L.box(0.9, 0.34, 0.01, L.std({ color: 0xdcd0b0, roughness: 0.7 }), { y: 0.05, z: 0.052, cast: false }));
     env.add(L.box(0.22, 0.22, 0.01, L.std({ color: 0xc0463e, roughness: 0.7, emissive: 0x802820, emissiveIntensity: 0.2 }), { x: 0.26, y: 0.13, z: 0.053, cast: false }));
     objLetter.add(env); }
-  scene.add(objLetter);
+  scene.add(objLetter); toFx(objLetter);
 
   /* ── HUD refs (existing ids) ── */
   const $ = s => document.querySelector(s);
@@ -208,7 +210,7 @@ function start(ctx, world) {
     const cnt = n || 18, yy = h == null ? 2.8 : h;
     for (let i = 0; i < cnt; i++) {
       let p = fxPool.find(x => !x.mesh.visible);
-      if (!p) { p = { mesh: new T.Mesh(fxGeo, new T.MeshBasicMaterial({ transparent: true })) }; scene.add(p.mesh); fxPool.push(p); }
+      if (!p) { p = { mesh: new T.Mesh(fxGeo, new T.MeshBasicMaterial({ transparent: true })) }; p.mesh.layers.set(1); scene.add(p.mesh); fxPool.push(p); }
       p.mesh.visible = true; p.mesh.material.color.setHex(pick(cols)); p.mesh.material.opacity = 1;
       p.mesh.position.set(pos.x, yy, pos.z);
       const a = Math.random() * TAU, up = rand(2, 5), sp = rand(2, 5);

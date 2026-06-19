@@ -323,22 +323,37 @@ const PAL = {
   foliage:['#5e9047', '#6fa356', '#5a9450', '#4d8240', '#7aab5d', '#588a44'],
 };
 
+/* ── CEL-SHADE RAMP (the Messenger look) ──────────────────────────────────
+   A 3-band grayscale ramp drives MeshToonMaterial's banded diffuse → flat,
+   hand-drawn cel fills instead of smooth PBR gradients. Black ink outlines are
+   added as a post pass in the bootstrap. */
+const _toonGrad = (() => {
+  const d = new Uint8Array([74, 74, 74, 255, 168, 168, 168, 255, 255, 255, 255, 255]); // 3 steps: shadow / mid / light
+  const t = new T.DataTexture(d, 3, 1, T.RGBAFormat);
+  t.magFilter = t.minFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+  return t;
+})();
+
 const _matCache = new Map();
 function matKey(o) { return JSON.stringify(o); }
+// Single chokepoint: every surface material in the game flows through std().
+// We build MeshToonMaterial (cel banding) and translate/strip PBR-only opts so
+// all existing call-sites (PBR-ish opts) keep working unchanged.
 function std(opts) {
   const k = matKey(opts);
   if (_matCache.has(k)) return _matCache.get(k);
-  const o = Object.assign({ roughness: 0.9, metalness: 0.0 }, opts);
+  const o = Object.assign({}, opts);
   if (o.colorHex) { o.color = parseInt(o.colorHex.replace('#', '0x')); delete o.colorHex; }
   // auto-attach a procedural normal map for surface textures that carry one
-  // (road/sidewalk/dirt are built via std() directly, so this gives them relief
-  //  without changing the call signature). Caller-supplied normalMap wins.
   if (!o.normalMap && o.map && o.map.userData && o.map.userData.normal) {
     o.normalMap = o.map.userData.normal;
     const ns = o.map.userData.normalScale || 0.4;
     o.normalScale = new T.Vector2(ns, ns);
   }
-  const m = new T.MeshStandardMaterial(o);
+  // strip props MeshToonMaterial doesn't accept (avoid console warnings)
+  delete o.roughness; delete o.metalness; delete o.envMapIntensity; delete o.envMap; delete o.flatShading;
+  o.gradientMap = _toonGrad;
+  const m = new T.MeshToonMaterial(o);
   _matCache.set(k, m); return m;
 }
 
