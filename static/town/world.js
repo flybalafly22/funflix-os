@@ -120,17 +120,17 @@ function build(ctx) {
   // shared player handle — game.js writes player.pos each frame so townsfolk can react
   ctx.player = ctx.player || { pos: new T.Vector3(0, 9, 0) };
 
-  /* ── GROUND ── */
-  const base = new T.Mesh(new T.PlaneGeometry(760, 760), L.std({ map: L.dirtTex(), roughness: 1 }));
+  /* ── GROUND ── (tessellated so the tiny-planet curvature bends them smoothly) */
+  const base = new T.Mesh(new T.PlaneGeometry(900, 900, 90, 90), L.std({ map: L.dirtTex(), roughness: 1 }));
   base.rotation.x = -Math.PI / 2; base.position.y = -0.05; base.receiveShadow = true; root.add(base);
 
   const roadMat = L.std({ map: L.roadTex(), roughness: 0.94 });
   // main avenue asphalt (along X)
-  const road = new T.Mesh(new T.PlaneGeometry(AVX * 2, SW * 2), roadMat);
+  const road = new T.Mesh(new T.PlaneGeometry(AVX * 2, SW * 2, 120, 2), roadMat);
   road.rotation.x = -Math.PI / 2; road.receiveShadow = true; root.add(road);
   // cross-street asphalt (along Z)
   const crossLen = CROSSZ1 - CROSSZ0;
-  const xroad = new T.Mesh(new T.PlaneGeometry(SW * 2, crossLen), roadMat);
+  const xroad = new T.Mesh(new T.PlaneGeometry(SW * 2, crossLen, 2, 40), roadMat);
   xroad.rotation.x = -Math.PI / 2; xroad.position.set(CROSSX, 0.002, (CROSSZ0 + CROSSZ1) / 2); xroad.receiveShadow = true; root.add(xroad);
 
   // lane dashes (avenue) — skip across the intersection

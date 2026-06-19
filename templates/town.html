@@ -215,6 +215,7 @@ try {
    objective beam etc. don't get outlined. */
 let normalRT = null, outlinePass = null;
 const _normalMat = new T.MeshNormalMaterial();
+FLY.lib.curve(_normalMat);   // bend the normal/depth pass identically so ink aligns with the curved world
 const LAYER_FX = 1;
 if (composer) {
   try {
@@ -223,7 +224,7 @@ if (composer) {
     const OutlineShader = {
       uniforms: { tDiffuse: { value: null }, tNormal: { value: null }, tDepth: { value: null },
         uTexel: { value: new T.Vector2(1 / 1280, 1 / 720) }, uNear: { value: camera.near }, uFar: { value: camera.far },
-        uNStr: { value: 0.9 }, uDStr: { value: 34.0 }, uThick: { value: 1.15 }, uColor: { value: new T.Color(0x231d28) } },
+        uNStr: { value: 1.25 }, uDStr: { value: 16.0 }, uThick: { value: 1.35 }, uColor: { value: new T.Color(0x26201d) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
       fragmentShader: `uniform sampler2D tDiffuse,tNormal,tDepth; uniform vec2 uTexel; uniform float uNear,uFar,uNStr,uDStr,uThick; uniform vec3 uColor; varying vec2 vUv;
         float rd(vec2 uv){ float z=texture2D(tDepth,uv).x; return (2.0*uNear)/(uFar+uNear-z*(uFar-uNear)); }
@@ -235,7 +236,7 @@ if (composer) {
           vec3 nD=texture2D(tNormal,vUv-vec2(0.0,o.y)).xyz*2.0-1.0;
           float ne=(1.0-dot(nC,nR))+(1.0-dot(nC,nL))+(1.0-dot(nC,nU))+(1.0-dot(nC,nD));
           float dC=rd(vUv); float de=abs(dC-rd(vUv+vec2(o.x,0.0)))+abs(dC-rd(vUv-vec2(o.x,0.0)))+abs(dC-rd(vUv+vec2(0.0,o.y)))+abs(dC-rd(vUv-vec2(0.0,o.y)));
-          float edge=clamp(ne*uNStr+de*uDStr, 0.0, 1.0); edge=smoothstep(0.30, 0.85, edge);
+          float edge=clamp(ne*uNStr+de*uDStr, 0.0, 1.0); edge=smoothstep(0.45, 0.95, edge);
           gl_FragColor=vec4(mix(base, uColor, edge), 1.0); }`
     };
     outlinePass = new T.ShaderPass(OutlineShader);

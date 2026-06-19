@@ -334,6 +334,33 @@ const _toonGrad = (() => {
   return t;
 })();
 
+/* ── TINY-PLANET WORLD CURVATURE ──────────────────────────────────────────
+   A view-space vertex bend: every vertex is pushed DOWN by the square of its
+   horizontal distance from the camera, so the world curves away like a tiny
+   planet (Messenger / Animal-Crossing horizon). Applied via onBeforeCompile to
+   EVERY material (incl. instanced windows + the outline normal pass) sharing
+   one uniform, so the whole world + its ink outlines bend identically. Near the
+   camera the bend ≈ 0, so the player/Fly stay undistorted. */
+const _curve = { value: 0.0011 };   // strength; bootstrap may retune
+function applyCurve(mat) {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uCurve = _curve;
+    sh.vertexShader = 'uniform float uCurve;\n' + sh.vertexShader.replace(
+      '#include <project_vertex>',
+      [
+        'vec4 mvPosition = vec4( transformed, 1.0 );',
+        '#ifdef USE_INSTANCING',
+        '  mvPosition = instanceMatrix * mvPosition;',
+        '#endif',
+        'mvPosition = modelViewMatrix * mvPosition;',
+        'mvPosition.y -= (mvPosition.x*mvPosition.x + mvPosition.z*mvPosition.z) * uCurve;',
+        'gl_Position = projectionMatrix * mvPosition;'
+      ].join('\n')
+    );
+  };
+  return mat;
+}
+
 const _matCache = new Map();
 function matKey(o) { return JSON.stringify(o); }
 // Single chokepoint: every surface material in the game flows through std().
@@ -354,6 +381,7 @@ function std(opts) {
   delete o.roughness; delete o.metalness; delete o.envMapIntensity; delete o.envMap; delete o.flatShading;
   o.gradientMap = _toonGrad;
   const m = new T.MeshToonMaterial(o);
+  applyCurve(m);
   _matCache.set(k, m); return m;
 }
 
@@ -422,5 +450,6 @@ window.FLY.lib = {
   plasterNormal, brickNormal, roadNormal, sidewalkNormal, dirtNormal,
   PAL, MAT, std,
   box, cyl, sphere, instanced, decal, compose,
+  curve: applyCurve, curveUniform: _curve,
 };
 })();

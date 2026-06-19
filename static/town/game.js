@@ -35,9 +35,9 @@ function start(ctx, world) {
 
   /* ── objective markers ── */
   const beam = new T.Mesh(new T.CylinderGeometry(1.1, 1.5, 30, 16, 1, true), new T.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.26, depthWrite: false, side: T.DoubleSide }));
-  scene.add(beam); toFx(beam);
+  scene.add(beam); toFx(beam); L.curve(beam.material);
   const ring = new T.Mesh(new T.TorusGeometry(1.6, 0.13, 8, 28), new T.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.85, depthWrite: false }));
-  ring.rotation.x = -Math.PI / 2; scene.add(ring); toFx(ring);
+  ring.rotation.x = -Math.PI / 2; scene.add(ring); toFx(ring); L.curve(ring.material);
   const objLetter = new T.Group();
   { const env = L.box(0.9, 0.62, 0.1, letterMat);
     env.add(L.box(0.9, 0.34, 0.01, L.std({ color: 0xdcd0b0, roughness: 0.7 }), { y: 0.05, z: 0.052, cast: false }));
@@ -210,7 +210,7 @@ function start(ctx, world) {
     const cnt = n || 18, yy = h == null ? 2.8 : h;
     for (let i = 0; i < cnt; i++) {
       let p = fxPool.find(x => !x.mesh.visible);
-      if (!p) { p = { mesh: new T.Mesh(fxGeo, new T.MeshBasicMaterial({ transparent: true })) }; p.mesh.layers.set(1); scene.add(p.mesh); fxPool.push(p); }
+      if (!p) { p = { mesh: new T.Mesh(fxGeo, new T.MeshBasicMaterial({ transparent: true })) }; p.mesh.layers.set(1); L.curve(p.mesh.material); scene.add(p.mesh); fxPool.push(p); }
       p.mesh.visible = true; p.mesh.material.color.setHex(pick(cols)); p.mesh.material.opacity = 1;
       p.mesh.position.set(pos.x, yy, pos.z);
       const a = Math.random() * TAU, up = rand(2, 5), sp = rand(2, 5);
