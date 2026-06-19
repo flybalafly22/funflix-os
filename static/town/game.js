@@ -293,7 +293,8 @@ function start(ctx, world) {
   /* ── loop ── */
   const camPos = camera.position.clone().set(0, 14, -18);
   const fwd = new T.Vector3();
-  let mapAcc = 0;
+  let mapAcc = 0, wingPhase = 0;
+  const baseFov = camera.fov;
   newTask();
 
   function update(dt, now) {
@@ -320,25 +321,33 @@ function start(ctx, world) {
     P.pos.x = clamp(P.pos.x, bounds.minX, bounds.maxX);
     P.pos.z = clamp(P.pos.z, bounds.minZ, bounds.maxZ);
     P.pos.y = clamp(P.pos.y, bounds.minY, bounds.maxY);
-    P.bank = lerp(P.bank, -turn * 0.5, L.dampT(dt, 8));
-    P.pitch = lerp(P.pitch, -P.speed / MAXF * 0.18 - P.vy * 0.02, L.dampT(dt, 6));
+    const spd01 = Math.min(1, Math.abs(P.speed) / MAXF);
+    P.bank = lerp(P.bank, -turn * (0.45 + spd01 * 0.35), L.dampT(dt, 7));        // lean into turns, more at speed
+    P.pitch = lerp(P.pitch, -P.speed / MAXF * 0.16 - P.vy * 0.03, L.dampT(dt, 6)); // nose dips accelerating, lifts climbing
 
-    fly.position.copy(P.pos); player.pos.copy(P.pos);
+    // true position drives world reactions; the model gets a gentle hover-bob on top
+    player.pos.copy(P.pos);
+    const bob = Math.sin(now * 0.004) * 0.12 * (1 - spd01 * 0.6);
+    fly.position.set(P.pos.x, P.pos.y + bob, P.pos.z);
     fly.rotation.set(0, 0, 0); fly.rotateY(P.yaw); fly.rotateX(P.pitch); fly.rotateZ(P.bank);
-    // when stunned, give a little dizzy wobble
-    if (stunned) fly.rotateZ(Math.sin(now * 0.05) * 0.5 * (stun / 0.7));
-    const flap = Math.sin(now * 0.03) * (0.5 + Math.min(1, Math.abs(P.speed) / MAXF) * 0.6);
-    fly.userData.wingL.rotation.z = 0.3 + flap; fly.userData.wingR.rotation.z = -0.3 - flap;
-    fly.userData.scarfTail.rotation.x = 0.3 + Math.sin(now * 0.012) * 0.25 + Math.min(1, Math.abs(P.speed) / MAXF) * 0.5;
+    if (stunned) fly.rotateZ(Math.sin(now * 0.05) * 0.5 * (stun / 0.7));         // dizzy wobble
+    // wings flap faster with effort + wider when hovering, extend (less flap) at glide speed
+    wingPhase += dt * (9 + Math.max(0, thr) * 8 + spd01 * 3);
+    const flap = Math.sin(wingPhase) * (0.85 - spd01 * 0.4);
+    fly.userData.wingL.rotation.z = 0.28 + flap; fly.userData.wingR.rotation.z = -0.28 - flap;
+    fly.userData.scarfTail.rotation.x = 0.3 + Math.sin(now * 0.013) * 0.22 + spd01 * 0.7;
 
     blob.position.set(P.pos.x, 0.04, P.pos.z);
     const hgt = clamp((P.pos.y - 1) / 30, 0, 1);
     blob.scale.setScalar(1 + hgt * 1.5); blob.material.opacity = 0.28 * (1 - hgt * 0.55);
 
-    // camera chase
-    const desired = camPos.set(P.pos.x - fwd.x * 13, P.pos.y + 5.5, P.pos.z - fwd.z * 13);
-    camera.position.lerp(desired, L.dampT(dt, 5));
-    camera.lookAt(P.pos.x + fwd.x * 5, P.pos.y + 0.5, P.pos.z + fwd.z * 5);
+    // chase camera: pull back + rise + look further ahead with speed, gentle FOV push for flight feel
+    const camDist = 12 + spd01 * 3.5, camH = 5.0 + spd01 * 1.2, lead = 5 + spd01 * 4;
+    const desired = camPos.set(P.pos.x - fwd.x * camDist, P.pos.y + camH, P.pos.z - fwd.z * camDist);
+    camera.position.lerp(desired, L.dampT(dt, 4.5));
+    camera.lookAt(P.pos.x + fwd.x * lead, P.pos.y + 0.6 + bob * 0.5, P.pos.z + fwd.z * lead);
+    const wantFov = baseFov + spd01 * 7;
+    if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov = lerp(camera.fov, wantFov, L.dampT(dt, 3)); camera.updateProjectionMatrix(); }
 
     // wind volume tracks speed
     if (windGain) windGain.gain.value = lerp(windGain.gain.value, 0.02 + Math.abs(P.speed) / MAXF * 0.06, L.dampT(dt, 3));
