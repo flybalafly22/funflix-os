@@ -17,12 +17,32 @@ const PLAZA_HALF = 18;  // plaza spans x ∈ [-18,18] on the +Z side
 const PARK_CX = -78;    // park center x on the -Z side
 const PARK_HALF = 20;   // park spans x ∈ [PARK_CX±PARK_HALF] on the -Z side
 
-/* ── CROSS-STREET (runs along Z, perpendicular to the avenue) ── */
-const CROSSX = 86;            // cross-street centerline x → 4-way intersection at (CROSSX, 0)
+/* ── SECOND AVENUE (a parallel east-west street, offset to +Z) ──
+   This turns the single corridor into a real grid. It runs along X like the main
+   avenue, sits north of the plaza, and gets its own road / sidewalks / rows. */
+const AV2Z = 64;              // second-avenue centerline (z); main avenue is z=0
+const AV2X = 108;             // second-avenue half-length (a touch shorter than the main one)
+const ROW2ZF = AV2Z - (SW + SDW + 4.5);  // its SOUTH building row (fronts face -Z toward the avenue → toward plaza side)
+const ROW2ZB = AV2Z + (SW + SDW + 4.5);  // its NORTH building row (fronts face +Z)
+const GREEN2_CX = -34;                   // a small leafy green set into the second avenue's south row
+const GREEN2_HALF = 13;                  // its half-width along X (centered at GREEN2_CX)
+
+/* ── BLOCK DEPTH ── a second rank of buildings set behind the main-avenue front
+   rows so the town reads as deep blocks, not a one-building-thick wall. */
+const BACKZ = 31;             // back-rank centerline distance from the main avenue (z = ±BACKZ)
+
+/* ── CROSS-STREETS (run along Z, perpendicular to the avenues) ──
+   CROSSX (east) is the original; CROSSX2 (west) mirrors it so we get a 3×N grid
+   of intersections and the streets all connect. Both now span up past AV2Z so
+   they tie the two avenues together. */
+const CROSSX = 86;            // east cross-street centerline x → 4-way intersection at (CROSSX, 0)
+const CROSSX2 = -86;          // west cross-street centerline x (mirror) → intersection at (CROSSX2, 0)
 const CROSSZ0 = -(ROWZ + 8);  // cross-street extent (z) southern end (-Z)
-const CROSSZ1 = (ROWZ + 8);   // northern end (+Z)
-const CROSSROWX = CROSSX - (SW + SDW + 4.5);  // west building row centerline (fronts face +X toward street)
-const CROSSROWX2 = CROSSX + (SW + SDW + 4.5); // east building row centerline (fronts face -X)
+const CROSSZ1 = AV2Z + (SW + SDW + 6);   // northern end (+Z) — runs up to meet the second avenue
+const CROSSROWX = CROSSX - (SW + SDW + 4.5);  // east cross-street west building row (fronts face +X)
+const CROSSROWX2 = CROSSX + (SW + SDW + 4.5); // east cross-street east building row (fronts face -X)
+const CROSS2ROWX = CROSSX2 - (SW + SDW + 4.5);  // west cross-street west building row
+const CROSS2ROWX2 = CROSSX2 + (SW + SDW + 4.5); // west cross-street east building row
 
 /* the designed shop roster — identity authored by hand
    §2.9/§5.1 WALL AUDIT: every authored `wall` is re-snapped into the §2.2
@@ -98,6 +118,43 @@ const LANDMARK_SPECS = [
   ['CONSERVATORIO','#9eb2bd', 'civic', 5, '#2a1840', ['#5a2878', '#f4ecf8'], ['balcony']],   // slate-blue relief (was mauve)
 ];
 
+/* SECOND-AVENUE roster — a quieter residential/neighbourhood mix (more
+   townhouses & apartments, everyday shops). §2.1 3:1 warm:cool kept. */
+const AV2_ROSTER = [
+  ['PINTURAS',     '#d8a877', 'townhouse', 3, '#5a3820', null,                   ['posters']], // warm sand
+  ['EL RINCÓN',    '#cf9a6e', 'cafe',      3, '#8b3528', ['#c44a44', '#f4ecd8'], ['balcony']], // terracotta tan
+  ['MODAS',        '#caa074', 'shop',      4, '#682050', ['#b03888', '#f8eef8'], ['neon']],    // clay
+  ['LA COCINA',    '#9fb0a0', 'apartment', 5, '#284828', ['#4a8050', '#eef4ee'], ['balcony']], // sage relief
+  ['REGALOS',      '#e3c79a', 'shop',      2, '#c05020', ['#e87838', '#fff0e0'], ['posters']], // cream-ochre
+  ['EL ALMACÉN',   '#d9b07e', 'civic',     3, '#4a3a1a', ['#8a6a28', '#f4ecd8'], []],          // wheat
+  ['SEMILLAS',     '#aeb39a', 'shop',      2, '#286848', ['#2a8858', '#eef8ef'], []],          // olive-stone relief
+  ['EL TALLER',    '#c08a63', 'townhouse', 2, '#3a1818', null,                   ['posters']], // burnt sienna
+  ['NOTARÍA',      '#9eb2bd', 'civic',     4, '#1a2a48', ['#2a4a88', '#e8eef8'], ['balcony']], // faded sky-blue relief
+  ['DULCES',       '#d4a890', 'shop',      2, '#a8482a', ['#d86838', '#fff0e0'], []],          // faded coral
+  ['LA IMPRENTA',  '#caa074', 'apartment', 5, '#3a2a1a', ['#7a5a30', '#f0e8d0'], ['balcony']], // clay
+  ['VIVERO',       '#9fb0a0', 'shop',      2, '#305038', ['#4a8050', '#eef4ee'], ['posters']], // sage relief (plants)
+  ['EL HORNO',     '#c99a8a', 'cafe',      3, '#8a4a28', ['#c87a3a', '#f4ecd8'], []],          // rose-clay
+  ['LA PRENSA',    '#e3c79a', 'shop',      3, '#28404a', ['#3a5878', '#f4ecd8'], ['neon']],    // cream-ochre
+  ['CURIOSIDADES', '#d9b07e', 'townhouse', 3, '#5a3a18', null,                   ['posters']], // wheat
+  ['EL DEPÓSITO',  '#caa074', 'shop',      2, '#6a3a1a', ['#a85a28', '#f4ecd8'], []],          // clay
+];
+
+/* BACK-RANK roster — buildings set behind the main-avenue front rows (block
+   depth). Mostly plain townhouses/apartments so they read as the block interior,
+   not competing storefronts. */
+const BACK_ROSTER = [
+  ['—',            '#d9b07e', 'townhouse', 3, '#4a3018', null, []],                          // wheat
+  ['—',            '#caa074', 'apartment', 4, '#3a2a1a', null, []],                          // clay
+  ['—',            '#cf9a6e', 'townhouse', 2, '#5a3820', null, []],                          // terracotta tan
+  ['—',            '#e3c79a', 'apartment', 5, '#28404a', null, ['balcony']],                 // cream-ochre
+  ['—',            '#9fb0a0', 'townhouse', 3, '#284828', null, []],                          // sage relief
+  ['—',            '#d8a877', 'apartment', 4, '#3a2818', null, []],                          // warm sand
+  ['—',            '#c08a63', 'townhouse', 2, '#3a1818', null, []],                          // burnt sienna
+  ['—',            '#9eb2bd', 'apartment', 4, '#1a2a48', null, ['balcony']],                 // faded sky-blue relief
+  ['—',            '#c99a8a', 'townhouse', 3, '#6a2828', null, []],                          // rose-clay
+  ['—',            '#aeb39a', 'apartment', 4, '#28583a', null, []],                          // olive-stone relief
+];
+
 /* civic anchors that frame the plaza — §5.1 civic-spine stone-cream */
 const PLAZA_SPECS = [
   ['AYUNTAMIENTO', '#e3c79a', 'civic', 4, '#3a2a48', null, ['balcony']],                     // stone-cream
@@ -125,63 +182,92 @@ function build(ctx) {
   base.rotation.x = -Math.PI / 2; base.position.y = -0.05; base.receiveShadow = true; root.add(base);
 
   const roadMat = L.std({ map: L.roadTex(), roughness: 0.94 });
-  // main avenue asphalt (along X)
+  // main avenue asphalt (along X) — tessellated so the curvature shader bends it
   const road = new T.Mesh(new T.PlaneGeometry(AVX * 2, SW * 2, 120, 2), roadMat);
   road.rotation.x = -Math.PI / 2; road.receiveShadow = true; root.add(road);
-  // cross-street asphalt (along Z)
+  // SECOND avenue asphalt (along X, offset +Z) — tessellated
+  const road2 = new T.Mesh(new T.PlaneGeometry(AV2X * 2, SW * 2, Math.ceil(AV2X * 2 / 4), 2), roadMat);
+  road2.rotation.x = -Math.PI / 2; road2.position.set(0, 0.002, AV2Z); road2.receiveShadow = true; root.add(road2);
+  // cross-street asphalt (along Z) — tessellated
   const crossLen = CROSSZ1 - CROSSZ0;
-  const xroad = new T.Mesh(new T.PlaneGeometry(SW * 2, crossLen, 2, 40), roadMat);
-  xroad.rotation.x = -Math.PI / 2; xroad.position.set(CROSSX, 0.002, (CROSSZ0 + CROSSZ1) / 2); xroad.receiveShadow = true; root.add(xroad);
+  [CROSSX, CROSSX2].forEach(cxx => {
+    const xroad = new T.Mesh(new T.PlaneGeometry(SW * 2, crossLen, 2, Math.ceil(crossLen / 4)), roadMat);
+    xroad.rotation.x = -Math.PI / 2; xroad.position.set(cxx, 0.002, (CROSSZ0 + CROSSZ1) / 2); xroad.receiveShadow = true; root.add(xroad);
+  });
 
-  // lane dashes (avenue) — skip across the intersection
+  const CROSSXS = [CROSSX, CROSSX2];   // the two cross-street centerlines
+  const nearAnyCrossX = x => CROSSXS.some(cx => Math.abs(x - cx) < SW + 1);
+  // lane dashes (both avenues) — skip across each intersection
   const dashMat = L.std({ color: 0xd4c890, roughness: 0.8 });
-  for (let x = -AVX + 3; x < AVX; x += 4.2) { if (Math.abs(x - CROSSX) < SW + 1) continue; root.add(L.decal(2.2, 0.18, dashMat, 0.012).translateX(x)); }
-  // lane dashes (cross-street) — skip across the intersection
-  for (let z = CROSSZ0 + 3; z < CROSSZ1; z += 4.2) { if (Math.abs(z) < SW + 1) continue; const dd = L.decal(0.18, 2.2, dashMat, 0.012); dd.position.set(CROSSX, 0.012, z); root.add(dd); }
+  for (let x = -AVX + 3; x < AVX; x += 4.2) { if (nearAnyCrossX(x)) continue; root.add(L.decal(2.2, 0.18, dashMat, 0.012).translateX(x)); }
+  for (let x = -AV2X + 3; x < AV2X; x += 4.2) { if (nearAnyCrossX(x)) continue; const dd = L.decal(2.2, 0.18, dashMat, 0.012); dd.position.set(x, 0.012, AV2Z); root.add(dd); }
+  // lane dashes (cross-streets) — skip across the avenue intersections (z≈0 and z≈AV2Z)
+  CROSSXS.forEach(cxx => { for (let z = CROSSZ0 + 3; z < CROSSZ1; z += 4.2) { if (Math.abs(z) < SW + 1 || Math.abs(z - AV2Z) < SW + 1) continue; const dd = L.decal(0.18, 2.2, dashMat, 0.012); dd.position.set(cxx, 0.012, z); root.add(dd); } });
   const edgeMat = L.std({ color: 0xd8d0a0, roughness: 0.8 });
   [-SW + 0.5, SW - 0.5].forEach(z => { const e = L.decal(AVX * 2, 0.14, edgeMat, 0.013); e.position.z = z; root.add(e); });
-  [CROSSX - SW + 0.5, CROSSX + SW - 0.5].forEach(x => { const e = L.decal(0.14, crossLen, edgeMat, 0.013); e.position.set(x, 0.013, (CROSSZ0 + CROSSZ1) / 2); root.add(e); });
-  // zebra crossings — avenue (a couple of blocks) + at the four mouths of the intersection
+  [AV2Z - SW + 0.5, AV2Z + SW - 0.5].forEach(z => { const e = L.decal(AV2X * 2, 0.14, edgeMat, 0.013); e.position.set(0, 0.013, z); root.add(e); });
+  CROSSXS.forEach(cxx => { [cxx - SW + 0.5, cxx + SW - 0.5].forEach(x => { const e = L.decal(0.14, crossLen, edgeMat, 0.013); e.position.set(x, 0.013, (CROSSZ0 + CROSSZ1) / 2); root.add(e); }); });
+  // zebra crossings — a couple along each avenue + at the mouths of every intersection
   const zebraMat = L.std({ color: 0xe8e0ca, roughness: 0.88 });
-  [-58, 40].forEach(cx0 => { for (let i = 0; i < 9; i++) { const s = L.decal(0.6, SW * 2 - 0.8, zebraMat, 0.016); s.position.set(cx0 + i * 1.1, 0.016, 0); root.add(s); } });
-  // intersection crosswalks: across the avenue on the west & east mouths (stripes run along Z)
-  [CROSSX - SW - 2.6, CROSSX + SW + 0.6].forEach(x0 => { for (let i = 0; i < 8; i++) { const s = L.decal(0.6, SW * 2 - 0.8, zebraMat, 0.016); s.position.set(x0 + i * 0.55, 0.016, 0); root.add(s); } });
-  // across the cross-street on the north & south mouths (stripes run along X)
-  [SW + 0.6, -(SW + 2.6)].forEach(z0 => { for (let i = 0; i < 8; i++) { const s = L.decal(SW * 2 - 0.8, 0.6, zebraMat, 0.016); s.position.set(CROSSX, 0.016, z0 + i * 0.55); root.add(s); } });
+  [-58, -18, 40].forEach(cx0 => { if (nearAnyCrossX(cx0)) return; for (let i = 0; i < 9; i++) { const s = L.decal(0.6, SW * 2 - 0.8, zebraMat, 0.016); s.position.set(cx0 + i * 1.1, 0.016, 0); root.add(s); } });
+  [-36, 36].forEach(cx0 => { if (nearAnyCrossX(cx0)) return; for (let i = 0; i < 9; i++) { const s = L.decal(0.6, SW * 2 - 0.8, zebraMat, 0.016); s.position.set(cx0 + i * 1.1, 0.016, AV2Z); root.add(s); } });
+  // intersection crosswalks at each avenue×cross-street junction
+  [[CROSSX, 0], [CROSSX2, 0], [CROSSX, AV2Z], [CROSSX2, AV2Z]].forEach(([cxx, cz]) => {
+    // across the avenue on the west & east mouths (stripes run along Z)
+    [cxx - SW - 2.6, cxx + SW + 0.6].forEach(x0 => { for (let i = 0; i < 8; i++) { const s = L.decal(0.6, SW * 2 - 0.8, zebraMat, 0.016); s.position.set(x0 + i * 0.55, 0.016, cz); root.add(s); } });
+    // across the cross-street on the north & south mouths (stripes run along X)
+    [cz + SW + 0.6, cz - (SW + 2.6)].forEach(z0 => { for (let i = 0; i < 8; i++) { const s = L.decal(SW * 2 - 0.8, 0.6, zebraMat, 0.016); s.position.set(cxx, 0.016, z0 + i * 0.55); root.add(s); } });
+  });
 
   // sidewalks + curbs + tile joints
   const swMat = L.std({ map: L.sidewalkTex(), roughness: 0.96 });
   const curbMat = L.std({ color: 0xcac4b4, roughness: 0.9 });
   const jMat = L.std({ color: 0x908880, roughness: 0.96 });
-  // avenue sidewalks (along X) — split into segments so they don't pave over the cross-street
-  [1, -1].forEach(side => {
-    const z0 = side * (SW + SDW / 2);
-    // west segment: from -AVX to the cross-street's west sidewalk edge
-    const wL = (CROSSX - SW - SDW) - (-AVX), wcx = (-AVX + (CROSSX - SW - SDW)) / 2;
-    root.add(L.box(wL, CH, SDW, swMat, { x: wcx, y: CH / 2, z: z0, receive: true }));
-    // east segment: from cross-street's east sidewalk edge to +AVX
-    const eL = AVX - (CROSSX + SW + SDW), ecx = ((CROSSX + SW + SDW) + AVX) / 2;
-    root.add(L.box(eL, CH, SDW, swMat, { x: ecx, y: CH / 2, z: z0, receive: true }));
-    // curbs (continuous look but broken at the junction)
-    root.add(L.box(wL, CH + 0.06, 0.2, curbMat, { x: wcx, y: (CH + 0.06) / 2, z: side * (SW + 0.1) }));
-    root.add(L.box(eL, CH + 0.06, 0.2, curbMat, { x: ecx, y: (CH + 0.06) / 2, z: side * (SW + 0.1) }));
-    for (let x = -AVX + 2.5; x < AVX; x += 2.5) { if (Math.abs(x - CROSSX) < SW + SDW) continue; const j = L.decal(0.06, SDW - 0.3, jMat, CH + 0.01); j.position.set(x, CH + 0.01, z0); root.add(j); }
-  });
-  // cross-street sidewalks (along Z) on each side
-  [1, -1].forEach(side => {
-    const x0 = CROSSX + side * (SW + SDW / 2);
-    // north segment (+Z) and south segment (-Z), broken at the avenue
-    const nL = CROSSZ1 - (SW + SDW), ncz = ((SW + SDW) + CROSSZ1) / 2;
-    const sL = (CROSSZ0) - (-(SW + SDW)), scz = (CROSSZ0 + (-(SW + SDW))) / 2;
-    root.add(L.box(SDW, CH, nL, swMat, { x: x0, y: CH / 2, z: ncz, receive: true }));
-    root.add(L.box(SDW, CH, Math.abs(sL), swMat, { x: x0, y: CH / 2, z: scz, receive: true }));
-    root.add(L.box(0.2, CH + 0.06, nL, curbMat, { x: CROSSX + side * (SW + 0.1), y: (CH + 0.06) / 2, z: ncz }));
-    root.add(L.box(0.2, CH + 0.06, Math.abs(sL), curbMat, { x: CROSSX + side * (SW + 0.1), y: (CH + 0.06) / 2, z: scz }));
-    for (let z = CROSSZ0 + 2.5; z < CROSSZ1; z += 2.5) { if (Math.abs(z) < SW + SDW) continue; const j = L.decal(SDW - 0.3, 0.06, jMat, CH + 0.01); j.position.set(x0, CH + 0.01, z); root.add(j); }
-  });
-  // corner sidewalk pads filling the four quadrants of the intersection
-  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
-    root.add(L.box(SDW, CH, SDW, swMat, { x: CROSSX + sx * (SW + SDW / 2), y: CH / 2, z: sz * (SW + SDW / 2), receive: true }));
+  // helper: emit one straight sidewalk run (+ curb + joints) along X for an
+  // avenue at z=avZ, breaking it into segments around the cross-streets it crosses.
+  function avenueSidewalk(avZ, x0, x1, crossXs) {
+    [1, -1].forEach(side => {
+      const z0 = avZ + side * (SW + SDW / 2);
+      // build the list of clear "gaps" (cross-street corridors) and pave between them
+      const gaps = crossXs.map(cx => [cx - SW - SDW, cx + SW + SDW]).sort((a, b) => a[0] - b[0]);
+      let segStart = x0;
+      const emit = (a, b) => {
+        if (b - a < 0.5) return;
+        const L0 = b - a, cx0 = (a + b) / 2;
+        root.add(L.box(L0, CH, SDW, swMat, { x: cx0, y: CH / 2, z: z0, receive: true }));
+        root.add(L.box(L0, CH + 0.06, 0.2, curbMat, { x: cx0, y: (CH + 0.06) / 2, z: avZ + side * (SW + 0.1) }));
+      };
+      gaps.forEach(([ga, gb]) => { if (ga > segStart) emit(segStart, ga); segStart = Math.max(segStart, gb); });
+      emit(segStart, x1);
+      for (let x = x0 + 2.5; x < x1; x += 2.5) { if (crossXs.some(cx => Math.abs(x - cx) < SW + SDW)) continue; const j = L.decal(0.06, SDW - 0.3, jMat, CH + 0.01); j.position.set(x, CH + 0.01, z0); root.add(j); }
+    });
+  }
+  // helper: one cross-street's sidewalks (along Z), broken at the avenue(s) it crosses.
+  function crossSidewalk(cxx, z0in, z1in, avenueZs) {
+    [1, -1].forEach(side => {
+      const x0 = cxx + side * (SW + SDW / 2);
+      const gaps = avenueZs.map(az => [az - SW - SDW, az + SW + SDW]).sort((a, b) => a[0] - b[0]);
+      let segStart = z0in;
+      const emit = (a, b) => {
+        if (b - a < 0.5) return;
+        const L0 = b - a, cz0 = (a + b) / 2;
+        root.add(L.box(SDW, CH, L0, swMat, { x: x0, y: CH / 2, z: cz0, receive: true }));
+        root.add(L.box(0.2, CH + 0.06, L0, curbMat, { x: cxx + side * (SW + 0.1), y: (CH + 0.06) / 2, z: cz0 }));
+      };
+      gaps.forEach(([ga, gb]) => { if (ga > segStart) emit(segStart, ga); segStart = Math.max(segStart, gb); });
+      emit(segStart, z1in);
+      for (let z = z0in + 2.5; z < z1in; z += 2.5) { if (avenueZs.some(az => Math.abs(z - az) < SW + SDW)) continue; const j = L.decal(SDW - 0.3, 0.06, jMat, CH + 0.01); j.position.set(x0, CH + 0.01, z); root.add(j); }
+    });
+  }
+  avenueSidewalk(0, -AVX, AVX, CROSSXS);
+  avenueSidewalk(AV2Z, -AV2X, AV2X, CROSSXS);
+  crossSidewalk(CROSSX, CROSSZ0, CROSSZ1, [0, AV2Z]);
+  crossSidewalk(CROSSX2, CROSSZ0, CROSSZ1, [0, AV2Z]);
+  // corner sidewalk pads filling the four quadrants of every intersection
+  [[CROSSX, 0], [CROSSX2, 0], [CROSSX, AV2Z], [CROSSX2, AV2Z]].forEach(([cxx, cz]) => {
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
+      root.add(L.box(SDW, CH, SDW, swMat, { x: cxx + sx * (SW + SDW / 2), y: CH / 2, z: cz + sz * (SW + SDW / 2), receive: true }));
+    });
   });
 
   /* ── PLAZA (town square on the +Z side, center) ── */
@@ -218,73 +304,158 @@ function build(ctx) {
     else { w = L.rand(6, 8.5); d = L.rand(7.5, 9); }
     return { w, d };
   }
-  // the cross-street corridor (avenue buildings must leave a gap for it to pass through)
-  const XGAP = SW + SDW + 1.5;             // half-width of the corridor to keep clear around CROSSX
+  // the cross-street corridors (avenue buildings must leave a gap for each to pass through)
+  const XGAP = SW + SDW + 1.5;             // half-width of the corridor to keep clear around a cross-street
+  // returns true (and advances x past the corridor) if x is inside any cross-street gap.
+  function clearCrossGaps(xRef) {
+    for (const cx of CROSSXS) { if (xRef.x > cx - XGAP && xRef.x < cx + XGAP) { xRef.x = cx + XGAP; return true; } }
+    return false;
+  }
+  // would a building of width w starting at x straddle into a cross-street corridor?
+  function straddlesCross(x, w) {
+    for (const cx of CROSSXS) { if (x < cx - XGAP && x + w > cx - XGAP) return cx; }
+    return null;
+  }
   function placeRow(side) {
     // side +1 → buildings on +Z (front faces -Z, faceAngle=π); side -1 → -Z (faceAngle=0)
     const z = side * ROWZ;
     const faceAngle = side > 0 ? Math.PI : 0;
     const frontDir = new T.Vector3(Math.sin(faceAngle), 0, Math.cos(faceAngle));
-    let x = -AVX + 5;
+    const xRef = { x: -AVX + 5 };
     let ri = (side > 0 ? 0 : 7);
-    while (x < AVX - 6) {
+    while (xRef.x < AVX - 6) {
       // leave a gap on the +Z side for the plaza, and on the -Z side for the park
-      if (side > 0 && x > -PLAZA_HALF - 4 && x < PLAZA_HALF + 4) { x = PLAZA_HALF + 4; continue; }
-      if (side < 0 && x > PARK_CX - PARK_HALF - 2 && x < PARK_CX + PARK_HALF + 2) { x = PARK_CX + PARK_HALF + 2; continue; }
-      // leave the cross-street corridor clear (the corner buildings sit on the cross-street rows)
-      if (x > CROSSX - XGAP && x < CROSSX + XGAP) { x = CROSSX + XGAP; continue; }
+      if (side > 0 && xRef.x > -PLAZA_HALF - 4 && xRef.x < PLAZA_HALF + 4) { xRef.x = PLAZA_HALF + 4; continue; }
+      if (side < 0 && xRef.x > PARK_CX - PARK_HALF - 2 && xRef.x < PARK_CX + PARK_HALF + 2) { xRef.x = PARK_CX + PARK_HALF + 2; continue; }
+      // leave the cross-street corridors clear (corner buildings sit on the cross rows)
+      if (clearCrossGaps(xRef)) continue;
       const spec = ROSTER[ri % ROSTER.length]; ri++;
       const { w, d } = specToDims(spec, ri);
-      // don't let a building straddle into the corridor
-      if (x < CROSSX - XGAP && x + w > CROSSX - XGAP) { x = CROSSX + XGAP; ri--; continue; }
-      const cx = x + w / 2;
+      const sc = straddlesCross(xRef.x, w);
+      if (sc != null) { xRef.x = sc + XGAP; ri--; continue; }
+      const cx = xRef.x + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 97 + side * 13 };
       const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
       const ax = cx + frontDir.x * (d / 2 + 1.6), az = z + frontDir.z * (d / 2 + 1.6);
       addresses.push({ name: spec[0], pos: new T.Vector3(ax, 2.6, az) });
-      x += w + L.rand(0.5, 1.2);
+      xRef.x += w + L.rand(1.0, 2.2);
     }
   }
   placeRow(1); placeRow(-1);
 
-  /* ── CROSS-STREET BUILDING ROWS (run along Z; fronts face the cross-street) ── */
-  function placeCrossRow(side) {
-    // side -1 → west row at CROSSROWX (front faces +X, faceAngle=π/2)
-    // side +1 → east row at CROSSROWX2 (front faces -X, faceAngle=-π/2)
-    const rowX = side < 0 ? CROSSROWX : CROSSROWX2;
-    const faceAngle = side < 0 ? Math.PI / 2 : -Math.PI / 2;
+  /* ── BACK-RANK BUILDINGS (block depth behind the main-avenue front rows) ──
+     Set behind each front row (further from the avenue in Z), facing AWAY from
+     the avenue so the block reads as solid. Sparse/no addresses (block interior),
+     thinning toward the avenue ends per §5.3. */
+  function placeBackRank(side) {
+    const z = side * BACKZ;                 // behind the front row (|BACKZ| > |ROWZ|)
+    const faceAngle = side > 0 ? Math.PI : 0;   // still face the avenue-ward direction for tidy roofs
+    const xRef = { x: -AVX + 12 };
+    let ri = (side > 0 ? 0 : 5);
+    while (xRef.x < AVX - 12) {
+      // keep plaza/park/landmark zones clear behind them too
+      if (side > 0 && xRef.x > -PLAZA_HALF - 6 && xRef.x < PLAZA_HALF + 6) { xRef.x = PLAZA_HALF + 6; continue; }
+      if (side < 0 && xRef.x > PARK_CX - PARK_HALF - 6 && xRef.x < PARK_CX + PARK_HALF + 6) { xRef.x = PARK_CX + PARK_HALF + 6; continue; }
+      // the back rank sits at z=±BACKZ, in the cross-street rows' band — keep a
+      // WIDE corridor (cross road + both its building rows) clear to avoid clashes.
+      let bumpedC = false;
+      for (const cx of CROSSXS) { if (xRef.x > cx - 25 && xRef.x < cx + 25) { xRef.x = cx + 25; bumpedC = true; break; } }
+      if (bumpedC) continue;
+      const spec = BACK_ROSTER[ri % BACK_ROSTER.length]; ri++;
+      const { w, d } = specToDims(spec, ri);
+      let straddleC = null;
+      for (const cx of CROSSXS) { if (xRef.x < cx - 25 && xRef.x + w > cx - 25) { straddleC = cx; break; } }
+      if (straddleC != null) { xRef.x = straddleC + 25; ri--; continue; }
+      const cx = xRef.x + w / 2;
+      const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: '', signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 67 + side * 41 + 1300 };
+      const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
+      // wide spacing so the back rank stays sparse (block interior) and thins at the ends
+      xRef.x += w + L.rand(6, 10) * (1.0 + 0.6 * (1 - L.clamp(1 - Math.abs(cx) / 110, 0, 1)));
+    }
+  }
+  placeBackRank(1); placeBackRank(-1);
+
+  /* ── SECOND-AVENUE BUILDING ROWS (run along X at z=AV2Z) ── */
+  function placeAv2Row(side) {
+    // side -1 → south row at ROW2ZF (front faces -Z toward avenue, faceAngle=Math.PI)
+    // side +1 → north row at ROW2ZB (front faces +Z, faceAngle=0)
+    const z = side < 0 ? ROW2ZF : ROW2ZB;
+    const faceAngle = side < 0 ? Math.PI : 0;
+    const frontDir = new T.Vector3(Math.sin(faceAngle), 0, Math.cos(faceAngle));
+    const xRef = { x: -AV2X + 5 };
+    let ri = side < 0 ? 0 : 6;
+    while (xRef.x < AV2X - 6) {
+      // leave a small green/plaza gap mid-street on the south row
+      if (side < 0 && xRef.x > GREEN2_CX - GREEN2_HALF - 3 && xRef.x < GREEN2_CX + GREEN2_HALF + 3) { xRef.x = GREEN2_CX + GREEN2_HALF + 3; continue; }
+      // keep the clock-tower silhouette (x≈0, z≈ROWZ+22) clear behind the south row
+      if (side < 0 && xRef.x > -10 && xRef.x < 10) { xRef.x = 10; continue; }
+      if (clearCrossGaps(xRef)) continue;
+      const spec = AV2_ROSTER[ri % AV2_ROSTER.length]; ri++;
+      const { w, d } = specToDims(spec, ri);
+      const sc = straddlesCross(xRef.x, w);
+      if (sc != null) { xRef.x = sc + XGAP; ri--; continue; }
+      const cx = xRef.x + w / 2;
+      const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 83 + side * 29 + 2100 };
+      const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
+      const ax = cx + frontDir.x * (d / 2 + 1.6), az = z + frontDir.z * (d / 2 + 1.6);
+      addresses.push({ name: spec[0], pos: new T.Vector3(ax, 2.6, az) });
+      // roomier spacing than the main avenue (quieter neighbourhood feel)
+      xRef.x += w + L.rand(4.0, 6.5);
+    }
+  }
+  placeAv2Row(-1); placeAv2Row(1);
+
+  /* ── CROSS-STREET BUILDING ROWS (run along Z; fronts face the cross-street) ──
+     Breaks at BOTH avenue corridors (z≈0 and z≈AV2Z) so the grid connects. */
+  const AVZS = [0, AV2Z];
+  const ZGAP = SW + SDW + 1.5;
+  function nearAnyAvenueZ(z) { return AVZS.some(az => z > az - ZGAP && z < az + ZGAP); }
+  function placeCrossRow(cxx, rowOffsetSign, roster, seedBase) {
+    // rowOffsetSign -1 → west row (front faces +X, faceAngle=π/2)
+    // rowOffsetSign +1 → east row (front faces -X, faceAngle=-π/2)
+    const rowX = cxx + rowOffsetSign * (SW + SDW + 4.5);
+    const faceAngle = rowOffsetSign < 0 ? Math.PI / 2 : -Math.PI / 2;
     const frontDir = new T.Vector3(Math.sin(faceAngle), 0, Math.cos(faceAngle));
     let z = CROSSZ0 + 4;
-    let ri = side < 0 ? 0 : 7;
+    let ri = rowOffsetSign < 0 ? 0 : 7;
     while (z < CROSSZ1 - 4) {
-      // keep the avenue corridor (z near 0) clear so the streets connect cleanly
-      if (z > -(SW + SDW + 1.5) && z < (SW + SDW + 1.5)) { z = (SW + SDW + 1.5); continue; }
-      const spec = CROSS_ROSTER[ri % CROSS_ROSTER.length]; ri++;
+      // keep both avenue corridors clear so the streets connect cleanly
+      let bumped = false;
+      for (const az of AVZS) { if (z > az - ZGAP && z < az + ZGAP) { z = az + ZGAP; bumped = true; break; } }
+      if (bumped) continue;
+      const spec = roster[ri % roster.length]; ri++;
       const { w, d } = specToDims(spec, ri);   // w runs along Z here, d is depth into the block
-      if (z < -(SW + SDW + 1.5) && z + w > -(SW + SDW + 1.5)) { z = (SW + SDW + 1.5); ri--; continue; }
+      let straddle = false;
+      for (const az of AVZS) { if (z < az - ZGAP && z + w > az - ZGAP) { z = az + ZGAP; ri--; straddle = true; break; } }
+      if (straddle) continue;
       const cz = z + w / 2;
-      const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 89 + side * 23 + 700 };
+      const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 89 + rowOffsetSign * 23 + seedBase };
       const g = B.make(bspec); g.position.set(rowX, 0, cz); g.rotation.y = faceAngle; root.add(g);
       const ax = rowX + frontDir.x * (d / 2 + 1.6), az = cz + frontDir.z * (d / 2 + 1.6);
       addresses.push({ name: spec[0], pos: new T.Vector3(ax, 2.6, az) });
       z += w + L.rand(0.5, 1.2);
     }
   }
-  placeCrossRow(-1); placeCrossRow(1);
+  placeCrossRow(CROSSX, -1, CROSS_ROSTER, 700); placeCrossRow(CROSSX, 1, CROSS_ROSTER, 700);
+  placeCrossRow(CROSSX2, -1, CROSS_ROSTER, 1800); placeCrossRow(CROSSX2, 1, CROSS_ROSTER, 1800);
 
-  // CORNER buildings framing the 4-way intersection (taller, face the diagonal)
-  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz], i) => {
-    const w = L.rand(9, 11), d = L.rand(9, 11);
-    const cx = CROSSX + sx * (SW + SDW + 1.0 + w / 2);
-    const cz = sz * (SW + SDW + 1.0 + d / 2);
-    // face toward the avenue (front along -sz Z) so signage reads from the street
-    const faceAngle = sz > 0 ? Math.PI : 0;
-    const spec = LANDMARK_SPECS[i % LANDMARK_SPECS.length] || ['PLAZA MAYOR', '#cbb488', 'civic', 4, '#4a3a1a', null, ['balcony']];
-    const nm = ['CORREO CENTRAL', 'BANCO MOTT', 'GRAN HOTEL', 'TEATRO ESQUINA'][i];
-    const bspec = { w, d, floors: L.randInt(4, 5), archetype: 'civic', wall: spec[1], name: nm, signColor: spec[4], awning: spec[5], extras: ['balcony'], seed: 900 + i * 41 };
-    const g = B.make(bspec); g.position.set(cx, 0, cz); g.rotation.y = faceAngle; root.add(g);
-    const fd = new T.Vector3(Math.sin(faceAngle), 0, Math.cos(faceAngle));
-    addresses.push({ name: nm, pos: new T.Vector3(cx + fd.x * (d / 2 + 1.8), 3.0, cz + fd.z * (d / 2 + 1.8)) });
+  // CORNER buildings framing each main-avenue 4-way intersection (taller, civic)
+  [[CROSSX, 900], [CROSSX2, 960]].forEach(([cxx, seedBase], ci) => {
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz], i) => {
+      const w = L.rand(9, 11), d = L.rand(9, 11);
+      const cx = cxx + sx * (SW + SDW + 1.0 + w / 2);
+      const cz = sz * (SW + SDW + 1.0 + d / 2);
+      const faceAngle = sz > 0 ? Math.PI : 0;
+      const spec = LANDMARK_SPECS[i % LANDMARK_SPECS.length] || ['PLAZA MAYOR', '#cbb488', 'civic', 4, '#4a3a1a', null, ['balcony']];
+      const names = ci === 0
+        ? ['CORREO CENTRAL', 'BANCO MOTT', 'GRAN HOTEL', 'TEATRO ESQUINA']
+        : ['MERCADO VIEJO', 'CASA DE LA VILLA', 'EL ATENEO', 'POSADA MOTT'];
+      const nm = names[i];
+      const bspec = { w, d, floors: L.randInt(4, 5), archetype: 'civic', wall: spec[1], name: nm, signColor: spec[4], awning: spec[5], extras: ['balcony'], seed: seedBase + i * 41 };
+      const g = B.make(bspec); g.position.set(cx, 0, cz); g.rotation.y = faceAngle; root.add(g);
+      const fd = new T.Vector3(Math.sin(faceAngle), 0, Math.cos(faceAngle));
+      addresses.push({ name: nm, pos: new T.Vector3(cx + fd.x * (d / 2 + 1.8), 3.0, cz + fd.z * (d / 2 + 1.8)) });
+    });
   });
 
   // plaza civic buildings (set back, framing the square, facing -Z toward avenue)
@@ -389,6 +560,35 @@ function build(ctx) {
     for (let k = 0; k < 4; k++) { const n = C.makeNPC(); n.position.set(PARK_CX + L.rand(-PARK_HALF + 3, PARK_HALF - 3), CH, cz + L.rand(-pd / 2 + 3, pd / 2 - 3)); n.userData.npc = { speed: L.rand(0.4, 0.9) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), lane: n.position.z, kind: 'plaza', cx: n.position.x }; root.add(n); npcs.push(n); }
   })();
 
+  /* ── SECOND-AVENUE GREEN (a small leafy neighbourhood square set into the
+     south row of the second avenue) — a new small landmark per the brief. ── */
+  (function buildGreen2() {
+    // patch sits between the avenue's south curb and the south building row
+    const zNear = AV2Z - (SW + 1), zFar = ROW2ZF + 3.5;   // zNear (closer to avenue) > zFar (closer to row)
+    const cz = (zNear + zFar) / 2, gw = GREEN2_HALF * 2, gd = Math.abs(zNear - zFar);
+    // grass — tessellated so the curvature shader bends it
+    const grassTex = (() => {
+      const c = L.cnv(128, 128), g = c.getContext('2d');
+      g.fillStyle = '#7aa257'; g.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 70; i++) { g.globalAlpha = L.rand(0.04, 0.1); g.fillStyle = L.chance(0.5) ? '#5c8a44' : '#86b066'; g.beginPath(); g.arc(L.rand(0, 128), L.rand(0, 128), L.rand(4, 14), 0, TAU); g.fill(); }
+      g.globalAlpha = 1; L.grain(g, 128, 128, 900, 0.05);
+      return L.finishTex(c, { repeat: [4, 3], aniso: 8 });
+    })();
+    const grass = new T.Mesh(new T.PlaneGeometry(gw, gd, Math.ceil(gw / 4), Math.ceil(gd / 4)), L.std({ map: grassTex, roughness: 1 }));
+    grass.rotation.x = -Math.PI / 2; grass.position.set(GREEN2_CX, CH, cz); grass.receiveShadow = true; root.add(grass);
+    // a small monument + trees + benches
+    root.add(L.box(1.4, 0.8, 1.4, L.std({ color: 0xc4bca8, roughness: 0.9 }), { x: GREEN2_CX, y: CH + 0.4, z: cz }));
+    root.add(L.cyl(0.22, 0.28, 1.6, 10, L.std({ color: 0x8c8470, roughness: 0.85 }), { x: GREEN2_CX, y: CH + 1.6, z: cz }));
+    [[-9, -2], [9, -2], [-9, 2], [9, 2], [0, 2.4]].forEach(([dx, dz], i) => {
+      const x = GREEN2_CX + dx, z = cz + dz;
+      if (i % 2 === 0) { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); }
+      else { const b = P.makeBench(); b.position.set(x, CH, z); b.rotation.y = L.rand(0, TAU); root.add(b); }
+    });
+    [[-GREEN2_HALF + 1, 0], [GREEN2_HALF - 1, 0]].forEach(([dx]) => { const lp = P.makeLamp(); lp.position.set(GREEN2_CX + dx, CH, cz); root.add(lp); });
+    // strollers
+    for (let k = 0; k < 3; k++) { const n = C.makeNPC(); n.position.set(GREEN2_CX + L.rand(-GREEN2_HALF + 3, GREEN2_HALF - 3), CH, cz + L.rand(-gd / 2 + 1.5, gd / 2 - 1.5)); n.userData.npc = { speed: L.rand(0.4, 0.9) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), state: 'walk', timer: L.rand(2, 6), wave: 0, lane: n.position.z, kind: 'plaza', cx: n.position.x }; root.add(n); npcs.push(n); }
+  })();
+
   function makeFurniture(type) {
     switch (type) {
       case 'lamp': return P.makeLamp();
@@ -401,92 +601,111 @@ function build(ctx) {
     }
   }
   /* ── DENSITY GRADIENT (§5.3) ──
-     The plaza (avenue x≈0) and the 4-way intersection (x=CROSSX) are the focal
+     The plaza (avenue x≈0) and the two 4-way intersections (x=±86) are the focal
      hearts: props cluster tightest there and thin toward the avenue ends/park.
-     Returns a 0..1 "near-focus" weight from the nearer of the two focal points. */
+     Returns a 0..1 "near-focus" weight from the nearest focal point. */
   function focusW(x) {
-    const dPlaza = Math.abs(x), dCross = Math.abs(x - CROSSX);
-    const d = Math.min(dPlaza, dCross);
-    return L.clamp(1 - d / 95, 0, 1);            // 1 at a heart → ~0 at the ends
+    const d = Math.min(Math.abs(x), Math.abs(x - CROSSX), Math.abs(x - CROSSX2));
+    return L.clamp(1 - d / 80, 0, 1);            // 1 at a heart → ~0 at the ends
   }
   // spacing step: keep the existing jitter, but scale it wider as we leave a heart.
   function densStep(x, lo, hi) { return L.rand(lo, hi) * (1.0 + 0.85 * (1 - focusW(x))); }
 
-  /* ── STREET FURNITURE along the avenue sidewalks ── */
-  [1, -1].forEach(side => {
-    const zBase = side * (SW + 0.7);
-    const SEQ = side > 0
-      ? ['lamp', 'tree', 'bench', 'planter', 'lamp', 'tree', 'planter', 'bin', 'hydrant', 'lamp', 'tree', 'bollard']
-      : ['lamp', 'bench', 'tree', 'planter', 'lamp', 'hydrant', 'tree', 'bench', 'lamp', 'planter', 'tree', 'bollard'];
-    let x = -AVX + 6, idx = 0;
-    while (x < AVX - 6) {
-      if (side > 0 && x > -PLAZA_HALF - 2 && x < PLAZA_HALF + 2) { x = PLAZA_HALF + 2; idx++; continue; }
-      if (side < 0 && x > PARK_CX - PARK_HALF && x < PARK_CX + PARK_HALF) { x = PARK_CX + PARK_HALF; idx++; continue; }
-      if (x > CROSSX - (SW + SDW) && x < CROSSX + (SW + SDW)) { x = CROSSX + (SW + SDW); idx++; continue; }
-      const obj = makeFurniture(SEQ[idx % SEQ.length]); idx++;
-      obj.position.set(x, CH, zBase); if (side < 0) obj.rotation.y = Math.PI; root.add(obj);
-      x += densStep(x, 5.5, 8.5);
-    }
-    // utility poles
-    [-120, -60, -20, 40, 120].forEach(px => { if (Math.abs(px - CROSSX) < SW + SDW) return; const up = P.makeUtilPole(); up.position.set(px, 0, side * (SW + SDW - 0.6)); root.add(up); });
-  });
-  /* ── STREET FURNITURE along the cross-street sidewalks ── */
-  [1, -1].forEach(side => {
-    const xBase = CROSSX + side * (SW + 0.7);
-    const SEQ = ['lamp', 'tree', 'planter', 'bench', 'lamp', 'bin', 'tree', 'hydrant', 'lamp', 'tree', 'bollard'];
-    let z = CROSSZ0 + 5, idx = side > 0 ? 0 : 4;
-    while (z < CROSSZ1 - 5) {
-      if (z > -(SW + SDW) && z < (SW + SDW)) { z = (SW + SDW); idx++; continue; }
-      const obj = makeFurniture(SEQ[idx % SEQ.length]); idx++;
-      obj.position.set(xBase, CH, z); obj.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2; root.add(obj);
-      // §5.3: dense at the intersection (z≈0), thinning toward the block ends
-      const cw = L.clamp(1 - Math.abs(z) / (CROSSZ1 - 4), 0, 1);
-      z += L.rand(5.5, 8.0) * (1.0 + 0.7 * (1 - cw));
-    }
-    [CROSSZ0 + 8, -16, 16, CROSSZ1 - 8].forEach(pz => { if (Math.abs(pz) < SW + SDW) return; const up = P.makeUtilPole(); up.position.set(CROSSX + side * (SW + SDW - 0.6), 0, pz); root.add(up); });
-  });
+  /* ── STREET FURNITURE along the avenue sidewalks (helper, reused per avenue) ── */
+  function avenueFurniture(avZ, x0, x1, opts) {
+    const o = opts || {};
+    [1, -1].forEach(side => {
+      const zBase = avZ + side * (SW + 0.7);
+      const SEQ = side > 0
+        ? ['lamp', 'tree', 'bench', 'planter', 'lamp', 'tree', 'planter', 'bin', 'hydrant', 'lamp', 'tree', 'bollard']
+        : ['lamp', 'bench', 'tree', 'planter', 'lamp', 'hydrant', 'tree', 'bench', 'lamp', 'planter', 'tree', 'bollard'];
+      let x = x0 + 6, idx = 0;
+      while (x < x1 - 6) {
+        if (o.plazaGap && side > 0 && x > -PLAZA_HALF - 2 && x < PLAZA_HALF + 2) { x = PLAZA_HALF + 2; idx++; continue; }
+        if (o.parkGap && side < 0 && x > PARK_CX - PARK_HALF && x < PARK_CX + PARK_HALF) { x = PARK_CX + PARK_HALF; idx++; continue; }
+        if (o.greenGap && side < 0 && x > GREEN2_CX - GREEN2_HALF && x < GREEN2_CX + GREEN2_HALF) { x = GREEN2_CX + GREEN2_HALF; idx++; continue; }
+        if (CROSSXS.some(cx => x > cx - (SW + SDW) && x < cx + (SW + SDW))) { const cx = CROSSXS.find(c => x > c - (SW + SDW) && x < c + (SW + SDW)); x = cx + (SW + SDW); idx++; continue; }
+        const obj = makeFurniture(SEQ[idx % SEQ.length]); idx++;
+        obj.position.set(x, CH, zBase); obj.rotation.y = side < 0 ? Math.PI : 0; root.add(obj);
+        x += densStep(x, 5.5, 8.5);
+      }
+      // utility poles
+      [-120, -60, -20, 40, 120].forEach(px => { if (px < x0 + 4 || px > x1 - 4) return; if (CROSSXS.some(cx => Math.abs(px - cx) < SW + SDW)) return; const up = P.makeUtilPole(); up.position.set(px, 0, avZ + side * (SW + SDW - 0.6)); root.add(up); });
+    });
+  }
+  avenueFurniture(0, -AVX, AVX, { plazaGap: true, parkGap: true });
+  avenueFurniture(AV2Z, -AV2X, AV2X, { greenGap: true });
+  /* ── STREET FURNITURE along the cross-street sidewalks (helper, both crosses) ── */
+  function crossFurniture(cxx) {
+    [1, -1].forEach(side => {
+      const xBase = cxx + side * (SW + 0.7);
+      const SEQ = ['lamp', 'tree', 'planter', 'bench', 'lamp', 'bin', 'tree', 'hydrant', 'lamp', 'tree', 'bollard'];
+      let z = CROSSZ0 + 5, idx = side > 0 ? 0 : 4;
+      while (z < CROSSZ1 - 5) {
+        if (nearAnyAvenueZ(z)) { const az = AVZS.find(a => z > a - (SW + SDW) && z < a + (SW + SDW)); if (az != null) { z = az + (SW + SDW); idx++; continue; } }
+        const obj = makeFurniture(SEQ[idx % SEQ.length]); idx++;
+        obj.position.set(xBase, CH, z); obj.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2; root.add(obj);
+        // §5.3: dense near the avenue junctions, thinning toward block ends
+        const cw = L.clamp(1 - Math.min(Math.abs(z), Math.abs(z - AV2Z)) / 26, 0, 1);
+        z += L.rand(5.5, 8.0) * (1.0 + 0.7 * (1 - cw));
+      }
+      [CROSSZ0 + 8, -16, 16, AV2Z - 16, AV2Z + 12].forEach(pz => { if (nearAnyAvenueZ(pz)) return; if (pz < CROSSZ0 + 4 || pz > CROSSZ1 - 4) return; const up = P.makeUtilPole(); up.position.set(cxx + side * (SW + SDW - 0.6), 0, pz); root.add(up); });
+    });
+  }
+  crossFurniture(CROSSX); crossFurniture(CROSSX2);
 
-  /* ── PARKED CARS along curbs (avenue + cross-street) ── */
-  for (let x = -AVX + 12; x < AVX - 12; x += L.rand(13, 20)) {
-    if (Math.abs(x) < PLAZA_HALF + 6) continue;
-    if (Math.abs(x - CROSSX) < SW + 4) continue;
-    const side = L.chance(0.5) ? 1 : -1;
-    const car = (L.chance(0.18) ? P.makeTruck() : P.makeCar());
-    car.position.set(x, 0, side * (SW - 1.5));
-    car.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2; // align length with street (front faces +Z by default)
-    root.add(car);
+  /* ── PARKED CARS along curbs (both avenues + both cross-streets) ── */
+  function parkAlongAvenue(avZ, x0, x1) {
+    for (let x = x0 + 12; x < x1 - 12; x += L.rand(15, 24)) {
+      if (avZ === 0 && Math.abs(x) < PLAZA_HALF + 6) continue;
+      if (CROSSXS.some(cx => Math.abs(x - cx) < SW + 4)) continue;
+      const side = L.chance(0.5) ? 1 : -1;
+      const car = (L.chance(0.18) ? P.makeTruck() : P.makeCar());
+      car.position.set(x, 0, avZ + side * (SW - 1.5));
+      car.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2; // align length with street
+      root.add(car);
+    }
   }
-  for (let z = CROSSZ0 + 10; z < CROSSZ1 - 10; z += L.rand(13, 19)) {
-    if (Math.abs(z) < SW + 6) continue;
-    const side = L.chance(0.5) ? 1 : -1;
-    const car = (L.chance(0.18) ? P.makeTruck() : P.makeCar());
-    car.position.set(CROSSX + side * (SW - 1.5), 0, z);
-    car.rotation.y = 0; // length lies along Z, front +Z — no rotation needed
-    root.add(car);
-  }
-  // a couple scooters near the plaza & corner
-  [[-PLAZA_HALF - 8, 1], [PLAZA_HALF + 8, -1]].forEach(([x, s]) => { const sc = P.makeScooter(); sc.position.set(x, CH, s * (SW + 1.6)); sc.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2; root.add(sc); });
+  parkAlongAvenue(0, -AVX, AVX);
+  parkAlongAvenue(AV2Z, -AV2X, AV2X);
+  CROSSXS.forEach(cxx => {
+    for (let z = CROSSZ0 + 10; z < CROSSZ1 - 10; z += L.rand(16, 24)) {
+      if (AVZS.some(az => Math.abs(z - az) < SW + 6)) continue;
+      const side = L.chance(0.5) ? 1 : -1;
+      const car = (L.chance(0.18) ? P.makeTruck() : P.makeCar());
+      car.position.set(cxx + side * (SW - 1.5), 0, z);
+      car.rotation.y = 0; // length lies along Z, front +Z — no rotation needed
+      root.add(car);
+    }
+  });
+  // a couple scooters near the plaza & corners
+  [[-PLAZA_HALF - 8, 1], [PLAZA_HALF + 8, -1], [CROSSX2 + 8, 1]].forEach(([x, s]) => { const sc = P.makeScooter(); sc.position.set(x, CH, s * (SW + 1.6)); sc.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2; root.add(sc); });
 
-  /* ── MOVING TRAFFIC on the avenue (along X) ── */
-  for (let i = 0; i < 10; i++) {
-    const dir = i % 2 ? 1 : -1;             // +X or -X
-    const lane = dir > 0 ? -SW * 0.45 : SW * 0.45;  // drive-on-right
-    const car = (L.chance(0.2) ? P.makeTruck() : P.makeCar());
-    car.position.set(L.rand(-AVX + 10, AVX - 10), 0, lane);
-    car.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
-    car.userData.drive = { axis: 'x', dir, speed: L.rand(7, 12), lane };
-    root.add(car); cars.push(car);
-  }
-  /* ── MOVING TRAFFIC on the cross-street (along Z) ── */
-  for (let i = 0; i < 4; i++) {
-    const dir = i % 2 ? 1 : -1;             // +Z or -Z
-    const lane = dir > 0 ? SW * 0.45 : -SW * 0.45;  // drive-on-right
-    const car = (L.chance(0.2) ? P.makeTruck() : P.makeCar());
-    car.position.set(CROSSX + lane, 0, L.rand(CROSSZ0 + 10, CROSSZ1 - 10));
-    car.rotation.y = dir > 0 ? 0 : Math.PI;  // front +Z to drive +Z; flip for -Z
-    car.userData.drive = { axis: 'z', dir, speed: L.rand(6, 10), lane };
-    root.add(car); cars.push(car);
-  }
+  /* ── MOVING TRAFFIC on the avenues (along X) ── total ≤ 14 cars + tram ── */
+  // main avenue (longer): 9 cars; second avenue: 5 cars
+  [[0, -AVX, AVX, 9], [AV2Z, -AV2X, AV2X, 5]].forEach(([avZ, x0, x1, count]) => {
+    for (let i = 0; i < count; i++) {
+      const dir = i % 2 ? 1 : -1;             // +X or -X
+      const lane = avZ + (dir > 0 ? -SW * 0.45 : SW * 0.45);  // drive-on-right
+      const car = (L.chance(0.2) ? P.makeTruck() : P.makeCar());
+      car.position.set(L.rand(x0 + 10, x1 - 10), 0, lane);
+      car.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+      car.userData.drive = { axis: 'x', dir, speed: L.rand(7, 12), lane, avZ, x0: x0 + 8, x1: x1 - 8 };
+      root.add(car); cars.push(car);
+    }
+  });
+  /* ── MOVING TRAFFIC on the cross-streets (along Z) — 3 per cross ── */
+  CROSSXS.forEach(cxx => {
+    for (let i = 0; i < 3; i++) {
+      const dir = i % 2 ? 1 : -1;             // +Z or -Z
+      const lane = dir > 0 ? SW * 0.45 : -SW * 0.45;  // drive-on-right
+      const car = (L.chance(0.2) ? P.makeTruck() : P.makeCar());
+      car.position.set(cxx + lane, 0, L.rand(CROSSZ0 + 10, CROSSZ1 - 10));
+      car.rotation.y = dir > 0 ? 0 : Math.PI;  // front +Z to drive +Z; flip for -Z
+      car.userData.drive = { axis: 'z', dir, speed: L.rand(6, 10), lane: cxx + lane, cxx };
+      root.add(car); cars.push(car);
+    }
+  });
 
   /* ── TRAM on the avenue (centre track) + rails ── */
   if (P.makeTram) {
@@ -507,19 +726,22 @@ function build(ctx) {
   }
 
   /* ── NPCS — walkers with a small state machine, plus seated folk & vendors ── */
-  function spawnNPC(x, z, kind, cx) {
+  function spawnNPC(x, z, kind, cx, roam) {
     const n = C.makeNPC();
     n.position.set(x, CH, z);
     const fast = kind === 'kid';
     n.userData.npc = {
       kind, lane: z, cx: cx == null ? x : cx,
+      lo: roam ? roam[0] : -(AVX - 7), hi: roam ? roam[1] : (AVX - 7),
       speed: L.rand(kind === 'plaza' ? 0.5 : 0.9, kind === 'plaza' ? 1.1 : (fast ? 2.4 : 1.7)) * (L.chance(0.5) ? 1 : -1),
       phase: L.rand(0, TAU),
       state: 'walk', timer: L.rand(2, 6), wave: 0,
     };
     root.add(n); npcs.push(n);
   }
+  // main-avenue walkers (denser) + second-avenue walkers (a bit thinner) — ≤ ~40 here
   [1, -1].forEach(side => { for (let k = 0; k < 11; k++) spawnNPC(L.rand(-AVX + 8, AVX - 8), side * (SW + L.rand(1.6, SDW - 1.2)), L.chance(0.15) ? 'kid' : 'street'); });
+  [1, -1].forEach(side => { for (let k = 0; k < 7; k++) spawnNPC(L.rand(-AV2X + 8, AV2X - 8), AV2Z + side * (SW + L.rand(1.6, SDW - 1.2)), L.chance(0.15) ? 'kid' : 'street', null, [-(AV2X - 7), AV2X - 7]); });
   // plaza strollers
   for (let k = 0; k < 7; k++) spawnNPC(L.rand(-PLAZA_HALF + 2, PLAZA_HALF - 2), SW + L.rand(2, 13), 'plaza');
 
@@ -542,15 +764,15 @@ function build(ctx) {
     root.add(n); npcs.push(n);
   });
 
-  /* ── STRING LIGHTS across the avenue (cozy festoon) ── */
-  function stringLights(x0) {
-    const S = ROWZ - 4, H = 7.6, sag = 2.4, N = 14;
+  /* ── STRING LIGHTS across an avenue (cozy festoon) — spans z=avZ±(ROWZ-4) ── */
+  function stringLights(x0, avZ) {
+    const cz = avZ || 0, S = ROWZ - 4, H = 7.6, sag = 2.4, N = 14;
     const bulbHex = L.pick(['#ffd27a', '#ff9a6a', '#aee0ff', '#ffe070', '#ffb0c0']);
     const bulbMat = L.MAT.emissive(bulbHex, 1.3);
     const cordMat = L.MAT.flat('#2a2620');
     let prev = null;
     for (let i = 0; i <= N; i++) {
-      const t = i / N, z = -S + 2 * S * t, y = H - 4 * sag * t * (1 - t);
+      const t = i / N, z = cz - S + 2 * S * t, y = H - 4 * sag * t * (1 - t);
       if (i % 2 === 0) root.add(L.sphere(0.12, 8, bulbMat, { x: x0, y, z, cast: false }));
       if (prev) {
         const dy = y - prev.y, dz = z - prev.z, len = Math.hypot(dy, dz);
@@ -565,70 +787,80 @@ function build(ctx) {
   for (let x = -AVX + 20; x < AVX - 20; ) {
     const skipPlaza = Math.abs(x) < PLAZA_HALF + 6;
     const skipPark = x > PARK_CX - PARK_HALF - 6 && x < PARK_CX + PARK_HALF + 6;
-    if (!skipPlaza && !skipPark) stringLights(x);
+    if (!skipPlaza && !skipPark) stringLights(x, 0);
     x += 22 * (1.0 + 0.7 * (1 - focusW(x)));        // ~13m apart at a heart → ~37m at the ends
   }
+  // festoon along the SECOND avenue too (sparser)
+  for (let x = -AV2X + 24; x < AV2X - 24; ) {
+    const skipGreen = x > GREEN2_CX - GREEN2_HALF - 6 && x < GREEN2_CX + GREEN2_HALF + 6;
+    if (!skipGreen) stringLights(x, AV2Z);
+    x += 26 * (1.0 + 0.6 * (1 - focusW(x)));
+  }
   // a couple of festoon strands flanking the plaza mouth so the focal heart glows
-  [-PLAZA_HALF - 7, PLAZA_HALF + 7].forEach(x => stringLights(x));
-  // a festoon strand across the cross-street at the intersection
-  (function crossFestoon() {
-    const S = SW + SDW + 3, H = 7.6, sag = 2.0, N = 12, x = CROSSX;
+  [-PLAZA_HALF - 7, PLAZA_HALF + 7].forEach(x => stringLights(x, 0));
+  // festoon strands across each cross-street at its avenue intersections
+  function crossFestoon(x, cz) {
+    const S = SW + SDW + 3, H = 7.6, sag = 2.0, N = 12;
     const bulbMat = L.MAT.emissive('#ffd27a', 1.3), cordMat = L.MAT.flat('#2a2620');
     let prev = null;
     for (let i = 0; i <= N; i++) {
-      const t = i / N, zz = -S + 2 * S * t, y = H - 4 * sag * t * (1 - t);
+      const t = i / N, zz = cz - S + 2 * S * t, y = H - 4 * sag * t * (1 - t);
       if (i % 2 === 0) root.add(L.sphere(0.12, 8, bulbMat, { x, y, z: zz, cast: false }));
       if (prev) { const dy = y - prev.y, dz = zz - prev.z, len = Math.hypot(dy, dz); const seg = L.box(0.025, 0.025, len, cordMat, { x, y: (y + prev.y) / 2, z: (zz + prev.z) / 2, cast: false }); seg.rotation.x = -Math.atan2(dy, dz); root.add(seg); }
       prev = { y, z: zz };
     }
-  })();
+  }
+  [[CROSSX, 0], [CROSSX2, 0], [CROSSX, AV2Z], [CROSSX2, AV2Z]].forEach(([x, cz]) => crossFestoon(x, cz));
 
-  /* ── HANGING BANNERS over the street ── */
-  [[-44, '#c44a44', '#f4ecd8'], [44, '#2f7060', '#f4ecd8'], [96, '#3a5d92', '#f4ecd8']].forEach(([x, a, b]) => {
-    const ban = L.box((ROWZ - 6) * 2, 1.1, 0.06, L.MAT.fabric(a, b, 6), { x, y: 8.2, z: 0, cast: false });
+  /* ── HANGING BANNERS over the streets ── */
+  [[-44, '#c44a44', '#f4ecd8', 0], [44, '#2f7060', '#f4ecd8', 0], [-96, '#3a5d92', '#f4ecd8', 0], [-30, '#c8783a', '#f4ecd8', AV2Z], [30, '#8a5288', '#f3ecd9', AV2Z]].forEach(([x, a, b, cz]) => {
+    const ban = L.box((ROWZ - 6) * 2, 1.1, 0.06, L.MAT.fabric(a, b, 6), { x, y: 8.2, z: cz, cast: false });
     ban.rotation.y = Math.PI / 2; root.add(ban);
-    root.add(L.box(0.08, 0.08, (ROWZ - 6) * 2, L.MAT.flat('#2a2620'), { x, y: 8.8, z: 0, cast: false }));
+    root.add(L.box(0.08, 0.08, (ROWZ - 6) * 2, L.MAT.flat('#2a2620'), { x, y: 8.8, z: cz, cast: false }));
   });
 
   /* ── AMBIENT LIFE: pigeons, dogs, circling birds ── */
   const birds = [];
   if (C.makePigeon) {
-    for (let k = 0; k < 16; k++) {
+    for (let k = 0; k < 20; k++) {
       const pg = C.makePigeon();
-      const onPlaza = L.chance(0.4);
+      const where = L.rng();   // 0..0.4 plaza, 0.4..0.75 main avenue, 0.75..1 second avenue
       const gy = CH + 0.02;
-      pg.position.set(onPlaza ? L.rand(-PLAZA_HALF, PLAZA_HALF) : L.rand(-AVX + 10, AVX - 10), gy, onPlaza ? SW + L.rand(2, 12) : L.pick([1, -1]) * (SW + L.rand(1.5, SDW - 1)));
+      if (where < 0.4) pg.position.set(L.rand(-PLAZA_HALF, PLAZA_HALF), gy, SW + L.rand(2, 12));
+      else if (where < 0.75) pg.position.set(L.rand(-AVX + 10, AVX - 10), gy, L.pick([1, -1]) * (SW + L.rand(1.5, SDW - 1)));
+      else pg.position.set(L.rand(-AV2X + 10, AV2X - 10), gy, AV2Z + L.pick([1, -1]) * (SW + L.rand(1.5, SDW - 1)));
       pg.rotation.y = L.rand(0, TAU);
       pg.userData.pg = { gy, home: pg.position.clone(), phase: L.rand(0, TAU), flee: 0, hop: L.rand(1, 4) };
       root.add(pg); pigeons.push(pg);
     }
   }
   if (C.makeDog) {
-    [[-30, 1], [40, -1], [PARK_CX + 6, -1]].forEach(([x, s]) => {
-      const d = C.makeDog(); d.position.set(x, CH, s * (SW + 2.2));
-      d.userData.dog = { speed: L.rand(1.4, 2.2) * (L.chance(0.5) ? 1 : -1), lane: s * (SW + 2.2), home: x, range: L.rand(10, 22), phase: L.rand(0, TAU) };
+    // dogs roam along X on a fixed lane (avZ + side*offset stored as `lane`)
+    [[-30, SW + 2.2], [40, -(SW + 2.2)], [PARK_CX + 6, -(SW + 2.2)], [-20, AV2Z + (SW + 2.2)], [50, AV2Z - (SW + 2.2)]].forEach(([x, lane]) => {
+      const d = C.makeDog(); d.position.set(x, CH, lane);
+      d.userData.dog = { speed: L.rand(1.4, 2.2) * (L.chance(0.5) ? 1 : -1), lane, home: x, range: L.rand(10, 22), phase: L.rand(0, TAU) };
       root.add(d); dogs.push(d);
     });
   }
-  // cats lounging on sidewalks / in the park, and street musicians in the squares
+  // cats lounging on sidewalks / in the squares, and street musicians
   if (C.makeCat) {
-    [[-50, 1], [22, -1], [PARK_CX + 10, -1], [CROSSX + 4, 1]].forEach(([x, s]) => {
-      const cat = C.makeCat(); cat.position.set(x, CH, s * (SW + L.rand(1.5, 3))); cat.rotation.y = L.rand(0, TAU); root.add(cat);
+    [[-50, SW + 2], [22, -(SW + 2)], [PARK_CX + 10, -(SW + 2)], [CROSSX + 4, SW + 2], [CROSSX2 - 4, -(SW + 2)], [GREEN2_CX + 6, AV2Z - (SW + 2)]].forEach(([x, lane]) => {
+      const cat = C.makeCat(); cat.position.set(x, CH, lane + L.rand(-1, 1)); cat.rotation.y = L.rand(0, TAU); root.add(cat);
     });
   }
   if (C.makeStreetMusician) {
-    [[2, SW + 9], [CROSSX, -ROWZ - 2]].forEach(([x, z]) => {
+    [[2, SW + 9], [CROSSX, -ROWZ - 2], [GREEN2_CX, AV2Z - 4]].forEach(([x, z]) => {
       const mus = C.makeStreetMusician(); mus.position.set(x, CH, z); mus.rotation.y = L.rand(0, TAU); root.add(mus);
     });
   }
-  // simple circling birds high up
+  // simple circling birds high up (spread over the wider map)
   const birdMat = L.MAT.flat('#3a3540');
-  for (let k = 0; k < 7; k++) {
+  for (let k = 0; k < 9; k++) {
     const bd = new T.Group();
     const wl = L.box(0.5, 0.04, 0.18, birdMat, { x: -0.3, cast: false });
     const wr = L.box(0.5, 0.04, 0.18, birdMat, { x: 0.3, cast: false });
     bd.add(wl, wr); bd.add(L.box(0.18, 0.08, 0.4, birdMat, { cast: false }));
-    bd.userData = { cx: L.rand(-60, 60), cz: L.rand(-10, 20), r: L.rand(14, 30), a: L.rand(0, TAU), sp: L.rand(0.2, 0.45), yy: L.rand(22, 34), wl, wr };
+    bd.userData = { cx: L.rand(-90, 90), cz: L.rand(-10, AV2Z), r: L.rand(14, 30), a: L.rand(0, TAU), sp: L.rand(0.2, 0.45), yy: L.rand(22, 34), wl, wr };
     root.add(bd); birds.push(bd);
   }
 
@@ -640,7 +872,15 @@ function build(ctx) {
   pigeons.forEach(p => p.traverse(o => { o.castShadow = false; }));
 
   /* ── UPDATE ── */
-  const bounds = { minX: -AVX + 4, maxX: AVX - 4, minZ: -(ROWZ + 11), maxZ: ROWZ + 13, minY: 2.2, maxY: 42 };
+  // bounds enclose the WHOLE grid: main avenue (x ±AVX), the two cross-streets &
+  // their rows (down to CROSSZ0, up to CROSSZ1 past the second avenue), the
+  // second-avenue north row, the park (-Z) and the clock tower (+Z).
+  const bounds = {
+    minX: -AVX - 4, maxX: AVX + 4,
+    minZ: -(ROWZ + 14),                      // park / south cross-rows
+    maxZ: CROSSZ1 + 6,                       // second-avenue north row / cross-street north ends
+    minY: 2.2, maxY: 46,
+  };
   const spawn = new T.Vector3(0, 9, -4);
 
   const PP = ctx.player.pos;
@@ -670,8 +910,8 @@ function build(ctx) {
       }
       const moving = u.state === 'walk' && u.wave < 0.4;
       if (moving) n.position.x += u.speed * dt;
-      const lim = u.kind === 'plaza' ? (u.cx + 8) : AVX - 7;
-      const lo = u.kind === 'plaza' ? (u.cx - 8) : -(AVX - 7);
+      const lim = u.kind === 'plaza' ? (u.cx + 8) : u.hi;
+      const lo = u.kind === 'plaza' ? (u.cx - 8) : u.lo;
       if (n.position.x > lim) u.speed = -Math.abs(u.speed);
       if (n.position.x < lo) u.speed = Math.abs(u.speed);
       n.rotation.y = u.speed > 0 ? Math.PI / 2 : -Math.PI / 2;
@@ -707,7 +947,7 @@ function build(ctx) {
         pg.position.y = u.gy + Math.abs(Math.sin(now * 0.006 + u.phase)) * 0.04;
       }
     }
-    // ── traffic ──
+    // ── traffic (wraps within each car's own street extent) ──
     for (const car of cars) {
       const d = car.userData.drive;
       if (d.axis === 'z') {
@@ -715,9 +955,10 @@ function build(ctx) {
         if (d.dir > 0 && car.position.z > CROSSZ1 - 6) car.position.z = CROSSZ0 + 6;
         if (d.dir < 0 && car.position.z < CROSSZ0 + 6) car.position.z = CROSSZ1 - 6;
       } else {
+        const x0 = d.x0 == null ? -AVX + 8 : d.x0, x1 = d.x1 == null ? AVX - 8 : d.x1;
         car.position.x += d.dir * d.speed * dt;
-        if (d.dir > 0 && car.position.x > AVX - 8) car.position.x = -AVX + 8;
-        if (d.dir < 0 && car.position.x < -AVX + 8) car.position.x = AVX - 8;
+        if (d.dir > 0 && car.position.x > x1) car.position.x = x0;
+        if (d.dir < 0 && car.position.x < x0) car.position.x = x1;
       }
       if (car.userData.wheels) car.userData.wheels.forEach(w => w.rotation.x += d.speed * dt * 1.5);
     }
