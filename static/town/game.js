@@ -172,6 +172,21 @@ function start(ctx, world) {
     const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 480;
     windGain = AC.createGain(); windGain.gain.value = 0.0;
     wind.connect(lp).connect(windGain).connect(AC.destination); wind.start();
+
+    // cozy ambient pad — a soft warm chord (A major) through a lowpass, gently swelling
+    const pad = AC.createGain(); pad.gain.value = 0.0001;
+    const padLP = AC.createBiquadFilter(); padLP.type = 'lowpass'; padLP.frequency.value = 900;
+    pad.connect(padLP).connect(AC.destination);
+    [110, 164.81, 220, 277.18].forEach((f, i) => {           // A2 · E3 · A3 · C#4
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f; o.detune.value = (i - 1.5) * 4;
+      const g = AC.createGain(); g.gain.value = [0.5, 0.34, 0.30, 0.22][i];
+      o.connect(g).connect(pad); o.start();
+    });
+    const lfo = AC.createOscillator(); lfo.frequency.value = 0.06;   // ~16s swell
+    const lfoG = AC.createGain(); lfoG.gain.value = 0.012;
+    lfo.connect(lfoG).connect(pad.gain); lfo.start();
+    pad.gain.setValueAtTime(0.0001, AC.currentTime);
+    pad.gain.linearRampToValueAtTime(0.03, AC.currentTime + 5);       // fade in gently
   }
   function blip(freq, dur, type, vol) {
     if (!AC) return; const o = AC.createOscillator(), g = AC.createGain();
