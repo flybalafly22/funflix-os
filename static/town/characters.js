@@ -550,6 +550,229 @@ function makeFly() {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
+   makeHero — the player courier (a young human messenger, abeto.co vibe).
+   Uses the SAME limb rig as makeNPC so FLY.characters.animateWalk(hero,t,moving)
+   drives it unchanged:
+     hero.userData.limbs = { legL, legR, armL, armR }   (Groups, hip/shoulder pivots)
+     hero.userData.torso = THREE.Group                  (bob target)
+     hero.userData.gait  = { ... }
+   Signature read: a big RED messenger backpack with a cream emblem on the back,
+   a hoodie, rolled trousers, chunky two-tone sneakers, simple expressive face,
+   a tuft of hair under a cap. Base y=0, faces +Z, ~1.65m tall.
+   ════════════════════════════════════════════════════════════════════════ */
+function makeHero() {
+  const g = new T.Group();
+
+  // ── palette: a deliberate, named hero look (NOT seeded — same every spawn) ──
+  const skinHex  = '#e8b489';        // warm
+  const hoodHex  = '#3f6e7a';        // dusty teal hoodie (cool relief, §2.8)
+  const hoodDk   = '#345a64';        // hood shadow / hood-down lump
+  const pantsHex = '#3a3a42';        // charcoal rolled trousers
+  const cuffHex  = '#cf8a3c';        // warm rolled-cuff accent
+  const capHex   = '#c8443c';        // red cap to echo the pack
+  const PACK_RED = 0xc8443c;         // signature messenger red
+  const PACK_DK  = 0xab362f;         // pack shadow / straps
+  const EMBLEM   = 0xf4efe6;         // cream emblem
+
+  const skMat    = skinMat(skinHex);
+  const hoodMat  = cloth(hoodHex);
+  const hoodDkMat= cloth(hoodDk);
+  const pantsMat = cloth(pantsHex);
+  const cuffMat  = cloth(cuffHex);
+  const capMat   = cloth('#c8443c');
+  const hrMat    = hairMat('#3a2410');
+  const packMat  = L.std({ color: PACK_RED, roughness: 0.8 });
+  const packDkMat= L.std({ color: PACK_DK, roughness: 0.82 });
+  const emblemMat= L.std({ color: EMBLEM, roughness: 0.7 });
+  const sneakWhite = L.std({ color: 0xece5d6, roughness: 0.7 });
+  const sneakBlue  = L.std({ color: 0x2f4654, roughness: 0.72 });
+  const laceMat  = L.std({ color: 0xf0ead8, roughness: 0.7 });
+
+  // build slightly heroic-proportioned (a touch sturdier than an NPC kid)
+  const build = 1.0;
+
+  // key vertical anchors (pre-scale; whole group scaled at the end) — mirror makeNPC
+  const hipY = 0.62, shoulderY = 1.16, neckY = 1.30, headY = 1.46;
+  const legLen = 0.58, armLen = 0.50;
+  const hipDx = 0.115 * build, shDx = 0.235 * build;
+
+  // ── LEGS (pivot at hip; internal shin group + rolled cuff + sneaker) ──
+  const legL = new T.Group(), legR = new T.Group();
+  legL.position.set(-hipDx, hipY, 0);
+  legR.position.set(hipDx, hipY, 0);
+  [legL, legR].forEach(lg => {
+    // thigh (trouser)
+    lg.add(softLimb(0.112 * build, 0.094 * build, legLen * 0.52, pantsMat, false));
+    // shin pivots from the knee
+    const shin = new T.Group();
+    shin.position.y = -legLen * 0.52;
+    shin.add(softLimb(0.094 * build, 0.078 * build, legLen * 0.48, pantsMat, false));
+    // rolled-up cuff ring near the ankle (the messenger look)
+    const cuff = new T.Mesh(new T.TorusGeometry(0.082 * build, 0.026, 6, 12), cuffMat);
+    cuff.position.y = -legLen * 0.48 + 0.01; cuff.rotation.x = L.TAU / 4; cuff.scale.set(1, 1, 0.8);
+    shin.add(cuff);
+    // chunky two-tone sneaker pointing +Z
+    const shoe = new T.Group();
+    shoe.position.set(0, -legLen * 0.48 - 0.03, 0.04);
+    shoe.add(L.box(0.165 * build, 0.10, 0.30, sneakWhite, { z: 0.02 }));            // main body (toe forward)
+    shoe.add(L.box(0.155 * build, 0.07, 0.16, sneakBlue, { z: -0.07, cast: false })); // colored heel panel
+    shoe.add(L.box(0.175 * build, 0.05, 0.32, SOLE, { y: -0.06, z: 0.02, cast: false })); // sole
+    shoe.add(L.sphere(0.085 * build, 8, sneakWhite, { y: 0.02, z: 0.15, cast: false }));    // rounded toe cap
+    // laces hint (two little cream bars on the tongue)
+    shoe.add(L.box(0.10 * build, 0.018, 0.018, laceMat, { y: 0.05, z: 0.02, cast: false }));
+    shoe.add(L.box(0.10 * build, 0.018, 0.018, laceMat, { y: 0.045, z: 0.09, cast: false }));
+    shin.add(shoe);
+    lg.add(shin);
+    lg.userData.shin = shin;
+  });
+  g.add(legL, legR);
+
+  // ── TORSO (internal group so animateWalk bobs it without moving the world) ──
+  const torso = new T.Group();
+  g.add(torso);
+
+  // pelvis / hips fill (trouser)
+  torso.add(L.box(0.30 * build, 0.18, 0.22 * build, pantsMat, { y: hipY - 0.02 }));
+
+  // hoodie chest (a bit blocky, friendly)
+  const torsoH = shoulderY - hipY + 0.18;
+  const torsoCY = (hipY + shoulderY) / 2 + 0.02;
+  const chest = L.box(0.42 * build, torsoH, 0.26 * build, hoodMat, { y: torsoCY });
+  torso.add(chest);
+  // hoodie hem (slightly flared bottom band)
+  torso.add(L.box(0.44 * build, 0.10, 0.27 * build, hoodDkMat, { y: hipY + 0.04, cast: false }));
+  // zipper hint: a thin dark strip down the front center
+  torso.add(L.box(0.022, torsoH * 0.86, 0.01, packDkMat, { y: torsoCY, z: 0.134 * build, cast: false }));
+  // a couple of zipper-pull dots
+  torso.add(L.sphere(0.016, 6, EYE, { y: torsoCY + torsoH * 0.30, z: 0.138 * build, cast: false }));
+  // hood lump resting at the back of the neck (hood-down)
+  const hood = L.sphere(0.16 * build, 12, hoodDkMat, { y: shoulderY - 0.02, z: -0.13 * build, cast: false });
+  hood.scale.set(1.1, 0.7, 0.8); torso.add(hood);
+  // soft hoodie collar around the neck
+  const collar = new T.Mesh(new T.TorusGeometry(0.10 * build, 0.04, 6, 14), hoodDkMat);
+  collar.position.set(0, neckY - 0.06, 0.01); collar.rotation.x = L.TAU / 4; collar.scale.set(1, 1, 0.85);
+  torso.add(collar);
+
+  // neck
+  torso.add(L.cyl(0.06, 0.07, 0.13, 8, skMat, { y: neckY - 0.03, cast: false }));
+
+  // ── HEAD + expressive face ──
+  const headR = 0.20 * build;
+  const head = L.sphere(headR, 16, skMat, { y: headY });
+  head.scale.set(0.96, 1.06, 0.98); torso.add(head);
+  // ears
+  [-1, 1].forEach(s => torso.add(L.sphere(0.05, 6, skMat, { x: s * headR * 0.95, y: headY - 0.01, z: -0.01, cast: false })));
+  // small nose
+  torso.add(L.sphere(0.036, 6, skMat, { y: headY - 0.015, z: headR * 0.98, cast: false }));
+  // eyes (whites + pupils) — set a touch wide & bright for a youthful read
+  [-0.075, 0.075].forEach(ex => {
+    torso.add(L.sphere(0.044, 8, WHITE, { x: ex, y: headY + 0.025, z: headR * 0.84, cast: false }));
+    torso.add(L.sphere(0.024, 6, EYE, { x: ex, y: headY + 0.02, z: headR * 0.92, cast: false }));
+    // catch-light glint
+    torso.add(L.sphere(0.008, 6, WHITE, { x: ex + 0.012, y: headY + 0.05, z: headR * 0.95, cast: false }));
+  });
+  // brows
+  [-0.075, 0.075].forEach(ex => torso.add(L.box(0.06, 0.014, 0.01, hrMat, { x: ex, y: headY + 0.085, z: headR * 0.88, cast: false })));
+  // a small friendly smile
+  torso.add(L.box(0.07, 0.016, 0.012, MOUTH, { y: headY - 0.08, z: headR * 0.90, cast: false }));
+  // rosy cheek dabs
+  [-1, 1].forEach(s => torso.add(L.sphere(0.026, 6, L.std({ color: 0xe09a7a, roughness: 0.7 }), { x: s * 0.10, y: headY - 0.04, z: headR * 0.86, cast: false })));
+
+  // ── HAIR (a tuft front fringe + sides peeking under the cap) ──
+  const hairCap = L.sphere(headR * 1.04, 12, hrMat, { y: headY + 0.04, cast: false });
+  hairCap.scale.set(1.04, 0.86, 1.04); torso.add(hairCap);
+  // front fringe tufts
+  for (let i = -1; i <= 1; i++) {
+    torso.add(L.sphere(0.05, 8, hrMat, { x: i * 0.08, y: headY + 0.10, z: headR * 0.70, cast: false }));
+  }
+  // sideburn hints
+  [-1, 1].forEach(s => torso.add(L.box(0.03, 0.10, 0.04, hrMat, { x: s * headR * 0.92, y: headY - 0.02, z: headR * 0.30, cast: false })));
+
+  // ── CAP (red ball-cap with a forward bill) — echoes the pack ──
+  const dome = L.sphere(headR * 1.05, 12, capMat, { y: headY + 0.07, cast: false });
+  dome.scale.set(1.04, 0.66, 1.04); torso.add(dome);
+  torso.add(L.box(0.22, 0.022, 0.16, capMat, { y: headY + 0.09, z: headR * 0.92, cast: false })); // bill
+  torso.add(L.sphere(0.02, 6, capMat, { y: headY + 0.20, cast: false }));                          // button
+
+  // ── ARMS (pivot at shoulder; internal forearm group + hand) ── hoodie sleeves
+  const armL = new T.Group(), armR = new T.Group();
+  armL.position.set(-shDx, shoulderY, 0);
+  armR.position.set(shDx, shoulderY, 0);
+  [armL, armR].forEach(ar2 => {
+    ar2.add(softLimb(0.080 * build, 0.066 * build, armLen * 0.52, hoodMat, false));   // upper sleeve
+    const fore = new T.Group();
+    fore.position.y = -armLen * 0.52;
+    fore.add(softLimb(0.064 * build, 0.05 * build, armLen * 0.48, hoodMat, false));    // forearm sleeve
+    // sleeve cuff ring
+    const sc = new T.Mesh(new T.TorusGeometry(0.055, 0.018, 6, 10), hoodDkMat);
+    sc.position.y = -armLen * 0.48 + 0.01; sc.rotation.x = L.TAU / 4; fore.add(sc);
+    // hand
+    fore.add(L.sphere(0.062, 8, skMat, { y: -armLen * 0.48 - 0.02, cast: false }));
+    ar2.add(fore);
+    ar2.userData.fore = fore;
+  });
+  g.add(armL, armR);
+
+  // ── RED MESSENGER BACKPACK on the back (signature silhouette) ──
+  // A rounded box body sitting between the shoulders, clearly visible from behind.
+  const packCY = torsoCY + 0.03;
+  const packZ  = -0.21 * build;
+  const packBody = L.box(0.34 * build, 0.40, 0.20, packMat, { y: packCY, z: packZ });
+  torso.add(packBody);
+  // rounded corners / soft caps so it reads as a soft pack, not a crate
+  [-1, 1].forEach(s => {
+    torso.add(L.sphere(0.10, 10, packMat, { x: s * 0.17 * build, y: packCY + 0.16, z: packZ, cast: false }));
+    torso.add(L.sphere(0.10, 10, packMat, { x: s * 0.17 * build, y: packCY - 0.16, z: packZ, cast: false }));
+  });
+  // top lid / flap (darker) + rolled top
+  torso.add(L.box(0.36 * build, 0.12, 0.22, packDkMat, { y: packCY + 0.20, z: packZ, cast: false }));
+  const roll = L.cyl(0.07, 0.07, 0.34 * build, 10, packDkMat, { y: packCY + 0.26, z: packZ, cast: false });
+  roll.rotation.z = L.TAU / 4; torso.add(roll);
+  // front (back-facing) pocket panel + buckle hints
+  torso.add(L.box(0.24 * build, 0.18, 0.04, packDkMat, { y: packCY - 0.08, z: packZ - 0.10, cast: false }));
+  [-1, 1].forEach(s => torso.add(L.box(0.03, 0.05, 0.05, packDkMat, { x: s * 0.10 * build, y: packCY - 0.18, z: packZ - 0.10, cast: false })));
+  // small cream EMBLEM/PATCH centered on the back of the pack
+  const emblem = L.cyl(0.075, 0.075, 0.02, 16, emblemMat, { y: packCY + 0.02, z: packZ - 0.115, cast: false });
+  emblem.rotation.x = L.TAU / 4; torso.add(emblem);
+  // a tiny red dot inside the emblem (a little courier "wing"/mark)
+  const emblemDot = L.cyl(0.03, 0.03, 0.024, 12, packMat, { y: packCY + 0.02, z: packZ - 0.122, cast: false });
+  emblemDot.rotation.x = L.TAU / 4; torso.add(emblemDot);
+  // an envelope peeking out of the top roll (charm)
+  torso.add(L.box(0.14, 0.10, 0.02, L.std({ color: 0xf0e6cc, roughness: 0.7 }), { y: packCY + 0.30, z: packZ + 0.02, cast: false }));
+
+  // ── SHOULDER STRAPS over the chest (frame the silhouette, visible front & back) ──
+  [-1, 1].forEach(s => {
+    // front strap (shoulder → hip), angled slightly inward
+    const strap = L.box(0.05, 0.46, 0.04, packMat, { x: s * 0.12 * build, y: torsoCY + 0.02, z: 0.135 * build });
+    strap.rotation.z = s * 0.06; torso.add(strap);
+    // shoulder-top connector arcing over to the pack
+    const top = L.box(0.05, 0.05, 0.30, packMat, { x: s * 0.13 * build, y: shoulderY - 0.01, z: -0.02, cast: false });
+    torso.add(top);
+    // chest sternum buckle on the strap
+    torso.add(L.box(0.024, 0.05, 0.05, packDkMat, { x: s * 0.115 * build, y: torsoCY + 0.06, z: 0.145 * build, cast: false }));
+  });
+  // a horizontal sternum strap joining the two front straps
+  torso.add(L.box(0.22 * build, 0.03, 0.02, packDkMat, { y: torsoCY + 0.06, z: 0.142 * build, cast: false }));
+
+  // ── finalize: scale so the figure stands ~1.65m, feet at y≈0 ──
+  g.scale.setScalar(1.04);
+
+  g.userData.limbs = { legL, legR, armL, armR };
+  g.userData.torso = torso;
+  g.userData.gait = {
+    stride: 0.52,
+    armSwing: 0.78,
+    bob: 0.038,
+    knee: 0.28,
+    elbow: 0.18,
+    baseY: torso.position.y,
+    baseRX: torso.rotation.x,
+    breath: 1.0,
+  };
+  return g;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
    BONUS — tiny ambient creatures (base y=0, facing +Z).
    ════════════════════════════════════════════════════════════════════════ */
 function makePigeon() {
@@ -687,5 +910,5 @@ function makeStreetMusician() {
   return g;
 }
 
-FLY.characters = { makeNPC, animateWalk, makeFly, makePigeon, makeDog, makeCat, makeStreetMusician };
+FLY.characters = { makeNPC, animateWalk, makeHero, makeFly, makePigeon, makeDog, makeCat, makeStreetMusician };
 })();

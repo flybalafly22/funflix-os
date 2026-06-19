@@ -7,7 +7,7 @@
 <title>THE FLY</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #e6d2b0;
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #7ec9cb;
                font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #fff5e9; }
   #wrap { position: fixed; inset: 0; }
   canvas { display: block; width: 100%; height: 100%; }
@@ -119,7 +119,7 @@ renderer.shadowMap.type = T.PCFSoftShadowMap;
 wrap.appendChild(renderer.domElement);
 
 const scene = new T.Scene();
-scene.fog = new T.FogExp2(0xe6d2b0, 0.0022);
+scene.fog = new T.FogExp2(0x9fd3d2, 0.0019);   // soft teal haze that melts into the painted horizon
 const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
 
 /* lighting rig — golden-hour / dusk: warm low key light raking long shadows */
@@ -135,20 +135,56 @@ const hemi = new T.HemisphereLight(0xbfd2ec, 0x6b5236, 0.50); scene.add(hemi);
 const fill = new T.DirectionalLight(0xa9c6ef, 0.30); fill.position.set(-34, 22, -30); scene.add(fill);
 const bounce = new T.DirectionalLight(0xffd9a0, 0.20); bounce.position.set(0, -8, 22); scene.add(bounce);
 
-/* sky dome */
+/* sky dome — Messenger look: flat painterly teal, softly lighter toward the
+   horizon, with sparse soft-edged brushy clouds (value/fbm noise, 4 octaves). */
 const skyMat = new T.ShaderMaterial({
   side: T.BackSide, depthWrite: false, fog: false,
-  uniforms: { uZ: { value: new T.Color(0x4f86c4) }, uM: { value: new T.Color(0xb7cfe2) }, uH: { value: new T.Color(0xf3cf95) } },
+  uniforms: {
+    uTop:   { value: new T.Color(0x6fc2c6) },  // zenith teal
+    uHorz:  { value: new T.Color(0x9ad6d6) },  // horizon — slightly lighter (flat, not a strong ramp)
+    uCloud: { value: new T.Color(0xeef6f4) },  // soft off-white brush
+    uCShad: { value: new T.Color(0x86c9cb) },  // cloud underside / teal shadow
+    uTime:  { value: 0.0 }
+  },
   vertexShader: 'varying vec3 vd; void main(){ vd=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader: 'uniform vec3 uZ,uM,uH; varying vec3 vd; void main(){ float h=clamp(vd.y*0.5+0.5,0.0,1.0); vec3 c=h<0.5?mix(uH,uM,smoothstep(0.0,0.5,h)):mix(uM,uZ,smoothstep(0.5,1.0,h)); gl_FragColor=vec4(c,1.0); }'
+  fragmentShader: `
+    uniform vec3 uTop,uHorz,uCloud,uCShad; uniform float uTime; varying vec3 vd;
+    float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+    float vnoise(vec2 p){
+      vec2 i=floor(p), f=fract(p); vec2 u=f*f*(3.0-2.0*f);
+      float a=hash(i), b=hash(i+vec2(1.0,0.0)), c=hash(i+vec2(0.0,1.0)), d=hash(i+vec2(1.0,1.0));
+      return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);
+    }
+    float fbm(vec2 p){
+      float v=0.0, a=0.55;
+      for(int i=0;i<4;i++){ v+=a*vnoise(p); p*=2.03; a*=0.5; }
+      return v;
+    }
+    void main(){
+      // FLAT teal base: only a gentle horizon lift, painterly not gradient-y
+      float h=clamp(vd.y,0.0,1.0);
+      vec3 sky=mix(uHorz,uTop,smoothstep(0.02,0.55,h));
+      // project the upper hemisphere onto a plane for cloud sampling (sparse, drifting)
+      float fade=smoothstep(0.06,0.30,vd.y);          // no clouds at the horizon line
+      vec2 cp=vd.xz/(vd.y+0.55);
+      cp=cp*1.7+vec2(uTime*0.012,uTime*0.004);
+      float n=fbm(cp);
+      // soft thresholds → calm, brushy blobs (not busy)
+      float cloud=smoothstep(0.54,0.78,n)*fade;
+      float wisp =smoothstep(0.46,0.70,n)*fade*0.35;  // faint feathered edges
+      vec3 cc=mix(uCShad,uCloud,smoothstep(0.55,0.85,n));
+      vec3 col=mix(sky,cc,cloud);
+      col=mix(col,uCloud,wisp);
+      gl_FragColor=vec4(col,1.0);
+    }`
 });
 scene.add(new T.Mesh(new T.SphereGeometry(640, 24, 14), skyMat));
 
-/* simple drifting clouds */
+/* simple drifting clouds — flat off-white to match the painted sky (no shading) */
 const clouds = new T.Group(); scene.add(clouds);
 (function makeClouds() {
-  const cMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.9, fog: false });
-  for (let i = 0; i < 14; i++) {
+  const cMat = new T.MeshBasicMaterial({ color: 0xeef6f4, transparent: true, opacity: 0.85, fog: false });
+  for (let i = 0; i < 10; i++) {
     const g = new T.Group();
     const n = 3 + (Math.random() * 3 | 0);
     for (let k = 0; k < n; k++) {
@@ -214,7 +250,7 @@ if (composer) {
     const OutlineShader = {
       uniforms: { tDiffuse: { value: null }, tNormal: { value: null }, tDepth: { value: null },
         uTexel: { value: new T.Vector2(1 / 1280, 1 / 720) }, uNear: { value: camera.near }, uFar: { value: camera.far },
-        uNStr: { value: 1.25 }, uDStr: { value: 16.0 }, uThick: { value: 1.35 }, uColor: { value: new T.Color(0x26201d) } },
+        uNStr: { value: 1.9 }, uDStr: { value: 34.0 }, uThick: { value: 1.0 }, uColor: { value: new T.Color(0x231d1a) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
       fragmentShader: `uniform sampler2D tDiffuse,tNormal,tDepth; uniform vec2 uTexel; uniform float uNear,uFar,uNStr,uDStr,uThick; uniform vec3 uColor; varying vec2 vUv;
         float rd(vec2 uv){ float z=texture2D(tDepth,uv).x; return (2.0*uNear)/(uFar+uNear-z*(uFar-uNear)); }
@@ -224,9 +260,18 @@ if (composer) {
           vec3 nL=texture2D(tNormal,vUv-vec2(o.x,0.0)).xyz*2.0-1.0;
           vec3 nU=texture2D(tNormal,vUv+vec2(0.0,o.y)).xyz*2.0-1.0;
           vec3 nD=texture2D(tNormal,vUv-vec2(0.0,o.y)).xyz*2.0-1.0;
-          float ne=(1.0-dot(nC,nR))+(1.0-dot(nC,nL))+(1.0-dot(nC,nU))+(1.0-dot(nC,nD));
-          float dC=rd(vUv); float de=abs(dC-rd(vUv+vec2(o.x,0.0)))+abs(dC-rd(vUv-vec2(o.x,0.0)))+abs(dC-rd(vUv+vec2(0.0,o.y)))+abs(dC-rd(vUv-vec2(0.0,o.y)));
-          float edge=clamp(ne*uNStr+de*uDStr, 0.0, 1.0); edge=smoothstep(0.45, 0.95, edge);
+          // normal creases: strongest neighbour difference (sharper than a sum); a
+          // dead-zone floor in the smoothstep kills micro-jitter speckle on flat walls
+          float ne=max(max(1.0-dot(nC,nR),1.0-dot(nC,nL)),max(1.0-dot(nC,nU),1.0-dot(nC,nD)));
+          ne=smoothstep(0.18, 0.85, ne)*uNStr;
+          // depth silhouettes: relative depth break, scaled so distant edges stay solid
+          float dC=rd(vUv);
+          float de=(abs(dC-rd(vUv+vec2(o.x,0.0)))+abs(dC-rd(vUv-vec2(o.x,0.0)))
+                   +abs(dC-rd(vUv+vec2(0.0,o.y)))+abs(dC-rd(vUv-vec2(0.0,o.y))))/(dC+0.04);
+          de=smoothstep(0.018, 0.10, de)*(uDStr*0.04);
+          // bias toward depth-silhouette + strong creases → one clean confident edge
+          float edge=clamp(max(de, ne), 0.0, 1.0);
+          edge=smoothstep(0.55, 0.92, edge);
           gl_FragColor=vec4(mix(base, uColor, edge), 1.0); }`
     };
     outlinePass = new T.ShaderPass(OutlineShader);
@@ -254,7 +299,7 @@ function resize() {
   renderer.setSize(w, h, false); if (composer) composer.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
   if (normalRT) {
-    const pr = renderer.getPixelRatio(), ns = 0.6;   // outline normals at 0.6x res (cheaper, still crisp)
+    const pr = renderer.getPixelRatio(), ns = 1.0;   // FULL device res → crisp, even ink (static-batching covers the cost)
     const nw = Math.max(2, Math.floor(w * pr * ns)), nh = Math.max(2, Math.floor(h * pr * ns));
     normalRT.setSize(nw, nh);
     if (outlinePass) outlinePass.uniforms.uTexel.value.set(1 / nw, 1 / nh);
@@ -270,6 +315,7 @@ function tick() {
   requestAnimationFrame(tick);
   const now = performance.now(); let dt = (now - last) / 1000; last = now; dt = Math.min(dt, 0.05);
   clouds.children.forEach(c => { c.position.x += c.userData.drift * dt; if (c.position.x > 280) c.position.x = -280; });
+  skyMat.uniforms.uTime.value = now * 0.001;   // slow painterly cloud drift
   if (world && world.update) world.update(dt, now);
   if (game && game.update) game.update(dt, now);
   // shadow frustum follows the player so only nearby casters render (cheap + sharp)

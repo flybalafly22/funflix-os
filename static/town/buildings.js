@@ -134,25 +134,30 @@ function railing(g, cx, y, z, span, height, mat, bars) {
   g.add(L.box(span + 0.08, 0.05, 0.07, mat, { x: cx, y: y + height * 0.5, z, cast: false }));
 }
 
-/* a flower box (planter + blooms) hung under a window */
+/* a flower box (planter + blooms) hung under a window. z = planter CENTER;
+   foliage/blooms sit ABOVE the planter rim so nothing co-planes with the box. */
 function flowerBox(g, x, y, z, foliageMat) {
-  g.add(L.box(1.0, 0.22, 0.3, L.MAT.wood('#6b4a30'), { x, y, z }));
+  const pd = 0.3;
+  g.add(L.box(1.0, 0.22, pd, L.MAT.wood('#6b4a30'), { x, y, z }));
   const palette = ['#d8506a', '#e8a030', '#dcd040', '#c060a8', '#e85850', '#f0f0e0'];
   for (let i = 0; i < 5; i++) {
-    g.add(L.box(0.16, 0.18, 0.16, foliageMat, { x: x - 0.4 + i * 0.2, y: y + 0.2, z: z + L.jitter(0.05), cast: false }));
-    if (L.chance(0.7)) g.add(L.box(0.1, 0.1, 0.1, L.MAT.flat(L.pick(palette)), { x: x - 0.4 + i * 0.2 + L.jitter(0.05), y: y + 0.32, z: z + 0.04, cast: false }));
+    const fx = x - 0.4 + i * 0.2;
+    g.add(L.box(0.16, 0.18, 0.16, foliageMat, { x: fx, y: y + 0.2, z, cast: false }));
+    if (L.chance(0.7)) g.add(L.box(0.1, 0.1, 0.1, L.MAT.flat(L.pick(palette)), { x: fx, y: y + 0.32, z: z + L.jitter(0.04), cast: false }));
   }
 }
 
 /* a colored shutter pair flanking a window opening */
 function shutters(g, x, y, z, wH, mat) {
-  const sw = 0.42, sh = wH;
-  g.add(L.box(sw, sh, 0.06, mat, { x: x - 0.62, y, z }));
-  g.add(L.box(sw, sh, 0.06, mat, { x: x + 0.62, y, z }));
-  // slat lines (darker tone on the shutter face)
+  const sw = 0.42, sh = wH, leafTh = 0.07;
+  g.add(L.box(sw, sh, leafTh, mat, { x: x - 0.62, y, z }));
+  g.add(L.box(sw, sh, leafTh, mat, { x: x + 0.62, y, z }));
+  // a single bold central rail per leaf (reads cleanly under ink; avoids the
+  // 3-tiny-slat speckle). Stands clearly proud of the leaf face.
   const slatMat = L.MAT.flat('#2a2620');
+  const railZ = z + leafTh / 2 + 0.03;
   for (const sx of [x - 0.62, x + 0.62]) {
-    for (let k = 0; k < 3; k++) g.add(L.box(sw - 0.06, 0.03, 0.04, slatMat, { x: sx, y: y - sh / 2 + sh * (0.25 + k * 0.25), z: z + 0.04, cast: false }));
+    g.add(L.box(sw - 0.08, 0.06, 0.04, slatMat, { x: sx, y, z: railZ, cast: false }));
   }
 }
 
@@ -171,12 +176,14 @@ function buildWindows(g, opts) {
     if (wy + winH / 2 + 0.4 > h - 0.4) break;
     for (let ci = 0; ci < cols; ci++) {
       const wx = -w / 2 + gap * (ci + 0.5);
-      (L.chance(litP) ? lit : dark).push(L.compose(wx, wy, frontZ + 0.05, 0, winW, winH, 1));
-      frame.push(L.compose(wx, wy, frontZ + 0.03, 0, winW + 0.22, winH + 0.26, 1));
-      sill.push(L.compose(wx, wy - winH / 2 - 0.12, frontZ + 0.12, 0, winW + 0.34, 0.12, 0.34));
+      // frame plane stands clearly off the wall; glass sits in front of the frame;
+      // sill is a solid box projecting forward — none share a plane with the wall.
+      frame.push(L.compose(wx, wy, frontZ + 0.06, 0, winW + 0.22, winH + 0.26, 1));
+      (L.chance(litP) ? lit : dark).push(L.compose(wx, wy, frontZ + 0.10, 0, winW, winH, 1));
+      sill.push(L.compose(wx, wy - winH / 2 - 0.12, frontZ + 0.16, 0, winW + 0.34, 0.14, 0.36));
       if (doBack) {
-        (L.chance(litP) ? lit : dark).push(L.compose(wx, wy, backZ - 0.05, Math.PI, winW, winH, 1));
-        frame.push(L.compose(wx, wy, backZ - 0.03, Math.PI, winW + 0.22, winH + 0.26, 1));
+        frame.push(L.compose(wx, wy, backZ - 0.06, Math.PI, winW + 0.22, winH + 0.26, 1));
+        (L.chance(litP) ? lit : dark).push(L.compose(wx, wy, backZ - 0.10, Math.PI, winW, winH, 1));
       }
     }
   }
@@ -189,8 +196,12 @@ function buildWindows(g, opts) {
       if (wy + winH / 2 + 0.4 > h - 0.4) break;
       for (let ci = 0; ci < dcols; ci++) {
         const wz = -sideX + dgap * (ci + 0.5);
-        const m1 = L.compose(0, wy, wz, Math.PI / 2, winW, winH, 1); m1.setPosition(w / 2 + 0.05, wy, wz);
-        const m2 = L.compose(0, wy, wz, -Math.PI / 2, winW, winH, 1); m2.setPosition(-w / 2 - 0.05, wy, wz);
+        // frame stands off the side wall; glass sits a touch further out — clean standoff, no flush glass.
+        const f1 = L.compose(0, wy, wz, Math.PI / 2, winW + 0.22, winH + 0.26, 1); f1.setPosition(w / 2 + 0.06, wy, wz);
+        const f2 = L.compose(0, wy, wz, -Math.PI / 2, winW + 0.22, winH + 0.26, 1); f2.setPosition(-w / 2 - 0.06, wy, wz);
+        frame.push(f1); frame.push(f2);
+        const m1 = L.compose(0, wy, wz, Math.PI / 2, winW, winH, 1); m1.setPosition(w / 2 + 0.10, wy, wz);
+        const m2 = L.compose(0, wy, wz, -Math.PI / 2, winW, winH, 1); m2.setPosition(-w / 2 - 0.10, wy, wz);
         (L.chance(litP * 0.7) ? lit : dark).push(m1);
         (L.chance(litP * 0.7) ? lit : dark).push(m2);
       }
@@ -300,28 +311,28 @@ function shopfront(g, spec, w, frontZ, opts) {
   g.add(L.box(bayW - 0.2, sfH - 0.2, 0.04, L.MAT.emissive('#ffe6b0', 0.35), { y: 0.55 + sfH / 2, z: fz - inset - 0.06, cast: false }));
   // mullions (frame grid)
   const frameMat = L.MAT.wood(darker(spec.trim || '#e8dcc0', 0.85));
-  g.add(L.box(bayW + 0.3, 0.16, 0.2, frameMat, { y: 0.55 + sfH + 0.08, z: fz, cast: false }));        // lintel
-  g.add(L.box(bayW + 0.3, 0.16, 0.2, frameMat, { y: 0.55, z: fz, cast: false }));                      // base
+  g.add(L.box(bayW + 0.3, 0.16, 0.2, frameMat, { y: 0.55 + sfH + 0.08, z: fz + 0.05, cast: false }));   // lintel (proud of wall)
+  g.add(L.box(bayW + 0.3, 0.16, 0.2, frameMat, { y: 0.55, z: fz + 0.05, cast: false }));                // base (proud of wall)
   const mulN = Math.max(2, Math.round(bayW / 1.4));
   for (let i = 0; i <= mulN; i++) {
     const mx = -bayW / 2 + (bayW / mulN) * i;
     g.add(L.box(0.1, sfH, 0.16, frameMat, { x: mx, y: 0.55 + sfH / 2, z: fz, cast: false }));
   }
-  // side pilasters framing the bay
-  for (const sx of [-1, 1]) g.add(L.box(0.3, GROUND_H, 0.28, frameMat, { x: sx * (w / 2 - 0.1), y: GROUND_H / 2, z: fz - 0.04 }));
+  // side pilasters framing the bay — project clearly proud of the wall (no half-in straddle)
+  for (const sx of [-1, 1]) g.add(L.box(0.3, GROUND_H, 0.28, frameMat, { x: sx * (w / 2 - 0.1), y: GROUND_H / 2, z: fz + 0.08 }));
   // recessed entry door, off-center
   const doorX = (L.chance(0.5) ? 1 : -1) * (bayW / 2 - 0.85);
   const doorCol = L.pick(['#4a3020', '#2a4050', '#303828', '#4a3840', '#52301e']);
   g.add(L.box(1.2, 2.1, 0.12, L.MAT.wood(doorCol), { x: doorX, y: 1.05 + 0.05, z: fz - inset + 0.12 }));
-  g.add(L.box(0.5, 0.5, 0.05, L.MAT.glass, { x: doorX, y: 1.7, z: fz - inset + 0.19, cast: false }));     // door window
-  g.add(L.cyl(0.04, 0.04, 0.5, 6, L.MAT.chrome, { x: doorX + 0.4, y: 1.05, z: fz - inset + 0.2, cast: false })); // handle
+  g.add(L.box(0.5, 0.5, 0.05, L.MAT.glass, { x: doorX, y: 1.7, z: fz - inset + 0.22, cast: false }));     // door window (clear of door face)
+  g.add(L.cyl(0.04, 0.04, 0.5, 6, L.MAT.chrome, { x: doorX + 0.4, y: 1.05, z: fz - inset + 0.24, cast: false })); // handle
   // sign board fascia spanning the shopfront
   if (spec.name && opts.fascia !== false) {
     const sgT = L.signTex(spec.name, spec.signColor || L.pick(L.PAL.signbg));
+    // frame board (thicker, proud of wall); sign plane sits clearly in front of the frame's face
+    g.add(L.box(Math.min(w - 0.5, bayW + 0.3), 0.92, 0.14, frameMat, { y: GROUND_H + 0.05, z: fz + 0.08, cast: false }));
     const board = new T.Mesh(new T.PlaneGeometry(Math.min(w - 0.6, bayW + 0.2), 0.78), L.std({ map: sgT, roughness: 0.55 }));
-    board.position.set(0, GROUND_H + 0.05, fz + 0.13); g.add(board);
-    // board frame
-    g.add(L.box(Math.min(w - 0.5, bayW + 0.3), 0.92, 0.12, frameMat, { y: GROUND_H + 0.05, z: fz + 0.06, cast: false }));
+    board.position.set(0, GROUND_H + 0.05, fz + 0.18); g.add(board);
   }
 }
 
@@ -471,16 +482,16 @@ function make(spec) {
   else if (arch === 'apartment') {
     // dignified ground floor with entry portal (no big shopfront)
     g.add(L.box(w + 0.1, 0.6, d + 0.1, trimMat, { y: GROUND_H, cast: false }));
-    // arched-ish entry: door + transom + surround
+    // arched-ish entry: door + transom + surround (surround projects proud of wall)
     const doorX = 0;
-    g.add(L.box(2.1, GROUND_H - 0.2, 0.3, trimMat, { y: (GROUND_H - 0.2) / 2, z: frontZ + 0.02 }));
-    g.add(L.box(1.5, 2.1, 0.14, L.MAT.wood('#4a3422'), { x: doorX, y: 1.05, z: frontZ + 0.16 }));
-    g.add(L.box(1.5, 0.4, 0.08, L.MAT.glass, { x: doorX, y: 2.3, z: frontZ + 0.18, cast: false }));
-    g.add(L.cyl(0.04, 0.04, 0.6, 6, L.MAT.chrome, { x: doorX + 0.5, y: 1.0, z: frontZ + 0.24, cast: false }));
-    // ground floor windows (a couple) flanking entry
+    g.add(L.box(2.1, GROUND_H - 0.2, 0.3, trimMat, { y: (GROUND_H - 0.2) / 2, z: frontZ + 0.10 }));
+    g.add(L.box(1.5, 2.1, 0.14, L.MAT.wood('#4a3422'), { x: doorX, y: 1.05, z: frontZ + 0.20 }));
+    g.add(L.box(1.5, 0.4, 0.08, L.MAT.glass, { x: doorX, y: 2.3, z: frontZ + 0.24, cast: false }));
+    g.add(L.cyl(0.04, 0.04, 0.6, 6, L.MAT.chrome, { x: doorX + 0.5, y: 1.0, z: frontZ + 0.30, cast: false }));
+    // ground floor windows (a couple) flanking entry — frame proud of wall, glass in front of frame
     for (const sx of [-1, 1]) {
-      g.add(L.box(0.9, 1.3, 0.06, L.MAT.glass, { x: sx * (w / 2 - 1.0), y: 1.4, z: frontZ + 0.04, cast: false }));
-      g.add(L.box(1.12, 1.56, 0.1, trimMat, { x: sx * (w / 2 - 1.0), y: 1.4, z: frontZ + 0.02, cast: false }));
+      g.add(L.box(1.12, 1.56, 0.1, trimMat, { x: sx * (w / 2 - 1.0), y: 1.4, z: frontZ + 0.06, cast: false }));
+      g.add(L.box(0.9, 1.3, 0.06, L.MAT.glass, { x: sx * (w / 2 - 1.0), y: 1.4, z: frontZ + 0.13, cast: false }));
     }
     // SHUTTERS on most upper windows + FLOWER BOXES under some (front)
     const cols = Math.max(2, Math.floor(w / 2.5));
@@ -501,8 +512,10 @@ function make(spec) {
     wallLamp(g, 1.4, GROUND_H - 0.3, frontZ);
     if (spec.name) {
       const sgT = L.signTex(spec.name, accentHex, '#f0e8d0', 'bold 26px Georgia, serif');
+      // plaque backing (proud of wall) + sign plane in front of it
+      g.add(L.box(1.74, 0.52, 0.08, trimMat, { y: GROUND_H + 0.4, z: frontZ + 0.06, cast: false }));
       const plaque = new T.Mesh(new T.PlaneGeometry(1.6, 0.4), L.std({ map: sgT, roughness: 0.5 }));
-      plaque.position.set(0, GROUND_H + 0.4, frontZ + 0.06); g.add(plaque);
+      plaque.position.set(0, GROUND_H + 0.4, frontZ + 0.12); g.add(plaque);
     }
   }
 
@@ -529,8 +542,9 @@ function make(spec) {
     if (L.chance(0.6)) {
       const clk = L.cyl(0.42, 0.42, 0.1, 20, L.MAT.trim('#f4ecd8'), { y: GROUND_H + 1.7, z: frontZ + 0.3 });
       clk.rotation.x = Math.PI / 2; g.add(clk);
-      g.add(L.box(0.05, 0.3, 0.04, L.MAT.metalDark, { y: GROUND_H + 1.75, z: frontZ + 0.36, cast: false }));
-      g.add(L.box(0.22, 0.05, 0.04, L.MAT.metalDark, { y: GROUND_H + 1.7, z: frontZ + 0.36, cast: false }));
+      // hands stand clearly proud of the clock face (face front ≈ frontZ+0.35)
+      g.add(L.box(0.05, 0.3, 0.04, L.MAT.metalDark, { y: GROUND_H + 1.75, z: frontZ + 0.41, cast: false }));
+      g.add(L.box(0.22, 0.05, 0.04, L.MAT.metalDark, { y: GROUND_H + 1.7, z: frontZ + 0.41, cast: false }));
     } else {
       g.add(L.sphere(0.34, 12, L.MAT.metalLight, { y: GROUND_H + 1.7, z: frontZ + 0.2, cast: false }));
     }
@@ -543,21 +557,21 @@ function make(spec) {
     if (spec.name) {
       const sgT = L.signTex(spec.name, accentHex, '#f4ecd8', 'bold 26px Georgia, serif');
       const board = new T.Mesh(new T.PlaneGeometry(Math.min(w - 1, 5.5), 0.46), L.std({ map: sgT, roughness: 0.5 }));
-      board.position.set(0, GROUND_H + 0.85, frontZ + 0.27); g.add(board);
+      board.position.set(0, GROUND_H + 0.85, frontZ + 0.32); g.add(board);   // clear of architrave face (≈ frontZ+0.25)
     }
   }
 
   else if (arch === 'townhouse') {
     // narrow brick option, modest door, ground windows
     const doorX = (L.chance(0.5) ? 1 : -1) * (w / 2 - 1.0);
-    g.add(L.box(1.4, GROUND_H - 0.2, 0.26, trimMat, { x: doorX, y: (GROUND_H - 0.2) / 2, z: frontZ + 0.02 }));
-    g.add(L.box(1.0, 2.0, 0.14, L.MAT.wood(L.pick(['#3a2818', '#2a3a48', '#4a2a30'])), { x: doorX, y: 1.0, z: frontZ + 0.14 }));
-    g.add(L.box(1.0, 0.32, 0.06, L.MAT.glass, { x: doorX, y: 2.15, z: frontZ + 0.16, cast: false }));
+    g.add(L.box(1.4, GROUND_H - 0.2, 0.26, trimMat, { x: doorX, y: (GROUND_H - 0.2) / 2, z: frontZ + 0.10 }));
+    g.add(L.box(1.0, 2.0, 0.14, L.MAT.wood(L.pick(['#3a2818', '#2a3a48', '#4a2a30'])), { x: doorX, y: 1.0, z: frontZ + 0.22 }));
+    g.add(L.box(1.0, 0.32, 0.06, L.MAT.glass, { x: doorX, y: 2.15, z: frontZ + 0.28, cast: false }));
     // steps
     g.add(L.box(1.6, 0.2, 0.5, L.MAT.trim('#d0c5b0'), { x: doorX, y: 0.1, z: frontZ + 0.35, receive: true }));
-    // a ground bay window
-    g.add(L.box(1.5, 1.5, 0.06, L.MAT.glass, { x: -doorX * 0.6, y: 1.4, z: frontZ + 0.04, cast: false }));
-    g.add(L.box(1.75, 1.78, 0.1, trimMat, { x: -doorX * 0.6, y: 1.4, z: frontZ + 0.02, cast: false }));
+    // a ground bay window — frame proud of wall, glass in front of frame
+    g.add(L.box(1.75, 1.78, 0.1, trimMat, { x: -doorX * 0.6, y: 1.4, z: frontZ + 0.06, cast: false }));
+    g.add(L.box(1.5, 1.5, 0.06, L.MAT.glass, { x: -doorX * 0.6, y: 1.4, z: frontZ + 0.13, cast: false }));
     // shutters on upper windows
     const cols = Math.max(2, Math.floor(w / 2.5));
     const gap = w / cols;
@@ -572,8 +586,10 @@ function make(spec) {
     }
     if (spec.name) {
       const sgT = L.signTex(spec.name, accentHex);
-      const board = new T.Mesh(new T.PlaneGeometry(Math.min(w - 0.6, 3.2), 0.6), L.std({ map: sgT, roughness: 0.55 }));
-      board.position.set(0, GROUND_H + 0.2, frontZ + 0.1); g.add(board);
+      const bw = Math.min(w - 0.6, 3.2);
+      g.add(L.box(bw + 0.14, 0.74, 0.08, trimMat, { y: GROUND_H + 0.2, z: frontZ + 0.06, cast: false }));
+      const board = new T.Mesh(new T.PlaneGeometry(bw, 0.6), L.std({ map: sgT, roughness: 0.55 }));
+      board.position.set(0, GROUND_H + 0.2, frontZ + 0.12); g.add(board);
     }
   }
 
@@ -583,10 +599,13 @@ function make(spec) {
     if (spec.awning) awning(g, spec.awning, w - 1.2, frontZ, {});
     bladeSign(g, spec, w, frontZ, has('neon'));
     // chamfer wedge: a rotated thin box across the front-right corner
-    const chamf = L.box(2.0, h, 0.6, wallMat, { x: w / 2 - 0.7, y: h / 2, z: frontZ - 0.7 });
+    const chX = w / 2 - 0.7, chZ = frontZ - 0.7;
+    const chamf = L.box(2.0, h, 0.6, wallMat, { x: chX, y: h / 2, z: chZ });
     chamf.rotation.y = -Math.PI / 4; g.add(chamf);
-    // a tall corner entrance on the chamfer
-    const cd = L.box(1.2, 2.2, 0.14, L.MAT.wood('#3a2818'), { x: w / 2 - 0.7, y: 1.1, z: frontZ - 0.7 });
+    // a tall corner entrance, set proud of the chamfer's OUTER face (normal ≈ +X+Z)
+    const nrm = 0.30 + 0.07;                    // half wedge depth + clear standoff
+    const nx = Math.SQRT1_2, nz = Math.SQRT1_2; // unit normal of a -45° face
+    const cd = L.box(1.2, 2.2, 0.14, L.MAT.wood('#3a2818'), { x: chX + nx * nrm, y: 1.1, z: chZ + nz * nrm });
     cd.rotation.y = -Math.PI / 4; g.add(cd);
   }
 
@@ -670,7 +689,7 @@ function make(spec) {
     const muralW = Math.min(d - 1.5, 5), muralH = Math.min(h - GROUND_H - 1, floors * 2.0);
     const mural = new T.Mesh(new T.PlaneGeometry(muralW, muralH), L.std({ map: mT, roughness: 0.92 }));
     const sideSign = L.chance(0.5) ? 1 : -1;
-    mural.position.set(sideSign * (w / 2 + 0.05), GROUND_H + muralH / 2 + 0.3, 0);
+    mural.position.set(sideSign * (w / 2 + 0.09), GROUND_H + muralH / 2 + 0.3, 0);
     mural.rotation.y = sideSign * Math.PI / 2; g.add(mural);
   }
   // POSTERS (pasted on the ground-floor facade)
@@ -678,7 +697,7 @@ function make(spec) {
     for (let pi = 0; pi < 2 + (L.rng() * 2 | 0); pi++) {
       const pT = L.posterTex((spec.seed || 1) + pi * 7);
       const poster = new T.Mesh(new T.PlaneGeometry(0.55, 0.82), L.std({ map: pT, roughness: 0.9 }));
-      poster.position.set(L.jitter(w / 2.4), 0.7 + L.rand(0.4, 1.6), frontZ + 0.07);
+      poster.position.set(L.jitter(w / 2.4), 0.7 + L.rand(0.4, 1.6), frontZ + 0.10);
       poster.rotation.z = L.jitter(0.05); g.add(poster);
     }
   }

@@ -18,8 +18,8 @@ function start(ctx, world) {
   const C = FLY.characters;
   const clamp = L.clamp, lerp = L.lerp, pick = L.pick, rand = L.rand;
 
-  /* ── player ── */
-  const fly = C.makeFly(); scene.add(fly);
+  /* ── player (walking human courier) ── */
+  const hero = (C.makeHero ? C.makeHero() : C.makeFly()); scene.add(hero);
   // FX / HUD markers live on layer 1 so the ink-outline normal pass skips them
   const toFx = obj => obj.traverse(c => c.layers.set(1));
   const blob = new T.Mesh(new T.CircleGeometry(0.8, 20), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.26, depthWrite: false }));
@@ -31,7 +31,7 @@ function start(ctx, world) {
   { const env = L.box(0.4, 0.28, 0.05, letterMat, { cast: false });
     env.add(L.box(0.1, 0.1, 0.01, L.std({ color: 0xc0463e, roughness: 0.7 }), { x: 0.12, y: 0.07, z: 0.03, cast: false }));
     carriedLetter.add(env); }
-  carriedLetter.visible = false; carriedLetter.position.set(0, 0.45, 0.15); fly.add(carriedLetter); toFx(carriedLetter);
+  carriedLetter.visible = false; carriedLetter.position.set(0.34, 1.05, 0.3); hero.add(carriedLetter); toFx(carriedLetter);
 
   /* ── objective markers ── */
   const beam = new T.Mesh(new T.CylinderGeometry(1.1, 1.5, 30, 16, 1, true), new T.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.26, depthWrite: false, side: T.DoubleSide }));
@@ -112,8 +112,9 @@ function start(ctx, world) {
   /* ── game state ── */
   const ADDR = world.addresses;
   const bounds = world.bounds;
-  const P = { pos: world.spawn.clone(), yaw: 0, speed: 0, vy: 0, bank: 0, pitch: 0 };
-  const MAXF = 19, MAXB = 7, ACCEL = 3.2, YAWRATE = 2.0, CLIMB = 10;
+  const P = { pos: world.spawn.clone(), yaw: 0, speed: 0 };
+  P.pos.y = 0;                                  // walking: feet glued to the ground (no flight)
+  const WALK = 3.4, RUN = 6.6, ACCEL = 9, YAWRATE = 2.4;
   let carrying = false, pickup = null, dropoff = null, delivered = 0;
   let score = 0;
 
@@ -147,7 +148,7 @@ function start(ctx, world) {
     objLetter.position.set(tg.pos.x, 3.6, tg.pos.z); objLetter.visible = !carrying;
     elLbl.textContent = carrying ? 'Deliver to' : 'Pick up at';
     elDst.textContent = tg.name;
-    elSub.textContent = carrying ? 'fly to the green-lit shop' : 'grab the floating letter';
+    elSub.textContent = carrying ? 'walk to the green-lit shop' : 'grab the floating letter';
   }
   function newTask() {
     pickup = pick(ADDR);
@@ -199,6 +200,7 @@ function start(ctx, world) {
   const sfxDeliver = () => { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => blip(f, 0.16, 'triangle', 0.16), i * 70)); };
   const sfxBonus = () => { [784, 988, 1318].forEach((f, i) => setTimeout(() => blip(f, 0.12, 'square', 0.1), i * 55)); };
   const sfxHazard = () => { blip(150, 0.22, 'sawtooth', 0.18); setTimeout(() => blip(96, 0.28, 'sawtooth', 0.16), 80); };
+  const sfxStep = () => blip(rand(150, 195), 0.05, 'sine', 0.045);   // soft footstep
 
   /* ── input ── */
   const keys = {};
@@ -285,7 +287,7 @@ function start(ctx, world) {
   }
   function hitHazard(h) {
     stun = 0.7;
-    P.speed *= -0.25; P.vy *= -0.3;
+    P.speed *= -0.25;
     // knock the balloon away so you don't re-trigger instantly
     const away = new T.Vector3(h.position.x - P.pos.x, 0, h.position.z - P.pos.z);
     if (away.lengthSq() < 0.001) away.set(1, 0, 0);
@@ -306,10 +308,13 @@ function start(ctx, world) {
   }
 
   /* ── loop ── */
-  const camPos = camera.position.clone().set(0, 14, -18);
+  const camPos = camera.position.clone().set(0, 6, -10);
   const fwd = new T.Vector3();
-  let mapAcc = 0, wingPhase = 0;
+  let mapAcc = 0, walkPhase = 0, lastStep = -1;
   const baseFov = camera.fov;
+  const GROUND_Y = 0.0;
+  const hintEl = document.querySelector('#hint');
+  if (hintEl) hintEl.textContent = 'WASD / arrows to walk · Shift to run';
   newTask();
 
   function update(dt, now) {
@@ -317,55 +322,49 @@ function start(ctx, world) {
     const stunned = stun > 0;
     if (stunned) stun -= dt;
 
-    let thr = tThrottle, turn = tYaw, vert = tVert;
+    let thr = tThrottle, turn = tYaw;
     if (keys['KeyW'] || keys['ArrowUp']) thr += 1;
     if (keys['KeyS'] || keys['ArrowDown']) thr -= 1;
     if (keys['KeyA'] || keys['ArrowLeft']) turn += 1;
     if (keys['KeyD'] || keys['ArrowRight']) turn -= 1;
-    if (keys['Space']) vert += 1;
-    if (keys['ShiftLeft'] || keys['ShiftRight']) vert -= 1;
-    thr = clamp(thr, -1, 1); turn = clamp(turn, -1, 1); vert = clamp(vert, -1, 1);
-    if (stunned) { thr *= 0.1; turn = 0; vert = 0; }
+    const running = keys['ShiftLeft'] || keys['ShiftRight'] || tVert > 0;
+    thr = clamp(thr, -1, 1); turn = clamp(turn, -1, 1);
+    if (stunned) { thr *= 0.15; turn = 0; }
 
-    const targetSpeed = thr >= 0 ? thr * MAXF : thr * MAXB;
-    P.speed = lerp(P.speed, targetSpeed, L.dampT(dt, ACCEL));
-    P.yaw += turn * YAWRATE * dt * (0.45 + 0.55 * Math.min(1, Math.abs(P.speed) / MAXF));
+    // ground walking — turn to steer, walk/run forward/back; NO flight
+    const maxSpd = running ? RUN : WALK;
+    P.speed = lerp(P.speed, thr * maxSpd, L.dampT(dt, ACCEL));
+    P.yaw += turn * YAWRATE * dt;
     fwd.set(Math.sin(P.yaw), 0, Math.cos(P.yaw));
     P.pos.x += fwd.x * P.speed * dt; P.pos.z += fwd.z * P.speed * dt;
-    P.vy = lerp(P.vy, vert * CLIMB, L.dampT(dt, 6)); P.pos.y += P.vy * dt;
     P.pos.x = clamp(P.pos.x, bounds.minX, bounds.maxX);
     P.pos.z = clamp(P.pos.z, bounds.minZ, bounds.maxZ);
-    P.pos.y = clamp(P.pos.y, bounds.minY, bounds.maxY);
-    const spd01 = Math.min(1, Math.abs(P.speed) / MAXF);
-    P.bank = lerp(P.bank, -turn * (0.45 + spd01 * 0.35), L.dampT(dt, 7));        // lean into turns, more at speed
-    P.pitch = lerp(P.pitch, -P.speed / MAXF * 0.16 - P.vy * 0.03, L.dampT(dt, 6)); // nose dips accelerating, lifts climbing
+    P.pos.y = GROUND_Y;
+    const spd01 = Math.min(1, Math.abs(P.speed) / RUN);
+    const moving = Math.abs(P.speed) > 0.2;
 
-    // true position drives world reactions; the model gets a gentle hover-bob on top
+    // place + animate the human (true pos drives world reactions: NPC waves, pigeon scatter)
     player.pos.copy(P.pos);
-    const bob = Math.sin(now * 0.004) * 0.12 * (1 - spd01 * 0.6);
-    fly.position.set(P.pos.x, P.pos.y + bob, P.pos.z);
-    fly.rotation.set(0, 0, 0); fly.rotateY(P.yaw); fly.rotateX(P.pitch); fly.rotateZ(P.bank);
-    if (stunned) fly.rotateZ(Math.sin(now * 0.05) * 0.5 * (stun / 0.7));         // dizzy wobble
-    // wings flap faster with effort + wider when hovering, extend (less flap) at glide speed
-    wingPhase += dt * (9 + Math.max(0, thr) * 8 + spd01 * 3);
-    const flap = Math.sin(wingPhase) * (0.85 - spd01 * 0.4);
-    fly.userData.wingL.rotation.z = 0.28 + flap; fly.userData.wingR.rotation.z = -0.28 - flap;
-    fly.userData.scarfTail.rotation.x = 0.3 + Math.sin(now * 0.013) * 0.22 + spd01 * 0.7;
+    hero.position.set(P.pos.x, GROUND_Y, P.pos.z);
+    hero.rotation.set(0, 0, 0); hero.rotateY(P.yaw);
+    if (stunned) hero.rotateZ(Math.sin(now * 0.04) * 0.2);
+    walkPhase += dt * (moving ? (5 + spd01 * 7) : 0);
+    C.animateWalk(hero, walkPhase, moving);
+    if (moving) { const fp = Math.floor(walkPhase / Math.PI); if (fp !== lastStep) { lastStep = fp; sfxStep(); } }
 
-    blob.position.set(P.pos.x, 0.04, P.pos.z);
-    const hgt = clamp((P.pos.y - 1) / 30, 0, 1);
-    blob.scale.setScalar(1 + hgt * 1.5); blob.material.opacity = 0.28 * (1 - hgt * 0.55);
+    // contact shadow under the feet
+    blob.position.set(P.pos.x, 0.05, P.pos.z); blob.scale.setScalar(0.7); blob.material.opacity = 0.3;
 
-    // chase camera: pull back + rise + look further ahead with speed, gentle FOV push for flight feel
-    const camDist = 12 + spd01 * 3.5, camH = 5.0 + spd01 * 1.2, lead = 5 + spd01 * 4;
-    const desired = camPos.set(P.pos.x - fwd.x * camDist, P.pos.y + camH, P.pos.z - fwd.z * camDist);
-    camera.position.lerp(desired, L.dampT(dt, 4.5));
-    camera.lookAt(P.pos.x + fwd.x * lead, P.pos.y + 0.6 + bob * 0.5, P.pos.z + fwd.z * lead);
-    const wantFov = baseFov + spd01 * 7;
+    // third-person follow camera (behind + slightly above, looking ahead at head height)
+    const camDist = 5.4 + spd01 * 1.2, camH = 2.9, lead = 3.2;
+    const desired = camPos.set(P.pos.x - fwd.x * camDist, GROUND_Y + camH, P.pos.z - fwd.z * camDist);
+    camera.position.lerp(desired, L.dampT(dt, 6));
+    camera.lookAt(P.pos.x + fwd.x * lead, GROUND_Y + 1.3, P.pos.z + fwd.z * lead);
+    const wantFov = baseFov + (running ? spd01 * 4 : 0);
     if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov = lerp(camera.fov, wantFov, L.dampT(dt, 3)); camera.updateProjectionMatrix(); }
 
     // wind volume tracks speed
-    if (windGain) windGain.gain.value = lerp(windGain.gain.value, 0.02 + Math.abs(P.speed) / MAXF * 0.06, L.dampT(dt, 3));
+    if (windGain) windGain.gain.value = lerp(windGain.gain.value, 0.006 + Math.abs(P.speed) / RUN * 0.02, L.dampT(dt, 3));
 
     // markers
     const tg = carrying ? dropoff : pickup;

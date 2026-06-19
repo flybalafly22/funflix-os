@@ -328,7 +328,7 @@ const PAL = {
    hand-drawn cel fills instead of smooth PBR gradients. Black ink outlines are
    added as a post pass in the bootstrap. */
 const _toonGrad = (() => {
-  const d = new Uint8Array([74, 74, 74, 255, 168, 168, 168, 255, 255, 255, 255, 255]); // 3 steps: shadow / mid / light
+  const d = new Uint8Array([104, 104, 104, 255, 186, 186, 186, 255, 255, 255, 255, 255]); // 3 cleaner steps: shadow / mid / light
   const t = new T.DataTexture(d, 3, 1, T.RGBAFormat);
   t.magFilter = t.minFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
   return t;
