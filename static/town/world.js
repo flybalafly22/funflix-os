@@ -871,6 +871,50 @@ function build(ctx) {
   dogs.forEach(d => d.traverse(o => { o.castShadow = false; }));
   pigeons.forEach(p => p.traverse(o => { o.castShadow = false; }));
 
+  /* ── PERF: BATCH STATIC GEOMETRY ──────────────────────────────────────────
+     The town is ~9k separate meshes → ~9k draw calls/frame, tripled across the
+     beauty/shadow/outline passes. Merge every STATIC mesh that shares a material
+     into one geometry (baking world transforms) → a few hundred draw calls.
+     Dynamic objects (npcs/cars/trams/dogs/pigeons/birds/fountains) and instanced
+     windows are left untouched. Safe: a bucket is only collapsed if its merge
+     succeeds. Merged materials are the same cached (cel + curvature) materials,
+     so the look and the world-bend are preserved. */
+  (function batchStatic() {
+    const BU = (window.THREE && THREE.BufferGeometryUtils);
+    if (!BU || !BU.mergeBufferGeometries) return;
+    const dyn = new Set();
+    [npcs, cars, dogs, pigeons, birds, fountains].forEach(arr => { if (arr) arr.forEach(o => o && dyn.add(o)); });
+    const buckets = new Map();
+    root.updateMatrixWorld(true);
+    root.children.forEach(child => {
+      if (dyn.has(child)) return;                       // leave dynamic groups
+      child.traverse(o => {
+        if (!o.isMesh || o.isInstancedMesh || !o.geometry || Array.isArray(o.material)) return;
+        const key = o.material.uuid;
+        let bk = buckets.get(key); if (!bk) { bk = { mat: o.material, meshes: [] }; buckets.set(key, bk); }
+        bk.meshes.push(o);
+      });
+    });
+    let merged = 0, removed = 0;
+    buckets.forEach(bk => {
+      if (bk.meshes.length < 2) return;                 // nothing to gain
+      const geos = [];
+      for (const o of bk.meshes) {
+        let g = o.geometry.clone();
+        if (g.index) g = g.toNonIndexed();
+        g.applyMatrix4(o.matrixWorld);
+        for (const name in g.attributes) { if (name !== 'position' && name !== 'normal' && name !== 'uv') g.deleteAttribute(name); }
+        geos.push(g);
+      }
+      let mg = null; try { mg = BU.mergeBufferGeometries(geos, false); } catch (e) { mg = null; }
+      geos.forEach(g => g.dispose && g.dispose());
+      if (!mg) return;                                  // leave originals intact on failure
+      bk.meshes.forEach(o => { if (o.parent) o.parent.remove(o); removed++; });
+      const m = new T.Mesh(mg, bk.mat); m.castShadow = true; m.receiveShadow = true; root.add(m); merged++;
+    });
+    if (window.console) console.log('[FLY] batched static geometry:', removed, 'meshes ->', merged, 'merged draws');
+  })();
+
   /* ── UPDATE ── */
   // bounds enclose the WHOLE grid: main avenue (x ±AVX), the two cross-streets &
   // their rows (down to CROSSZ0, up to CROSSZ1 past the second avenue), the

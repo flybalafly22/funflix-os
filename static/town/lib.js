@@ -341,7 +341,7 @@ const _toonGrad = (() => {
    EVERY material (incl. instanced windows + the outline normal pass) sharing
    one uniform, so the whole world + its ink outlines bend identically. Near the
    camera the bend ≈ 0, so the player/Fly stay undistorted. */
-const _curve = { value: 0.0011 };   // strength; bootstrap may retune
+const _curve = { value: 0.0008 };   // strength; bootstrap may retune
 function applyCurve(mat) {
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uCurve = _curve;

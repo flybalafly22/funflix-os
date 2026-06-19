@@ -93,8 +93,7 @@
 <!-- screen-space AO (SAO) + its shader deps; wrapped in try/catch at use site -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/UnpackDepthRGBAShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/DepthLimitedBlurShader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/SAOShader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SAOPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 
 <!-- THE FLY town modules (load order matters: lib → assets → world → game) -->
 <script src="{{ url_for('static', filename='town/lib.js') }}"></script>
@@ -194,17 +193,8 @@ try {
     composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.26, 0.55, 0.86));
     composer.addPass(new T.ShaderPass(GradeShader));
     composer.addPass(new T.ShaderPass(T.GammaCorrectionShader));
-    // screen-space ambient occlusion for contact-shadow depth (optional; safe-guarded)
-    try {
-      if (T.SAOPass) {
-        saoPass = new T.SAOPass(scene, camera, false, true);
-        if (T.SAOPass.OUTPUT) saoPass.params.output = T.SAOPass.OUTPUT.Default;
-        saoPass.params.saoBias = 0.4; saoPass.params.saoIntensity = 0.016;
-        saoPass.params.saoScale = 6; saoPass.params.saoKernelRadius = 28;
-        saoPass.params.saoBlur = true; saoPass.params.saoBlurRadius = 6;
-        composer.insertPass(saoPass, 1);
-      }
-    } catch (e) { /* AO is optional — ignore if unavailable */ }
+    // (SAO removed — incompatible with the curvature shader, and the cel-shade +
+    //  ink outlines already carry the form read; saves a heavy fullscreen pass.)
   }
 } catch (e) { composer = null; }
 
@@ -264,9 +254,10 @@ function resize() {
   renderer.setSize(w, h, false); if (composer) composer.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
   if (normalRT) {
-    const pr = renderer.getPixelRatio();
-    normalRT.setSize(Math.max(2, Math.floor(w * pr)), Math.max(2, Math.floor(h * pr)));
-    if (outlinePass) outlinePass.uniforms.uTexel.value.set(1 / (w * pr), 1 / (h * pr));
+    const pr = renderer.getPixelRatio(), ns = 0.6;   // outline normals at 0.6x res (cheaper, still crisp)
+    const nw = Math.max(2, Math.floor(w * pr * ns)), nh = Math.max(2, Math.floor(h * pr * ns));
+    normalRT.setSize(nw, nh);
+    if (outlinePass) outlinePass.uniforms.uTexel.value.set(1 / nw, 1 / nh);
   }
 }
 window.addEventListener('resize', resize); resize();
@@ -292,11 +283,11 @@ function tick() {
   perfFrames++; perfAccum += dt;
   if (perfAccum >= 2.0) {
     const fps = perfFrames / perfAccum; perfFrames = 0; perfAccum = 0;
-    if (fps < 42 && perfTier < 1) { perfTier = 1; renderer.setPixelRatio(1); resize(); }
-    else if (fps < 30 && perfTier < 2) { perfTier = 2; if (saoPass) saoPass.enabled = false; }
+    if (fps < 44 && perfTier < 1) { perfTier = 1; renderer.setPixelRatio(1); resize(); }
+    else if (fps < 28 && perfTier < 2) { perfTier = 2; if (outlinePass) outlinePass.enabled = false; }  // last resort: drop ink
   }
   // ink-outline: render world-only normals+depth offscreen, feed the outline pass
-  if (outlinePass) {
+  if (outlinePass && outlinePass.enabled) {
     camera.layers.disableAll(); camera.layers.enable(0);     // world only (FX on layer 1 excluded)
     scene.overrideMaterial = _normalMat;
     renderer.setRenderTarget(normalRT); renderer.clear(); renderer.render(scene, camera);
