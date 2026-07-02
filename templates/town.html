@@ -113,7 +113,7 @@ const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-p
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.outputEncoding = T.sRGBEncoding;
 renderer.toneMapping = T.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.98;
+renderer.toneMappingExposure = 0.95;   // pulled back so saturated accents keep their chroma
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
 wrap.appendChild(renderer.domElement);
@@ -123,7 +123,7 @@ scene.fog = new T.FogExp2(0x9fd3d2, 0.0019);   // soft teal haze that melts into
 const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
 
 /* lighting rig — golden-hour / dusk: warm low key light raking long shadows */
-const sun = new T.DirectionalLight(0xffd09a, 2.2);
+const sun = new T.DirectionalLight(0xffd09a, 2.0);   // was 2.2 — less blowout, richer color
 sun.position.set(116, 60, 80); sun.castShadow = true;
 // 2048 map + a TIGHT frustum that follows the player each frame (see tick): only
 // casters near the camera render into the shadow map → sharp + cheap.
@@ -131,7 +131,7 @@ sun.shadow.mapSize.set(2048, 2048);
 { const c = sun.shadow.camera; c.near = 1; c.far = 280; c.left = -70; c.right = 70; c.top = 70; c.bottom = -70; }
 sun.shadow.radius = 4; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;
 scene.add(sun, sun.target);
-const hemi = new T.HemisphereLight(0xbfd2ec, 0x6b5236, 0.50); scene.add(hemi);
+const hemi = new T.HemisphereLight(0xbfd2ec, 0x6b5236, 0.62); scene.add(hemi);
 const fill = new T.DirectionalLight(0xa9c6ef, 0.30); fill.position.set(-34, 22, -30); scene.add(fill);
 const bounce = new T.DirectionalLight(0xffd9a0, 0.20); bounce.position.set(0, -8, 22); scene.add(bounce);
 
@@ -169,10 +169,10 @@ const skyMat = new T.ShaderMaterial({
       vec2 cp=vd.xz/(vd.y+0.55);
       cp=cp*1.7+vec2(uTime*0.012,uTime*0.004);
       float n=fbm(cp);
-      // soft thresholds → calm, brushy blobs (not busy)
-      float cloud=smoothstep(0.54,0.78,n)*fade;
-      float wisp =smoothstep(0.46,0.70,n)*fade*0.35;  // faint feathered edges
-      vec3 cc=mix(uCShad,uCloud,smoothstep(0.55,0.85,n));
+      // harder cutout edges → confident flat paper-cloud shapes (Messenger sky)
+      float cloud=smoothstep(0.55,0.63,n)*fade;
+      float wisp =smoothstep(0.48,0.68,n)*fade*0.25;  // faint feathered edges
+      vec3 cc=mix(uCShad,uCloud,smoothstep(0.56,0.72,n));
       vec3 col=mix(sky,cc,cloud);
       col=mix(col,uCloud,wisp);
       gl_FragColor=vec4(col,1.0);
@@ -190,7 +190,7 @@ const clouds = new T.Group(); scene.add(clouds);
     for (let k = 0; k < n; k++) {
       const puff = new T.Mesh(new T.SphereGeometry(6 + Math.random() * 8, 8, 6), cMat);
       puff.position.set((Math.random() - 0.5) * 22, Math.random() * 4, (Math.random() - 0.5) * 12);
-      puff.scale.y = 0.6; g.add(puff);
+      puff.scale.y = 0.48; g.add(puff);   // flatter puffs → cutout paper look
     }
     g.position.set((Math.random() - 0.5) * 500, 90 + Math.random() * 60, (Math.random() - 0.5) * 500);
     g.userData.drift = 0.6 + Math.random() * 0.8; clouds.add(g);
@@ -211,23 +211,34 @@ const clouds = new T.Group(); scene.add(clouds);
 
 /* post: bloom + grade + gamma */
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.30 }, uCon: { value: 1.10 }, uSat: { value: 1.14 },
-    uLift: { value: new T.Vector3(0.012, 0.008, 0.004) }, uGain: { value: new T.Vector3(1.08, 1.02, 0.90) } },
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.26 }, uCon: { value: 1.08 }, uSat: { value: 1.14 },
+    uLift: { value: new T.Vector3(0.034, 0.024, 0.014) }, uGain: { value: new T.Vector3(1.08, 1.02, 0.90) },
+    uHatch: { value: 0.22 }, uRes: { value: new T.Vector2(1280, 720) } },
   vertexShader: 'varying vec2 v; void main(){ v=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat; uniform vec3 uLift,uGain; varying vec2 v;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat,uHatch; uniform vec3 uLift,uGain; uniform vec2 uRes; varying vec2 v;
     void main(){ vec3 c=texture2D(tDiffuse,v).rgb; c=(c-0.5)*uCon+0.5; float l=dot(c,vec3(0.299,0.587,0.114));
       c=mix(vec3(l),c,uSat); float lum=clamp(l,0.0,1.0);
       c+=uLift*(1.0-smoothstep(0.0,0.5,lum)); c*=mix(vec3(1.0),uGain,smoothstep(0.4,1.0,lum));
+      // hand-drawn crosshatch: 45-degree pencil lines fade in through the shadows,
+      // the cross direction only in the deepest darks (the Messenger paper feel)
+      float hm=smoothstep(0.52,0.18,lum)*uHatch;
+      if(hm>0.001){
+        vec2 px=v*uRes;
+        float l1=smoothstep(0.55,0.95,0.5+0.5*sin((px.x+px.y)*0.85));
+        float l2=smoothstep(0.55,0.95,0.5+0.5*sin((px.x-px.y)*0.85))*smoothstep(0.34,0.10,lum);
+        c*=1.0-hm*(l1*0.55+l2*0.55);
+      }
       vec2 d=v-0.5; float r=dot(d,d)*2.0; c*=mix(1.0,smoothstep(0.95,0.26,r),uVig);
       gl_FragColor=vec4(max(c,0.0),1.0); }`
 };
-let composer = null, saoPass = null;
+let composer = null, saoPass = null, gradePass = null;
 try {
   if (T.EffectComposer && T.UnrealBloomPass && T.GammaCorrectionShader) {
     composer = new T.EffectComposer(renderer);
     composer.addPass(new T.RenderPass(scene, camera));
     composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.26, 0.55, 0.86));
-    composer.addPass(new T.ShaderPass(GradeShader));
+    gradePass = new T.ShaderPass(GradeShader);
+    composer.addPass(gradePass);
     composer.addPass(new T.ShaderPass(T.GammaCorrectionShader));
     // (SAO removed — incompatible with the curvature shader, and the cel-shade +
     //  ink outlines already carry the form read; saves a heavy fullscreen pass.)
@@ -298,6 +309,7 @@ function resize() {
   const w = wrap.clientWidth, h = wrap.clientHeight;
   renderer.setSize(w, h, false); if (composer) composer.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (gradePass) { const pr = renderer.getPixelRatio(); gradePass.uniforms.uRes.value.set(w * pr, h * pr); }
   if (normalRT) {
     const pr = renderer.getPixelRatio(), ns = 1.0;   // FULL device res → crisp, even ink (static-batching covers the cost)
     const nw = Math.max(2, Math.floor(w * pr * ns)), nh = Math.max(2, Math.floor(h * pr * ns));

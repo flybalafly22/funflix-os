@@ -233,7 +233,7 @@ function awningTex(a, b, stripes = 10) {
 function roadTex() {
   return cached('road', () => {
     const w = 256, h = 256, c = cnv(w, h), g = c.getContext('2d');
-    g.fillStyle = '#4a4640'; g.fillRect(0, 0, w, h);   // warm graphite (ART BIBLE §2.6)
+    g.fillStyle = '#5f584e'; g.fillRect(0, 0, w, h);   // sun-baked warm graphite — bright enough to survive the toon shadow band (ART BIBLE §2.6)
     for (let i = 0; i < 6000; i++) { const lite = chance(0.5); g.fillStyle = `rgba(${lite ? '255,255,255' : '0,0,0'},${_rng() * 0.07})`; g.fillRect(_rng() * w, _rng() * h, 1, 1); }
     // cracks
     for (let i = 0; i < 6; i++) { g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = 1; g.beginPath(); let x = rand(0, w), y = rand(0, h); g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += jitter(30); y += jitter(30); g.lineTo(x, y); } g.stroke(); }
@@ -318,7 +318,9 @@ const PAL = {
   awning: [['#c8504a', '#f1e7d0'], ['#cf8a3c', '#f1e7d0'], ['#3f7d6e', '#f1e7d0'], ['#3a6a92', '#f1e7d0'], ['#8a5288', '#f3ecd9'], ['#b0506a', '#f3ecd9'], ['#d8b14a', '#f3ecd9']],
   carBody:['#c8504a', '#3f72ae', '#3f9468', '#d8b14a', '#d8d0c4', '#40444e', '#c8783a', '#9eb2bd', '#e0986a', '#6a5da8', '#3f7d6e', '#b0b4bc'],
   cloth:  ['#c85f5a', '#d99a44', '#3f7d8a', '#6a5da8', '#3f9468', '#b8485a', '#7088c0', '#cf8a48', '#5f8a96', '#a04878', '#5a86a8', '#d98f54', '#3f9a64'],
-  hair:   ['#2a1d14', '#4a3322', '#6b4a2c', '#1c1a1f', '#7a5a3a', '#3a2410', '#5a4a42', '#2a2018'],
+  // hair is authored ~0.55x darker than the target read: the golden-hour light
+  // rig runs ~2.5x hot and ACES washes dark albedos toward tan otherwise
+  hair:   ['#170f0a', '#291c12', '#3a2818', '#100e12', '#443120', '#201408', '#322925', '#17110d'],
   skin:   ['#f0c79a', '#e6b889', '#f3c69d', '#c8825f', '#d89e78', '#e8c096', '#b07a52', '#8a5a3c'],
   foliage:['#5e9047', '#6fa356', '#5a9450', '#4d8240', '#7aab5d', '#588a44'],
 };
@@ -328,7 +330,10 @@ const PAL = {
    hand-drawn cel fills instead of smooth PBR gradients. Black ink outlines are
    added as a post pass in the bootstrap. */
 const _toonGrad = (() => {
-  const d = new Uint8Array([104, 104, 104, 255, 186, 186, 186, 255, 255, 255, 255, 255]); // 3 cleaner steps: shadow / mid / light
+  // Lifted shadow band (was 104): the old value stacked with dark albedos + ACES +
+  // grade contrast into pure-black roads/shadows — the #1 look bug. Shadows must
+  // stay warm-grey (ART BIBLE §1 "lifted blacks"), the grade adds the warmth.
+  const d = new Uint8Array([148, 148, 148, 255, 202, 202, 202, 255, 255, 255, 255, 255]); // 3 steps: shadow / mid / light
   const t = new T.DataTexture(d, 3, 1, T.RGBAFormat);
   t.magFilter = t.minFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
   return t;

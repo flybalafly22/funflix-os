@@ -296,6 +296,45 @@ function wallLamp(g, x, y, z) {
   g.add(L.box(0.22, 0.16, 0.22, L.MAT.emissive('#ffce7a', 1.2), { x, y: y - 0.06, z: z + 0.36, cast: false }));
 }
 
+/* wall-mounted AC unit — the Messenger-style urban facade texture.
+   Local +Z faces out of the wall; pass ry to hang it on a side wall. */
+function wallAC(g, x, y, z, ry) {
+  const u = new T.Group();
+  u.position.set(x, y, z); if (ry) u.rotation.y = ry;
+  u.add(L.box(0.62, 0.44, 0.32, L.MAT.flat('#b3aca0'), { z: 0.16 }));
+  for (let k = -1; k <= 1; k++) u.add(L.box(0.54, 0.045, 0.02, L.MAT.metalDark, { y: k * 0.12, z: 0.33, cast: false }));
+  const fan = new T.Mesh(new T.CircleGeometry(0.11, 10), L.MAT.flat('#847e74'));
+  fan.position.set(0.15, 0, 0.331); u.add(fan);
+  u.add(L.box(0.5, 0.04, 0.30, L.MAT.metalDark, { y: -0.26, z: 0.14, cast: false }));  // bracket shelf
+  [-1, 1].forEach(s => { const br = L.box(0.04, 0.30, 0.04, L.MAT.metalDark, { x: s * 0.22, y: -0.14, z: 0.02, cast: false }); br.rotation.x = -0.5; u.add(br); });
+  g.add(u);
+}
+
+/* laundry line strung across an upper facade — a lived-in town breathes */
+function laundry(g, w, y, z) {
+  const cordMat = L.MAT.flat('#3a352e');
+  const span = Math.min(w - 2.2, 4.2);
+  const cx = L.jitter(w / 2 - span / 2 - 0.8);
+  const N = 6;
+  let prev = null;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, x = cx - span / 2 + span * t, yy = y - Math.sin(Math.PI * t) * 0.18;
+    if (prev) {
+      const seg = L.box(Math.hypot(x - prev.x, yy - prev.y) + 0.015, 0.022, 0.022, cordMat, { x: (x + prev.x) / 2, y: (yy + prev.y) / 2, z, cast: false });
+      seg.rotation.z = Math.atan2(yy - prev.y, x - prev.x); g.add(seg);
+    }
+    prev = { x, y: yy };
+  }
+  const clothCols = ['#e8e0cc', '#c86a5a', '#7fa3c0', '#d8b14a', '#9fb0a0', '#d4a890'];
+  const nC = L.randInt(2, 4);
+  for (let i = 0; i < nC; i++) {
+    const t = (i + 1) / (nC + 1), x = cx - span / 2 + span * t;
+    const cy = y - Math.sin(Math.PI * t) * 0.18;
+    g.add(L.box(0.26, 0.30 + L.rand(0, 0.14), 0.016, L.MAT.flat(L.pick(clothCols)), { x, y: cy - 0.19, z, cast: false }));
+    g.add(L.box(0.03, 0.05, 0.03, L.MAT.flat('#8a5a3a'), { x: x - 0.09, y: cy, z, cast: false }));  // peg
+  }
+}
+
 /* ── SHOPFRONT (ground retail) — recessed glass, door, bulkhead, blade sign  */
 function shopfront(g, spec, w, frontZ, opts) {
   opts = opts || {};
@@ -452,6 +491,22 @@ function make(spec) {
 
   /* ── ALWAYS-ON DETAILING ── */
   downpipe(g, w, h, frontZ);
+  // clutter colliders in LOCAL coords — world.js transforms them into place
+  const cc = []; g.userData.cols = cc;
+
+  /* facade texture: wall AC units on upper floors (denser on apartments) */
+  const acWallN = (arch === 'apartment' ? L.randInt(1, 3) : (L.chance(0.6) ? L.randInt(1, 2) : 0));
+  for (let i = 0; i < acWallN; i++) {
+    const fy = Math.min(h - 1.2, 3 * L.randInt(1, Math.max(1, floors - 1)) + L.rand(0.8, 1.6));
+    wallAC(g, L.jitter(w / 2 - 1.2), fy, frontZ, 0);
+  }
+  if ((arch === 'apartment' || w > 8) && L.chance(0.5)) {
+    wallAC(g, w / 2, 3 + L.rand(0.8, 2.4), L.jitter(d / 2 - 1.4), Math.PI / 2);
+  }
+  /* laundry lines — apartments & townhouses, upper floors */
+  if ((arch === 'apartment' && L.chance(0.45)) || (arch === 'townhouse' && L.chance(0.35))) {
+    laundry(g, w, 3 * L.randInt(1, Math.max(1, floors - 1)) + 2.1, frontZ + 0.26);
+  }
 
   /* ════════ ARCHETYPE BODIES ════════ */
   if (arch === 'shop') {
@@ -460,6 +515,42 @@ function make(spec) {
     bladeSign(g, spec, w, frontZ, has('neon'));
     // a couple sills already from windows; add a wall lamp
     if (L.chance(0.6)) wallLamp(g, -w / 2 + 0.4, GROUND_H + 0.6, frontZ);
+
+    /* ── street-level clutter (the lived-in shop apron) ── */
+    // A-frame chalkboard, angled a touch
+    if (L.chance(0.5)) {
+      const ax = (L.chance(0.5) ? 1 : -1) * (w / 2 - 1.0);
+      const bd = new T.Group(); bd.position.set(ax, 0, frontZ + 0.85); bd.rotation.y = L.jitter(0.5);
+      [1, -1].forEach(s => {
+        const face = L.box(0.52, 0.72, 0.03, s > 0 ? L.MAT.flat('#26271f') : L.MAT.wood('#6b4a30'), { y: 0.40, z: s * 0.13 });
+        face.rotation.x = -s * 0.24; bd.add(face);
+      });
+      // chalk scribble hints
+      bd.add(L.box(0.30, 0.03, 0.012, L.MAT.flat('#e8e0c8'), { y: 0.55, z: 0.185, cast: false }));
+      bd.add(L.box(0.22, 0.03, 0.012, L.MAT.flat('#d8b14a'), { y: 0.45, z: 0.21, cast: false }));
+      g.add(bd); cc.push({ x: ax, z: frontZ + 0.85, r: 0.4 });
+    }
+    // crate stack by the door
+    if (L.chance(0.45)) {
+      const kx = (L.chance(0.5) ? 1 : -1) * (w / 2 - 0.7);
+      const crMat = L.MAT.wood('#8a6a44');
+      const c1 = L.box(0.5, 0.34, 0.5, crMat, { x: kx, y: 0.17, z: frontZ + 0.65 });
+      const c2 = L.box(0.46, 0.32, 0.46, crMat, { x: kx + 0.06, y: 0.5, z: frontZ + 0.62 });
+      c2.rotation.y = L.jitter(0.35); g.add(c1, c2);
+      // produce on top (little foliage-green lobes)
+      for (let k = 0; k < 4; k++) g.add(L.sphere(0.07, 7, L.std({ color: 0x6fa356, roughness: 0.9 }), { x: kx + 0.06 + L.jitter(0.12), y: 0.7, z: frontZ + 0.62 + L.jitter(0.12), cast: false }));
+      cc.push({ x: kx, z: frontZ + 0.64, r: 0.42 });
+    }
+    // potted plants flanking the entry
+    if (L.chance(0.6)) {
+      [-1, 1].forEach(s => {
+        if (L.chance(0.3)) return;
+        const px = s * L.rand(0.9, 1.4);
+        g.add(L.cyl(0.16, 0.12, 0.3, 9, L.std({ color: 0xb06a48, roughness: 0.9 }), { x: px, y: 0.15, z: frontZ + 0.45 }));
+        g.add(L.sphere(0.2, 8, L.std({ color: L.pick([0x5e9047, 0x6fa356, 0x4d8240]), roughness: 0.95 }), { x: px, y: 0.44, z: frontZ + 0.45, cast: false }));
+        cc.push({ x: px, z: frontZ + 0.45, r: 0.2 });
+      });
+    }
   }
 
   else if (arch === 'cafe') {

@@ -174,6 +174,23 @@ function build(ctx) {
   const fountains = [];
   const pigeons = [];
   const dogs = [];
+  /* ── COLLISION + WALKABLE SURFACES ──
+     colliders: static solids the courier can't walk through.
+       { t:'b', x, z, hw, hd }  axis-aligned box (all placements are axis-aligned)
+       { t:'c', x, z, r }       circle (lamps, trees, fountains, …)
+     floors: raised walkable slabs (sidewalks/plaza/park) so feet ride on top.
+       { x, z, hw, hd, h } */
+  const colliders = [];
+  const floors = [];
+  const colB = (x, z, hw, hd) => colliders.push({ t: 'b', x, z, hw, hd });
+  const colC = (x, z, r) => colliders.push({ t: 'c', x, z, r });
+  const floorR = (x, z, hw, hd, h) => floors.push({ x, z, hw, hd, h: h == null ? CH : h });
+  // transform a building's local clutter colliders (from buildings.js userData.cols)
+  const addLocalCols = (g, wx, wz, ang) => {
+    const cs = g.userData && g.userData.cols; if (!cs) return;
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    for (const c of cs) colC(wx + c.x * ca + c.z * sa, wz - c.x * sa + c.z * ca, c.r);
+  };
   // shared player handle — game.js writes player.pos each frame so townsfolk can react
   ctx.player = ctx.player || { pos: new T.Vector3(0, 9, 0) };
 
@@ -236,6 +253,7 @@ function build(ctx) {
         const L0 = b - a, cx0 = (a + b) / 2;
         root.add(L.box(L0, CH, SDW, swMat, { x: cx0, y: CH / 2, z: z0, receive: true }));
         root.add(L.box(L0, CH + 0.06, 0.2, curbMat, { x: cx0, y: (CH + 0.06) / 2, z: avZ + side * (SW + 0.1) }));
+        floorR(cx0, z0, L0 / 2, SDW / 2);
       };
       gaps.forEach(([ga, gb]) => { if (ga > segStart) emit(segStart, ga); segStart = Math.max(segStart, gb); });
       emit(segStart, x1);
@@ -253,6 +271,7 @@ function build(ctx) {
         const L0 = b - a, cz0 = (a + b) / 2;
         root.add(L.box(SDW, CH, L0, swMat, { x: x0, y: CH / 2, z: cz0, receive: true }));
         root.add(L.box(0.2, CH + 0.06, L0, curbMat, { x: cxx + side * (SW + 0.1), y: (CH + 0.06) / 2, z: cz0 }));
+        floorR(x0, cz0, SDW / 2, L0 / 2);
       };
       gaps.forEach(([ga, gb]) => { if (ga > segStart) emit(segStart, ga); segStart = Math.max(segStart, gb); });
       emit(segStart, z1in);
@@ -267,6 +286,7 @@ function build(ctx) {
   [[CROSSX, 0], [CROSSX2, 0], [CROSSX, AV2Z], [CROSSX2, AV2Z]].forEach(([cxx, cz]) => {
     [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
       root.add(L.box(SDW, CH, SDW, swMat, { x: cxx + sx * (SW + SDW / 2), y: CH / 2, z: cz + sz * (SW + SDW / 2), receive: true }));
+      floorR(cxx + sx * (SW + SDW / 2), cz + sz * (SW + SDW / 2), SDW / 2, SDW / 2);
     });
   });
 
@@ -281,17 +301,19 @@ function build(ctx) {
   })();
   const plaza = L.box(PLAZA_HALF * 2, CH, (ROWZ + 7) - SW, L.std({ map: plazaTileTex, roughness: 0.95 }), { y: CH / 2, z: (SW + ROWZ + 7) / 2, receive: true });
   root.add(plaza);
+  floorR(0, (SW + ROWZ + 7) / 2, PLAZA_HALF, ((ROWZ + 7) - SW) / 2);
   // fountain centerpiece
   const fountain = P.makeFountain(); fountain.position.set(0, CH, SW + 6); root.add(fountain);
   if (fountain.userData.water) fountains.push(fountain);
+  colC(0, SW + 6, 2.9);
   // benches ringing the fountain + trees + cafés + stalls
-  for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; const b = P.makeBench(); b.position.set(Math.cos(a) * 6, CH, SW + 6 + Math.sin(a) * 6); b.rotation.y = -a + Math.PI / 2; root.add(b); }
-  [[-13, 1], [13, 1]].forEach(([x, s]) => { const cf = P.makeCafe(); cf.position.set(x, CH, SW + 4); root.add(cf); });
-  [[-9, 0], [9, 0], [0, 1]].forEach(([dx, dz]) => { const st = P.makeMarketStall(); st.position.set(dx, CH, SW + 11 + dz * 2); st.rotation.y = Math.PI; root.add(st); });
-  [[-15, SW + 12], [15, SW + 12], [-7, SW + 13], [7, SW + 13]].forEach(([x, z]) => { const tr = P.makeTree({ big: true }); tr.position.set(x, CH, z); root.add(tr); });
+  for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; const b = P.makeBench(); b.position.set(Math.cos(a) * 6, CH, SW + 6 + Math.sin(a) * 6); b.rotation.y = -a + Math.PI / 2; root.add(b); colC(Math.cos(a) * 6, SW + 6 + Math.sin(a) * 6, 0.75); }
+  [[-13, 1], [13, 1]].forEach(([x, s]) => { const cf = P.makeCafe(); cf.position.set(x, CH, SW + 4); root.add(cf); colC(x, SW + 4, 3.0); });
+  [[-9, 0], [9, 0], [0, 1]].forEach(([dx, dz]) => { const st = P.makeMarketStall(); st.position.set(dx, CH, SW + 11 + dz * 2); st.rotation.y = Math.PI; root.add(st); colC(dx, SW + 11 + dz * 2, 2.1); });
+  [[-15, SW + 12], [15, SW + 12], [-7, SW + 13], [7, SW + 13]].forEach(([x, z]) => { const tr = P.makeTree({ big: true }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); });
   // §5.3 focal-heart density bump: planters & lamps ring the founter plaza (densest here)
-  for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.4; const pl = P.makePlanter(); pl.position.set(Math.cos(a) * 9.5, CH, SW + 6 + Math.sin(a) * 9.5); root.add(pl); }
-  [[-11, SW + 2], [11, SW + 2], [-11, SW + 10], [11, SW + 10]].forEach(([x, z]) => { const lp = P.makeLamp(); lp.position.set(x, CH, z); root.add(lp); });
+  for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.4; const pl = P.makePlanter(); pl.position.set(Math.cos(a) * 9.5, CH, SW + 6 + Math.sin(a) * 9.5); root.add(pl); colC(Math.cos(a) * 9.5, SW + 6 + Math.sin(a) * 9.5, 0.62); }
+  [[-11, SW + 2], [11, SW + 2], [-11, SW + 10], [11, SW + 10]].forEach(([x, z]) => { const lp = P.makeLamp(); lp.position.set(x, CH, z); root.add(lp); colC(x, z, 0.28); });
 
   /* ── BUILDING ROWS ── */
   function specToDims(spec, i) {
@@ -336,6 +358,7 @@ function build(ctx) {
       const cx = xRef.x + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 97 + side * 13 };
       const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
+      colB(cx, z, w / 2, d / 2); addLocalCols(g, cx, z, faceAngle);
       const ax = cx + frontDir.x * (d / 2 + 1.6), az = z + frontDir.z * (d / 2 + 1.6);
       addresses.push({ name: spec[0], pos: new T.Vector3(ax, 2.6, az) });
       xRef.x += w + L.rand(1.0, 2.2);
@@ -369,6 +392,7 @@ function build(ctx) {
       const cx = xRef.x + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: '', signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 67 + side * 41 + 1300 };
       const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
+      colB(cx, z, w / 2, d / 2); addLocalCols(g, cx, z, faceAngle);
       // wide spacing so the back rank stays sparse (block interior) and thins at the ends
       xRef.x += w + L.rand(6, 10) * (1.0 + 0.6 * (1 - L.clamp(1 - Math.abs(cx) / 110, 0, 1)));
     }
@@ -397,6 +421,7 @@ function build(ctx) {
       const cx = xRef.x + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 83 + side * 29 + 2100 };
       const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
+      colB(cx, z, w / 2, d / 2); addLocalCols(g, cx, z, faceAngle);
       const ax = cx + frontDir.x * (d / 2 + 1.6), az = z + frontDir.z * (d / 2 + 1.6);
       addresses.push({ name: spec[0], pos: new T.Vector3(ax, 2.6, az) });
       // roomier spacing than the main avenue (quieter neighbourhood feel)
@@ -431,6 +456,8 @@ function build(ctx) {
       const cz = z + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 89 + rowOffsetSign * 23 + seedBase };
       const g = B.make(bspec); g.position.set(rowX, 0, cz); g.rotation.y = faceAngle; root.add(g);
+      colB(rowX, cz, d / 2, w / 2);   // rotated ±90°: depth runs along X, width along Z
+      addLocalCols(g, rowX, cz, faceAngle);
       const ax = rowX + frontDir.x * (d / 2 + 1.6), az = cz + frontDir.z * (d / 2 + 1.6);
       addresses.push({ name: spec[0], pos: new T.Vector3(ax, 2.6, az) });
       z += w + L.rand(0.5, 1.2);
@@ -453,6 +480,7 @@ function build(ctx) {
       const nm = names[i];
       const bspec = { w, d, floors: L.randInt(4, 5), archetype: 'civic', wall: spec[1], name: nm, signColor: spec[4], awning: spec[5], extras: ['balcony'], seed: seedBase + i * 41 };
       const g = B.make(bspec); g.position.set(cx, 0, cz); g.rotation.y = faceAngle; root.add(g);
+      colB(cx, cz, w / 2, d / 2); addLocalCols(g, cx, cz, faceAngle);
       const fd = new T.Vector3(Math.sin(faceAngle), 0, Math.cos(faceAngle));
       addresses.push({ name: nm, pos: new T.Vector3(cx + fd.x * (d / 2 + 1.8), 3.0, cz + fd.z * (d / 2 + 1.8)) });
     });
@@ -465,6 +493,7 @@ function build(ctx) {
     const z = ROWZ + 9;
     const bspec = { w, d, floors: spec[3], archetype: 'civic', wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: 500 + i * 31 };
     const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = Math.PI; root.add(g);
+    colB(cx, z, w / 2, d / 2); addLocalCols(g, cx, z, Math.PI);
     addresses.push({ name: spec[0], pos: new T.Vector3(cx, 3.0, z - d / 2 - 1.8) });
   });
 
@@ -476,6 +505,7 @@ function build(ctx) {
     const stoneA = L.std({ color: 0xeadbb6, roughness: 0.9 });   // sunlit cream stone
     const stoneB = L.std({ color: 0xdcc8a0, roughness: 0.9 });   // shaded cream stone
     const trim = L.std({ color: 0xc6b48c, roughness: 0.85 });
+    colB(tx, tz, 3.8, 3.8);
     root.add(L.box(7.5, 1.0, 7.5, stoneB, { x: tx, y: 0.5, z: tz, receive: true }));      // plinth
     root.add(L.box(6.0, 22, 6.0, stoneA, { x: tx, y: 11, z: tz }));                         // shaft
     for (let f = 1; f <= 6; f++) root.add(L.box(6.3, 0.3, 6.3, trim, { x: tx, y: 2 + f * 3, z: tz, cast: false }));  // string courses
@@ -520,10 +550,28 @@ function build(ctx) {
       return L.finishTex(c, { repeat: [6, 6], aniso: 8 });
     })();
     const grass = L.box(pw, CH, pd, L.std({ map: grassTex, roughness: 1 }), { x: PARK_CX, y: CH / 2, z: cz, receive: true }); root.add(grass);
-    // low hedge border
+    floorR(PARK_CX, cz, PARK_HALF, pd / 2);
+    // low hedge border — with GATES where the cross paths meet it, so the park
+    // has real entrances now that hedges are solid.
     const hedgeMat = L.std({ color: 0x4f7a3c, roughness: 0.96 });
-    for (let x = PARK_CX - PARK_HALF; x <= PARK_CX + PARK_HALF; x += 1.4) { root.add(L.box(1.4, 0.7, 0.5, hedgeMat, { x, y: CH + 0.35, z: z0 })); root.add(L.box(1.4, 0.7, 0.5, hedgeMat, { x, y: CH + 0.35, z: z1 })); }
-    for (let z = z1; z <= z0; z += 1.4) { root.add(L.box(0.5, 0.7, 1.4, hedgeMat, { x: PARK_CX - PARK_HALF, y: CH + 0.35, z })); root.add(L.box(0.5, 0.7, 1.4, hedgeMat, { x: PARK_CX + PARK_HALF, y: CH + 0.35, z })); }
+    const GATE = 1.9;
+    for (let x = PARK_CX - PARK_HALF; x <= PARK_CX + PARK_HALF; x += 1.4) {
+      if (Math.abs(x - PARK_CX) < GATE) continue;   // north/south gates (Z path)
+      root.add(L.box(1.4, 0.7, 0.5, hedgeMat, { x, y: CH + 0.35, z: z0 })); root.add(L.box(1.4, 0.7, 0.5, hedgeMat, { x, y: CH + 0.35, z: z1 }));
+    }
+    for (let z = z1; z <= z0; z += 1.4) {
+      if (Math.abs(z - cz) < GATE) continue;        // east/west gates (X path)
+      root.add(L.box(0.5, 0.7, 1.4, hedgeMat, { x: PARK_CX - PARK_HALF, y: CH + 0.35, z })); root.add(L.box(0.5, 0.7, 1.4, hedgeMat, { x: PARK_CX + PARK_HALF, y: CH + 0.35, z }));
+    }
+    // hedge colliders: 2 segments per side, split at the gates
+    [z0, z1].forEach(hz => {
+      colB(PARK_CX - (PARK_HALF + GATE) / 2, hz, (PARK_HALF - GATE) / 2 + 0.7, 0.4);
+      colB(PARK_CX + (PARK_HALF + GATE) / 2, hz, (PARK_HALF - GATE) / 2 + 0.7, 0.4);
+    });
+    [PARK_CX - PARK_HALF, PARK_CX + PARK_HALF].forEach(hx => {
+      colB(hx, cz - (pd / 2 + GATE) / 2, 0.4, (pd / 2 - GATE) / 2 + 0.7);
+      colB(hx, cz + (pd / 2 + GATE) / 2, 0.4, (pd / 2 - GATE) / 2 + 0.7);
+    });
     // cross paths
     const pathMat = L.std({ color: 0xc8b894, roughness: 0.95 });
     root.add(L.box(pw - 2, 0.02, 2.4, pathMat, { x: PARK_CX, y: CH + 0.02, z: cz, cast: false }));
@@ -531,10 +579,12 @@ function build(ctx) {
     // pond
     const pond = new T.Mesh(new T.CylinderGeometry(4.2, 4.2, 0.2, 28), L.std({ color: 0x3f7fb0, roughness: 0.12, metalness: 0.3, transparent: true, opacity: 0.88 }));
     pond.position.set(PARK_CX + 8, CH + 0.04, cz - 5); root.add(pond);
+    colC(PARK_CX + 8, cz - 5, 4.7);
     root.add(L.cyl(4.6, 4.8, 0.3, 28, L.std({ color: 0xb8b09a, roughness: 0.9 }), { x: PARK_CX + 8, y: CH + 0.12, z: cz - 5 }));
     // gazebo (bandstand)
     (function gazebo() {
       const gx = PARK_CX - 8, gz = cz + 4;
+      colC(gx, gz, 2.9);
       root.add(L.cyl(2.6, 2.8, 0.35, 12, L.std({ color: 0xc4bca8, roughness: 0.92 }), { x: gx, y: CH + 0.17, z: gz, receive: true }));
       for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; root.add(L.cyl(0.1, 0.1, 2.6, 7, L.MAT.wood('#8a6a44'), { x: gx + Math.cos(a) * 2.3, y: CH + 1.5, z: gz + Math.sin(a) * 2.3 })); }
       const roof = new T.Mesh(new T.ConeGeometry(3.1, 1.6, 12), L.std({ color: 0x8a5d4e, roughness: 0.9 })); roof.position.set(gx, CH + 3.6, gz); roof.castShadow = true; root.add(roof);
@@ -542,6 +592,7 @@ function build(ctx) {
     // statue near the avenue edge
     (function statue() {
       const sx = PARK_CX + 12, sz = z0 - 3;
+      colC(sx, sz, 1.2);
       root.add(L.box(1.6, 1.0, 1.6, L.std({ color: 0xb0a890, roughness: 0.9 }), { x: sx, y: CH + 0.5, z: sz }));
       root.add(L.cyl(0.5, 0.6, 0.5, 10, L.std({ color: 0x9a9078, roughness: 0.9 }), { x: sx, y: CH + 1.25, z: sz }));
       const figMat = L.std({ color: 0x8c8470, roughness: 0.85, metalness: 0.2 });
@@ -552,9 +603,9 @@ function build(ctx) {
     const slots = [[-15, -3], [-12, 6], [-4, -7], [3, 5], [13, -6], [15, 4], [6, 9], [-7, -9]];
     slots.forEach(([dx, dz], i) => {
       const x = PARK_CX + dx, z = cz + dz;
-      if (i % 3 === 0) { const b = P.makeBench(); b.position.set(x, CH, z); b.rotation.y = L.rand(0, TAU); root.add(b); }
-      else if (i % 3 === 1) { const pl = P.makePlanter(); pl.position.set(x, CH, z); root.add(pl); }
-      else { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); }
+      if (i % 3 === 0) { const b = P.makeBench(); b.position.set(x, CH, z); b.rotation.y = L.rand(0, TAU); root.add(b); colC(x, z, 0.75); }
+      else if (i % 3 === 1) { const pl = P.makePlanter(); pl.position.set(x, CH, z); root.add(pl); colC(x, z, 0.62); }
+      else { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); }
     });
     // a few park strollers
     for (let k = 0; k < 4; k++) { const n = C.makeNPC(); n.position.set(PARK_CX + L.rand(-PARK_HALF + 3, PARK_HALF - 3), CH, cz + L.rand(-pd / 2 + 3, pd / 2 - 3)); n.userData.npc = { speed: L.rand(0.4, 0.9) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), lane: n.position.z, kind: 'plaza', cx: n.position.x }; root.add(n); npcs.push(n); }
@@ -576,18 +627,56 @@ function build(ctx) {
     })();
     const grass = new T.Mesh(new T.PlaneGeometry(gw, gd, Math.ceil(gw / 4), Math.ceil(gd / 4)), L.std({ map: grassTex, roughness: 1 }));
     grass.rotation.x = -Math.PI / 2; grass.position.set(GREEN2_CX, CH, cz); grass.receiveShadow = true; root.add(grass);
+    floorR(GREEN2_CX, cz, GREEN2_HALF, gd / 2);
     // a small monument + trees + benches
+    colC(GREEN2_CX, cz, 0.9);
     root.add(L.box(1.4, 0.8, 1.4, L.std({ color: 0xc4bca8, roughness: 0.9 }), { x: GREEN2_CX, y: CH + 0.4, z: cz }));
     root.add(L.cyl(0.22, 0.28, 1.6, 10, L.std({ color: 0x8c8470, roughness: 0.85 }), { x: GREEN2_CX, y: CH + 1.6, z: cz }));
     [[-9, -2], [9, -2], [-9, 2], [9, 2], [0, 2.4]].forEach(([dx, dz], i) => {
       const x = GREEN2_CX + dx, z = cz + dz;
-      if (i % 2 === 0) { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); }
-      else { const b = P.makeBench(); b.position.set(x, CH, z); b.rotation.y = L.rand(0, TAU); root.add(b); }
+      if (i % 2 === 0) { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); }
+      else { const b = P.makeBench(); b.position.set(x, CH, z); b.rotation.y = L.rand(0, TAU); root.add(b); colC(x, z, 0.75); }
     });
-    [[-GREEN2_HALF + 1, 0], [GREEN2_HALF - 1, 0]].forEach(([dx]) => { const lp = P.makeLamp(); lp.position.set(GREEN2_CX + dx, CH, cz); root.add(lp); });
+    [[-GREEN2_HALF + 1, 0], [GREEN2_HALF - 1, 0]].forEach(([dx]) => { const lp = P.makeLamp(); lp.position.set(GREEN2_CX + dx, CH, cz); root.add(lp); colC(GREEN2_CX + dx, cz, 0.28); });
     // strollers
     for (let k = 0; k < 3; k++) { const n = C.makeNPC(); n.position.set(GREEN2_CX + L.rand(-GREEN2_HALF + 3, GREEN2_HALF - 3), CH, cz + L.rand(-gd / 2 + 1.5, gd / 2 - 1.5)); n.userData.npc = { speed: L.rand(0.4, 0.9) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), state: 'walk', timer: L.rand(2, 6), wave: 0, lane: n.position.z, kind: 'plaza', cx: n.position.x }; root.add(n); npcs.push(n); }
   })();
+
+  // collision radius per furniture type (small enough to keep sidewalks navigable)
+  const FURN_R = { lamp: 0.28, bench: 0.7, bin: 0.32, planter: 0.62, hydrant: 0.28, bollard: 0.22, tree: 0.5 };
+
+  /* ── OVERHEAD WIRES — actually connected pole-to-pole with catenary sag.
+     The tangled sky is half the Messenger street-level look. ── */
+  const wireMat = L.std({ color: 0x2a2a30, roughness: 0.9 });
+  const _wq = new T.Quaternion(), _wd = new T.Vector3(), _wz = new T.Vector3(0, 0, 1);
+  function stringWire(x1, y1, z1, x2, y2, z2, sag) {
+    const SEGN = 4; let prev = null;
+    for (let i = 0; i <= SEGN; i++) {
+      const t = i / SEGN;
+      const x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t;
+      const y = y1 + (y2 - y1) * t - Math.sin(Math.PI * t) * sag;
+      if (prev) {
+        _wd.set(x - prev.x, y - prev.y, z - prev.z);
+        const len = _wd.length(); _wd.normalize();
+        const seg = L.box(0.032, 0.032, len, wireMat, { x: (x + prev.x) / 2, y: (y + prev.y) / 2, z: (z + prev.z) / 2, cast: false });
+        seg.quaternion.copy(_wq.setFromUnitVectors(_wz, _wd));
+        root.add(seg);
+      }
+      prev = { x, y, z };
+    }
+  }
+  // connect a run of poles ([x,z] points) with two sagging lines + a stray third
+  function wireRun(pts) {
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
+      const span = Math.hypot(bx - ax, bz - az);
+      if (span < 4 || span > 95) continue;
+      const sag = L.clamp(span * 0.035, 0.5, 2.0);
+      stringWire(ax + 0.1, 7.05, az + 0.1, bx + 0.1, 7.05, bz + 0.1, sag);
+      stringWire(ax - 0.12, 6.55, az - 0.12, bx - 0.12, 6.55, bz - 0.12, sag * 0.85);
+      if (L.chance(0.5)) stringWire(ax, 7.05, az - 0.3, bx, 6.55, bz + 0.25, sag * 1.15);
+    }
+  }
 
   function makeFurniture(type) {
     switch (type) {
@@ -625,12 +714,16 @@ function build(ctx) {
         if (o.parkGap && side < 0 && x > PARK_CX - PARK_HALF && x < PARK_CX + PARK_HALF) { x = PARK_CX + PARK_HALF; idx++; continue; }
         if (o.greenGap && side < 0 && x > GREEN2_CX - GREEN2_HALF && x < GREEN2_CX + GREEN2_HALF) { x = GREEN2_CX + GREEN2_HALF; idx++; continue; }
         if (CROSSXS.some(cx => x > cx - (SW + SDW) && x < cx + (SW + SDW))) { const cx = CROSSXS.find(c => x > c - (SW + SDW) && x < c + (SW + SDW)); x = cx + (SW + SDW); idx++; continue; }
-        const obj = makeFurniture(SEQ[idx % SEQ.length]); idx++;
+        const typ = SEQ[idx % SEQ.length];
+        const obj = makeFurniture(typ); idx++;
         obj.position.set(x, CH, zBase); obj.rotation.y = side < 0 ? Math.PI : 0; root.add(obj);
+        colC(x, zBase, FURN_R[typ] || 0.4);
         x += densStep(x, 5.5, 8.5);
       }
-      // utility poles
-      [-120, -60, -20, 40, 120].forEach(px => { if (px < x0 + 4 || px > x1 - 4) return; if (CROSSXS.some(cx => Math.abs(px - cx) < SW + SDW)) return; const up = P.makeUtilPole(); up.position.set(px, 0, avZ + side * (SW + SDW - 0.6)); root.add(up); });
+      // utility poles + connected wires along the run
+      const poleZ = avZ + side * (SW + SDW - 0.6), polePts = [];
+      [-120, -60, -20, 40, 120].forEach(px => { if (px < x0 + 4 || px > x1 - 4) return; if (CROSSXS.some(cx => Math.abs(px - cx) < SW + SDW)) return; const up = P.makeUtilPole(); up.position.set(px, 0, poleZ); root.add(up); colC(px, poleZ, 0.25); polePts.push([px, poleZ]); });
+      wireRun(polePts);
     });
   }
   avenueFurniture(0, -AVX, AVX, { plazaGap: true, parkGap: true });
@@ -643,13 +736,17 @@ function build(ctx) {
       let z = CROSSZ0 + 5, idx = side > 0 ? 0 : 4;
       while (z < CROSSZ1 - 5) {
         if (nearAnyAvenueZ(z)) { const az = AVZS.find(a => z > a - (SW + SDW) && z < a + (SW + SDW)); if (az != null) { z = az + (SW + SDW); idx++; continue; } }
-        const obj = makeFurniture(SEQ[idx % SEQ.length]); idx++;
+        const typ = SEQ[idx % SEQ.length];
+        const obj = makeFurniture(typ); idx++;
         obj.position.set(xBase, CH, z); obj.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2; root.add(obj);
+        colC(xBase, z, FURN_R[typ] || 0.4);
         // §5.3: dense near the avenue junctions, thinning toward block ends
         const cw = L.clamp(1 - Math.min(Math.abs(z), Math.abs(z - AV2Z)) / 26, 0, 1);
         z += L.rand(5.5, 8.0) * (1.0 + 0.7 * (1 - cw));
       }
-      [CROSSZ0 + 8, -16, 16, AV2Z - 16, AV2Z + 12].forEach(pz => { if (nearAnyAvenueZ(pz)) return; if (pz < CROSSZ0 + 4 || pz > CROSSZ1 - 4) return; const up = P.makeUtilPole(); up.position.set(cxx + side * (SW + SDW - 0.6), 0, pz); root.add(up); });
+      const poleX = cxx + side * (SW + SDW - 0.6), polePts = [];
+      [CROSSZ0 + 8, -16, 16, AV2Z - 16, AV2Z + 12].forEach(pz => { if (nearAnyAvenueZ(pz)) return; if (pz < CROSSZ0 + 4 || pz > CROSSZ1 - 4) return; const up = P.makeUtilPole(); up.rotation.y = Math.PI / 2; up.position.set(poleX, 0, pz); root.add(up); colC(poleX, pz, 0.25); polePts.push([poleX, pz]); });
+      wireRun(polePts);
     });
   }
   crossFurniture(CROSSX); crossFurniture(CROSSX2);
@@ -660,10 +757,12 @@ function build(ctx) {
       if (avZ === 0 && Math.abs(x) < PLAZA_HALF + 6) continue;
       if (CROSSXS.some(cx => Math.abs(x - cx) < SW + 4)) continue;
       const side = L.chance(0.5) ? 1 : -1;
-      const car = (L.chance(0.18) ? P.makeTruck() : P.makeCar());
+      const isTruck = L.chance(0.18);
+      const car = (isTruck ? P.makeTruck() : P.makeCar());
       car.position.set(x, 0, avZ + side * (SW - 1.5));
       car.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2; // align length with street
       root.add(car);
+      colB(x, avZ + side * (SW - 1.5), isTruck ? 2.9 : 2.2, 1.0);   // length lies along X
     }
   }
   parkAlongAvenue(0, -AVX, AVX);
@@ -672,14 +771,53 @@ function build(ctx) {
     for (let z = CROSSZ0 + 10; z < CROSSZ1 - 10; z += L.rand(16, 24)) {
       if (AVZS.some(az => Math.abs(z - az) < SW + 6)) continue;
       const side = L.chance(0.5) ? 1 : -1;
-      const car = (L.chance(0.18) ? P.makeTruck() : P.makeCar());
+      const isTruck = L.chance(0.18);
+      const car = (isTruck ? P.makeTruck() : P.makeCar());
       car.position.set(cxx + side * (SW - 1.5), 0, z);
       car.rotation.y = 0; // length lies along Z, front +Z — no rotation needed
       root.add(car);
+      colB(cxx + side * (SW - 1.5), z, 1.0, isTruck ? 2.9 : 2.2);   // length lies along Z
     }
   });
   // a couple scooters near the plaza & corners
-  [[-PLAZA_HALF - 8, 1], [PLAZA_HALF + 8, -1], [CROSSX2 + 8, 1]].forEach(([x, s]) => { const sc = P.makeScooter(); sc.position.set(x, CH, s * (SW + 1.6)); sc.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2; root.add(sc); });
+  [[-PLAZA_HALF - 8, 1], [PLAZA_HALF + 8, -1], [CROSSX2 + 8, 1]].forEach(([x, s]) => { const sc = P.makeScooter(); sc.position.set(x, CH, s * (SW + 1.6)); sc.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2; root.add(sc); colC(x, s * (SW + 1.6), 0.7); });
+
+  /* ── ROAD-SURFACE STORYTELLING: cones, manholes, tar patches ── */
+  const coneOr = L.std({ color: 0xd85c28, roughness: 0.88 });
+  const coneWh = L.std({ color: 0xf0ead8, roughness: 0.8 });
+  function makeCone(x, z) {
+    const gc = new T.Group(); gc.position.set(x, 0, z); gc.rotation.y = L.rand(0, TAU);
+    gc.add(L.box(0.34, 0.05, 0.34, coneOr, { y: 0.025, cast: false }));
+    const c1 = new T.Mesh(new T.ConeGeometry(0.15, 0.5, 10), coneOr); c1.position.y = 0.3; c1.castShadow = true; gc.add(c1);
+    gc.add(L.cyl(0.105, 0.125, 0.09, 10, coneWh, { y: 0.3, cast: false }));
+    root.add(gc); colC(x, z, 0.17);
+  }
+  // a little roadwork cluster near each intersection + strays by the zebra crossings
+  [[CROSSX, 0], [CROSSX2, 0], [CROSSX, AV2Z], [CROSSX2, AV2Z]].forEach(([cxx, cz]) => {
+    const sx = L.chance(0.5) ? 1 : -1, sz = L.chance(0.5) ? 1 : -1;
+    const bx = cxx + sx * (SW - 1.6), bz = cz + sz * (SW - 1.6);
+    for (let i = 0; i < L.randInt(2, 3); i++) makeCone(bx + L.jitter(1.4), bz + L.jitter(1.4));
+  });
+  [-58, 40].forEach(x => { if (!nearAnyCrossX(x)) makeCone(x + L.rand(2, 4), L.pick([1, -1]) * (SW - 1.2)); });
+
+  const mhMat = L.std({ color: 0x4a443c, roughness: 0.7, metalness: 0.3 });
+  function manhole(x, z) {
+    const m = new T.Mesh(new T.CircleGeometry(0.46, 14), mhMat);
+    m.rotation.x = -Math.PI / 2; m.rotation.z = L.rand(0, TAU); m.position.set(x, 0.018, z); m.receiveShadow = true; root.add(m);
+  }
+  for (let x = -AVX + 15; x < AVX - 10; x += L.rand(24, 40)) { if (nearAnyCrossX(x)) continue; manhole(x + L.jitter(3), L.jitter(SW - 3)); }
+  for (let x = -AV2X + 15; x < AV2X - 10; x += L.rand(26, 44)) { if (nearAnyCrossX(x)) continue; manhole(x, AV2Z + L.jitter(SW - 3)); }
+  CROSSXS.forEach(cxx => { for (let z = CROSSZ0 + 12; z < CROSSZ1 - 10; z += L.rand(26, 40)) { if (AVZS.some(az => Math.abs(z - az) < SW + 3)) continue; manhole(cxx + L.jitter(SW - 3), z); } });
+
+  const patchMat = L.std({ color: 0x554f47, roughness: 0.98 });
+  for (let i = 0; i < 12; i++) {
+    const onAv2 = L.chance(0.3);
+    const x = L.rand(onAv2 ? -AV2X + 10 : -AVX + 10, onAv2 ? AV2X - 10 : AVX - 10);
+    if (nearAnyCrossX(x)) continue;
+    const p = L.decal(L.rand(1.6, 3.4), L.rand(1.2, 2.4), patchMat, 0.009);
+    p.position.set(x, 0.009, (onAv2 ? AV2Z : 0) + L.jitter(SW - 2.5));
+    p.rotation.z = L.jitter(0.5); root.add(p);
+  }
 
   /* ── MOVING TRAFFIC on the avenues (along X) ── total ≤ 14 cars + tram ── */
   // main avenue (longer): 9 cars; second avenue: 5 cars
@@ -687,10 +825,11 @@ function build(ctx) {
     for (let i = 0; i < count; i++) {
       const dir = i % 2 ? 1 : -1;             // +X or -X
       const lane = avZ + (dir > 0 ? -SW * 0.45 : SW * 0.45);  // drive-on-right
-      const car = (L.chance(0.2) ? P.makeTruck() : P.makeCar());
+      const isTruck = L.chance(0.2);
+      const car = (isTruck ? P.makeTruck() : P.makeCar());
       car.position.set(L.rand(x0 + 10, x1 - 10), 0, lane);
       car.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
-      car.userData.drive = { axis: 'x', dir, speed: L.rand(7, 12), lane, avZ, x0: x0 + 8, x1: x1 - 8 };
+      car.userData.drive = { axis: 'x', dir, speed: L.rand(7, 12), lane, avZ, x0: x0 + 8, x1: x1 - 8, hl: isTruck ? 2.9 : 2.2, hw: 1.0 };
       root.add(car); cars.push(car);
     }
   });
@@ -699,10 +838,11 @@ function build(ctx) {
     for (let i = 0; i < 3; i++) {
       const dir = i % 2 ? 1 : -1;             // +Z or -Z
       const lane = dir > 0 ? SW * 0.45 : -SW * 0.45;  // drive-on-right
-      const car = (L.chance(0.2) ? P.makeTruck() : P.makeCar());
+      const isTruck = L.chance(0.2);
+      const car = (isTruck ? P.makeTruck() : P.makeCar());
       car.position.set(cxx + lane, 0, L.rand(CROSSZ0 + 10, CROSSZ1 - 10));
       car.rotation.y = dir > 0 ? 0 : Math.PI;  // front +Z to drive +Z; flip for -Z
-      car.userData.drive = { axis: 'z', dir, speed: L.rand(6, 10), lane: cxx + lane, cxx };
+      car.userData.drive = { axis: 'z', dir, speed: L.rand(6, 10), lane: cxx + lane, cxx, hl: isTruck ? 2.9 : 2.2, hw: 1.0 };
       root.add(car); cars.push(car);
     }
   });
@@ -715,12 +855,13 @@ function build(ctx) {
     for (let x = -AVX + 16; x < AVX - 16; x += 28) {
       root.add(L.cyl(0.08, 0.1, 6.2, 7, L.MAT.metalDark, { x, y: 3.1, z: 0, cast: true }));
       root.add(L.box(0.1, 0.1, 2.2, L.MAT.metalDark, { x, y: 5.9, z: 0, cast: false }));
+      colC(x, 0, 0.22);
     }
     [1, -1].forEach(dir => {
       const tram = P.makeTram();
       tram.position.set(L.rand(-AVX + 20, AVX - 20), 0, 0);
       tram.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;   // front +Z → +X when dir>0
-      tram.userData.drive = { axis: 'x', dir, speed: L.rand(8, 10), lane: 0 };
+      tram.userData.drive = { axis: 'x', dir, speed: L.rand(8, 10), lane: 0, hl: 5.1, hw: 1.3 };
       root.add(tram); cars.push(tram);
     });
   }
@@ -909,7 +1050,7 @@ function build(ctx) {
       let mg = null; try { mg = BU.mergeBufferGeometries(geos, false); } catch (e) { mg = null; }
       geos.forEach(g => g.dispose && g.dispose());
       if (!mg) return;                                  // leave originals intact on failure
-      bk.meshes.forEach(o => { if (o.parent) o.parent.remove(o); removed++; });
+      bk.meshes.forEach(o => { if (o.parent) o.parent.remove(o); o.geometry.dispose(); removed++; });
       const m = new T.Mesh(mg, bk.mat); m.castShadow = true; m.receiveShadow = true; root.add(m); merged++;
     });
     if (window.console) console.log('[FLY] batched static geometry:', removed, 'meshes ->', merged, 'merged draws');
@@ -1018,7 +1159,15 @@ function build(ctx) {
     }
   }
 
-  return { addresses, update, bounds, spawn };
+  /* minimap layout — the hand-authored street grid, so the HUD can draw a real map */
+  const layout = {
+    AVX, SW, AV2Z, AV2X, CROSSX, CROSSX2, CROSSZ0, CROSSZ1,
+    plaza: { x: 0, z: (SW + ROWZ + 7) / 2, hw: PLAZA_HALF, hd: ((ROWZ + 7) - SW) / 2 },
+    park: { x: PARK_CX, z: (-SW - (ROWZ + 7)) / 2, hw: PARK_HALF, hd: ((ROWZ + 7) - SW) / 2 },
+    green: { x: GREEN2_CX, z: ((AV2Z - SW - 1) + (ROW2ZF + 3.5)) / 2, hw: GREEN2_HALF, hd: ((AV2Z - SW - 1) - (ROW2ZF + 3.5)) / 2 },
+  };
+
+  return { addresses, update, bounds, spawn, colliders, floors, layout, traffic: cars, npcs };
 }
 
 FLY.world = { build };

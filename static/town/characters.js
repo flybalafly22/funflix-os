@@ -569,9 +569,11 @@ function makeHero() {
   const hoodDk   = '#345a64';        // hood shadow / hood-down lump
   const pantsHex = '#3a3a42';        // charcoal rolled trousers
   const cuffHex  = '#cf8a3c';        // warm rolled-cuff accent
-  const capHex   = '#c8443c';        // red cap to echo the pack
-  const PACK_RED = 0xc8443c;         // signature messenger red
-  const PACK_DK  = 0xab362f;         // pack shadow / straps
+  // DEEPER reds than the target read: the golden-hour sun + ACES + toon top band
+  // wash saturated accents toward salmon — author them dark so they land right.
+  const capHex   = '#8f231b';        // red cap to echo the pack (upward faces catch the most sun)
+  const PACK_RED = 0xa52d24;         // signature messenger red
+  const PACK_DK  = 0x872017;         // pack shadow / straps
   const EMBLEM   = 0xf4efe6;         // cream emblem
 
   const skMat    = skinMat(skinHex);
@@ -579,8 +581,8 @@ function makeHero() {
   const hoodDkMat= cloth(hoodDk);
   const pantsMat = cloth(pantsHex);
   const cuffMat  = cloth(cuffHex);
-  const capMat   = cloth('#c8443c');
-  const hrMat    = hairMat('#3a2410');
+  const capMat   = cloth(capHex);
+  const hrMat    = hairMat('#221405');   // reads as warm brown under the hot rig
   const packMat  = L.std({ color: PACK_RED, roughness: 0.8 });
   const packDkMat= L.std({ color: PACK_DK, roughness: 0.82 });
   const emblemMat= L.std({ color: EMBLEM, roughness: 0.7 });
@@ -653,6 +655,25 @@ function makeHero() {
   collar.position.set(0, neckY - 0.06, 0.01); collar.rotation.x = L.TAU / 4; collar.scale.set(1, 1, 0.85);
   torso.add(collar);
 
+  // ── RED SCARF — the brand accent (ART BIBLE §2.8: the single most saturated
+  // thing the camera usually frames). Ring at the neck + a tail that drapes over
+  // the shoulder; game.js flutters the tail with run speed. ──
+  const scarfMat = L.std({ color: 0xb5352a, roughness: 0.85 });
+  const scarfRing = new T.Mesh(new T.TorusGeometry(0.105 * build, 0.048, 8, 14), scarfMat);
+  scarfRing.position.set(0, neckY - 0.02, 0.015); scarfRing.rotation.x = L.TAU / 4; scarfRing.scale.set(1, 1, 0.9);
+  torso.add(scarfRing);
+  // knot at the side of the neck
+  torso.add(L.sphere(0.055, 8, scarfMat, { x: 0.11 * build, y: neckY - 0.03, z: 0.06, cast: false }));
+  // tail: two overlapping panels pivoting from the neck, trailing BEHIND beside
+  // the pack so it reads from the chase camera (flutter target for game.js)
+  const scarfTail = new T.Group();
+  scarfTail.position.set(0.22 * build, neckY - 0.02, -0.13);
+  scarfTail.rotation.set(-0.5, 0, 0.5);   // sweeps back and OUTWARD, clear of the pack
+  scarfTail.add(L.box(0.11, 0.32, 0.026, scarfMat, { y: -0.16, cast: false }));
+  scarfTail.add(L.box(0.09, 0.18, 0.024, scarfMat, { x: 0.02, y: -0.38, cast: false }));
+  torso.add(scarfTail);
+  g.userData.scarfTail = scarfTail;
+
   // neck
   torso.add(L.cyl(0.06, 0.07, 0.13, 8, skMat, { y: neckY - 0.03, cast: false }));
 
@@ -693,6 +714,9 @@ function makeHero() {
   dome.scale.set(1.04, 0.66, 1.04); torso.add(dome);
   torso.add(L.box(0.22, 0.022, 0.16, capMat, { y: headY + 0.09, z: headR * 0.92, cast: false })); // bill
   torso.add(L.sphere(0.02, 6, capMat, { y: headY + 0.20, cast: false }));                          // button
+  // cream base band so the cap reads as a cap, not a painted scalp
+  const capBand = new T.Mesh(new T.TorusGeometry(headR * 1.0, 0.02, 6, 16), L.std({ color: 0xd8cdb2, roughness: 0.8 }));
+  capBand.position.y = headY + 0.02; capBand.rotation.x = L.TAU / 4; torso.add(capBand);
 
   // ── ARMS (pivot at shoulder; internal forearm group + hand) ── hoodie sleeves
   const armL = new T.Group(), armR = new T.Group();

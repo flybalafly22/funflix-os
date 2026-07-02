@@ -3,8 +3,9 @@
    The playable layer: the Fly courier, flight controls, chase camera, the
    delivery loop (pick up → fly to glowing shop → deliver → score), HUD wiring,
    synth audio + particle FX.
-   Now a real game: per-job timer, speed/combo scoring, decaying combo multiplier,
-   minimap, contextual tips + persisted bests, and gentle drifting hazards to dodge.
+   Now a real game: start card, camera-relative movement, solid-world collision,
+   per-job timer, speed/combo scoring, express jobs, traffic to respect,
+   a real street-grid minimap, and persisted bests.
    FLY.game.start(ctx, world) -> { update(dt, now) }
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -84,6 +85,25 @@ function start(ctx, world) {
       border-radius:14px; background:rgba(10,14,22,.55); border:1px solid rgba(255,255,255,.18);
       box-shadow:0 8px 28px rgba(0,0,0,.3); backdrop-filter:blur(6px); }
     @media (max-width: 560px) { #flyMap { width:118px; height:118px; bottom:96px; } #flyBest{ top:138px; } }
+    #flyStart { position:absolute; inset:0; z-index:20; display:grid; place-items:center;
+      background:radial-gradient(120% 120% at 50% 32%, rgba(58,44,30,.30), rgba(21,16,10,.62));
+      pointer-events:auto; transition:opacity .6s; }
+    #flyStart.gone { opacity:0; pointer-events:none; }
+    #flyStart .card { text-align:center; padding:26px 42px; border-radius:18px;
+      background:rgba(28,22,16,.66); border:1px solid rgba(255,244,222,.16);
+      backdrop-filter:blur(10px); box-shadow:0 14px 44px rgba(20,12,4,.4); }
+    #flyStart .t { font-size:40px; font-weight:900; letter-spacing:.05em; color:#fff5e9; }
+    #flyStart .s { margin-top:4px; font-size:13px; opacity:.75; font-style:italic; }
+    #flyStart .c { margin-top:16px; font:600 12px ui-monospace, Menlo, monospace; line-height:1.8; opacity:.85; }
+    #flyStart .go { margin-top:16px; font-size:12px; font-weight:800; letter-spacing:.14em;
+      text-transform:uppercase; color:#ffd27a; animation:flyGo 1.6s ease-in-out infinite; }
+    @keyframes flyGo { 50% { opacity:.45; } }
+    .flyBub { position:absolute; transform:translate(-50%,-115%); max-width:220px;
+      background:rgba(255,248,236,.96); color:#3a2c1c; font-weight:700; font-size:12px;
+      padding:6px 11px; border-radius:12px; opacity:0; transition:opacity .15s;
+      pointer-events:none; white-space:nowrap; box-shadow:0 4px 14px rgba(40,24,8,.28); }
+    .flyBub::after { content:''; position:absolute; left:50%; bottom:-6px; margin-left:-6px;
+      border:6px solid transparent; border-top-color:rgba(255,248,236,.96); border-bottom:0; }
   `;
   document.head.appendChild(css);
 
@@ -109,14 +129,104 @@ function start(ctx, world) {
   hud.appendChild(map);
   const mctx = map.getContext('2d');
 
+  /* ── SPEECH BUBBLES — a small pool of HTML bubbles projected from 3D ── */
+  const BUBBLES = [];
+  for (let i = 0; i < 3; i++) {
+    const el = document.createElement('div'); el.className = 'flyBub';
+    hud.appendChild(el); BUBBLES.push({ el, t: 0, pos: new T.Vector3() });
+  }
+  function bubble(x, y, z, txt, dur) {
+    const b = BUBBLES.find(b => b.t <= 0) || BUBBLES[0];
+    b.pos.set(x, y, z); b.el.textContent = txt; b.t = dur || 2.6;
+  }
+  const _bp = new T.Vector3();
+  function updateBubbles(dt) {
+    for (const b of BUBBLES) {
+      if (b.t <= 0) { b.el.style.opacity = 0; continue; }
+      b.t -= dt;
+      _bp.copy(b.pos).project(camera);
+      if (_bp.z > 1 || _bp.z < -1) { b.el.style.opacity = 0; continue; }
+      b.el.style.opacity = Math.min(1, b.t / 0.35, (2.6 - b.t + 0.3) * 3);
+      b.el.style.left = ((_bp.x * 0.5 + 0.5) * hud.clientWidth) + 'px';
+      b.el.style.top = ((-_bp.y * 0.5 + 0.5) * hud.clientHeight) + 'px';
+    }
+  }
+  const QUIPS_STREET = ['Bonito día, ¿no?', 'El pan huele genial hoy', '¿Has visto al gato?', '¡Hola, mensajero!', '¿Algo para mí?', '¡Qué prisa llevas!', 'Las palomas otra vez…', 'Saludos a la Sra. Ibáñez'];
+  const QUIPS_PICKUP = ['¡Cuídalo bien!', '¡Es urgente!', 'Gracias, mensajero', 'Con cariño, por favor', 'Ni una arruga, ¿eh?'];
+  const QUIPS_DELIVER = ['¡Gracias!', '¡Justo a tiempo!', '¡Eres un sol!', '¡Qué rápido!', '¡Mil gracias!'];
+  const NPCS = world.npcs || [];
+  let quipCd = 5;
+
   /* ── game state ── */
   const ADDR = world.addresses;
   const bounds = world.bounds;
   const P = { pos: world.spawn.clone(), yaw: 0, speed: 0 };
   P.pos.y = 0;                                  // walking: feet glued to the ground (no flight)
-  const WALK = 3.4, RUN = 6.6, ACCEL = 9, YAWRATE = 2.4;
+  const WALK = 3.4, RUN = 6.6, ACCEL = 9;
+  let camYaw = 0;                               // camera heading — input is camera-relative
+  let begun = false;                            // gated behind the start card
   let carrying = false, pickup = null, dropoff = null, delivered = 0;
   let score = 0;
+  const IS_TOUCH = window.matchMedia && matchMedia('(hover: none), (pointer: coarse)').matches;
+
+  /* ── STATIC COLLISION (grid-bucketed circle-vs-shape resolve) ──
+     world.js exports axis-aligned boxes (buildings, parked cars, hedges) and
+     circles (trees, lamps, fountains…). The courier is a 0.55m circle. */
+  const PR = 0.55;
+  const COLS = world.colliders || [];
+  const CG = 8, cmap = new Map();
+  const ck = (gx, gz) => gx + ',' + gz;
+  for (const c of COLS) {
+    const hw = c.t === 'b' ? c.hw : c.r, hd = c.t === 'b' ? c.hd : c.r;
+    const x0 = Math.floor((c.x - hw - 0.8) / CG), x1 = Math.floor((c.x + hw + 0.8) / CG);
+    const z0 = Math.floor((c.z - hd - 0.8) / CG), z1 = Math.floor((c.z + hd + 0.8) / CG);
+    for (let gx = x0; gx <= x1; gx++) for (let gz = z0; gz <= z1; gz++) {
+      const k = ck(gx, gz); let a = cmap.get(k); if (!a) { a = []; cmap.set(k, a); } a.push(c);
+    }
+  }
+  function resolveCircle(p, R) {
+    const cell = cmap.get(ck(Math.floor(p.x / CG), Math.floor(p.z / CG)));
+    if (!cell) return;
+    for (let pass = 0; pass < 2; pass++) {
+      for (const c of cell) {
+        if (c.t === 'b') {
+          const nx = clamp(p.x, c.x - c.hw, c.x + c.hw), nz = clamp(p.z, c.z - c.hd, c.z + c.hd);
+          const dx = p.x - nx, dz = p.z - nz, d2 = dx * dx + dz * dz;
+          if (d2 === 0) {          // center inside the box: exit along the shallow axis
+            const px = (c.hw + R) - Math.abs(p.x - c.x), pz = (c.hd + R) - Math.abs(p.z - c.z);
+            if (px < pz) p.x += (p.x >= c.x ? 1 : -1) * px;
+            else p.z += (p.z >= c.z ? 1 : -1) * pz;
+          } else if (d2 < R * R) {
+            const d = Math.sqrt(d2), push = (R - d) / d;
+            p.x += dx * push; p.z += dz * push;
+          }
+        } else {
+          const dx = p.x - c.x, dz = p.z - c.z, rr = c.r + R, d2 = dx * dx + dz * dz;
+          if (d2 < rr * rr && d2 > 1e-6) { const d = Math.sqrt(d2), push = (rr - d) / d; p.x += dx * push; p.z += dz * push; }
+        }
+      }
+    }
+  }
+  function resolveStatic() { resolveCircle(P.pos, PR); }
+
+  /* camera occlusion set: only solids tall/wide enough to actually block the view
+     (buildings, fountain, cafés, stalls…) — thin lamps and low cars are ignored */
+  const OCC = COLS.filter(c => c.t === 'b' ? Math.min(c.hw, c.hd) >= 2.0 : c.r >= 1.9);
+  function occluded(x, z) {
+    for (const c of OCC) {
+      if (c.t === 'b') { if (Math.abs(x - c.x) < c.hw + 0.2 && Math.abs(z - c.z) < c.hd + 0.2) return true; }
+      else { const dx = x - c.x, dz = z - c.z; if (dx * dx + dz * dz < (c.r + 0.2) * (c.r + 0.2)) return true; }
+    }
+    return false;
+  }
+
+  /* walkable surface height (sidewalks/plaza/park slabs) so feet ride on top */
+  const FLOORS = world.floors || [];
+  function groundAt(x, z) {
+    let h = 0;
+    for (const f of FLOORS) if (Math.abs(x - f.x) <= f.hw + 0.05 && Math.abs(z - f.z) <= f.hd + 0.05 && f.h > h) h = f.h;
+    return h;
+  }
 
   // scoring / timer / combo
   let jobBudget = 0;       // soft seconds allotted for the active job
@@ -128,16 +238,33 @@ function start(ctx, world) {
   let streak = 0;          // consecutive on-time deliveries
   let stun = 0;            // hazard stun timer (seconds)
 
-  // persisted bests
-  const LS = { score: 'fly_best_score', streak: 'fly_best_streak' };
+  // persisted bests + lifetime rank
+  const LS = { score: 'fly_best_score', streak: 'fly_best_streak', total: 'fly_total_deliv' };
   function lsGet(k) { try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; } catch (e) { return 0; } }
   function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-  let bestScore = lsGet(LS.score), bestStreak = lsGet(LS.streak);
-  function renderBest() { bestEl.innerHTML = 'Best score <b>' + bestScore + '</b><br>Best streak <b>x' + bestStreak + '</b>'; }
+  let bestScore = lsGet(LS.score), bestStreak = lsGet(LS.streak), totalDeliv = lsGet(LS.total);
+  const RANKS = [[0, 'Recadero'], [5, 'Mensajero'], [15, 'Cartero de Barrio'], [30, 'Correo Exprés'], [60, 'Leyenda de Villa Mott']];
+  function rankName(n) { let r = RANKS[0][1]; for (const [t, nm] of RANKS) if (n >= t) r = nm; return r; }
+  function nextRank(n) { for (const [t, nm] of RANKS) if (n < t) return [t, nm]; return null; }
+  function renderBest() {
+    const nx = nextRank(totalDeliv);
+    bestEl.innerHTML = '<span style="color:#ffd27a">✦ ' + rankName(totalDeliv) + '</span><br>'
+      + 'Best score <b>' + bestScore + '</b><br>Best streak <b>x' + bestStreak + '</b>'
+      + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' more → ' + nx[1] + '</span>' : '');
+  }
   renderBest();
   if (elScoreL) elScoreL.textContent = 'score';
 
   function planar(a, b) { const dx = a.x - b.x, dz = a.z - b.z; return Math.hypot(dx, dz); }
+
+  /* what's inside the envelope — pure flavor, big charm-per-byte */
+  const PAYLOADS = [
+    'a love letter', 'a birthday card', 'sheet music for the band', 'a recipe, still warm',
+    'a set of spare keys', 'a postcard from the coast', 'an overdue library book',
+    'a pressed flower', 'a thank-you note', "yesterday's crossword, solved",
+    'a wedding invitation', 'a small tin of saffron', 'a secret, sealed twice',
+  ];
+  let payload = '', express = false;
 
   function setObjective() {
     const tg = carrying ? dropoff : pickup;
@@ -145,39 +272,46 @@ function start(ctx, world) {
     beam.material.color.setHex(col); ring.material.color.setHex(col);
     beam.position.set(tg.pos.x, 15, tg.pos.z);
     ring.position.set(tg.pos.x, 0.3, tg.pos.z);
+    beam.visible = ring.visible = true;
     objLetter.position.set(tg.pos.x, 3.6, tg.pos.z); objLetter.visible = !carrying;
-    elLbl.textContent = carrying ? 'Deliver to' : 'Pick up at';
+    elLbl.textContent = (express ? '⚡ ' : '') + (carrying ? 'Deliver to' : 'Pick up at');
+    elLbl.style.color = express ? '#ffd27a' : '#ffd27a';
     elDst.textContent = tg.name;
-    elSub.textContent = carrying ? 'walk to the green-lit shop' : 'grab the floating letter';
+    elSub.textContent = carrying ? (payload + ' → the green-lit shop') : (payload + ' — grab the floating letter');
   }
   function newTask() {
     pickup = pick(ADDR);
     do { dropoff = pick(ADDR); } while (dropoff === pickup);
     carrying = false; carriedLetter.visible = false;
+    payload = pick(PAYLOADS);
+    express = delivered >= 2 && L.chance(0.25);   // rush jobs: tighter clock, double pay
     // soft time budget scaled by total route length (pick-up + delivery legs)
     const route = planar(P.pos, pickup.pos) + planar(pickup.pos, dropoff.pos);
     jobBudget = clamp(10 + route * 0.42, 14, 46);
+    if (express) jobBudget *= 0.66;
+    if (delivered === 0) jobBudget *= 1.6;        // warm-up welcome job
     jobLeft = jobBudget; jobActive = true;
     setObjective();
-    toast('New job · ' + Math.round(jobBudget) + 's', '#9fd0ff');
+    toast(express ? '⚡ Express — double pay! ' + Math.round(jobBudget) + 's' : 'New job · ' + Math.round(jobBudget) + 's', express ? '#ffd27a' : '#9fd0ff');
   }
 
-  /* ── audio (lazy, synth) ── */
-  let AC = null, wind = null, windGain = null;
+  /* ── audio (lazy, synth) — everything through one master bus for mute ── */
+  let AC = null, wind = null, windGain = null, master = null, muted = false;
   function initAudio() {
     if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+    master = AC.createGain(); master.gain.value = muted ? 0 : 1; master.connect(AC.destination);
     wind = AC.createBufferSource();
     const buf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
     wind.buffer = buf; wind.loop = true;
     const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 480;
     windGain = AC.createGain(); windGain.gain.value = 0.0;
-    wind.connect(lp).connect(windGain).connect(AC.destination); wind.start();
+    wind.connect(lp).connect(windGain).connect(master); wind.start();
 
     // cozy ambient pad — a soft warm chord (A major) through a lowpass, gently swelling
     const pad = AC.createGain(); pad.gain.value = 0.0001;
     const padLP = AC.createBiquadFilter(); padLP.type = 'lowpass'; padLP.frequency.value = 900;
-    pad.connect(padLP).connect(AC.destination);
+    pad.connect(padLP).connect(master);
     [110, 164.81, 220, 277.18].forEach((f, i) => {           // A2 · E3 · A3 · C#4
       const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f; o.detune.value = (i - 1.5) * 4;
       const g = AC.createGain(); g.gain.value = [0.5, 0.34, 0.30, 0.22][i];
@@ -194,31 +328,54 @@ function start(ctx, world) {
     o.type = type || 'sine'; o.frequency.value = freq;
     g.gain.setValueAtTime(0.0001, AC.currentTime); g.gain.exponentialRampToValueAtTime(vol || 0.18, AC.currentTime + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + (dur || 0.18));
-    o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + (dur || 0.18) + 0.02);
+    o.connect(g).connect(master || AC.destination); o.start(); o.stop(AC.currentTime + (dur || 0.18) + 0.02);
+  }
+  function toggleMute() {
+    muted = !muted;
+    if (master) master.gain.value = muted ? 0 : 1;
+    toast(muted ? '🔇 Muted' : '🔊 Sound on', '#9fd0ff');
   }
   const sfxPick = () => { blip(540, 0.12, 'triangle', 0.16); setTimeout(() => blip(740, 0.14, 'triangle', 0.14), 70); };
   const sfxDeliver = () => { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => blip(f, 0.16, 'triangle', 0.16), i * 70)); };
   const sfxBonus = () => { [784, 988, 1318].forEach((f, i) => setTimeout(() => blip(f, 0.12, 'square', 0.1), i * 55)); };
   const sfxHazard = () => { blip(150, 0.22, 'sawtooth', 0.18); setTimeout(() => blip(96, 0.28, 'sawtooth', 0.16), 80); };
-  const sfxStep = () => blip(rand(150, 195), 0.05, 'sine', 0.045);   // soft footstep
+  const sfxStep = () => {                    // surface-aware footsteps
+    const ly = world.layout;
+    let surf = P.pos.y > 0.1 ? 'stone' : 'asphalt';
+    if (ly && ((Math.abs(P.pos.x - ly.park.x) < ly.park.hw && Math.abs(P.pos.z - ly.park.z) < ly.park.hd) ||
+               (Math.abs(P.pos.x - ly.green.x) < ly.green.hw && Math.abs(P.pos.z - ly.green.z) < ly.green.hd))) surf = 'grass';
+    if (surf === 'grass') blip(rand(85, 115), 0.075, 'triangle', 0.032);
+    else if (surf === 'stone') blip(rand(215, 255), 0.04, 'sine', 0.05);
+    else blip(rand(150, 195), 0.05, 'sine', 0.045);
+  };
 
-  /* ── input ── */
+  /* ── input — camera-relative: push a direction on screen, walk that way ── */
   const keys = {};
-  addEventListener('keydown', e => { keys[e.code] = true; initAudio(); if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault(); });
+  addEventListener('keydown', e => {
+    keys[e.code] = true; initAudio();
+    if (e.code === 'KeyM') toggleMute();
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  });
   addEventListener('keyup', e => { keys[e.code] = false; });
   addEventListener('pointerdown', initAudio, { once: true });
 
-  let tThrottle = 0, tYaw = 0, tVert = 0;
+  let tSX = 0, tSY = 0, tRun = 0;     // touch stick vector (screen space) + run button
   const stick = document.getElementById('stick'), knob = document.getElementById('knob');
   let sid = null, scx = 0, scy = 0;
   if (stick) {
     stick.addEventListener('pointerdown', e => { sid = e.pointerId; const r = stick.getBoundingClientRect(); scx = r.left + r.width / 2; scy = r.top + r.height / 2; stick.setPointerCapture(e.pointerId); initAudio(); });
-    stick.addEventListener('pointermove', e => { if (e.pointerId !== sid) return; let dx = e.clientX - scx, dy = e.clientY - scy; const R = 50, len = Math.hypot(dx, dy); if (len > R) { dx *= R / len; dy *= R / len; } knob.style.transform = `translate(${dx}px,${dy}px)`; tYaw = -dx / R; tThrottle = -dy / R; });
-    const end = e => { if (e.pointerId !== sid) return; sid = null; tYaw = tThrottle = 0; knob.style.transform = 'translate(0,0)'; };
+    stick.addEventListener('pointermove', e => { if (e.pointerId !== sid) return; let dx = e.clientX - scx, dy = e.clientY - scy; const R = 50, len = Math.hypot(dx, dy); if (len > R) { dx *= R / len; dy *= R / len; } knob.style.transform = `translate(${dx}px,${dy}px)`; tSX = dx / R; tSY = -dy / R; });
+    const end = e => { if (e.pointerId !== sid) return; sid = null; tSX = tSY = 0; knob.style.transform = 'translate(0,0)'; };
     stick.addEventListener('pointerup', end); stick.addEventListener('pointercancel', end);
   }
-  const bindBtn = (id, v) => { const el = document.getElementById(id); if (!el) return; el.addEventListener('pointerdown', e => { e.preventDefault(); tVert = v; initAudio(); }); el.addEventListener('pointerup', () => tVert = 0); el.addEventListener('pointercancel', () => tVert = 0); };
-  bindBtn('btnUp', 1); bindBtn('btnDn', -1);
+  // the old ascend/descend flight buttons: ▲ becomes RUN, ▼ is retired
+  const btnRun = document.getElementById('btnUp'), btnDn = document.getElementById('btnDn');
+  if (btnDn) btnDn.style.display = 'none';
+  if (btnRun) {
+    btnRun.textContent = '⚡'; btnRun.style.bottom = '40px';
+    btnRun.addEventListener('pointerdown', e => { e.preventDefault(); tRun = 1; initAudio(); });
+    btnRun.addEventListener('pointerup', () => tRun = 0); btnRun.addEventListener('pointercancel', () => tRun = 0);
+  }
 
   /* ── FX ── */
   const fxPool = []; const fxGeo = new T.SphereGeometry(0.12, 6, 5);
@@ -236,69 +393,29 @@ function start(ctx, world) {
   }
   function updateFX(dt) { for (const p of fxPool) { if (!p.mesh.visible) continue; p.life -= dt * 1.4; if (p.life <= 0) { p.mesh.visible = false; continue; } p.vel.y -= 9 * dt; p.mesh.position.addScaledVector(p.vel, dt); p.mesh.material.opacity = p.life; p.mesh.scale.setScalar(0.5 + p.life * 0.8); } }
 
-  /* ── HAZARDS: drifting balloons to dodge (self-contained, own meshes) ── */
-  const hazards = [];
-  const HAZ_COLS = [0xff6b6b, 0xffd166, 0x6bc1ff, 0xff8fd0, 0x9be36b, 0xc08bff];
-  const balloonGeo = new T.SphereGeometry(0.95, 12, 10);
-  function makeBalloon() {
-    const g = new T.Group();
-    const col = pick(HAZ_COLS);
-    const body = new T.Mesh(balloonGeo, L.std({ color: col, roughness: 0.45, metalness: 0.0, emissive: col, emissiveIntensity: 0.12 }));
-    body.scale.y = 1.22; body.castShadow = false; g.add(body);
-    // little knot + string
-    g.add(L.box(0.18, 0.18, 0.18, L.std({ color: col, roughness: 0.6 }), { y: -1.1, cast: false }));
-    const str = L.box(0.03, 1.6, 0.03, L.std({ color: 0x2a2620, roughness: 0.9 }), { y: -1.95, cast: false });
-    g.add(str);
-    g.userData = { body, r: 1.15, drift: new T.Vector3(rand(-1, 1), 0, rand(-1, 1)).normalize().multiplyScalar(rand(1.2, 3.0)), phase: rand(0, TAU), spin: rand(-0.6, 0.6) };
-    scene.add(g); hazards.push(g);
-    return g;
-  }
-  function placeBalloon(g) {
-    g.position.set(rand(bounds.minX + 6, bounds.maxX - 6), rand(6, Math.min(26, bounds.maxY - 4)), rand(bounds.minZ + 6, bounds.maxZ - 6));
-  }
-  const HAZ_N = 7;
-  for (let i = 0; i < HAZ_N; i++) { const b = makeBalloon(); placeBalloon(b); }
-
-  function updateHazards(dt, now) {
-    for (const h of hazards) {
-      const u = h.userData;
-      h.position.x += u.drift.x * dt;
-      h.position.z += u.drift.z * dt;
-      h.position.y += Math.sin(now * 0.0012 + u.phase) * dt * 0.6;
-      h.rotation.y += u.spin * dt;
-      // bob the body for a buoyant feel
-      u.body.position.y = Math.sin(now * 0.003 + u.phase) * 0.12;
-      // wrap / re-seed when it drifts off the play area
-      if (h.position.x < bounds.minX + 2 || h.position.x > bounds.maxX - 2) u.drift.x = -u.drift.x;
-      if (h.position.z < bounds.minZ + 2 || h.position.z > bounds.maxZ - 2) u.drift.z = -u.drift.z;
-      h.position.y = clamp(h.position.y, 4, bounds.maxY - 3);
-    }
-  }
-  function checkHazards() {
+  /* ── HAZARD: moving traffic. Crossing the street carelessly gets you bumped —
+     brief stun, shoved out of the lane, combo broken, a little time lost.
+     (Replaces the old airborne-balloon system left over from the flying build,
+     which could never reach a walking courier.) ── */
+  const TRAFFIC = world.traffic || [];
+  function checkTraffic() {
     if (stun > 0) return;
-    for (const h of hazards) {
-      const dx = h.position.x - P.pos.x, dy = h.position.y - P.pos.y, dz = h.position.z - P.pos.z;
-      const rr = h.userData.r + 0.9;
-      if (dx * dx + dy * dy + dz * dz < rr * rr) {
-        hitHazard(h);
+    for (const car of TRAFFIC) {
+      const d = car.userData.drive; if (!d || !d.hl) continue;
+      const hx = (d.axis === 'x' ? d.hl : d.hw) + 0.45, hz = (d.axis === 'x' ? d.hw : d.hl) + 0.45;
+      const dx = P.pos.x - car.position.x, dz = P.pos.z - car.position.z;
+      if (Math.abs(dx) < hx && Math.abs(dz) < hz) {
+        stun = 0.9; P.speed = 0;
+        // shove the courier out of the lane, perpendicular to travel
+        if (d.axis === 'x') P.pos.z = car.position.z + (dz >= 0 ? 1 : -1) * (hz + 1.0);
+        else P.pos.x = car.position.x + (dx >= 0 ? 1 : -1) * (hx + 1.0);
+        fxBurst(P.pos, [0xff6b6b, 0xffd166, 0xffffff], 14, 1.2);
+        sfxHazard(); blip(392, 0.25, 'square', 0.12);   // honk
+        breakCombo('🚗 Bumped by traffic!');
+        if (jobActive) jobLeft = Math.max(2, jobLeft - 4);
         break;
       }
     }
-  }
-  function hitHazard(h) {
-    stun = 0.7;
-    P.speed *= -0.25;
-    // knock the balloon away so you don't re-trigger instantly
-    const away = new T.Vector3(h.position.x - P.pos.x, 0, h.position.z - P.pos.z);
-    if (away.lengthSq() < 0.001) away.set(1, 0, 0);
-    away.normalize();
-    h.userData.drift.copy(away).multiplyScalar(rand(2.5, 4));
-    h.position.addScaledVector(away, 1.5);
-    fxBurst(P.pos, [0xff6b6b, 0xffd166, 0xffffff], 14, P.pos.y);
-    sfxHazard();
-    // break combo, lose a little time
-    breakCombo('Ouch! popped a balloon');
-    jobLeft = Math.max(2, jobLeft - 3);
   }
 
   /* ── combo helpers ── */
@@ -309,62 +426,98 @@ function start(ctx, world) {
 
   /* ── loop ── */
   const camPos = camera.position.clone().set(0, 6, -10);
-  const fwd = new T.Vector3();
+  const fwd = new T.Vector3(), camF = new T.Vector3();
   let mapAcc = 0, walkPhase = 0, lastStep = -1;
   const baseFov = camera.fov;
-  const GROUND_Y = 0.0;
   const hintEl = document.querySelector('#hint');
-  if (hintEl) hintEl.textContent = 'WASD / arrows to walk · Shift to run';
-  newTask();
+  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD to walk · Shift to run · M to mute';
+
+  /* ── start card — the town idles behind it; first input begins the shift ── */
+  beam.visible = ring.visible = objLetter.visible = false;
+  elLbl.textContent = 'Welcome to'; elDst.textContent = 'Villa Mott'; elSub.textContent = 'the town is waking up…';
+  const startEl = document.createElement('div'); startEl.id = 'flyStart';
+  startEl.innerHTML = '<div class="card"><div class="t">THE FLY</div><div class="s">a tiny courier tale</div>'
+    + '<div class="c">' + (IS_TOUCH ? 'drag the stick to walk<br>hold ⚡ to run' : 'WASD to walk &nbsp;·&nbsp; SHIFT to run<br>M to mute') + '</div>'
+    + '<div class="go">' + (IS_TOUCH ? 'tap to start' : 'press any key to start') + '</div></div>';
+  hud.appendChild(startEl);
+  function begin() {
+    if (begun) return; begun = true;
+    startEl.classList.add('gone'); setTimeout(() => startEl.remove(), 700);
+    initAudio(); newTask();
+  }
+  addEventListener('keydown', begin);
+  startEl.addEventListener('pointerdown', e => { e.preventDefault(); begin(); });
 
   function update(dt, now) {
     // stun briefly disables steering input (player got bumped)
     const stunned = stun > 0;
     if (stunned) stun -= dt;
 
-    let thr = tThrottle, turn = tYaw;
-    if (keys['KeyW'] || keys['ArrowUp']) thr += 1;
-    if (keys['KeyS'] || keys['ArrowDown']) thr -= 1;
-    if (keys['KeyA'] || keys['ArrowLeft']) turn += 1;
-    if (keys['KeyD'] || keys['ArrowRight']) turn -= 1;
-    const running = keys['ShiftLeft'] || keys['ShiftRight'] || tVert > 0;
-    thr = clamp(thr, -1, 1); turn = clamp(turn, -1, 1);
-    if (stunned) { thr *= 0.15; turn = 0; }
+    /* camera-relative input: the pushed direction is where the courier goes */
+    let ix = tSX, iy = tSY;
+    if (keys['KeyW'] || keys['ArrowUp']) iy += 1;
+    if (keys['KeyS'] || keys['ArrowDown']) iy -= 1;
+    if (keys['KeyA'] || keys['ArrowLeft']) ix -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) ix += 1;
+    let mag = Math.hypot(ix, iy);
+    if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
+    const running = keys['ShiftLeft'] || keys['ShiftRight'] || tRun > 0;
+    if (stunned || !begun) mag = 0;
 
-    // ground walking — turn to steer, walk/run forward/back; NO flight
-    const maxSpd = running ? RUN : WALK;
-    P.speed = lerp(P.speed, thr * maxSpd, L.dampT(dt, ACCEL));
-    P.yaw += turn * YAWRATE * dt;
+    if (mag > 0.05) {
+      const wishYaw = camYaw + Math.atan2(ix, iy);           // screen-up = camera-forward
+      let dy = wishYaw - P.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+      P.yaw += dy * L.dampT(dt, 11);                          // quick, smooth turn-in
+      let dc = P.yaw - camYaw; dc = Math.atan2(Math.sin(dc), Math.cos(dc));
+      camYaw += dc * L.dampT(dt, 2.6);                        // camera lazily settles behind
+    }
+    P.speed = lerp(P.speed, mag * (running ? RUN : WALK), L.dampT(dt, ACCEL));
     fwd.set(Math.sin(P.yaw), 0, Math.cos(P.yaw));
     P.pos.x += fwd.x * P.speed * dt; P.pos.z += fwd.z * P.speed * dt;
     P.pos.x = clamp(P.pos.x, bounds.minX, bounds.maxX);
     P.pos.z = clamp(P.pos.z, bounds.minZ, bounds.maxZ);
-    P.pos.y = GROUND_Y;
+    resolveStatic();                                          // solid town
+    const gy = groundAt(P.pos.x, P.pos.z);                    // ride on sidewalks/plaza
+    P.pos.y = lerp(P.pos.y, gy, L.dampT(dt, 14));
     const spd01 = Math.min(1, Math.abs(P.speed) / RUN);
     const moving = Math.abs(P.speed) > 0.2;
 
     // place + animate the human (true pos drives world reactions: NPC waves, pigeon scatter)
     player.pos.copy(P.pos);
-    hero.position.set(P.pos.x, GROUND_Y, P.pos.z);
+    hero.position.set(P.pos.x, P.pos.y, P.pos.z);
     hero.rotation.set(0, 0, 0); hero.rotateY(P.yaw);
     if (stunned) hero.rotateZ(Math.sin(now * 0.04) * 0.2);
     walkPhase += dt * (moving ? (5 + spd01 * 7) : 0);
     C.animateWalk(hero, walkPhase, moving);
     if (moving) { const fp = Math.floor(walkPhase / Math.PI); if (fp !== lastStep) { lastStep = fp; sfxStep(); } }
+    // scarf tail trails and flutters with speed (the brand accent in motion)
+    const st = hero.userData.scarfTail;
+    if (st) st.rotation.x = -(0.45 + spd01 * 0.9 + Math.sin(now * 0.02) * (0.05 + spd01 * 0.14));
 
     // contact shadow under the feet
-    blob.position.set(P.pos.x, 0.05, P.pos.z); blob.scale.setScalar(0.7); blob.material.opacity = 0.3;
+    blob.position.set(P.pos.x, P.pos.y + 0.05, P.pos.z); blob.scale.setScalar(0.7); blob.material.opacity = 0.3;
 
-    // third-person follow camera (behind + slightly above, looking ahead at head height)
+    // third-person follow camera — tracks the smoothed camera yaw, not the hero,
+    // so quick turns read as the character turning inside the frame
+    camF.set(Math.sin(camYaw), 0, Math.cos(camYaw));
     const camDist = 5.4 + spd01 * 1.2, camH = 2.9, lead = 3.2;
-    const desired = camPos.set(P.pos.x - fwd.x * camDist, GROUND_Y + camH, P.pos.z - fwd.z * camDist);
+    const desired = camPos.set(P.pos.x - camF.x * camDist, P.pos.y + camH, P.pos.z - camF.z * camDist);
+    // line-of-sight: if a big solid sits between courier and camera, pull the camera in
+    let tC = 1;
+    for (let t = 0.3; t <= 1.001; t += 0.1) {
+      if (occluded(P.pos.x + (desired.x - P.pos.x) * t, P.pos.z + (desired.z - P.pos.z) * t)) { tC = Math.max(0.25, t - 0.1); break; }
+    }
+    if (tC < 1) desired.set(P.pos.x + (desired.x - P.pos.x) * tC, desired.y - (1 - tC) * 0.6, P.pos.z + (desired.z - P.pos.z) * tC);
+    resolveCircle(desired, 0.4);   // and never wedge inside geometry
     camera.position.lerp(desired, L.dampT(dt, 6));
-    camera.lookAt(P.pos.x + fwd.x * lead, GROUND_Y + 1.3, P.pos.z + fwd.z * lead);
+    camera.lookAt(P.pos.x + camF.x * lead, P.pos.y + 1.3, P.pos.z + camF.z * lead);
     const wantFov = baseFov + (running ? spd01 * 4 : 0);
     if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov = lerp(camera.fov, wantFov, L.dampT(dt, 3)); camera.updateProjectionMatrix(); }
 
     // wind volume tracks speed
     if (windGain) windGain.gain.value = lerp(windGain.gain.value, 0.006 + Math.abs(P.speed) / RUN * 0.02, L.dampT(dt, 3));
+
+    if (!begun) { mapAcc += dt; if (mapAcc > 0.08) { mapAcc = 0; drawMap(); } updateFX(dt); return; }
 
     // markers
     const tg = carrying ? dropoff : pickup;
@@ -373,8 +526,9 @@ function start(ctx, world) {
 
     const dx = P.pos.x - tg.pos.x, dz = P.pos.z - tg.pos.z, dPlanar = Math.hypot(dx, dz);
     elDist.textContent = dPlanar < 90 ? Math.round(dPlanar) + ' m' : '—';
+    // needle is relative to the CAMERA (what the player sees), not the hero's body
     const bearing = Math.atan2(tg.pos.x - P.pos.x, tg.pos.z - P.pos.z);
-    elNeedle.style.transform = `rotate(${P.yaw - bearing}rad)`;
+    elNeedle.style.transform = `rotate(${camYaw - bearing}rad)`;
 
     /* ── timer + combo decay ── */
     if (jobActive) {
@@ -407,14 +561,28 @@ function start(ctx, world) {
     if (dPlanar < 4.5) {
       if (!carrying) {
         carrying = true; carriedLetter.visible = true; toast('✉ Letter picked up', '#ffd27a'); sfxPick(); setObjective();
+        bubble(tg.pos.x, 3.4, tg.pos.z, pick(QUIPS_PICKUP));
       } else {
+        bubble(tg.pos.x, 3.4, tg.pos.z, pick(QUIPS_DELIVER));
         deliver(tg);
       }
     }
 
-    updateHazards(dt, now);
-    checkHazards();
+    /* idle townsfolk quips — someone nearby says something small */
+    quipCd -= dt;
+    if (quipCd <= 0) {
+      quipCd = 0.6;
+      for (const n of NPCS) {
+        const u = n.userData.npc;
+        if (!u || u.kind === 'seated') continue;
+        const dx2 = n.position.x - P.pos.x, dz2 = n.position.z - P.pos.z;
+        if (dx2 * dx2 + dz2 * dz2 < 12) { bubble(n.position.x, n.position.y + 2.05, n.position.z, pick(QUIPS_STREET), 2.4); quipCd = rand(7, 12); break; }
+      }
+    }
+
+    checkTraffic();
     updateFX(dt);
+    updateBubbles(dt);
 
     // minimap (throttled ~12fps)
     mapAcc += dt;
@@ -432,7 +600,7 @@ function start(ctx, world) {
     // combo: a quick delivery (with time to spare) builds the streak
     if (speedy) { streak++; combo = clamp(combo + 1, 1, 8); comboTimer = COMBO_WINDOW; }
     else { comboTimer = COMBO_WINDOW * 0.6; } // keep current combo alive briefly even on a slow drop
-    const gained = Math.round((base + timeBonus) * combo);
+    const gained = Math.round((base + timeBonus) * combo * (express ? 2 : 1));
     score += gained;
     elScore.textContent = score;
 
@@ -440,20 +608,25 @@ function start(ctx, world) {
     fxBurst(tg.pos);
     if (combo > 1) { fxBurst(tg.pos, [0xffd060, 0xffffff, 0xff9a6a], 12, 3.6); sfxBonus(); }
 
-    const tip = combo > 1
+    const tip = (express ? '⚡ ' : '') + (combo > 1
       ? '★ Delivered! +' + gained + '  (x' + combo + ')'
-      : '★ Delivered! +' + gained;
+      : '★ Delivered! +' + gained);
     toast(tip, combo > 2 ? '#ffd27a' : '#7fe0a0');
 
     // contextual feedback for fast / milestone runs
     if (speedy && timeFrac > 0.78) setTimeout(() => toast('⚡ Express run!', '#9fd0ff'), 700);
     else if (combo >= 4) setTimeout(() => toast('🔥 On fire — x' + combo + '!', '#ff9a6a'), 700);
 
-    // persist bests
-    let dirty = false;
-    if (score > bestScore) { bestScore = score; lsSet(LS.score, bestScore); dirty = true; }
-    if (streak > bestStreak) { bestStreak = streak; lsSet(LS.streak, bestStreak); dirty = true; }
-    if (dirty) renderBest();
+    // persist bests + lifetime rank (with a little ceremony on promotion)
+    const prevRank = rankName(totalDeliv);
+    totalDeliv++; lsSet(LS.total, totalDeliv);
+    const nowRank = rankName(totalDeliv);
+    if (nowRank !== prevRank) {
+      setTimeout(() => { toast('✦ ¡Ascenso! — ' + nowRank, '#ffd27a'); sfxBonus(); fxBurst(P.pos, [0xffd060, 0xffffff, 0xff9a6a], 26, 1.6); }, 1200);
+    }
+    if (score > bestScore) { bestScore = score; lsSet(LS.score, bestScore); }
+    if (streak > bestStreak) { bestStreak = streak; lsSet(LS.streak, bestStreak); }
+    renderBest();
 
     newTask();
   }
@@ -466,6 +639,11 @@ function start(ctx, world) {
     const u = (x - bounds.minX) / spanX, v = (z - bounds.minZ) / spanZ;
     return [PAD + u * (MAPRES - PAD * 2), PAD + v * (MAPRES - PAD * 2)];
   }
+  const LY = world.layout;
+  function rectWorld(g, x0w, z0w, x1w, z1w, col) {
+    const [ax, ay] = mapXY(x0w, z0w), [bx, by] = mapXY(x1w, z1w);
+    g.fillStyle = col; g.fillRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay));
+  }
   function drawMap() {
     const g = mctx;
     g.clearRect(0, 0, MAPRES, MAPRES);
@@ -474,13 +652,18 @@ function start(ctx, world) {
     const [bx1, by1] = mapXY(bounds.maxX, bounds.maxZ);
     g.fillStyle = 'rgba(46,40,28,0.55)';
     g.fillRect(bx0, by0, bx1 - bx0, by1 - by0);
-    // central avenue band (z≈0 runs across the map) — abstract street
-    const [, ay] = mapXY(0, 0);
-    g.fillStyle = 'rgba(120,120,130,0.5)';
-    g.fillRect(bx0, ay - 8, bx1 - bx0, 16);
-    g.strokeStyle = 'rgba(255,255,255,0.18)';
-    g.lineWidth = 1;
-    g.beginPath(); g.moveTo(bx0, ay); g.lineTo(bx1, ay); g.stroke();
+    if (LY) {
+      const ROAD = 'rgba(172,160,138,0.55)';
+      // the real street grid: two avenues + two cross-streets
+      rectWorld(g, -LY.AVX, -LY.SW, LY.AVX, LY.SW, ROAD);
+      rectWorld(g, -LY.AV2X, LY.AV2Z - LY.SW, LY.AV2X, LY.AV2Z + LY.SW, ROAD);
+      [LY.CROSSX, LY.CROSSX2].forEach(cx => rectWorld(g, cx - LY.SW, LY.CROSSZ0, cx + LY.SW, LY.CROSSZ1, ROAD));
+      // green spaces + plaza
+      const pk = LY.park, pz = LY.plaza, gr = LY.green;
+      rectWorld(g, pk.x - pk.hw, pk.z - pk.hd, pk.x + pk.hw, pk.z + pk.hd, 'rgba(104,150,86,0.65)');
+      rectWorld(g, gr.x - gr.hw, gr.z - gr.hd, gr.x + gr.hw, gr.z + gr.hd, 'rgba(104,150,86,0.6)');
+      rectWorld(g, pz.x - pz.hw, pz.z - pz.hd, pz.x + pz.hw, pz.z + pz.hd, 'rgba(202,185,150,0.6)');
+    }
     // address dots (the building footprints, abstractly)
     g.fillStyle = 'rgba(220,210,180,0.55)';
     for (const a of ADDR) {
@@ -508,7 +691,13 @@ function start(ctx, world) {
     g.restore();
   }
 
-  return { update };
+  return { update, debug: {
+    P,
+    get pickup() { return pickup; }, get dropoff() { return dropoff; },
+    get carrying() { return carrying; }, get score() { return score; },
+    get stun() { return stun; }, get express() { return express; },
+    begin,
+  } };
 }
 
 FLY.game = { start };
