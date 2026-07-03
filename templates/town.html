@@ -266,7 +266,7 @@ if (composer) {
     const OutlineShader = {
       uniforms: { tDiffuse: { value: null }, tNormal: { value: null }, tDepth: { value: null },
         uTexel: { value: new T.Vector2(1 / 1280, 1 / 720) }, uNear: { value: camera.near }, uFar: { value: camera.far },
-        uNStr: { value: 1.9 }, uDStr: { value: 34.0 }, uThick: { value: 1.0 }, uColor: { value: new T.Color(0x231d1a) } },
+        uNStr: { value: 1.55 }, uDStr: { value: 34.0 }, uThick: { value: 1.0 }, uColor: { value: new T.Color(0x231d1a) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
       fragmentShader: `uniform sampler2D tDiffuse,tNormal,tDepth; uniform vec2 uTexel; uniform float uNear,uFar,uNStr,uDStr,uThick; uniform vec3 uColor; varying vec2 vUv;
         float rd(vec2 uv){ float z=texture2D(tDepth,uv).x; return (2.0*uNear)/(uFar+uNear-z*(uFar-uNear)); }
@@ -276,7 +276,12 @@ if (composer) {
           // across the page — plotted-perfect lines are forbidden.
           vec2 wUv=vUv+uTexel*vec2(sin(vUv.y*317.0+vUv.x*57.0),cos(vUv.x*291.0-vUv.y*43.0))*0.55;
           float tvar=0.78+0.5*(0.5+0.5*sin(wUv.x*231.0)*sin(wUv.y*187.0));
-          vec2 o=uTexel*uThick*tvar;
+          // DISTANCE-AWARE INK: crease detail is a close-up privilege. Far away,
+          // only silhouettes survive (thin + faded) — otherwise the whole street
+          // dissolves into line spaghetti at range.
+          float dHere=rd(wUv);
+          float distF=smoothstep(0.0035, 0.016, dHere);   // 1 near → 0 by ~55m
+          vec2 o=uTexel*uThick*tvar*mix(0.62,1.0,distF);
           vec3 nC=texture2D(tNormal,wUv).xyz*2.0-1.0;
           vec3 nR=texture2D(tNormal,wUv+vec2(o.x,0.0)).xyz*2.0-1.0;
           vec3 nL=texture2D(tNormal,wUv-vec2(o.x,0.0)).xyz*2.0-1.0;
@@ -285,16 +290,16 @@ if (composer) {
           // normal creases: strongest neighbour difference (sharper than a sum); a
           // dead-zone floor in the smoothstep kills micro-jitter speckle on flat walls
           float ne=max(max(1.0-dot(nC,nR),1.0-dot(nC,nL)),max(1.0-dot(nC,nU),1.0-dot(nC,nD)));
-          ne=smoothstep(0.18, 0.85, ne)*uNStr;
+          ne=smoothstep(0.18, 0.85, ne)*uNStr*mix(0.06, 1.0, distF);   // crease ink fades out fast
           // depth silhouettes: relative depth break, scaled so distant edges stay solid
           float dC=rd(wUv);
           float de=(abs(dC-rd(wUv+vec2(o.x,0.0)))+abs(dC-rd(wUv-vec2(o.x,0.0)))
                    +abs(dC-rd(wUv+vec2(0.0,o.y)))+abs(dC-rd(wUv-vec2(0.0,o.y))))/(dC+0.04);
-          de=smoothstep(0.018, 0.10, de)*(uDStr*0.04);
+          de=smoothstep(0.018, 0.10, de)*(uDStr*0.04)*mix(0.55, 1.0, distF);   // silhouettes fade gently
           // bias toward depth-silhouette + strong creases → one clean confident edge
           float edge=clamp(max(de, ne), 0.0, 1.0);
           // ink density breathes a little along the stroke (pen pressure)
-          edge=smoothstep(0.55, 0.92, edge)*(0.86+0.14*sin(wUv.x*401.0+wUv.y*367.0));
+          edge=smoothstep(0.55, 0.92, edge)*(0.86+0.14*sin(wUv.x*401.0+wUv.y*367.0))*mix(0.6, 1.0, distF);
           gl_FragColor=vec4(mix(base, uColor, edge), 1.0); }`
     };
     outlinePass = new T.ShaderPass(OutlineShader);

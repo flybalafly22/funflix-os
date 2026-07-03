@@ -52,7 +52,7 @@ function start(ctx, world) {
   const elScore = $('#score .n'), elScoreL = $('#score .l'), elNeedle = $('#needle'), elDist = $('#dist'), elToast = $('#toast');
   const hud = $('#hud') || document.body;
   let toastT = 0;
-  function toast(txt, col) { elToast.textContent = txt; elToast.style.color = col || '#fff'; elToast.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => elToast.classList.remove('show'), 1100); }
+  function toast(txt, col) { elToast.textContent = txt; elToast.style.color = col || '#2c261c'; elToast.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => elToast.classList.remove('show'), 1100); }
 
   /* ── injected CSS + new HUD elements (town.html stays untouched) ── */
   const css = document.createElement('style');
@@ -348,10 +348,11 @@ function start(ctx, world) {
     const tg = carrying ? dropoff : pickup;
     const col = carrying ? 0x7fe0a0 : 0xffd060;
     beam.material.color.setHex(col); ring.material.color.setHex(col);
-    beam.position.set(tg.pos.x, 15, tg.pos.z);
-    ring.position.set(tg.pos.x, 0.3, tg.pos.z);
+    const gy = tg.gy || 0;               // hilltop addresses sit on raised ground
+    beam.position.set(tg.pos.x, gy + 15, tg.pos.z);
+    ring.position.set(tg.pos.x, gy + 0.3, tg.pos.z);
     beam.visible = ring.visible = true;
-    objLetter.position.set(tg.pos.x, 3.6, tg.pos.z); objLetter.visible = !carrying;
+    objLetter.position.set(tg.pos.x, gy + 3.6, tg.pos.z); objLetter.visible = !carrying;
     elLbl.textContent = (express ? '⚡ ' : '') + (carrying ? 'Deliver to' : 'Pick up at');
     elLbl.style.color = express ? '#ffd27a' : '#ffd27a';
     elDst.textContent = tg.name;
@@ -709,7 +710,7 @@ function start(ctx, world) {
     // markers
     const tg = carrying ? dropoff : pickup;
     beam.rotation.y += dt * 0.4; ring.scale.setScalar(1 + Math.sin(now * 0.004) * 0.08);
-    objLetter.rotation.y += dt * 1.5; objLetter.position.y = 3.6 + Math.sin(now * 0.003) * 0.25;
+    objLetter.rotation.y += dt * 1.5; objLetter.position.y = (tg && tg.gy || 0) + 3.6 + Math.sin(now * 0.003) * 0.25;
 
     const dx = P.pos.x - tg.pos.x, dz = P.pos.z - tg.pos.z, dPlanar = Math.hypot(dx, dz);
     elDist.textContent = (!choosing && dPlanar < 90) ? Math.round(dPlanar) + ' m' : '—';
@@ -724,8 +725,8 @@ function start(ctx, world) {
       elTimerT.textContent = Math.max(0, jobLeft).toFixed(1) + 's';
       elTimerBar.style.width = (frac * 100).toFixed(1) + '%';
       const low = jobLeft < 5;
-      elTimerT.style.color = low ? '#ff8f8f' : '#fff';
-      elTimerBar.style.background = low ? '#ff6b6b' : (frac > 0.5 ? 'linear-gradient(90deg,#7fe0a0,#ffd27a)' : 'linear-gradient(90deg,#ffd27a,#ff9a6a)');
+      elTimerT.style.color = low ? '#c04434' : '#2c261c';
+      elTimerBar.style.background = low ? '#c04434' : (frac > 0.5 ? '#4d8a52' : '#c8862a');
       if (low && Math.floor(jobLeft + dt) !== Math.floor(jobLeft) && jobLeft > 0) blip(660, 0.06, 'square', 0.08);
       if (jobLeft <= 0) {
         // ran out of time: no points, combo broken, fresh job
@@ -792,7 +793,7 @@ function start(ctx, world) {
     elScore.textContent = score;
 
     sfxDeliver();
-    fxBurst(tg.pos);
+    fxBurst(tg.pos, null, 18, (tg.gy || 0) + 2.8);
     if (combo > 1) { fxBurst(tg.pos, [0xffd060, 0xffffff, 0xff9a6a], 12, 3.6); sfxBonus(); }
 
     const tip = (express ? '⚡ ' : '') + (combo > 1
@@ -870,6 +871,7 @@ function start(ctx, world) {
       rectWorld(g, pk.x - pk.hw, pk.z - pk.hd, pk.x + pk.hw, pk.z + pk.hd, '#a4c48c');
       rectWorld(g, gr.x - gr.hw, gr.z - gr.hd, gr.x + gr.hw, gr.z + gr.hd, '#a4c48c');
       rectWorld(g, pz.x - pz.hw, pz.z - pz.hd, pz.x + pz.hw, pz.z + pz.hd, '#e0d4b4');
+      (LY.hill || []).forEach(h => rectWorld(g, h.x - h.hw, h.z - h.hd, h.x + h.hw, h.z + h.hd, '#d8cba8'));
     }
     // address dots (the building footprints, abstractly)
     g.fillStyle = 'rgba(120,110,90,0.5)';

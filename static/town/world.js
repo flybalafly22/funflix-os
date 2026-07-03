@@ -855,6 +855,151 @@ function build(ctx) {
     s.rotation.z = L.rand(0, TAU); root.add(s);
   }
 
+  /* ══════════ THE MIRADOR — terraced hillside behind the park (Sprint 6).
+     Two stone terraces climb out of the park's south gate: houses on the first,
+     a chapel + lookout over the whole town on the second. The floors system
+     already supports arbitrary heights, so stairs are just stepped slabs. ══════ */
+  (function buildHill() {
+    const HX0 = -102, HX1 = -54;                       // fits the back-rank gap behind the park
+    const T1Z0 = -42, T1Z1 = -30, T1Y = 2.8;           // first terrace
+    const T2X0 = -94, T2X1 = -62, T2Z0 = -58, T2Z1 = -46, T2Y = 5.6;  // second terrace
+    const BX = (HX0 + HX1) / 2, T2BX = (T2X0 + T2X1) / 2;
+    const GATE = 1.9, SX = PARK_CX;                    // stairs align with the park's south gate
+    const stoneMat = L.MAT.wall('#cfc7ae');
+    const stepMat = L.std({ colorHex: '#c9c0a6', roughness: 0.92 });
+    const capMat2 = L.std({ colorHex: '#dcd4bc', roughness: 0.9 });
+    const grassTexH = (() => {
+      const c = L.cnv(128, 128), g = c.getContext('2d');
+      g.fillStyle = '#7aa257'; g.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 70; i++) { g.globalAlpha = L.rand(0.04, 0.1); g.fillStyle = L.chance(0.5) ? '#5c8a44' : '#86b066'; g.beginPath(); g.arc(L.rand(0, 128), L.rand(0, 128), L.rand(4, 14), 0, TAU); g.fill(); }
+      g.globalAlpha = 1; L.grain(g, 128, 128, 900, 0.05);
+      return L.finishTex(c, { repeat: [8, 3], aniso: 8 });
+    })();
+    const grassMatH = L.std({ map: grassTexH, roughness: 1 });
+
+    // terrace bodies (stone mass) + grass caps + walkable floors
+    root.add(L.box(HX1 - HX0, T1Y, T1Z1 - T1Z0, stoneMat, { x: BX, y: T1Y / 2, z: (T1Z0 + T1Z1) / 2, receive: true }));
+    root.add(L.box(HX1 - HX0 - 0.6, 0.14, T1Z1 - T1Z0 - 0.6, grassMatH, { x: BX, y: T1Y + 0.07, z: (T1Z0 + T1Z1) / 2, receive: true, cast: false }));
+    floorR(BX, (T1Z0 + T1Z1) / 2, (HX1 - HX0) / 2, (T1Z1 - T1Z0) / 2, T1Y + 0.14);
+    root.add(L.box(T2X1 - T2X0, T2Y, T2Z1 - T2Z0, stoneMat, { x: T2BX, y: T2Y / 2, z: (T2Z0 + T2Z1) / 2, receive: true }));
+    root.add(L.box(T2X1 - T2X0 - 0.6, 0.14, T2Z1 - T2Z0 - 0.6, grassMatH, { x: T2BX, y: T2Y + 0.07, z: (T2Z0 + T2Z1) / 2, receive: true, cast: false }));
+    floorR(T2BX, (T2Z0 + T2Z1) / 2, (T2X1 - T2X0) / 2, (T2Z1 - T2Z0) / 2, T2Y + 0.14);
+    // cream cap courses along the exposed faces (silhouette line)
+    root.add(L.box(HX1 - HX0 + 0.2, 0.24, 0.5, capMat2, { x: BX, y: T1Y + 0.02, z: T1Z1 - 0.1, cast: false }));
+    root.add(L.box(T2X1 - T2X0 + 0.2, 0.24, 0.5, capMat2, { x: T2BX, y: T2Y + 0.02, z: T2Z1 - 0.1, cast: false }));
+
+    // perimeter colliders (walls double as guard rails — no falling off), stairs gapped
+    const wall = (x, z, hw, hd) => colB(x, z, hw, hd);
+    // T1 north face (two segments around the stair)
+    wall((HX0 + (SX - GATE)) / 2, T1Z1, ((SX - GATE) - HX0) / 2, 0.4);
+    wall((HX1 + (SX + GATE)) / 2, T1Z1, (HX1 - (SX + GATE)) / 2, 0.4);
+    wall(HX0, (T1Z0 + T1Z1) / 2, 0.4, (T1Z1 - T1Z0) / 2 + 0.4);   // T1 west
+    wall(HX1, (T1Z0 + T1Z1) / 2, 0.4, (T1Z1 - T1Z0) / 2 + 0.4);   // T1 east
+    // T1 south face outside T2's span (T2 covers the middle)
+    wall((HX0 + T2X0) / 2, T1Z0, (T2X0 - HX0) / 2, 0.4);
+    wall((HX1 + T2X1) / 2, T1Z0, (HX1 - T2X1) / 2, 0.4);
+    // T2 north face (two segments around its stair)
+    wall((T2X0 + (SX - GATE)) / 2, T2Z1, ((SX - GATE) - T2X0) / 2, 0.4);
+    wall((T2X1 + (SX + GATE)) / 2, T2Z1, (T2X1 - (SX + GATE)) / 2, 0.4);
+    wall(T2X0, (T2Z0 + T2Z1) / 2, 0.4, (T2Z1 - T2Z0) / 2 + 0.4);  // T2 west
+    wall(T2X1, (T2Z0 + T2Z1) / 2, 0.4, (T2Z1 - T2Z0) / 2 + 0.4);  // T2 east
+    wall(T2BX, T2Z0, (T2X1 - T2X0) / 2 + 0.4, 0.4);               // T2 south (back)
+
+    // stairs: solid stone steps; each tread is also a walkable floor strip
+    function stairs(x, w, z0, z1, y0, y1) {
+      const n = 8, dz = (z1 - z0) / n, dy = (y1 - y0) / n;
+      for (let k = 0; k < n; k++) {
+        const zc = z0 + dz * (k + 0.5), yt = y0 + dy * (k + 1);
+        root.add(L.box(w, yt, Math.abs(dz) + 0.04, stepMat, { x, y: yt / 2, z: zc, receive: true }));
+        floorR(x, zc, w / 2, Math.abs(dz) / 2 + 0.05, yt);
+      }
+      // cheek walls so the climb is safe
+      colB(x - w / 2 - 0.22, (z0 + z1) / 2, 0.2, Math.abs(z1 - z0) / 2 + 0.2);
+      colB(x + w / 2 + 0.22, (z0 + z1) / 2, 0.2, Math.abs(z1 - z0) / 2 + 0.2);
+    }
+    stairs(SX, 3.4, -26.4, T1Z1, CH, T1Y + 0.14);
+    stairs(SX, 3.2, T1Z0, T2Z1, T1Y + 0.14, T2Y + 0.14);
+
+    // balustrade posts along the terrace lips (visual — colliders already block)
+    function balustrade(x0, x1, z, y) {
+      for (let x = x0; x <= x1; x += 1.3) {
+        if (Math.abs(x - SX) < GATE + 0.4) continue;
+        root.add(L.box(0.12, 0.8, 0.12, capMat2, { x, y: y + 0.4, z, cast: false }));
+      }
+      // top rails in segments around the stair gap
+      root.add(L.box(Math.max(0.1, SX - GATE - 0.4 - x0), 0.1, 0.14, capMat2, { x: (x0 + SX - GATE - 0.4) / 2, y: y + 0.84, z, cast: false }));
+      root.add(L.box(Math.max(0.1, x1 - (SX + GATE + 0.4)), 0.1, 0.14, capMat2, { x: (x1 + SX + GATE + 0.4) / 2, y: y + 0.84, z, cast: false }));
+    }
+    balustrade(HX0 + 0.6, HX1 - 0.6, T1Z1 + 0.15, T1Y + 0.14);
+    balustrade(T2X0 + 0.6, T2X1 - 0.6, T2Z1 + 0.15, T2Y + 0.14);
+
+    // two hillside houses on T1, facing the town
+    [['CASA COLINA', -94, '#d4c8a8'], ['EL NIDO', -62, '#c9bfa4']].forEach(([nm, hx, wallHex]) => {
+      const bspec = { w: 6.2, d: 6.4, floors: 2, archetype: 'townhouse', wall: wallHex, name: nm, signColor: '#4a5a3a', awning: null, extras: [], seed: hx * 7 };
+      const g = B.make(bspec); g.position.set(hx, T1Y + 0.14, -37); g.rotation.y = Math.PI; dressB(g); root.add(g);
+      colB(hx, -37, 3.1, 3.2);
+      addresses.push({ name: nm, pos: new T.Vector3(hx, T1Y + 2.6, -33.4), gy: T1Y + 0.14 });
+    });
+
+    // LA ERMITA — little white chapel on T2 (the hilltop silhouette)
+    (function ermita() {
+      const ex = -86, ez = -53, ey = T2Y + 0.14;
+      const white = L.MAT.wall('#ded6c0');
+      root.add(L.box(4.0, 3.4, 5.0, white, { x: ex, y: ey + 1.7, z: ez, receive: true }));
+      // pitched roof slabs
+      const roofM = L.std({ colorHex: '#8a5446', roughness: 0.88 });
+      [-1, 1].forEach(s => { const slab = L.box(2.6, 0.14, 5.6, roofM, { x: ex + s * 1.05, y: ey + 4.0, z: ez }); slab.rotation.z = -s * 0.5; root.add(slab); });
+      // bell gable + bell
+      root.add(L.box(1.5, 1.6, 0.3, white, { x: ex, y: ey + 5.0, z: ez + 0.6 }));
+      root.add(L.box(0.62, 0.62, 0.34, L.std({ colorHex: '#2a2620', roughness: 0.8 }), { x: ex, y: ey + 5.0, z: ez + 0.6, cast: false }));
+      root.add(L.sphere(0.16, 8, L.std({ colorHex: '#8a7a3a', roughness: 0.5, metalness: 0.4 }), { x: ex, y: ey + 4.95, z: ez + 0.6, cast: false }));
+      // door + step
+      root.add(L.box(1.1, 1.9, 0.16, L.MAT.wood('#5a4028'), { x: ex, y: ey + 0.95, z: ez + 2.56, cast: false }));
+      root.add(L.box(1.6, 0.16, 0.7, capMat2, { x: ex, y: ey + 0.08, z: ez + 2.9, cast: false }));
+      colB(ex, ez, 2.1, 2.6);
+      addresses.push({ name: 'LA ERMITA', pos: new T.Vector3(ex, T2Y + 2.6, ez + 3.4), gy: T2Y + 0.14 });
+    })();
+
+    // EL MIRADOR — the lookout: benches, lamp, telescope, and the whole town below
+    (function mirador() {
+      const mx = -70, mz = -48.6, my = T2Y + 0.14;
+      [[-1.6, 0], [1.6, 0]].forEach(([dx]) => { const b = P.makeBench(); b.position.set(mx + dx, my, mz); b.rotation.y = 0; root.add(b); colC(mx + dx, mz, 0.75); });
+      const lp = P.makeLamp(); lp.position.set(mx - 3.4, my, mz); root.add(lp); colC(mx - 3.4, mz, 0.28);
+      // brass telescope on a post
+      root.add(L.cyl(0.05, 0.07, 1.1, 8, L.MAT.metalDark, { x: mx, y: my + 0.55, z: mz - 0.8 }));
+      const scope = L.cyl(0.07, 0.1, 0.6, 8, L.std({ colorHex: '#8a7a3a', roughness: 0.4, metalness: 0.5 }), { x: mx, y: my + 1.25, z: mz - 0.9 });
+      scope.rotation.x = 1.15; root.add(scope); colC(mx, mz - 0.8, 0.2);
+      addresses.push({ name: 'EL MIRADOR', pos: new T.Vector3(mx, T2Y + 2.6, mz + 1.2), gy: T2Y + 0.14 });
+    })();
+
+    // greenery + life up top
+    [[-98, -33, 1], [-58, -40, 1], [-88, -49.5, 0], [-64, -56, 1]].forEach(([x, z, big], i) => {
+      const onT2 = z < T2Z1;
+      const tr = P.makeTree({ big: !!big }); tr.position.set(x, (onT2 ? T2Y : T1Y) + 0.14, z); root.add(tr);
+      colC(x, z, 0.55); treePts.push([x, z]);
+    });
+    [[-90, -34], [-66, -35]].forEach(([x, z]) => { const pl = P.makePlanter(); pl.position.set(x, T1Y + 0.14, z); root.add(pl); colC(x, z, 0.62); });
+    // two hilltop strollers (walkers with a raised base height)
+    for (let k = 0; k < 2; k++) {
+      const n = C.makeNPC();
+      n.position.set(BX + L.rand(-16, 16), T1Y + 0.14, L.rand(T1Z0 + 2, T1Z1 - 2));
+      n.userData.npc = { kind: 'plaza', lane: n.position.z, cx: n.position.x, speed: L.rand(0.4, 0.8) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), state: 'walk', timer: L.rand(2, 6), wave: 0, baseY: T1Y + 0.14 };
+      root.add(n); npcs.push(n);
+    }
+    // festoon strand across the mirador terrace
+    (function hillFestoon() {
+      const bulbMat = L.MAT.emissive('#ffd27a', 1.1), cordMat = L.MAT.flat('#2a2620');
+      let prev = null; const N = 12, x0 = T2X0 + 4, x1 = T2X1 - 4;
+      for (let i = 0; i <= N; i++) {
+        const t = i / N, x = x0 + (x1 - x0) * t, y = T2Y + 4.6 - Math.sin(Math.PI * t) * -1 * 0 - 4 * 1.6 * t * (1 - t) * 0.55;
+        if (i % 2 === 0) root.add(L.sphere(0.11, 8, bulbMat, { x, y, z: T2Z1 + 0.4, cast: false }));
+        if (prev) { const dx = x - prev.x, dy = y - prev.y, len = Math.hypot(dx, dy); const seg = L.box(len, 0.025, 0.025, cordMat, { x: (x + prev.x) / 2, y: (y + prev.y) / 2, z: T2Z1 + 0.4, cast: false }); seg.rotation.z = Math.atan2(dy, dx); root.add(seg); }
+        prev = { x, y };
+      }
+      [x0, x1].forEach(px => root.add(L.cyl(0.06, 0.08, 4.8, 7, L.MAT.wood('#6a5840'), { x: px, y: T2Y + 2.4, z: T2Z1 + 0.4 })));
+    })();
+  })();
+
   /* ── MOVING TRAFFIC on the avenues (along X) ── total ≤ 14 cars + tram ── */
   // main avenue (longer): 9 cars; second avenue: 5 cars
   [[0, -AVX, AVX, 9], [AV2Z, -AV2X, AV2X, 5]].forEach(([avZ, x0, x1, count]) => {
@@ -1207,7 +1352,7 @@ function build(ctx) {
   // second-avenue north row, the park (-Z) and the clock tower (+Z).
   const bounds = {
     minX: -AVX - 4, maxX: AVX + 4,
-    minZ: -(ROWZ + 14),                      // park / south cross-rows
+    minZ: -62,                               // the mirador hill behind the park
     maxZ: CROSSZ1 + 6,                       // second-avenue north row / cross-street north ends
     minY: 2.2, maxY: 46,
   };
@@ -1246,7 +1391,7 @@ function build(ctx) {
       if (n.position.x < lo) u.speed = Math.abs(u.speed);
       n.rotation.y = u.speed > 0 ? Math.PI / 2 : -Math.PI / 2;
       C.animateWalk(n, t * 3 + u.phase, moving);
-      n.position.y = CH + (moving ? Math.abs(Math.sin(t * 3 + u.phase)) * 0.03 : 0);
+      n.position.y = (u.baseY != null ? u.baseY : CH) + (moving ? Math.abs(Math.sin(t * 3 + u.phase)) * 0.03 : 0);
       // wave (raise right arm) at the Fly
       if (u.wave > 0.05 && n.userData.limbs) n.userData.limbs.armR.rotation.x = -2.4 * u.wave + Math.sin(now * 0.02) * 0.4 * u.wave;
     }
@@ -1347,6 +1492,7 @@ function build(ctx) {
     plaza: { x: 0, z: (SW + ROWZ + 7) / 2, hw: PLAZA_HALF, hd: ((ROWZ + 7) - SW) / 2 },
     park: { x: PARK_CX, z: (-SW - (ROWZ + 7)) / 2, hw: PARK_HALF, hd: ((ROWZ + 7) - SW) / 2 },
     green: { x: GREEN2_CX, z: ((AV2Z - SW - 1) + (ROW2ZF + 3.5)) / 2, hw: GREEN2_HALF, hd: ((AV2Z - SW - 1) - (ROW2ZF + 3.5)) / 2 },
+    hill: [ { x: -78, z: -36, hw: 24, hd: 6 }, { x: -78, z: -52, hw: 16, hd: 6 } ],
   };
 
   return { addresses, update, bounds, spawn, colliders, floors, layout, traffic: cars, npcs };
