@@ -198,6 +198,10 @@ function build(ctx) {
     }
   };
   const smokePts = [];
+  const treePts = [];   // every planted tree — anchors for falling leaves
+  // handcrafted, not plotted: ordinary buildings lean and settle a hair so the
+  // rows stop reading as a perfect grid (landmarks stay crisp)
+  const dressB = g => { g.rotation.y += L.jitter(0.018); g.scale.set(1 + L.jitter(0.02), 1 + L.jitter(0.03), 1 + L.jitter(0.02)); };
   // shared player handle — game.js writes player.pos each frame so townsfolk can react
   ctx.player = ctx.player || { pos: new T.Vector3(0, 9, 0) };
 
@@ -317,7 +321,7 @@ function build(ctx) {
   for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; const b = P.makeBench(); b.position.set(Math.cos(a) * 6, CH, SW + 6 + Math.sin(a) * 6); b.rotation.y = -a + Math.PI / 2; root.add(b); colC(Math.cos(a) * 6, SW + 6 + Math.sin(a) * 6, 0.75); }
   [[-13, 1], [13, 1]].forEach(([x, s]) => { const cf = P.makeCafe(); cf.position.set(x, CH, SW + 4); root.add(cf); colC(x, SW + 4, 3.0); });
   [[-9, 0], [9, 0], [0, 1]].forEach(([dx, dz]) => { const st = P.makeMarketStall(); st.position.set(dx, CH, SW + 11 + dz * 2); st.rotation.y = Math.PI; root.add(st); colC(dx, SW + 11 + dz * 2, 2.1); });
-  [[-15, SW + 12], [15, SW + 12], [-7, SW + 13], [7, SW + 13]].forEach(([x, z]) => { const tr = P.makeTree({ big: true }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); });
+  [[-15, SW + 12], [15, SW + 12], [-7, SW + 13], [7, SW + 13]].forEach(([x, z]) => { const tr = P.makeTree({ big: true }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); treePts.push([x, z]); });
   // §5.3 focal-heart density bump: planters & lamps ring the founter plaza (densest here)
   for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.4; const pl = P.makePlanter(); pl.position.set(Math.cos(a) * 9.5, CH, SW + 6 + Math.sin(a) * 9.5); root.add(pl); colC(Math.cos(a) * 9.5, SW + 6 + Math.sin(a) * 9.5, 0.62); }
   [[-11, SW + 2], [11, SW + 2], [-11, SW + 10], [11, SW + 10]].forEach(([x, z]) => { const lp = P.makeLamp(); lp.position.set(x, CH, z); root.add(lp); colC(x, z, 0.28); });
@@ -364,7 +368,7 @@ function build(ctx) {
       if (sc != null) { xRef.x = sc + XGAP; ri--; continue; }
       const cx = xRef.x + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 97 + side * 13 };
-      const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
+      const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; dressB(g); root.add(g);
       colB(cx, z, w / 2, d / 2); addLocalCols(g, cx, z, faceAngle);
       const ax = cx + frontDir.x * (d / 2 + 1.6), az = z + frontDir.z * (d / 2 + 1.6);
       addresses.push({ name: spec[0], pos: new T.Vector3(ax, 2.6, az) });
@@ -398,7 +402,7 @@ function build(ctx) {
       if (straddleC != null) { xRef.x = straddleC + 25; ri--; continue; }
       const cx = xRef.x + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: '', signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 67 + side * 41 + 1300 };
-      const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
+      const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; dressB(g); root.add(g);
       colB(cx, z, w / 2, d / 2); addLocalCols(g, cx, z, faceAngle);
       // wide spacing so the back rank stays sparse (block interior) and thins at the ends
       xRef.x += w + L.rand(6, 10) * (1.0 + 0.6 * (1 - L.clamp(1 - Math.abs(cx) / 110, 0, 1)));
@@ -427,7 +431,7 @@ function build(ctx) {
       if (sc != null) { xRef.x = sc + XGAP; ri--; continue; }
       const cx = xRef.x + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 83 + side * 29 + 2100 };
-      const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; root.add(g);
+      const g = B.make(bspec); g.position.set(cx, 0, z); g.rotation.y = faceAngle; dressB(g); root.add(g);
       colB(cx, z, w / 2, d / 2); addLocalCols(g, cx, z, faceAngle);
       const ax = cx + frontDir.x * (d / 2 + 1.6), az = z + frontDir.z * (d / 2 + 1.6);
       addresses.push({ name: spec[0], pos: new T.Vector3(ax, 2.6, az) });
@@ -462,7 +466,7 @@ function build(ctx) {
       if (straddle) continue;
       const cz = z + w / 2;
       const bspec = { w, d, floors: spec[3], archetype: spec[2], wall: spec[1], name: spec[0], signColor: spec[4], awning: spec[5], extras: spec[6], seed: ri * 89 + rowOffsetSign * 23 + seedBase };
-      const g = B.make(bspec); g.position.set(rowX, 0, cz); g.rotation.y = faceAngle; root.add(g);
+      const g = B.make(bspec); g.position.set(rowX, 0, cz); g.rotation.y = faceAngle; dressB(g); root.add(g);
       colB(rowX, cz, d / 2, w / 2);   // rotated ±90°: depth runs along X, width along Z
       addLocalCols(g, rowX, cz, faceAngle);
       const ax = rowX + frontDir.x * (d / 2 + 1.6), az = cz + frontDir.z * (d / 2 + 1.6);
@@ -612,7 +616,7 @@ function build(ctx) {
       const x = PARK_CX + dx, z = cz + dz;
       if (i % 3 === 0) { const b = P.makeBench(); b.position.set(x, CH, z); b.rotation.y = L.rand(0, TAU); root.add(b); colC(x, z, 0.75); }
       else if (i % 3 === 1) { const pl = P.makePlanter(); pl.position.set(x, CH, z); root.add(pl); colC(x, z, 0.62); }
-      else { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); }
+      else { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); treePts.push([x, z]); }
     });
     // a few park strollers
     for (let k = 0; k < 4; k++) { const n = C.makeNPC(); n.position.set(PARK_CX + L.rand(-PARK_HALF + 3, PARK_HALF - 3), CH, cz + L.rand(-pd / 2 + 3, pd / 2 - 3)); n.userData.npc = { speed: L.rand(0.4, 0.9) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), lane: n.position.z, kind: 'plaza', cx: n.position.x }; root.add(n); npcs.push(n); }
@@ -641,7 +645,7 @@ function build(ctx) {
     root.add(L.cyl(0.22, 0.28, 1.6, 10, L.std({ color: 0x8c8470, roughness: 0.85 }), { x: GREEN2_CX, y: CH + 1.6, z: cz }));
     [[-9, -2], [9, -2], [-9, 2], [9, 2], [0, 2.4]].forEach(([dx, dz], i) => {
       const x = GREEN2_CX + dx, z = cz + dz;
-      if (i % 2 === 0) { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); }
+      if (i % 2 === 0) { const tr = P.makeTree({ big: L.chance(0.6) }); tr.position.set(x, CH, z); root.add(tr); colC(x, z, 0.55); treePts.push([x, z]); }
       else { const b = P.makeBench(); b.position.set(x, CH, z); b.rotation.y = L.rand(0, TAU); root.add(b); colC(x, z, 0.75); }
     });
     [[-GREEN2_HALF + 1, 0], [GREEN2_HALF - 1, 0]].forEach(([dx]) => { const lp = P.makeLamp(); lp.position.set(GREEN2_CX + dx, CH, cz); root.add(lp); colC(GREEN2_CX + dx, cz, 0.28); });
@@ -724,7 +728,7 @@ function build(ctx) {
         const typ = SEQ[idx % SEQ.length];
         const obj = makeFurniture(typ); idx++;
         obj.position.set(x, CH, zBase); obj.rotation.y = side < 0 ? Math.PI : 0; root.add(obj);
-        colC(x, zBase, FURN_R[typ] || 0.4);
+        colC(x, zBase, FURN_R[typ] || 0.4); if (typ === 'tree') treePts.push([x, zBase]);
         x += densStep(x, 5.5, 8.5);
       }
       // utility poles + connected wires along the run
@@ -746,7 +750,7 @@ function build(ctx) {
         const typ = SEQ[idx % SEQ.length];
         const obj = makeFurniture(typ); idx++;
         obj.position.set(xBase, CH, z); obj.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2; root.add(obj);
-        colC(xBase, z, FURN_R[typ] || 0.4);
+        colC(xBase, z, FURN_R[typ] || 0.4); if (typ === 'tree') treePts.push([xBase, z]);
         // §5.3: dense near the avenue junctions, thinning toward block ends
         const cw = L.clamp(1 - Math.min(Math.abs(z), Math.abs(z - AV2Z)) / 26, 0, 1);
         z += L.rand(5.5, 8.0) * (1.0 + 0.7 * (1 - cw));
@@ -1063,6 +1067,102 @@ function build(ctx) {
     if (window.console) console.log('[FLY] batched static geometry:', removed, 'meshes ->', merged, 'merged draws');
   })();
 
+  /* ── MICRO-DETAIL LAYER: grass, flowers, butterflies, leaves.
+     Primary=buildings · secondary=trees/lamps · tertiary=clutter — this is the
+     4th tier that makes the ground feel grown rather than tiled. ── */
+  (function grassAndFlowers() {
+    const BU = window.THREE && THREE.BufferGeometryUtils;
+    if (!BU || !BU.mergeBufferGeometries) return;
+    // one tuft = two small crossed blades
+    const q1 = new T.PlaneGeometry(0.12, 0.15);
+    const q2 = q1.clone(); q2.rotateY(Math.PI / 2);
+    const tuftGeo = BU.mergeBufferGeometries([q1, q2], false);
+    tuftGeo.translate(0, 0.07, 0);
+    const parkCz = (-SW - (ROWZ + 7)) / 2, parkHd = ((ROWZ + 7) - SW) / 2;
+    const gCz = ((AV2Z - SW - 1) + (ROW2ZF + 3.5)) / 2, gHd = ((AV2Z - SW - 1) - (ROW2ZF + 3.5)) / 2;
+    function clearOfLandmarks(x, z) {
+      if (Math.hypot(x - (PARK_CX + 8), z - (parkCz - 5)) < 5.4) return false;   // pond
+      if (Math.hypot(x - (PARK_CX - 8), z - (parkCz + 4)) < 3.4) return false;   // gazebo
+      if (Math.hypot(x - GREEN2_CX, z - gCz) < 1.6) return false;                // monument
+      return true;
+    }
+    // grow in CLUMPS around cluster hearts — patches read as growth, scatter reads as confetti
+    const spots = [];
+    function clump(cx, cz2, n) {
+      for (let k = 0; k < n; k++) {
+        const x = cx + L.jitter(1.3), z = cz2 + L.jitter(1.3);
+        if (clearOfLandmarks(x, z)) spots.push([x, z]);
+      }
+    }
+    for (let c = 0; c < 34; c++) {   // park clumps (skip the cross paths)
+      const x = PARK_CX + L.rand(-PARK_HALF + 2, PARK_HALF - 2), z = parkCz + L.rand(-parkHd + 2, parkHd - 2);
+      if (Math.abs(x - PARK_CX) < 2.2 || Math.abs(z - parkCz) < 2.2) continue;
+      clump(x, z, L.randInt(5, 9));
+    }
+    for (let c = 0; c < 12; c++) clump(GREEN2_CX + L.rand(-GREEN2_HALF + 2, GREEN2_HALF - 2), gCz + L.rand(-gHd + 1, gHd - 1), L.randInt(4, 7));
+    // split per shade: guaranteed color variety with zero instanceColor dependence
+    const GRASS_COLS = [0x41682f, 0x4d7a38, 0x578542];
+    const buckets = GRASS_COLS.map(() => []);
+    spots.forEach((s, i) => buckets[i % buckets.length].push(s));
+    buckets.forEach((bkt, bi) => {
+      if (!bkt.length) return;
+      const im = new T.InstancedMesh(tuftGeo, L.std({ colorHex: '#' + GRASS_COLS[bi].toString(16).padStart(6, '0'), side: T.DoubleSide, roughness: 0.95 }), bkt.length);
+      bkt.forEach(([x, z], i) => im.setMatrixAt(i, L.compose(x, CH, z, L.rand(0, TAU), 1, L.rand(0.7, 1.3), 1)));
+      im.instanceMatrix.needsUpdate = true;
+      im.castShadow = false; im.receiveShadow = false;
+      root.add(im);
+    });
+    // flower dots at some clump hearts (accent budget: warm + one cool)
+    const FLOWER_COLS = ['#a8352c', '#b0741c', '#7a3f7a'];
+    const fGeo = new T.SphereGeometry(0.045, 6, 5);
+    FLOWER_COLS.forEach((fc, fi) => {
+      const pts = spots.filter((s, i) => i % 9 === fi * 3);
+      if (!pts.length) return;
+      const fim = new T.InstancedMesh(fGeo, L.std({ colorHex: fc, roughness: 0.8 }), pts.length);
+      pts.forEach(([x, z], i) => fim.setMatrixAt(i, L.compose(x + L.jitter(0.3), CH + 0.14, z + L.jitter(0.3), 0, 1, 1, 1)));
+      fim.instanceMatrix.needsUpdate = true; fim.castShadow = false;
+      root.add(fim);
+    });
+  })();
+
+  /* butterflies — tiny two-wing flutters orbiting the green places */
+  const butterflies = [];
+  (function makeButterflies() {
+    const anchors = [
+      [PARK_CX + 4, (-SW - (ROWZ + 7)) / 2 + 2], [PARK_CX - 10, (-SW - (ROWZ + 7)) / 2 - 4],
+      [GREEN2_CX + 4, ((AV2Z - SW - 1) + (ROW2ZF + 3.5)) / 2], [6, SW + 9], [-8, SW + 10],
+    ];
+    const COLS = [0xe8e2d0, 0xd8b14a, 0xb58ac8, 0xe0906a];
+    for (let k = 0; k < 7; k++) {
+      const g = new T.Group();
+      const mat = new T.MeshBasicMaterial({ color: L.pick(COLS), side: T.DoubleSide });
+      L.curve(mat);
+      const pl = new T.Group(), pr = new T.Group();
+      const wl = new T.Mesh(new T.PlaneGeometry(0.09, 0.07), mat); wl.position.x = -0.05;
+      const wr = new T.Mesh(new T.PlaneGeometry(0.09, 0.07), mat); wr.position.x = 0.05;
+      pl.add(wl); pr.add(wr); g.add(pl, pr);
+      const [ax, az] = anchors[k % anchors.length];
+      g.userData = { ax, az, a: L.rand(0, TAU), r: L.rand(1.5, 4), sp: L.rand(0.5, 0.9), ph: L.rand(0, TAU), pl, pr };
+      root.add(g); butterflies.push(g);
+    }
+  })();
+
+  /* falling leaves — drift down out of the planted trees, then respawn */
+  const leaves = [];
+  (function makeLeaves() {
+    if (!treePts.length) return;
+    const LCOLS = [0x4d7a34, 0x5d8542, 0x8a7a2c];
+    for (let k = 0; k < 14; k++) {
+      const mat = new T.MeshBasicMaterial({ color: L.pick(LCOLS), side: T.DoubleSide, transparent: true, opacity: 0.9 });
+      L.curve(mat);
+      const m = new T.Mesh(new T.PlaneGeometry(0.11, 0.08), mat);
+      const [tx, tz] = L.pick(treePts);
+      m.position.set(tx + L.jitter(0.8), L.rand(1.4, 3.4), tz + L.jitter(0.8));
+      m.userData = { vy: L.rand(0.3, 0.55), ph: L.rand(0, TAU), sw: L.rand(0.4, 0.9) };
+      root.add(m); leaves.push(m);
+    }
+  })();
+
   /* ── CHIMNEY SMOKE — soft puffs drifting off rooftop vents (post-batch, dynamic) ── */
   const smokes = [];
   smokePts.forEach(p => {
@@ -1183,6 +1283,28 @@ function build(ctx) {
       s.position.set(u.home.x + t * u.driftX * 6 + Math.sin(now * 0.001 + u.phase) * 0.3 * t, u.home.y + t * 3.4, u.home.z + t * 0.6);
       s.scale.setScalar(0.5 + t * 1.7);
       s.material.opacity = 0.32 * Math.sin(Math.PI * Math.min(1, t * 1.15));
+    }
+    // butterflies: lazy orbit + fast wing flap, always facing travel
+    for (const bf of butterflies) {
+      const u = bf.userData;
+      u.a += u.sp * dt * (0.7 + 0.3 * Math.sin(now * 0.0007 + u.ph));
+      const r = u.r + Math.sin(now * 0.0011 + u.ph) * 0.8;
+      bf.position.set(u.ax + Math.cos(u.a) * r, CH + 0.9 + Math.sin(now * 0.0021 + u.ph) * 0.45, u.az + Math.sin(u.a) * r);
+      bf.rotation.y = -u.a;
+      const flap = 0.25 + Math.abs(Math.sin(now * 0.024 + u.ph)) * 1.05;
+      u.pl.rotation.y = flap; u.pr.rotation.y = -flap;
+    }
+    // falling leaves: tumble down with sway, respawn in another tree
+    for (const lf of leaves) {
+      const u = lf.userData;
+      lf.position.y -= u.vy * dt;
+      lf.position.x += Math.sin(now * 0.0016 + u.ph) * u.sw * dt;
+      lf.rotation.x += dt * 1.6; lf.rotation.z += dt * 0.9;
+      lf.material.opacity = Math.min(0.9, (lf.position.y - CH) * 2.4);
+      if (lf.position.y < CH + 0.03) {
+        const [tx, tz] = L.pick(treePts);
+        lf.position.set(tx + L.jitter(0.9), L.rand(1.6, 3.4), tz + L.jitter(0.9));
+      }
     }
     // circling birds
     for (const bd of birds) {

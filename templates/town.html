@@ -265,24 +265,31 @@ if (composer) {
       vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
       fragmentShader: `uniform sampler2D tDiffuse,tNormal,tDepth; uniform vec2 uTexel; uniform float uNear,uFar,uNStr,uDStr,uThick; uniform vec3 uColor; varying vec2 vUv;
         float rd(vec2 uv){ float z=texture2D(tDepth,uv).x; return (2.0*uNear)/(uFar+uNear-z*(uFar-uNear)); }
-        void main(){ vec3 base=texture2D(tDiffuse,vUv).rgb; vec2 o=uTexel*uThick;
-          vec3 nC=texture2D(tNormal,vUv).xyz*2.0-1.0;
-          vec3 nR=texture2D(tNormal,vUv+vec2(o.x,0.0)).xyz*2.0-1.0;
-          vec3 nL=texture2D(tNormal,vUv-vec2(o.x,0.0)).xyz*2.0-1.0;
-          vec3 nU=texture2D(tNormal,vUv+vec2(0.0,o.y)).xyz*2.0-1.0;
-          vec3 nD=texture2D(tNormal,vUv-vec2(0.0,o.y)).xyz*2.0-1.0;
+        void main(){ vec3 base=texture2D(tDiffuse,vUv).rgb;
+          // HAND-DRAWN IMPERFECTION: wobble where the edge is *detected* (not the
+          // image itself) so the ink meanders ±0.5px, and vary stroke thickness
+          // across the page — plotted-perfect lines are forbidden.
+          vec2 wUv=vUv+uTexel*vec2(sin(vUv.y*317.0+vUv.x*57.0),cos(vUv.x*291.0-vUv.y*43.0))*0.55;
+          float tvar=0.78+0.5*(0.5+0.5*sin(wUv.x*231.0)*sin(wUv.y*187.0));
+          vec2 o=uTexel*uThick*tvar;
+          vec3 nC=texture2D(tNormal,wUv).xyz*2.0-1.0;
+          vec3 nR=texture2D(tNormal,wUv+vec2(o.x,0.0)).xyz*2.0-1.0;
+          vec3 nL=texture2D(tNormal,wUv-vec2(o.x,0.0)).xyz*2.0-1.0;
+          vec3 nU=texture2D(tNormal,wUv+vec2(0.0,o.y)).xyz*2.0-1.0;
+          vec3 nD=texture2D(tNormal,wUv-vec2(0.0,o.y)).xyz*2.0-1.0;
           // normal creases: strongest neighbour difference (sharper than a sum); a
           // dead-zone floor in the smoothstep kills micro-jitter speckle on flat walls
           float ne=max(max(1.0-dot(nC,nR),1.0-dot(nC,nL)),max(1.0-dot(nC,nU),1.0-dot(nC,nD)));
           ne=smoothstep(0.18, 0.85, ne)*uNStr;
           // depth silhouettes: relative depth break, scaled so distant edges stay solid
-          float dC=rd(vUv);
-          float de=(abs(dC-rd(vUv+vec2(o.x,0.0)))+abs(dC-rd(vUv-vec2(o.x,0.0)))
-                   +abs(dC-rd(vUv+vec2(0.0,o.y)))+abs(dC-rd(vUv-vec2(0.0,o.y))))/(dC+0.04);
+          float dC=rd(wUv);
+          float de=(abs(dC-rd(wUv+vec2(o.x,0.0)))+abs(dC-rd(wUv-vec2(o.x,0.0)))
+                   +abs(dC-rd(wUv+vec2(0.0,o.y)))+abs(dC-rd(wUv-vec2(0.0,o.y))))/(dC+0.04);
           de=smoothstep(0.018, 0.10, de)*(uDStr*0.04);
           // bias toward depth-silhouette + strong creases → one clean confident edge
           float edge=clamp(max(de, ne), 0.0, 1.0);
-          edge=smoothstep(0.55, 0.92, edge);
+          // ink density breathes a little along the stroke (pen pressure)
+          edge=smoothstep(0.55, 0.92, edge)*(0.86+0.14*sin(wUv.x*401.0+wUv.y*367.0));
           gl_FragColor=vec4(mix(base, uColor, edge), 1.0); }`
     };
     outlinePass = new T.ShaderPass(OutlineShader);

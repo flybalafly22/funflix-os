@@ -542,11 +542,17 @@ function start(ctx, world) {
     if (stunned || !begun) mag = 0;
 
     if (mag > 0.05) {
-      const wishYaw = camYaw + Math.atan2(ix, iy);           // screen-up = camera-forward
+      // screen-up = camera-forward; screen-right for heading θ is (-cosθ, 0, sinθ)
+      // in this right-handed Y-up world, so the X input must be NEGATED here —
+      // atan2(+ix, iy) mirrors left/right.
+      const wishYaw = camYaw + Math.atan2(-ix, iy);
       let dy = wishYaw - P.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
       P.yaw += dy * L.dampT(dt, 11);                          // quick, smooth turn-in
+      // camera settles behind scaled by alignment (cos dc): full chase when
+      // running away from it, none on a pure strafe or reversal — otherwise the
+      // chase rotates the input frame and straight lines become circles
       let dc = P.yaw - camYaw; dc = Math.atan2(Math.sin(dc), Math.cos(dc));
-      camYaw += dc * L.dampT(dt, 2.6);                        // camera lazily settles behind
+      camYaw += dc * L.dampT(dt, 2.6) * Math.max(0, Math.cos(dc));
     }
     P.speed = lerp(P.speed, mag * (running ? RUN : WALK), L.dampT(dt, ACCEL));
     fwd.set(Math.sin(P.yaw), 0, Math.cos(P.yaw));
@@ -814,8 +820,9 @@ function start(ctx, world) {
     const [px, py] = mapXY(P.pos.x, P.pos.z);
     g.save();
     g.translate(px, py);
-    // map yaw: world +Z is "down" on canvas; heading triangle points along fwd
-    g.rotate(Math.atan2(fwd.x, fwd.z));
+    // map yaw: canvas +y draws world +Z, so the "up"-pointing triangle needs
+    // atan2(x, -z) to aim along the true heading
+    g.rotate(Math.atan2(fwd.x, -fwd.z));
     g.fillStyle = stun > 0 ? '#ff7a7a' : '#9fd0ff';
     g.beginPath(); g.moveTo(0, -7); g.lineTo(5, 6); g.lineTo(-5, 6); g.closePath(); g.fill();
     g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1.2; g.stroke();
@@ -829,6 +836,7 @@ function start(ctx, world) {
     get stun() { return stun; }, get express() { return express; },
     get offer() { return offer; }, chooseJob,
     get capSel() { return capSel; }, get totalDeliv() { return totalDeliv; },
+    get camYaw() { return camYaw; }, set camYaw(v) { camYaw = v; },
     begin,
   } };
 }
