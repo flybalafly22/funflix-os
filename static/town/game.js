@@ -59,6 +59,7 @@ function start(ctx, world) {
   css.textContent = `
     .fpaper { background:rgba(250,247,238,.95); color:#2c261c; border:2px solid #2c261c;
       box-shadow:0 3px 0 rgba(44,38,28,.22); }
+    #hud.photo > :not(#toast) { visibility:hidden; }
     #flyTimerWrap { position:absolute; left:16px; top:96px; width:220px;
       background:rgba(250,247,238,.95); color:#2c261c; border:2px solid #2c261c;
       box-shadow:0 3px 0 rgba(44,38,28,.22); border-radius:11px 13px 12px 11px;
@@ -197,6 +198,16 @@ function start(ctx, world) {
     }
   }
   const QUIPS_STREET = ['Bonito día, ¿no?', 'El pan huele genial hoy', '¿Has visto al gato?', '¡Hola, mensajero!', '¿Algo para mí?', '¡Qué prisa llevas!', 'Las palomas otra vez…', 'Saludos a la Sra. Ibáñez'];
+  const PERSONA = {
+    'DOÑA REMEDIOS': ['Estas palomas me arruinan.', 'De joven yo también corría así.', '¿Le llevas algo al alcalde? Dile que me debe una silla.'],
+    'SR. BIGOTES': ['El gato manda aquí, yo solo obedezco.', 'Ocho sardinas al día. Ni una menos.', 'Hoy casi maúlla mi nombre.'],
+    'TEO': ['¡Enséñame a correr así!', '¿Puedo ver la carta? ¿No? Vale…', 'Cuando sea grande seré mensajero.'],
+    'MARISOL': ['El mar está de buen humor hoy.', 'Si ves al ermitaño, dile que bajé el precio.', 'Las gaviotas me roban más que los impuestos.'],
+    'CHUS': ['Esta moto me va a matar.', 'Le falta una pieza. ¿Cuál? Buena pregunta.', 'Ayer funcionaba. AYER.'],
+    'EL VIEJO TOMÁS': ['Hoy pican. Mañana quién sabe.', 'El mar y yo tenemos un acuerdo.', 'Shhh. Los peces oyen todo.'],
+    'PILAR': ['La luz de hoy no se repite.', 'El estanque nunca posa quieto.', '¿Te pinto? Quédate quieto tres horas.'],
+    'RAMÓN': ['Medir dos veces, cortar una.', 'Esto era un armario. Ahora es… otra cosa.', 'El buen pino canta al serrarlo.'],
+  };
   const QUIPS_PICKUP = ['¡Cuídalo bien!', '¡Es urgente!', 'Gracias, mensajero', 'Con cariño, por favor', 'Ni una arruga, ¿eh?'];
   const QUIPS_DELIVER = ['¡Gracias!', '¡Justo a tiempo!', '¡Eres un sol!', '¡Qué rápido!', '¡Mil gracias!'];
   const NPCS = world.npcs || [];
@@ -215,6 +226,9 @@ function start(ctx, world) {
     { id: 'postal', name: 'Postales de la costa', steps: 3, from: 'EL CORREO', to: 'GALERÍA', payload: 'una postal de la costa',
       pick: 'Una postal de la costa — con arena y todo.',
       drops: ['La galería la enmarcará esta tarde.', 'Otra más para la colección…', '¡La exposición está completa! Ven a verla.'] },
+    { id: 'carta', name: 'La carta del pescador', steps: 2, from: 'EL PESQUERO', to: 'LA ERMITA', payload: 'la carta del pescador',
+      pick: 'Del muelle a la colina. El ermitaño espera noticias del mar.',
+      drops: ['El ermitaño sonríe: «el mar sigue ahí», dice.', 'Y esta vez… ¡una lata de sardinas de regalo!'] },
   ];
   let chainProg = {};
   try { chainProg = JSON.parse(localStorage.getItem('fly_chains') || '{}'); } catch (e) {}
@@ -469,7 +483,7 @@ function start(ctx, world) {
   });
 
   /* ── audio (lazy, synth) — everything through one master bus for mute ── */
-  let AC = null, wind = null, windGain = null, master = null, muted = false, fountainGain = null;
+  let AC = null, wind = null, windGain = null, master = null, muted = false, fountainGain = null, seaGain = null;
   function initAudio() {
     if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     master = AC.createGain(); master.gain.value = muted ? 0 : 1; master.connect(AC.destination);
@@ -486,6 +500,11 @@ function start(ctx, world) {
     const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.9;
     fountainGain = AC.createGain(); fountainGain.gain.value = 0.0;
     fs.connect(bp).connect(fountainGain).connect(master); fs.start();
+    // the sea: low broad wash that swells near the quay
+    const ss = AC.createBufferSource(); ss.buffer = buf; ss.loop = true;
+    const sbp = AC.createBiquadFilter(); sbp.type = 'bandpass'; sbp.frequency.value = 640; sbp.Q.value = 0.5;
+    seaGain = AC.createGain(); seaGain.gain.value = 0.0;
+    ss.connect(sbp).connect(seaGain).connect(master); ss.start();
 
     // cozy ambient pad — a soft warm chord (A major) through a lowpass, gently swelling
     const pad = AC.createGain(); pad.gain.value = 0.0001;
@@ -533,6 +552,10 @@ function start(ctx, world) {
   addEventListener('keydown', e => {
     keys[e.code] = true; initAudio();
     if (e.code === 'KeyM') toggleMute();
+    if (e.code === 'KeyP' && begun) {
+      const on = hud.classList.toggle('photo');
+      if (!on) toast('📷', '#3a7d99');
+    }
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
   });
   addEventListener('keyup', e => { keys[e.code] = false; });
@@ -610,7 +633,7 @@ function start(ctx, world) {
   let chimeIn = 35, lastTramBell = -1e9;   // ambience timers (clock bell / tram ding)
   const baseFov = camera.fov;
   const hintEl = document.querySelector('#hint');
-  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD to walk · Shift to run · M to mute';
+  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · L log · P photo · M mute';
 
   /* ── start card — the town idles behind it; first input begins the shift ── */
   beam.visible = ring.visible = objLetter.visible = false;
@@ -666,7 +689,7 @@ function start(ctx, world) {
     // townsfolk are soft: brushing past nudges both of you apart (no hard walls)
     for (const n of NPCS) {
       const u = n.userData.npc;
-      if (u && (u.kind === 'seated' || u.kind === 'vendor')) continue;
+      if (u && (u.kind === 'seated' || u.kind === 'vendor' || u.kind === 'posed')) continue;
       const ndx = n.position.x - P.pos.x, ndz = n.position.z - P.pos.z;
       const nd2 = ndx * ndx + ndz * ndz;
       if (nd2 < 0.81 && nd2 > 1e-4) {
@@ -721,6 +744,11 @@ function start(ctx, world) {
       const dF = Math.hypot(P.pos.x, P.pos.z - 14);
       const want = Math.pow(clamp(1 - dF / 26, 0, 1), 1.5) * 0.05;
       fountainGain.gain.value = lerp(fountainGain.gain.value, want, L.dampT(dt, 4));
+    }
+    // the sea washes in from the east, swelling and receding
+    if (seaGain) {
+      const wantSea = Math.pow(clamp((P.pos.x - 118) / 46, 0, 1), 1.4) * 0.045 * (0.7 + 0.3 * Math.sin(now * 0.0008));
+      seaGain.gain.value = lerp(seaGain.gain.value, wantSea, L.dampT(dt, 3));
     }
     // clock tower marks time — two soft bells if you're near enough to hear
     chimeIn -= dt;
@@ -813,7 +841,11 @@ function start(ctx, world) {
         const u = n.userData.npc;
         if (!u || u.kind === 'seated') continue;
         const dx2 = n.position.x - P.pos.x, dz2 = n.position.z - P.pos.z;
-        if (dx2 * dx2 + dz2 * dz2 < 12) { bubble(n.position.x, n.position.y + 2.05, n.position.z, pick(QUIPS_STREET), 2.4); quipCd = rand(7, 12); break; }
+        if (dx2 * dx2 + dz2 * dz2 < 12) {
+          const line = u.name ? (u.name + ': ' + pick(PERSONA[u.name] || QUIPS_STREET)) : pick(QUIPS_STREET);
+          bubble(n.position.x, n.position.y + 2.05, n.position.z, line, u.name ? 3.0 : 2.4);
+          quipCd = rand(7, 12); break;
+        }
       }
     }
 

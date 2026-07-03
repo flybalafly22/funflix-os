@@ -199,6 +199,7 @@ function build(ctx) {
   };
   const smokePts = [];
   const treePts = [];   // every planted tree — anchors for falling leaves
+  const standingGulls = [];
   // handcrafted, not plotted: ordinary buildings lean and settle a hair so the
   // rows stop reading as a perfect grid (landmarks stay crisp)
   const dressB = g => { g.rotation.y += L.jitter(0.018); g.scale.set(1 + L.jitter(0.02), 1 + L.jitter(0.03), 1 + L.jitter(0.02)); };
@@ -1092,6 +1093,49 @@ function build(ctx) {
       if (i < 2) root.add(L.box(0.46, 0.32, 0.46, L.MAT.wood('#75593a'), { x: x + 0.05, y: DECK + 0.52, z: z - 0.04 }));
       colC(x, z, 0.42);
     });
+
+    /* quay dressing — the working middle of the deck */
+    // rope coils (stacked rings)
+    [[159.5, 3.5], [163.2, 8.5], [153.8, -4]].forEach(([x, z]) => {
+      const ropeM = L.std({ colorHex: '#9a8a66', roughness: 0.95 });
+      for (let k = 0; k < 3; k++) {
+        const ring = new T.Mesh(new T.TorusGeometry(0.32 - k * 0.015, 0.06, 6, 14), ropeM);
+        ring.rotation.x = Math.PI / 2; ring.position.set(x, DECK + 0.06 + k * 0.09, z);
+        root.add(ring);
+      }
+      colC(x, z, 0.34);
+    });
+    // fish crates: open box + silver catch + ice
+    [[156.8, -12.5], [157.7, -12.2]].forEach(([x, z], i) => {
+      const g2 = new T.Group(); g2.position.set(x, DECK, z); g2.rotation.y = L.jitter(0.5);
+      g2.add(L.box(0.72, 0.26, 0.5, L.MAT.wood('#8a6a44'), { y: 0.13 }));
+      const fishM = L.std({ colorHex: '#8a97a0', roughness: 0.35, metalness: 0.3 });
+      for (let f = 0; f < 4; f++) {
+        const fs = L.sphere(0.085, 7, fishM, { x: -0.2 + f * 0.14, y: 0.28, z: L.jitter(0.1), cast: false });
+        fs.scale.set(1.7, 0.55, 0.7); g2.add(fs);
+      }
+      for (let d2 = 0; d2 < 5; d2++) g2.add(L.sphere(0.04, 5, L.std({ colorHex: '#dfe8e4', roughness: 0.4 }), { x: L.jitter(0.26), y: 0.26, z: L.jitter(0.16), cast: false }));
+      root.add(g2); colC(x, z, 0.42);
+    });
+    // buoy heap
+    [['#a8352c', 160.8, 17.5], ['#b0741c', 161.5, 17.0], ['#35597f', 160.4, 16.7]].forEach(([c2, x, z]) => {
+      root.add(L.sphere(0.28, 9, L.std({ colorHex: c2, roughness: 0.55 }), { x, y: DECK + 0.26, z }));
+    });
+    colC(160.9, 17.1, 0.7);
+    // standing gulls (bob + peck in update)
+    for (let k2 = 0; k2 < 3; k2++) {
+      const gu = new T.Group();
+      const wht = L.std({ colorHex: '#d8d4c8', roughness: 0.8 }), gry = L.std({ colorHex: '#9aa2a8', roughness: 0.8 });
+      const body = L.sphere(0.11, 9, wht, { y: 0.16 }); body.scale.set(1, 0.85, 1.35); gu.add(body);
+      const head = L.sphere(0.065, 8, wht, { y: 0.29, z: 0.12 }); gu.add(head);
+      const beak = L.cyl(0.004, 0.022, 0.06, 5, L.std({ colorHex: '#b0741c', roughness: 0.6 }), { y: 0.28, z: 0.2, cast: false });
+      beak.rotation.x = Math.PI / 2; gu.add(beak);
+      gu.add(L.box(0.05, 0.06, 0.16, gry, { x: -0.08, y: 0.17, z: -0.02, cast: false }));
+      gu.add(L.box(0.05, 0.06, 0.16, gry, { x: 0.08, y: 0.17, z: -0.02, cast: false }));
+      gu.position.set(L.rand(154, 164), DECK, L.rand(-19, 20)); gu.rotation.y = L.rand(0, TAU);
+      gu.userData.gullIdle = { ph: L.rand(0, TAU), head };
+      root.add(gu); standingGulls.push(gu);
+    }
   })();
 
   /* ── MOVING TRAFFIC on the avenues (along X) ── total ≤ 14 cars + tram ── */
@@ -1173,6 +1217,156 @@ function build(ctx) {
     root.add(n); npcs.push(n);
   }
   [[-13, 1], [13, 1]].forEach(([cx]) => { for (let t = 0; t < 3; t++) { const tx = cx + (t - 1) * 2.4; if (L.chance(0.6)) seatNPC(tx + 0.6, SW + 4, -Math.PI / 2); if (L.chance(0.5)) seatNPC(tx - 0.6, SW + 4, Math.PI / 2); } });
+  // NAMED REGULARS — the same four townsfolk, always at their spots (userData
+  // carries the name; game.js gives them personal lines)
+  [
+    ['DOÑA REMEDIOS', 1.2, SW + 3.6, Math.PI],        // by the fountain, feeding pigeons
+    ['SR. BIGOTES', PARK_CX + 9.5, -(SW + 2.3), 0],   // beside the park cat
+    ['TEO', 13.5, SW + 2.6, Math.PI / 2],             // loitering at the plaza café
+    ['MARISOL', 154.2, 3.2, -Math.PI / 2],            // works the fish quay
+  ].forEach(([nm, x, z, ry]) => {
+    const n = C.makeNPC(); n.position.set(x, CH, z); n.rotation.y = ry;
+    n.userData.npc = { kind: 'vendor', phase: L.rand(0, TAU), wave: 0, name: nm };
+    root.add(n); npcs.push(n);
+  });
+
+  /* ══════════ VIGNETTES — something happening at every corner.
+     Hand-posed townsfolk mid-task with their own props and tiny animations:
+     the map should read as lives in progress, not architecture. ══════════ */
+  const vigFns = [];
+  function poseNPC(x, z, ry, name, pose, anim, baseY) {
+    const n = C.makeNPC(); n.position.set(x, baseY == null ? CH : baseY, z); n.rotation.y = ry;
+    n.userData.npc = { kind: 'posed', phase: L.rand(0, TAU), wave: 0, name: name || null, anim: anim || null };
+    const lm = n.userData.limbs;
+    const sL = lm.legL.userData && lm.legL.userData.shin, sR = lm.legR.userData && lm.legR.userData.shin;
+    if (pose === 'kneel') {
+      lm.legL.rotation.x = -2.2; lm.legR.rotation.x = -2.2;
+      if (sL) sL.rotation.x = 2.1; if (sR) sR.rotation.x = 2.1;
+      n.position.y -= 0.5;
+      lm.armL.rotation.x = -0.8; lm.armR.rotation.x = -0.8;
+    } else if (pose === 'sit') {
+      lm.legL.rotation.x = -1.5; lm.legR.rotation.x = -1.5;
+      if (sL) sL.rotation.x = 0.6; if (sR) sR.rotation.x = 0.6;
+      n.position.y -= 0.42;
+      lm.armL.rotation.x = -0.5; lm.armR.rotation.x = -0.9;
+    } else if (pose === 'reach') {
+      lm.armR.rotation.x = -2.5; lm.armL.rotation.x = -0.4;
+    }
+    root.add(n); npcs.push(n);
+    return n;
+  }
+
+  // V1 — CHUS and the scooter that won't start (wheel off, tools out)
+  (function vScooter() {
+    const x = -38, z = -12.6;   // tucked toward the facade line, clear of the lamp row
+    const sc = P.makeScooter(); sc.position.set(x, CH, z); sc.rotation.y = 0.5; sc.rotation.z = 0.1; root.add(sc);
+    const wheel = new T.Mesh(new T.TorusGeometry(0.24, 0.07, 8, 14), L.MAT.rubber);
+    wheel.position.set(x - 1.1, CH + 0.08, z + 0.9); wheel.rotation.x = Math.PI / 2 - 0.22; wheel.castShadow = true; root.add(wheel);
+    root.add(L.box(0.5, 0.22, 0.3, L.std({ colorHex: '#8a3a30', roughness: 0.6 }), { x: x + 1.1, y: CH + 0.11, z: z + 0.8 }));
+    for (let k = 0; k < 3; k++) root.add(L.cyl(0.02, 0.02, 0.22, 5, L.MAT.metalLight, { x: x + 0.9 + k * 0.12, y: CH + 0.03, z: z + 1.15, cast: false }));
+    poseNPC(x + 0.1, z + 1.25, Math.PI, 'CHUS', 'kneel', (n, dt, now) => {
+      n.userData.limbs.armR.rotation.x = -0.9 + Math.sin(now * 0.008) * 0.28;   // wrenching
+    });
+    colC(x, z, 1.1);
+  })();
+
+  // V2 — repainting EL PEZ VOLADOR (ladder, bucket, roller strokes)
+  (function vBoatPaint() {
+    const x = 157.2, z = -6.2, dy = 0.28;
+    [-0.35, 0.35].forEach(s => { const rail = L.box(0.07, 2.4, 0.07, L.MAT.wood('#8a6a44'), { x: x + s, y: dy + 1.15, z }); rail.rotation.x = 0.28; root.add(rail); });
+    for (let k = 0; k < 4; k++) root.add(L.box(0.72, 0.06, 0.07, L.MAT.wood('#75593a'), { x, y: dy + 0.45 + k * 0.5, z: z - 0.13 - k * 0.14, cast: false }));
+    root.add(L.cyl(0.16, 0.13, 0.24, 9, L.std({ colorHex: '#35597f', roughness: 0.5 }), { x: x + 0.9, y: dy + 0.12, z: z + 0.4 }));
+    const tarp = L.decal(2.4, 1.6, L.std({ colorHex: '#c9c4b2', roughness: 0.95 }), dy + 0.012); tarp.position.set(x, dy + 0.012, z - 0.6); root.add(tarp);
+    poseNPC(x, z - 1.0, 0, null, 'reach', (n, dt, now) => {
+      n.userData.limbs.armR.rotation.x = -2.4 + Math.sin(now * 0.004) * 0.3;    // roller strokes
+    }, dy);
+    colC(x, z, 0.9);
+  })();
+
+  // V3 — EL VIEJO TOMÁS fishes off the quay edge (bobber in the water)
+  (function vFisher() {
+    const x = 165.1, z = -16.5, dy = 0.28;
+    poseNPC(x, z, Math.PI / 2, 'EL VIEJO TOMÁS', 'sit', null, dy);
+    const rod = L.cyl(0.015, 0.025, 1.7, 5, L.MAT.wood('#6a5236'), { x: x + 0.75, y: dy + 0.75, z: z + 0.1 });
+    rod.rotation.z = -1.05; root.add(rod);
+    root.add(L.box(0.012, 1.05, 0.012, L.MAT.flat('#2a2a30'), { x: x + 1.55, y: dy + 0.6, z: z + 0.1, cast: false }));
+    const bobber = L.sphere(0.07, 7, L.std({ colorHex: '#a8352c', roughness: 0.5 }), { x: x + 1.55, y: -0.36, z: z + 0.1, cast: false });
+    root.add(bobber);
+    root.add(L.box(0.4, 0.24, 0.3, L.MAT.wood('#75593a'), { x, y: dy + 0.12, z: z + 1.2 }));   // bait box
+    vigFns.push((dt, now) => { bobber.position.y = -0.36 + Math.sin(now * 0.0021) * 0.05; });
+  })();
+
+  // V4 — kids playing pelota against the cross-street wall
+  (function vPelota() {
+    const wallX = -77.6, kx = -79.6, kz = -14.5;
+    poseNPC(kx, kz, Math.PI / 2, null, null, null);
+    poseNPC(kx - 0.4, kz - 2.2, Math.PI / 2, null, null, null);
+    const ball = L.sphere(0.12, 8, L.std({ colorHex: '#a8352c', roughness: 0.6 }), { x: kx + 0.5, y: 0.9, z: kz, cast: false });
+    root.add(ball);
+    vigFns.push((dt, now) => {
+      const t = (now * 0.0011) % 2, ph = t < 1 ? t : 2 - t;      // ping-pong kid ↔ wall
+      ball.position.x = kx + 0.4 + (wallX - kx - 0.4) * ph;
+      ball.position.y = 0.55 + Math.sin(ph * Math.PI) * 0.7;
+    });
+    colC(kx, kz, 0.3); colC(kx - 0.4, kz - 2.2, 0.3);
+  })();
+
+  // V5 — PILAR paints the pond from her easel in the park
+  (function vPainter() {
+    const x = -73.4, z = -19.4;
+    const canvasTex = (() => {
+      const c = L.cnv(64, 48), g = c.getContext('2d');
+      g.fillStyle = '#7cc8ba'; g.fillRect(0, 0, 64, 20);
+      g.fillStyle = '#8fae6a'; g.fillRect(0, 20, 64, 28);
+      g.fillStyle = '#4f8fb0'; g.beginPath(); g.ellipse(38, 34, 16, 8, 0, 0, TAU); g.fill();
+      return L.finishTex(c);
+    })();
+    for (let k = 0; k < 3; k++) { const leg = L.cyl(0.025, 0.03, 1.35, 5, L.MAT.wood('#8a6a44'), { x: x + Math.cos(k * 2.1) * 0.22, y: CH + 0.62, z: z + Math.sin(k * 2.1) * 0.22 }); leg.rotation.z = Math.cos(k * 2.1) * 0.2; leg.rotation.x = -Math.sin(k * 2.1) * 0.2; root.add(leg); }
+    const cv = new T.Mesh(new T.PlaneGeometry(0.62, 0.46), L.std({ map: canvasTex, roughness: 0.8, side: T.DoubleSide }));
+    cv.position.set(x, CH + 1.28, z); cv.rotation.y = 2.17 + Math.PI; root.add(cv);
+    poseNPC(x + 0.55, z + 0.45, 2.17, 'PILAR', null, (n, dt, now) => {
+      n.userData.limbs.armR.rotation.x = -1.5 + Math.sin(now * 0.0032) * 0.16;   // brush dabs
+    });
+    colC(x, z, 0.5);
+  })();
+
+  // V6 — a little street shrine with candles (flowers left by someone)
+  (function vShrine() {
+    const x = 44, z = 13.8;
+    root.add(L.box(1.15, 1.9, 0.6, L.MAT.wall('#cfc7ae'), { x, y: CH + 0.95, z, receive: true }));
+    root.add(L.box(1.3, 0.18, 0.75, L.std({ colorHex: '#b9b09a', roughness: 0.9 }), { x, y: CH + 1.95, z, cast: false }));
+    root.add(L.box(0.72, 0.95, 0.1, L.std({ colorHex: '#2e2820', roughness: 0.95 }), { x, y: CH + 1.15, z: z - 0.28, cast: false }));
+    root.add(L.cyl(0.09, 0.11, 0.42, 8, L.std({ colorHex: '#ded6c0', roughness: 0.8 }), { x, y: CH + 1.0, z: z - 0.26, cast: false }));
+    root.add(L.sphere(0.09, 8, L.std({ colorHex: '#ded6c0', roughness: 0.8 }), { x, y: CH + 1.28, z: z - 0.26, cast: false }));
+    [-0.3, 0.3].forEach(s => {
+      root.add(L.cyl(0.035, 0.035, 0.12, 6, L.std({ colorHex: '#e8e0cc', roughness: 0.7 }), { x: x + s, y: CH + 0.72, z: z - 0.28, cast: false }));
+      root.add(L.sphere(0.028, 6, L.MAT.emissive('#ffd27a', 1.2), { x: x + s, y: CH + 0.82, z: z - 0.28, cast: false }));
+    });
+    [-0.55, 0.55].forEach(s => {
+      root.add(L.cyl(0.1, 0.08, 0.2, 8, L.std({ colorHex: '#b06a48', roughness: 0.9 }), { x: x + s, y: CH + 0.1, z: z - 0.3 }));
+      root.add(L.sphere(0.11, 7, L.std({ colorHex: L.pick(['#a8352c', '#7a3f7a', '#c0a02a']), roughness: 0.9 }), { x: x + s, y: CH + 0.28, z: z - 0.3, cast: false }));
+    });
+    colC(x, z, 0.75);
+  })();
+
+  // V7 — RAMÓN saws planks at the intersection corner
+  (function vCarpenter() {
+    const x = 95, z = -11.6;
+    [-0.9, 0.9].forEach(s => {
+      [-1, 1].forEach(l => { const leg = L.box(0.07, 0.85, 0.07, L.MAT.wood('#8a6a44'), { x: x + s, y: CH + 0.42, z: z + l * 0.24 }); leg.rotation.x = l * 0.3; root.add(leg); });
+      root.add(L.box(0.12, 0.1, 0.5, L.MAT.wood('#75593a'), { x: x + s, y: CH + 0.86, z, cast: false }));
+    });
+    root.add(L.box(2.6, 0.07, 0.34, L.MAT.wood('#9a8058'), { x, y: CH + 0.95, z }));
+    root.add(L.box(1.6, 0.3, 0.5, L.MAT.wood('#75593a'), { x: x - 0.4, y: CH + 0.15, z: z + 1.1 }));
+    const dust = L.decal(1.4, 0.9, L.std({ colorHex: '#d8cba8', roughness: 1 }), CH + 0.012); dust.position.set(x + 0.4, CH + 0.012, z + 0.5); root.add(dust);
+    poseNPC(x + 0.3, z - 1.05, 0, 'RAMÓN', null, (n, dt, now) => {
+      const lm = n.userData.limbs;
+      lm.armR.rotation.x = -0.85 + Math.sin(now * 0.011) * 0.42;   // sawing
+      if (lm.armR.userData.fore) lm.armR.userData.fore.rotation.x = -0.4;
+    });
+    colC(x, z, 1.4);
+  })();
+
   // a vendor standing at each market stall area (static, faces the street)
   [[-9, SW + 11], [9, SW + 11], [0, SW + 13]].forEach(([x, z]) => {
     const n = C.makeNPC(); n.position.set(x, CH, z); n.rotation.y = Math.PI;
@@ -1466,6 +1660,7 @@ function build(ctx) {
       const near = (dxp * dxp + dzp * dzp) < 64 && PP.y < 14;   // Fly within ~8m and low
       u.wave = L.clamp(u.wave + (near ? dt * 4 : -dt * 4), 0, 1);
 
+      if (u.kind === 'posed') { if (u.anim) u.anim(n, dt, now); continue; }
       if (u.kind === 'seated' || u.kind === 'vendor') {
         // static folk: gentle idle + look/wave at the Fly
         C.animateWalk(n, t * 1.4 + u.phase, false);
@@ -1551,6 +1746,15 @@ function build(ctx) {
       s.position.set(u.home.x + t * u.driftX * 6 + Math.sin(now * 0.001 + u.phase) * 0.3 * t, u.home.y + t * 3.4, u.home.z + t * 0.6);
       s.scale.setScalar(0.5 + t * 1.7);
       s.material.opacity = 0.32 * Math.sin(Math.PI * Math.min(1, t * 1.15));
+    }
+    // vignette motion (pelota ball, fishing bobber, …)
+    for (const f of vigFns) f(dt, now);
+    // standing gulls: idle bob, occasional peck at the deck
+    for (const gu of standingGulls) {
+      const u = gu.userData.gullIdle;
+      const peck = Math.max(0, Math.sin(now * 0.0009 + u.ph * 3));
+      u.head.position.y = 0.29 - (peck > 0.92 ? (peck - 0.92) * 2.4 : 0);
+      gu.position.y = 0.28 + Math.abs(Math.sin(now * 0.004 + u.ph)) * 0.012;
     }
     // butterflies: lazy orbit + fast wing flap, always facing travel
     for (const bf of butterflies) {
