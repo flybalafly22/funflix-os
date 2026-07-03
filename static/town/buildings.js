@@ -263,11 +263,12 @@ function rooftop(g, w, d, topY, wallMat, opts) {
     // grill lines
     for (let k = 0; k < 4; k++) g.add(L.box(aw - 0.12, 0.02, 0.02, L.MAT.metalDark, { x: ax, y: topY + 0.16 + k * 0.08, z: az + ad / 2, cast: false }));
   }
-  // vents / pipes
+  // vents / pipes — recorded as smoke-emitter points (world.js drifts puffs)
   if (L.chance(0.6)) {
     const vx = L.jitter(w / 3), vz = L.jitter(d / 3);
     g.add(L.cyl(0.14, 0.14, L.rand(0.6, 1.1), 8, L.MAT.metalDark, { x: vx, y: topY + 0.5, z: vz, cast: false }));
     g.add(L.cyl(0.2, 0.2, 0.12, 8, L.MAT.metalLight, { x: vx, y: topY + 0.95, z: vz, cast: false }));
+    (g.userData.smoke = g.userData.smoke || []).push({ x: vx, y: topY + 1.05, z: vz });
   }
   // antenna
   if (L.chance(0.45)) {

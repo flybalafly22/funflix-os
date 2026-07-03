@@ -190,7 +190,14 @@ function build(ctx) {
     const cs = g.userData && g.userData.cols; if (!cs) return;
     const ca = Math.cos(ang), sa = Math.sin(ang);
     for (const c of cs) colC(wx + c.x * ca + c.z * sa, wz - c.x * sa + c.z * ca, c.r);
+    // rooftop vents double as chimney-smoke emitters (cap the town total)
+    const sm = g.userData.smoke;
+    if (sm && smokePts.length < 10) for (const s of sm) {
+      if (smokePts.length >= 10 || !L.chance(0.5)) continue;
+      smokePts.push(new T.Vector3(wx + s.x * ca + s.z * sa, s.y, wz - s.x * sa + s.z * ca));
+    }
   };
+  const smokePts = [];
   // shared player handle — game.js writes player.pos each frame so townsfolk can react
   ctx.player = ctx.player || { pos: new T.Vector3(0, 9, 0) };
 
@@ -1056,6 +1063,19 @@ function build(ctx) {
     if (window.console) console.log('[FLY] batched static geometry:', removed, 'meshes ->', merged, 'merged draws');
   })();
 
+  /* ── CHIMNEY SMOKE — soft puffs drifting off rooftop vents (post-batch, dynamic) ── */
+  const smokes = [];
+  smokePts.forEach(p => {
+    for (let k = 0; k < 3; k++) {
+      const mat = new T.MeshBasicMaterial({ color: 0xe8e2d4, transparent: true, opacity: 0, depthWrite: false });
+      L.curve(mat);
+      const m = new T.Mesh(new T.SphereGeometry(0.3, 8, 6), mat);
+      m.position.copy(p);
+      m.userData = { home: p, t: k / 3 + L.rand(0, 0.2), speed: L.rand(0.13, 0.19), driftX: L.rand(-0.15, 0.3), phase: L.rand(0, TAU) };
+      root.add(m); smokes.push(m);
+    }
+  });
+
   /* ── UPDATE ── */
   // bounds enclose the WHOLE grid: main avenue (x ±AVX), the two cross-streets &
   // their rows (down to CROSSZ0, up to CROSSZ1 past the second avenue), the
@@ -1119,6 +1139,12 @@ function build(ctx) {
       const u = pg.userData.pg;
       const dxp = pg.position.x - PP.x, dzp = pg.position.z - PP.z;
       if ((dxp * dxp + dzp * dzp) < 36 && PP.y < 12 && u.flee <= 0) u.flee = 2.2;
+      // wings: rapid flap while fleeing, fold back at rest
+      const wings = pg.userData.wings;
+      if (wings) {
+        const f = u.flee > 0 ? Math.sin(now * 0.05 + u.phase) * 0.95 : 0;
+        for (const wp of wings) wp.rotation.z += (wp.userData.side * f - wp.rotation.z) * Math.min(1, dt * 14);
+      }
       if (u.flee > 0) {
         u.flee -= dt;
         pg.position.y += (3.5 - (pg.position.y - u.gy)) * dt * 1.2;
@@ -1149,6 +1175,15 @@ function build(ctx) {
     }
     // fountain water shimmer
     for (const f of fountains) f.userData.water.forEach((w, i) => { w.position.y += Math.sin(now * 0.005 + i) * 0.0006; });
+    // chimney smoke: rise, drift, swell, fade, recycle
+    for (const s of smokes) {
+      const u = s.userData;
+      u.t += dt * u.speed; if (u.t > 1) u.t -= 1;
+      const t = u.t;
+      s.position.set(u.home.x + t * u.driftX * 6 + Math.sin(now * 0.001 + u.phase) * 0.3 * t, u.home.y + t * 3.4, u.home.z + t * 0.6);
+      s.scale.setScalar(0.5 + t * 1.7);
+      s.material.opacity = 0.32 * Math.sin(Math.PI * Math.min(1, t * 1.15));
+    }
     // circling birds
     for (const bd of birds) {
       const u = bd.userData; u.a += u.sp * dt;

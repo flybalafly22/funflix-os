@@ -104,6 +104,22 @@ function start(ctx, world) {
       pointer-events:none; white-space:nowrap; box-shadow:0 4px 14px rgba(40,24,8,.28); }
     .flyBub::after { content:''; position:absolute; left:50%; bottom:-6px; margin-left:-6px;
       border:6px solid transparent; border-top-color:rgba(255,248,236,.96); border-bottom:0; }
+    #flyOffer { position:absolute; left:50%; bottom:74px; transform:translateX(-50%);
+      display:flex; gap:12px; pointer-events:auto; }
+    #flyOffer .card { width:210px; padding:12px 14px 10px; border-radius:14px; cursor:pointer;
+      background:rgba(28,22,16,.72); border:1px solid rgba(255,244,222,.18);
+      backdrop-filter:blur(10px); box-shadow:0 10px 30px rgba(20,12,4,.35);
+      transition:transform .12s, border-color .12s; }
+    #flyOffer .card:hover { transform:translateY(-3px); border-color:#ffd27a; }
+    #flyOffer .card .key { font-size:9px; letter-spacing:.12em; color:#9fd0ff; font-weight:800; text-transform:uppercase; }
+    #flyOffer .card.ex .key { color:#ffd27a; }
+    #flyOffer .card .route { font-size:14px; font-weight:800; margin-top:3px; line-height:1.25; }
+    #flyOffer .card .pay { font-size:11px; opacity:.75; margin-top:3px; font-style:italic; }
+    #flyOffer .card .meta { font-size:10px; margin-top:6px; opacity:.85; font-weight:700; color:#7fe0a0; }
+    #flyOffer .card.ex .meta { color:#ffd27a; }
+    #flyOfferBar { position:absolute; left:50%; bottom:64px; transform:translateX(-50%);
+      width:160px; height:4px; border-radius:3px; background:rgba(255,255,255,.15); overflow:hidden; }
+    #flyOfferBar i { display:block; height:100%; background:#9fd0ff; }
   `;
   document.head.appendChild(css);
 
@@ -246,6 +262,24 @@ function start(ctx, world) {
   const RANKS = [[0, 'Recadero'], [5, 'Mensajero'], [15, 'Cartero de Barrio'], [30, 'Correo Exprés'], [60, 'Leyenda de Villa Mott']];
   function rankName(n) { let r = RANKS[0][1]; for (const [t, nm] of RANKS) if (n >= t) r = nm; return r; }
   function nextRank(n) { for (const [t, nm] of RANKS) if (n < t) return [t, nm]; return null; }
+  function rankIdx(n) { let i = 0; RANKS.forEach(([t], k) => { if (n >= t) i = k; }); return i; }
+
+  /* ── WARDROBE: one cap colorway unlocked per rank; C cycles the unlocked set.
+     Hexes authored dark for the hot ACES rig (same trick as the hair palette). */
+  const CAPS = [['#8f231b', 'Roja'], ['#a06414', 'Azafrán'], ['#1e5a52', 'Verde Mar'], ['#58245c', 'Ciruela'], ['#a89858', 'Dorada']];
+  let capSel = Math.min(lsGet('fly_cap_sel'), rankIdx(lsGet(LS.total)), CAPS.length - 1);
+  function applyCap() {
+    const cm = hero.userData.capMat;
+    if (cm) cm.color.setHex(parseInt(CAPS[capSel][0].replace('#', '0x')));
+  }
+  applyCap();
+  addEventListener('keydown', e => {
+    if (e.code !== 'KeyC' || !begun) return;
+    const unlocked = Math.min(rankIdx(totalDeliv) + 1, CAPS.length);
+    capSel = (capSel + 1) % unlocked;
+    lsSet('fly_cap_sel', capSel); applyCap();
+    toast('🧢 Gorra ' + CAPS[capSel][1] + (unlocked < CAPS.length ? '  (' + unlocked + '/' + CAPS.length + ')' : ''), '#9fd0ff');
+  });
   function renderBest() {
     const nx = nextRank(totalDeliv);
     bestEl.innerHTML = '<span style="color:#ffd27a">✦ ' + rankName(totalDeliv) + '</span><br>'
@@ -279,24 +313,60 @@ function start(ctx, world) {
     elDst.textContent = tg.name;
     elSub.textContent = carrying ? (payload + ' → the green-lit shop') : (payload + ' — grab the floating letter');
   }
-  function newTask() {
-    pickup = pick(ADDR);
-    do { dropoff = pick(ADDR); } while (dropoff === pickup);
+  /* ── JOBS: after onboarding the courier CHOOSES between two offers ── */
+  let offer = null;   // { jobs: [a, b], t: seconds left to decide }
+  function makeJob() {
+    const pu = pick(ADDR);
+    let dr; do { dr = pick(ADDR); } while (dr === pu);
+    const ex = delivered >= 2 && L.chance(0.3);
+    const route = planar(P.pos, pu.pos) + planar(pu.pos, dr.pos);
+    let budget = clamp(10 + route * 0.42, 14, 46) * (ex ? 0.66 : 1);
+    if (delivered === 0) budget *= 1.6;           // warm-up welcome job
+    return { pickup: pu, dropoff: dr, payload: pick(PAYLOADS), express: ex, budget, route };
+  }
+  function startJob(j) {
+    pickup = j.pickup; dropoff = j.dropoff; payload = j.payload; express = j.express;
     carrying = false; carriedLetter.visible = false;
-    payload = pick(PAYLOADS);
-    express = delivered >= 2 && L.chance(0.25);   // rush jobs: tighter clock, double pay
-    // soft time budget scaled by total route length (pick-up + delivery legs)
-    const route = planar(P.pos, pickup.pos) + planar(pickup.pos, dropoff.pos);
-    jobBudget = clamp(10 + route * 0.42, 14, 46);
-    if (express) jobBudget *= 0.66;
-    if (delivered === 0) jobBudget *= 1.6;        // warm-up welcome job
-    jobLeft = jobBudget; jobActive = true;
+    jobBudget = j.budget; jobLeft = jobBudget; jobActive = true;
     setObjective();
     toast(express ? '⚡ Express — double pay! ' + Math.round(jobBudget) + 's' : 'New job · ' + Math.round(jobBudget) + 's', express ? '#ffd27a' : '#9fd0ff');
   }
+  const offerEl = document.createElement('div'); offerEl.id = 'flyOffer'; offerEl.style.display = 'none';
+  const offerBar = document.createElement('div'); offerBar.id = 'flyOfferBar'; offerBar.style.display = 'none';
+  offerBar.innerHTML = '<i></i>';
+  hud.appendChild(offerEl); hud.appendChild(offerBar);
+  function estPts(j) { return Math.round((100 + 75) * (j.express ? 2 : 1)); }
+  function chooseJob(i) {
+    if (!offer) return;
+    const j = offer.jobs[i] || offer.jobs[0];
+    offer = null; offerEl.style.display = 'none'; offerBar.style.display = 'none';
+    startJob(j);
+  }
+  function newTask() {
+    if (delivered < 2) { startJob(makeJob()); return; }    // onboarding: no decisions yet
+    const a = makeJob(); let b = makeJob();
+    for (let k = 0; k < 4 && b.pickup === a.pickup && b.dropoff === a.dropoff; k++) b = makeJob();
+    offer = { jobs: [a, b], t: 9 };
+    beam.visible = ring.visible = objLetter.visible = false;
+    elLbl.textContent = 'Encargos'; elDst.textContent = 'Choose a job'; elSub.textContent = 'press 1 / 2 — or tap a card';
+    elTimerT.textContent = '--'; elTimerBar.style.width = '100%';
+    offerEl.innerHTML = offer.jobs.map((j, i) =>
+      '<div class="card' + (j.express ? ' ex' : '') + '" data-i="' + i + '">'
+      + '<div class="key">' + (i + 1) + (j.express ? ' · ⚡ express' : '') + '</div>'
+      + '<div class="route">' + j.pickup.name + ' → ' + j.dropoff.name + '</div>'
+      + '<div class="pay">' + j.payload + '</div>'
+      + '<div class="meta">~' + Math.round(j.route) + 'm · ' + Math.round(j.budget) + 's · ~' + estPts(j) + ' pts</div>'
+      + '</div>').join('');
+    offerEl.querySelectorAll('.card').forEach(c => c.addEventListener('pointerdown', e => { e.preventDefault(); chooseJob(+c.dataset.i); }));
+    offerEl.style.display = 'flex'; offerBar.style.display = 'block';
+    blip(720, 0.1, 'triangle', 0.08);
+  }
+  addEventListener('keydown', e => {
+    if (offer && (e.code === 'Digit1' || e.code === 'Digit2')) chooseJob(e.code === 'Digit2' ? 1 : 0);
+  });
 
   /* ── audio (lazy, synth) — everything through one master bus for mute ── */
-  let AC = null, wind = null, windGain = null, master = null, muted = false;
+  let AC = null, wind = null, windGain = null, master = null, muted = false, fountainGain = null;
   function initAudio() {
     if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     master = AC.createGain(); master.gain.value = muted ? 0 : 1; master.connect(AC.destination);
@@ -307,6 +377,12 @@ function start(ctx, world) {
     const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 480;
     windGain = AC.createGain(); windGain.gain.value = 0.0;
     wind.connect(lp).connect(windGain).connect(master); wind.start();
+
+    // fountain water: the same noise buffer through a high bandpass, gain by distance
+    const fs = AC.createBufferSource(); fs.buffer = buf; fs.loop = true;
+    const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.9;
+    fountainGain = AC.createGain(); fountainGain.gain.value = 0.0;
+    fs.connect(bp).connect(fountainGain).connect(master); fs.start();
 
     // cozy ambient pad — a soft warm chord (A major) through a lowpass, gently swelling
     const pad = AC.createGain(); pad.gain.value = 0.0001;
@@ -428,6 +504,7 @@ function start(ctx, world) {
   const camPos = camera.position.clone().set(0, 6, -10);
   const fwd = new T.Vector3(), camF = new T.Vector3();
   let mapAcc = 0, walkPhase = 0, lastStep = -1;
+  let chimeIn = 35, lastTramBell = -1e9;   // ambience timers (clock bell / tram ding)
   const baseFov = camera.fov;
   const hintEl = document.querySelector('#hint');
   if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD to walk · Shift to run · M to mute';
@@ -477,6 +554,18 @@ function start(ctx, world) {
     P.pos.x = clamp(P.pos.x, bounds.minX, bounds.maxX);
     P.pos.z = clamp(P.pos.z, bounds.minZ, bounds.maxZ);
     resolveStatic();                                          // solid town
+    // townsfolk are soft: brushing past nudges both of you apart (no hard walls)
+    for (const n of NPCS) {
+      const u = n.userData.npc;
+      if (u && (u.kind === 'seated' || u.kind === 'vendor')) continue;
+      const ndx = n.position.x - P.pos.x, ndz = n.position.z - P.pos.z;
+      const nd2 = ndx * ndx + ndz * ndz;
+      if (nd2 < 0.81 && nd2 > 1e-4) {
+        const nd = Math.sqrt(nd2), push = (0.9 - nd) * 0.5, ux = ndx / nd, uz = ndz / nd;
+        n.position.x += ux * push; n.position.z += uz * push;
+        P.pos.x -= ux * push * 0.4; P.pos.z -= uz * push * 0.4;
+      }
+    }
     const gy = groundAt(P.pos.x, P.pos.z);                    // ride on sidewalks/plaza
     P.pos.y = lerp(P.pos.y, gy, L.dampT(dt, 14));
     const spd01 = Math.min(1, Math.abs(P.speed) / RUN);
@@ -517,7 +606,44 @@ function start(ctx, world) {
     // wind volume tracks speed
     if (windGain) windGain.gain.value = lerp(windGain.gain.value, 0.006 + Math.abs(P.speed) / RUN * 0.02, L.dampT(dt, 3));
 
+    /* ── place-based ambience ── */
+    // fountain splash swells as you approach the plaza heart (fountain at 0,14)
+    if (fountainGain) {
+      const dF = Math.hypot(P.pos.x, P.pos.z - 14);
+      const want = Math.pow(clamp(1 - dF / 26, 0, 1), 1.5) * 0.05;
+      fountainGain.gain.value = lerp(fountainGain.gain.value, want, L.dampT(dt, 4));
+    }
+    // clock tower marks time — two soft bells if you're near enough to hear
+    chimeIn -= dt;
+    if (chimeIn <= 0) {
+      chimeIn = 90;
+      if (AC && Math.hypot(P.pos.x, P.pos.z - 41) < 75) {
+        blip(587, 1.1, 'sine', 0.07);
+        setTimeout(() => blip(494, 1.6, 'sine', 0.06), 950);
+      }
+    }
+    // tram dings its bell as it passes close
+    if (AC && now - lastTramBell > 7000) {
+      for (const car of TRAFFIC) {
+        const dr = car.userData.drive;
+        if (!dr || !(dr.hl > 4)) continue;   // trams only
+        if (Math.hypot(car.position.x - P.pos.x, car.position.z - P.pos.z) < 14) {
+          lastTramBell = now;
+          blip(988, 0.16, 'square', 0.055); setTimeout(() => blip(988, 0.22, 'square', 0.05), 190);
+          break;
+        }
+      }
+    }
+
     if (!begun) { mapAcc += dt; if (mapAcc > 0.08) { mapAcc = 0; drawMap(); } updateFX(dt); return; }
+
+    // job-offer countdown (auto-picks the first card so the flow never stalls)
+    if (offer) {
+      offer.t -= dt;
+      offerBar.firstElementChild.style.width = (clamp(offer.t / 9, 0, 1) * 100).toFixed(1) + '%';
+      if (offer && offer.t <= 0) chooseJob(0);
+    }
+    const choosing = !!offer;
 
     // markers
     const tg = carrying ? dropoff : pickup;
@@ -525,10 +651,10 @@ function start(ctx, world) {
     objLetter.rotation.y += dt * 1.5; objLetter.position.y = 3.6 + Math.sin(now * 0.003) * 0.25;
 
     const dx = P.pos.x - tg.pos.x, dz = P.pos.z - tg.pos.z, dPlanar = Math.hypot(dx, dz);
-    elDist.textContent = dPlanar < 90 ? Math.round(dPlanar) + ' m' : '—';
+    elDist.textContent = (!choosing && dPlanar < 90) ? Math.round(dPlanar) + ' m' : '—';
     // needle is relative to the CAMERA (what the player sees), not the hero's body
     const bearing = Math.atan2(tg.pos.x - P.pos.x, tg.pos.z - P.pos.z);
-    elNeedle.style.transform = `rotate(${camYaw - bearing}rad)`;
+    if (!choosing) elNeedle.style.transform = `rotate(${camYaw - bearing}rad)`;
 
     /* ── timer + combo decay ── */
     if (jobActive) {
@@ -558,7 +684,7 @@ function start(ctx, world) {
     else comboEl.classList.remove('on');
 
     /* ── pick-up / deliver ── */
-    if (dPlanar < 4.5) {
+    if (!choosing && dPlanar < 4.5) {
       if (!carrying) {
         carrying = true; carriedLetter.visible = true; toast('✉ Letter picked up', '#ffd27a'); sfxPick(); setObjective();
         bubble(tg.pos.x, 3.4, tg.pos.z, pick(QUIPS_PICKUP));
@@ -623,6 +749,11 @@ function start(ctx, world) {
     const nowRank = rankName(totalDeliv);
     if (nowRank !== prevRank) {
       setTimeout(() => { toast('✦ ¡Ascenso! — ' + nowRank, '#ffd27a'); sfxBonus(); fxBurst(P.pos, [0xffd060, 0xffffff, 0xff9a6a], 26, 1.6); }, 1200);
+      const ni = rankIdx(totalDeliv);
+      if (ni < CAPS.length) {
+        capSel = ni; lsSet('fly_cap_sel', capSel); applyCap();
+        setTimeout(() => toast('🧢 Nueva gorra: ' + CAPS[ni][1] + ' — press C to swap', '#9fd0ff'), 2500);
+      }
     }
     if (score > bestScore) { bestScore = score; lsSet(LS.score, bestScore); }
     if (streak > bestStreak) { bestStreak = streak; lsSet(LS.streak, bestStreak); }
@@ -696,6 +827,8 @@ function start(ctx, world) {
     get pickup() { return pickup; }, get dropoff() { return dropoff; },
     get carrying() { return carrying; }, get score() { return score; },
     get stun() { return stun; }, get express() { return express; },
+    get offer() { return offer; }, chooseJob,
+    get capSel() { return capSel; }, get totalDeliv() { return totalDeliv; },
     begin,
   } };
 }

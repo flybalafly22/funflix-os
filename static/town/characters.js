@@ -581,7 +581,10 @@ function makeHero() {
   const hoodDkMat= cloth(hoodDk);
   const pantsMat = cloth(pantsHex);
   const cuffMat  = cloth(cuffHex);
-  const capMat   = cloth(capHex);
+  // cap material is deliberately NOT shared from the cache — the wardrobe
+  // system recolors it per rank, and mutating a cached material would repaint
+  // every other mesh authored with the same hex.
+  const capMat = cloth(capHex).clone(); L.curve(capMat);
   const hrMat    = hairMat('#221405');   // reads as warm brown under the hot rig
   const packMat  = L.std({ color: PACK_RED, roughness: 0.8 });
   const packDkMat= L.std({ color: PACK_DK, roughness: 0.82 });
@@ -783,6 +786,7 @@ function makeHero() {
 
   g.userData.limbs = { legL, legR, armL, armR };
   g.userData.torso = torso;
+  g.userData.capMat = capMat;   // wardrobe hook (rank colorways)
   g.userData.gait = {
     stride: 0.52,
     armSwing: 0.78,
@@ -810,8 +814,14 @@ function makePigeon() {
   g.add(L.sphere(0.085, 10, headMat, { y: 0.24, z: 0.12 }));
   const beak = L.cyl(0.005, 0.03, 0.07, 5, beakMat, { y: 0.23, z: 0.2, cast: false }); beak.rotation.x = Math.PI / 2; g.add(beak);
   [-0.03, 0.03].forEach(ex => g.add(L.sphere(0.015, 6, EYE, { x: ex, y: 0.26, z: 0.18, cast: false })));
-  // folded wings
-  [-1, 1].forEach(s => { const w = L.box(0.04, 0.08, 0.18, headMat, { x: s * 0.1, y: 0.13, z: -0.04, cast: false }); g.add(w); });
+  // folded wings — pivoted at the shoulder so world.js can flap them on takeoff
+  const wings = [];
+  [-1, 1].forEach(s => {
+    const wp = new T.Group(); wp.position.set(s * 0.06, 0.15, -0.04);
+    wp.add(L.box(0.04, 0.08, 0.18, headMat, { x: s * 0.05, y: -0.02, cast: false }));
+    wp.userData.side = s; g.add(wp); wings.push(wp);
+  });
+  g.userData.wings = wings;
   // tail
   g.add(L.box(0.1, 0.02, 0.14, bodyMat, { y: 0.1, z: -0.18, cast: false }));
   // feet
