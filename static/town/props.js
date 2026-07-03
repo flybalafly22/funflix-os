@@ -202,6 +202,20 @@ function makeHydrant() {
 /* ════════════════════════════════════════════════════════════════════════
    TREE — layered canopy of varied greens, tapered bark trunk; species by seed
    ════════════════════════════════════════════════════════════════════════ */
+/* radially displace a geometry so it stops reading as a perfect primitive */
+function lumpy(geo, amt, seed) {
+  const p = geo.attributes.position, v = new T.Vector3();
+  const s = seed || 1;
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const n = Math.sin(v.x * 12.9 + s) * Math.cos(v.y * 7.7 + s * 1.7) * Math.sin(v.z * 9.3 + s * 0.6);
+    const m = 1 + n * amt;
+    p.setXYZ(i, v.x * m, v.y * m, v.z * m);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function makeTree(opts) {
   opts = opts || {};
   const g = new T.Group();
@@ -214,14 +228,16 @@ function makeTree(opts) {
   // CYPRESS variant — the dark vertical exclamation mark (silhouette relief
   // against the round lobed canopies; classic hill-town punctuation)
   if (opts.kind === 'cypress' || (opts.kind == null && !big && L.chance(0.2))) {
-    const dk = L.MAT.flat(L.pick(['#31552c', '#3a5f33', '#2c4d28']));
+    const dk = L.leaf(L.pick(['#31552c', '#3a5f33', '#2c4d28']));
     g.add(L.cyl(0.09, 0.15, 0.5, 7, bark, { y: 0.25 }));
     const hh = L.rand(3.0, 4.4);
     for (let k = 0; k < 4; k++) {
       const t = k / 4;
-      const cone = new T.Mesh(new T.ConeGeometry((0.6 - t * 0.32) * scale, hh * 0.4, 8), dk);
-      cone.position.y = 0.55 + hh * (0.18 + t * 0.23); cone.castShadow = true; g.add(cone);
+      const cone = new T.Mesh(lumpy(new T.ConeGeometry((0.6 - t * 0.32) * scale, hh * 0.4, 8), 0.09, k * 3 + 1), dk);
+      cone.position.y = 0.55 + hh * (0.18 + t * 0.23); cone.position.x = L.jitter(0.08);
+      cone.castShadow = true; g.add(cone);
     }
+    g.rotation.z = L.jitter(0.04);
     return g;
   }
   g.add(L.cyl(0.26 * scale, 0.4 * scale, 0.3, 8, bark, { y: 0.15 }));      // root flare
@@ -241,9 +257,28 @@ function makeTree(opts) {
              [0.25, top + 1.45, -0.35, 0.7], [-0.35, top + 1.35, 0.4, 0.74], [0.45, top + 0.55, -0.45, 0.6],
              [-0.55, top + 0.6, 0.3, 0.58]];
   }
+  // one hue pair per TREE (light crown / dark underside) — neighboring trees
+  // differ, lobes within a tree agree; every lobe is displaced off-sphere
+  // crown hexes authored darker than PAL.foliage — the flat-bright rig washes
+  // mid-greens to mint otherwise
+  const crown = L.leaf(L.pick(['#4e7a3a', '#557f42', '#47713a', '#5b8846', '#4a7544']));
+  const under = L.leaf(L.pick(['#3d6030', '#35562a', '#456c36']));
+  const cOffX = L.jitter(0.28) * scale, cOffZ = L.jitter(0.28) * scale;
   lobes.forEach(([x, y, z, r], i) => {
-    g.add(L.sphere(r * scale, 9, L.MAT.flat(greens[i % greens.length]), { x: x * scale, y, z: z * scale }));
+    const geo = lumpy(new T.SphereGeometry(r * scale, 8, 6), 0.17, i * 7 + (opts.seed || 1));
+    const m = new T.Mesh(geo, i >= lobes.length - 2 ? under : crown);
+    m.position.set(x * scale + cOffX, y, z * scale + cOffZ);
+    m.rotation.y = L.rand(0, TAU);
+    m.castShadow = true; g.add(m);
   });
+  // a couple of low leaf-cluster plates under the canopy (drawn-foliage layering)
+  for (let k = 0; k < 2; k++) {
+    const plate = new T.Mesh(lumpy(new T.SphereGeometry(0.42 * scale, 7, 5), 0.2, k * 13 + 5), under);
+    plate.scale.y = 0.45;
+    plate.position.set(cOffX + L.jitter(0.7), top + L.rand(0.1, 0.5), cOffZ + L.jitter(0.7));
+    g.add(plate);
+  }
+  g.rotation.z = L.jitter(0.035);
   // optional blossom dots
   if (opts.blossom != null ? opts.blossom : L.chance(0.35)) {
     const pink = L.pick(['#f0b9cf', '#f3c9d8', '#f5d6a0']);
@@ -481,6 +516,16 @@ function makeCar(opts) {
   g.add(L.box(0.92, 0.1, 0.05, chrome, { y: 0.84, z: hl - 0.01, cast: false }));       // grille bar
   g.add(L.box(0.5, 0.13, 0.02, M.plateW, { y: 0.52, z: hl + 0.045, cast: false }));
   g.add(L.box(0.5, 0.13, 0.02, M.plateW, { y: 0.52, z: -hl - 0.045, cast: false }));
+  // OWNED, not manufactured: mirrors, sometimes an antenna, sometimes a stripe
+  [-1, 1].forEach(s => {
+    g.add(L.box(0.03, 0.03, 0.1, trimDark, { x: s * (wid / 2 + 0.05), y: 1.14, z: 1.02, cast: false }));
+    g.add(L.box(0.06, 0.11, 0.15, trimDark, { x: s * (wid / 2 + 0.11), y: 1.14, z: 1.0, cast: false }));
+  });
+  if (L.chance(0.4)) g.add(L.cyl(0.008, 0.012, 0.55, 4, trimDark, { x: -wid / 2 + 0.14, y: 1.35, z: -hl + 0.35, cast: false }));
+  if (L.chance(0.45)) {
+    const stripeM = L.std({ colorHex: L.pick(['#e8e0cc', '#a8352c', '#2c4d60']), roughness: 0.5 });
+    [-1, 1].forEach(s => g.add(L.box(0.02, 0.09, len - 0.7, stripeM, { x: s * (wid / 2 + 0.015), y: 0.92, cast: false })));
+  }
 
   // — round chrome-ringed headlights (+Z) + red taillights (-Z) —
   [0.6, -0.6].forEach(hx => {
@@ -576,6 +621,16 @@ function makeTruck(opts) {
   // box paneling ribs + a coloured stripe
   for (let i = 0; i < 5; i++) g.add(L.box(2.12, 2.0, 0.04, L.MAT.flat('#d6cfbf'), { z: -3.4 + i * 0.92, y: 1.35, cast: false }));
   g.add(L.box(2.13, 0.18, 4.3, bm, { z: -1.55, y: 1.05, cast: false }));         // colour stripe
+  // painted business name on both flanks
+  if (L.chance(0.7)) {
+    const biz = L.pick([['MUDANZAS LUNA', '#2f5878'], ['FRUTAS PACO', '#3f6e3c'], ['PESCADOS DEL MAR', '#28484e'], ['PAN & PAN', '#7a4828']]);
+    const sMat = L.std({ map: L.signTex(biz[0], biz[1]), roughness: 0.7 });
+    [1, -1].forEach(s => {
+      const pl = new T.Mesh(new T.PlaneGeometry(2.7, 0.68), sMat);
+      pl.position.set(s * 1.06, 1.7, -1.55); pl.rotation.y = s * Math.PI / 2;
+      g.add(pl);
+    });
+  }
   g.add(L.box(2.14, 0.12, 4.32, M.cast, { z: -1.55, y: 0.36, cast: false }));    // skirt
   // rear doors + taillights at -Z end
   g.add(L.box(2.1, 1.9, 0.06, L.MAT.flat('#cfc7b6'), { z: -3.7, y: 1.35, cast: false }));
@@ -708,5 +763,48 @@ function makeVending(opts) {
   return g;
 }
 
-FLY.props = { makeLamp, makeBench, makeBin, makePlanter, makeHydrant, makeTree, makeUtilPole, makeBollard, makeFountain, makeMarketStall, makeCafe, makeCar, makeScooter, makeTruck, makeTram, makeVending };
+/* leaning bicycle — two wheels, thin frame, someone's ride */
+function makeBicycle() {
+  const g = new T.Group();
+  const fm = L.std({ colorHex: L.pick(['#7a3f36', '#35597f', '#4d6a52', '#8a7a3a']), roughness: 0.5 });
+  const wheelM = L.MAT.rubber;
+  [-0.44, 0.44].forEach(z => {
+    const wh = new T.Mesh(new T.TorusGeometry(0.3, 0.028, 6, 16), wheelM);
+    wh.position.set(0, 0.31, z); g.add(wh);
+    g.add(L.cyl(0.02, 0.02, 0.56, 4, L.MAT.metalLight, { y: 0.31, z: z, cast: false }));
+  });
+  const bar = (x1, y1, z1, x2, y2, z2) => {
+    const dx = x2 - x1, dy = y2 - y1, dz = z2 - z1, len = Math.hypot(dx, dy, dz);
+    const b = L.cyl(0.02, 0.02, len, 5, fm, { x: (x1 + x2) / 2, y: (y1 + y2) / 2, z: (z1 + z2) / 2, cast: false });
+    b.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(dx, dy, dz).normalize());
+    g.add(b);
+  };
+  bar(0, 0.31, 0.44, 0, 0.78, 0.32);   // head tube
+  bar(0, 0.78, 0.32, 0, 0.62, -0.2);   // top tube
+  bar(0, 0.62, -0.2, 0, 0.31, -0.44);  // seat stay
+  bar(0, 0.31, 0.44, 0, 0.42, -0.15);  // down tube
+  bar(0, 0.42, -0.15, 0, 0.62, -0.2);  // seat tube
+  g.add(L.box(0.26, 0.03, 0.05, L.MAT.metalDark, { y: 0.82, z: 0.34, cast: false }));   // handlebar
+  g.add(L.box(0.06, 0.03, 0.16, L.MAT.rubber, { y: 0.68, z: -0.22, cast: false }));     // saddle
+  if (L.chance(0.5)) g.add(L.box(0.2, 0.12, 0.26, L.MAT.wood('#8a6a44'), { y: 0.66, z: 0.42, cast: false }));  // basket
+  g.rotation.z = 0.16;   // leaning
+  return g;
+}
+
+/* garbage bags — someone put the trash out */
+function makeTrashBags() {
+  const g = new T.Group();
+  const n = L.randInt(2, 3);
+  for (let k = 0; k < n; k++) {
+    const bm2 = L.std({ colorHex: L.pick(['#3a4038', '#2e3430', '#44403a']), roughness: 0.55 });
+    const bag = new T.Mesh(lumpy(new T.SphereGeometry(L.rand(0.24, 0.32), 8, 6), 0.18, k * 5 + 2), bm2);
+    bag.scale.y = 0.8;
+    bag.position.set(L.jitter(0.35), 0.22, L.jitter(0.3));
+    bag.castShadow = true; g.add(bag);
+    g.add(L.sphere(0.05, 5, bm2, { x: bag.position.x, y: 0.46, z: bag.position.z, cast: false }));
+  }
+  return g;
+}
+
+FLY.props = { makeLamp, makeBench, makeBin, makePlanter, makeHydrant, makeTree, makeUtilPole, makeBollard, makeFountain, makeMarketStall, makeCafe, makeCar, makeScooter, makeTruck, makeTram, makeVending, makeBicycle, makeTrashBags };
 })();

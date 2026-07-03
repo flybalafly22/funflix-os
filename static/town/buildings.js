@@ -175,15 +175,18 @@ function buildWindows(g, opts) {
     const wy = GROUND_H + 0.55 + f * FLOOR_H;
     if (wy + winH / 2 + 0.4 > h - 0.4) break;
     for (let ci = 0; ci < cols; ci++) {
-      const wx = -w / 2 + gap * (ci + 0.5);
-      // frame plane stands clearly off the wall; glass sits in front of the frame;
-      // sill is a solid box projecting forward — none share a plane with the wall.
-      frame.push(L.compose(wx, wy, frontZ + 0.06, 0, winW + 0.22, winH + 0.26, 1));
-      (L.chance(litP) ? lit : dark).push(L.compose(wx, wy, frontZ + 0.10, 0, winW, winH, 1));
-      sill.push(L.compose(wx, wy - winH / 2 - 0.12, frontZ + 0.16, 0, winW + 0.34, 0.14, 0.36));
+      if (L.chance(0.05)) continue;                     // a bricked-up absence now and then
+      // HUMAN GRID: every window drifts a little and no two are the same size —
+      // perfect rows are the loudest "CAD" tell on a facade.
+      const wx = -w / 2 + gap * (ci + 0.5) + L.jitter(0.07);
+      const jy = wy + L.jitter(0.05);
+      const vw = winW * (1 + L.jitter(0.05)), vh = winH * (1 + L.jitter(0.04));
+      frame.push(L.compose(wx, jy, frontZ + 0.06, 0, vw + 0.22, vh + 0.26, 1));
+      (L.chance(litP) ? lit : dark).push(L.compose(wx, jy, frontZ + 0.10, 0, vw, vh, 1));
+      sill.push(L.compose(wx, jy - vh / 2 - 0.12, frontZ + 0.16, 0, vw + 0.34, 0.14, 0.36));
       if (doBack) {
-        frame.push(L.compose(wx, wy, backZ - 0.06, Math.PI, winW + 0.22, winH + 0.26, 1));
-        (L.chance(litP) ? lit : dark).push(L.compose(wx, wy, backZ - 0.10, Math.PI, winW, winH, 1));
+        frame.push(L.compose(wx, jy, backZ - 0.06, Math.PI, vw + 0.22, vh + 0.26, 1));
+        (L.chance(litP) ? lit : dark).push(L.compose(wx, jy, backZ - 0.10, Math.PI, vw, vh, 1));
       }
     }
   }
@@ -291,6 +294,29 @@ function rooftop(g, w, d, topY, wallMat, opts) {
     g.add(L.box(1.4, 0.3, 0.5, L.MAT.wood('#6b4a30'), { x: gx, y: topY + 0.2, z: L.rand(0, d / 4) }));
     for (let i = 0; i < 4; i++) g.add(L.box(0.22, 0.4, 0.22, L.std({ color: 0x5a8c48, roughness: 0.9 }), { x: gx - 0.5 + i * 0.33, y: topY + 0.5, z: L.rand(0, d / 4), cast: false }));
   }
+}
+
+/* hairline facade cracks — a transparent jagged decal, two cached variants */
+const _crackTexes = [];
+function crackTex(v) {
+  if (_crackTexes[v]) return _crackTexes[v];
+  const c = L.cnv(64, 160), g = c.getContext('2d');
+  g.strokeStyle = 'rgba(52,44,34,0.5)'; g.lineWidth = 1.6; g.lineCap = 'round';
+  let x = 32 + (v ? -8 : 6), y = 4;
+  g.beginPath(); g.moveTo(x, y);
+  while (y < 152) { x += (Math.random() - 0.5) * 14; y += 10 + Math.random() * 14; g.lineTo(x, y); }
+  g.stroke();
+  // one small side branch
+  g.lineWidth = 1.1; g.beginPath(); g.moveTo(x, y - 60);
+  g.lineTo(x + (v ? 14 : -12), y - 44); g.stroke();
+  const t = L.finishTex(c); _crackTexes[v] = t; return t;
+}
+function facadeCrack(g, w, h, frontZ) {
+  const mat = L.std({ map: crackTex(L.chance(0.5) ? 1 : 0), transparent: true, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -1 });
+  const pl = new T.Mesh(new T.PlaneGeometry(0.8, 2.0), mat);
+  pl.position.set(L.jitter(w / 2 - 1.0), h * L.rand(0.45, 0.75), frontZ + 0.015);
+  pl.rotation.z = L.jitter(0.25);
+  g.add(pl);
 }
 
 /* downpipe on a side corner */
@@ -502,6 +528,8 @@ function make(spec) {
 
   /* ── ALWAYS-ON DETAILING ── */
   downpipe(g, w, h, frontZ);
+  if (L.chance(0.55)) facadeCrack(g, w, h, frontZ);          // weathered plaster
+  if (L.chance(0.2)) facadeCrack(g, w, h, frontZ);           // some walls crack twice
   // clutter colliders in LOCAL coords — world.js transforms them into place
   const cc = []; g.userData.cols = cc;
 

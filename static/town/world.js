@@ -856,6 +856,16 @@ function build(ctx) {
     s.rotation.z = L.rand(0, TAU); root.add(s);
   }
 
+  /* ── bikes leaning on facades + trash put out (tertiary density) ── */
+  [[-63, 13.4, 0], [58, -13.4, Math.PI], [104, 13.4, 0], [152.5, -19.2, 0.5]].forEach(([x, z, ry]) => {
+    const bk = P.makeBicycle(); bk.position.set(x, CH, z); bk.rotation.y = ry; root.add(bk);
+    colC(x, z, 0.45);
+  });
+  [[-33, 13.5], [78, -13.5], [CROSSX + 13.3, 40], [-98, 13.5], [GREEN2_CX + 15, AV2Z - 13.4]].forEach(([x, z]) => {
+    const tb = P.makeTrashBags(); tb.position.set(x, CH, z); root.add(tb);
+    colC(x, z, 0.5);
+  });
+
   /* ══════════ THE MIRADOR — terraced hillside behind the park (Sprint 6).
      Two stone terraces climb out of the park's south gate: houses on the first,
      a chapel + lookout over the whole town on the second. The floors system

@@ -714,6 +714,11 @@ function start(ctx, world) {
     // scarf tail trails and flutters with speed (the brand accent in motion)
     const st = hero.userData.scarfTail;
     if (st) st.rotation.x = -(0.45 + spd01 * 0.9 + Math.sin(now * 0.02) * (0.05 + spd01 * 0.14));
+    // secondary motion: lean into the run (the pack and hood ride the torso)
+    const tor = hero.userData.torso, ga = hero.userData.gait;
+    if (tor && ga) tor.rotation.x = ga.baseRX + spd01 * 0.16;
+    // one shared breeze clock for every leaf in town
+    L.windUniform.value = now * 0.0011;
 
     // contact shadow under the feet
     blob.position.set(P.pos.x, P.pos.y + 0.05, P.pos.z); blob.scale.setScalar(0.7); blob.material.opacity = 0.3;

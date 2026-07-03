@@ -366,6 +366,36 @@ function applyCurve(mat) {
   return mat;
 }
 
+/* ── WIND — a shared clock bends foliage vertices in world space. Composed
+   with the curvature hook (both run in onBeforeCompile), and because batching
+   bakes world transforms, merged canopies keep swaying. ── */
+const _wind = { value: 0 };
+function applyWind(mat) {
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh) => {
+    if (prev) prev(sh);
+    sh.uniforms.uWind = _wind;
+    sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace(
+      '#include <begin_vertex>',
+      ['#include <begin_vertex>',
+       'float windLift = smoothstep(1.3, 3.2, transformed.y);',
+       'transformed.x += sin(uWind + transformed.x * 0.33 + transformed.z * 0.21) * 0.07 * windLift;',
+       'transformed.z += cos(uWind * 0.87 + transformed.z * 0.29) * 0.05 * windLift;'].join('\n')
+    );
+  };
+  return mat;
+}
+const _leafCache = new Map();
+// foliage-only material: cel + curvature + wind (kept out of std's cache so
+// walls/props never inherit the sway)
+function leaf(hex) {
+  if (_leafCache.has(hex)) return _leafCache.get(hex);
+  const m = new T.MeshToonMaterial({ color: parseInt(hex.replace('#', '0x')), gradientMap: _toonGrad });
+  applyCurve(m); applyWind(m);
+  _leafCache.set(hex, m);
+  return m;
+}
+
 const _matCache = new Map();
 function matKey(o) { return JSON.stringify(o); }
 // Single chokepoint: every surface material in the game flows through std().
@@ -456,5 +486,6 @@ window.FLY.lib = {
   PAL, MAT, std,
   box, cyl, sphere, instanced, decal, compose,
   curve: applyCurve, curveUniform: _curve,
+  leaf, wind: applyWind, windUniform: _wind,
 };
 })();
