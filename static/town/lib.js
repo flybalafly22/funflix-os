@@ -233,7 +233,7 @@ function awningTex(a, b, stripes = 10) {
 function roadTex() {
   return cached('road', () => {
     const w = 256, h = 256, c = cnv(w, h), g = c.getContext('2d');
-    g.fillStyle = '#5f584e'; g.fillRect(0, 0, w, h);   // sun-baked warm graphite — bright enough to survive the toon shadow band (ART BIBLE §2.6)
+    g.fillStyle = '#706b62'; g.fillRect(0, 0, w, h);   // light grey-greige asphalt (flat-bright Messenger read)
     for (let i = 0; i < 6000; i++) { const lite = chance(0.5); g.fillStyle = `rgba(${lite ? '255,255,255' : '0,0,0'},${_rng() * 0.07})`; g.fillRect(_rng() * w, _rng() * h, 1, 1); }
     // cracks
     for (let i = 0; i < 6; i++) { g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = 1; g.beginPath(); let x = rand(0, w), y = rand(0, h); g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += jitter(30); y += jitter(30); g.lineTo(x, y); } g.stroke(); }
@@ -244,7 +244,7 @@ function roadTex() {
 function sidewalkTex() {
   return cached('sidewalk', () => {
     const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
-    g.fillStyle = '#cabda4'; g.fillRect(0, 0, w, h);   // warm stone (ART BIBLE §2.6)
+    g.fillStyle = '#c9c4b2'; g.fillRect(0, 0, w, h);   // pale grey-cream pavement
     g.strokeStyle = 'rgba(0,0,0,0.16)'; g.lineWidth = 2;
     for (let x = 0; x <= w; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
     for (let y = 0; y <= h; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
@@ -256,7 +256,7 @@ function sidewalkTex() {
 function dirtTex() {
   return cached('dirt', () => {
     const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
-    g.fillStyle = '#b3a07e'; g.fillRect(0, 0, w, h);   // warm dust (ART BIBLE §2.6)
+    g.fillStyle = '#b7ac92'; g.fillRect(0, 0, w, h);   // pale dust
     for (let i = 0; i < 60; i++) { g.globalAlpha = rand(0.03, 0.08); g.fillStyle = chance(0.5) ? '#9a8866' : '#c6b491'; g.beginPath(); g.arc(rand(0, w), rand(0, h), rand(6, 20), 0, TAU); g.fill(); }
     g.globalAlpha = 1; grain(g, w, h, 1500, 0.05);
     const t = finishTex(c, { repeat: [24, 24], aniso: 4 });
@@ -333,7 +333,7 @@ const _toonGrad = (() => {
   // Lifted shadow band (was 104): the old value stacked with dark albedos + ACES +
   // grade contrast into pure-black roads/shadows — the #1 look bug. Shadows must
   // stay warm-grey (ART BIBLE §1 "lifted blacks"), the grade adds the warmth.
-  const d = new Uint8Array([148, 148, 148, 255, 202, 202, 202, 255, 255, 255, 255, 255]); // 3 steps: shadow / mid / light
+  const d = new Uint8Array([176, 176, 176, 255, 218, 218, 218, 255, 255, 255, 255, 255]); // 3 CLOSE steps — flat-bright cel, shadows only a shade darker
   const t = new T.DataTexture(d, 3, 1, T.RGBAFormat);
   t.magFilter = t.minFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
   return t;

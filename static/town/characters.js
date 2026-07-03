@@ -565,8 +565,10 @@ function makeHero() {
 
   // ── palette: a deliberate, named hero look (NOT seeded — same every spawn) ──
   const skinHex  = '#e8b489';        // warm
-  const hoodHex  = '#3f6e7a';        // dusty teal hoodie (cool relief, §2.8)
-  const hoodDk   = '#345a64';        // hood shadow / hood-down lump
+  // ONE-ACCENT RULE (Messenger read): cream-white top + charcoal bottoms, so the
+  // red pack/cap is the only saturated thing on the courier
+  const hoodHex  = '#c9c2b0';        // cream-white hoodie (renders paper-white)
+  const hoodDk   = '#a8a290';        // hood shadow / hood-down lump
   const pantsHex = '#3a3a42';        // charcoal rolled trousers
   const cuffHex  = '#cf8a3c';        // warm rolled-cuff accent
   // DEEPER reds than the target read: the golden-hour sun + ACES + toon top band

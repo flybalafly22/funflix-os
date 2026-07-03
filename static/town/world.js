@@ -830,6 +830,31 @@ function build(ctx) {
     p.rotation.z = L.jitter(0.5); root.add(p);
   }
 
+  /* ── VENDING MACHINES against the facades (soft-glow street icons) ── */
+  const VEND_SPOTS = [
+    [-52, 13.7, Math.PI], [30, 13.7, Math.PI], [118, 13.7, Math.PI],
+    [-116, -13.7, 0], [62, -13.7, 0],
+    [CROSSX - 13.7, 30, Math.PI / 2], [CROSSX2 + 13.7, -25, -Math.PI / 2],
+    [-58, AV2Z - 13.7, 0], [44, AV2Z + 13.7, Math.PI],
+  ];
+  VEND_SPOTS.forEach(([x, z, ry], i) => {
+    const v = P.makeVending({ color: ['#9a4a5c', '#35597f', '#3f7a66'][i % 3] });
+    v.position.set(x, CH, z); v.rotation.y = ry; root.add(v);
+    colC(x, z, 0.66);
+  });
+
+  /* ── STRAY PAPER — flat scraps in gutters and alleys ── */
+  const scrapMat = L.std({ colorHex: '#eae4d2', roughness: 0.9 });
+  for (let i = 0; i < 46; i++) {
+    const onAv2s = L.chance(0.3);
+    const sx2 = L.rand(onAv2s ? -AV2X + 8 : -AVX + 8, onAv2s ? AV2X - 8 : AVX - 8);
+    const zoff = L.pick([1, -1]) * L.rand(2, SW + SDW - 1.5);
+    const sy = Math.abs(zoff) > SW ? CH + 0.012 : 0.022;
+    const s = L.decal(L.rand(0.22, 0.4), L.rand(0.16, 0.3), scrapMat, sy);
+    s.position.set(sx2, sy, (onAv2s ? AV2Z : 0) + zoff);
+    s.rotation.z = L.rand(0, TAU); root.add(s);
+  }
+
   /* ── MOVING TRAFFIC on the avenues (along X) ── total ≤ 14 cars + tram ── */
   // main avenue (longer): 9 cars; second avenue: 5 cars
   [[0, -AVX, AVX, 9], [AV2Z, -AV2X, AV2X, 5]].forEach(([avZ, x0, x1, count]) => {

@@ -667,5 +667,33 @@ function makeTram(opts) {
   return g;
 }
 
-FLY.props = { makeLamp, makeBench, makeBin, makePlanter, makeHydrant, makeTree, makeUtilPole, makeBollard, makeFountain, makeMarketStall, makeCafe, makeCar, makeScooter, makeTruck, makeTram };
+/* ════════════════════════════════════════════════════════════════════════
+   VENDING MACHINE — the quiet street icon (glass front, bottle rows)
+   ════════════════════════════════════════════════════════════════════════ */
+function makeVending(opts) {
+  opts = opts || {};
+  const g = new T.Group();
+  const shellHex = opts.color || L.pick(['#9a4a5c', '#35597f', '#3f7a66']);
+  const shell = L.std({ colorHex: shellHex, roughness: 0.6 });
+  g.add(L.box(1.0, 1.86, 0.66, shell, { y: 0.98 }));
+  g.add(L.box(1.04, 0.1, 0.7, L.MAT.metalDark, { y: 0.05, cast: false }));            // plinth
+  // glass display (left two-thirds) with 3 shelves of little bottles
+  g.add(L.box(0.62, 1.1, 0.05, L.MAT.glass, { x: -0.12, y: 1.3, z: 0.33, cast: false }));
+  const botCols = ['#c8b48a', '#7fa3c0', '#b0506a', '#4d8a52', '#d8d0c4'];
+  for (let s = 0; s < 3; s++) {
+    g.add(L.box(0.6, 0.03, 0.12, L.MAT.metalLight, { x: -0.12, y: 0.9 + s * 0.36, z: 0.28, cast: false }));
+    for (let b = 0; b < 4; b++) {
+      g.add(L.cyl(0.04, 0.04, 0.17, 6, L.std({ colorHex: L.pick(botCols), roughness: 0.5 }), { x: -0.33 + b * 0.14, y: 1.0 + s * 0.36, z: 0.28, cast: false }));
+    }
+  }
+  // right column: soft-glow buttons + coin slot; dispense flap below the glass
+  for (let k = 0; k < 4; k++) g.add(L.box(0.1, 0.05, 0.02, L.MAT.emissive('#d8e0a0', 0.25), { x: 0.32, y: 1.6 - k * 0.12, z: 0.34, cast: false }));
+  g.add(L.box(0.12, 0.16, 0.02, L.MAT.metalDark, { x: 0.32, y: 1.05, z: 0.34, cast: false }));
+  g.add(L.box(0.5, 0.28, 0.03, L.MAT.metalDark, { x: -0.12, y: 0.45, z: 0.33, cast: false }));
+  // top sign strip (cream)
+  g.add(L.box(1.0, 0.18, 0.05, L.std({ colorHex: '#e8e0cc', roughness: 0.7 }), { y: 1.98, z: 0.31, cast: false }));
+  return g;
+}
+
+FLY.props = { makeLamp, makeBench, makeBin, makePlanter, makeHydrant, makeTree, makeUtilPole, makeBollard, makeFountain, makeMarketStall, makeCafe, makeCar, makeScooter, makeTruck, makeTram, makeVending };
 })();

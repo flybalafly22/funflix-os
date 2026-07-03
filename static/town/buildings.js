@@ -275,6 +275,16 @@ function rooftop(g, w, d, topY, wallMat, opts) {
     const ax = L.jitter(w / 3), az = L.jitter(d / 4);
     g.add(L.cyl(0.025, 0.04, L.rand(2, 3.2), 5, L.MAT.metalLight, { x: ax, y: topY + 1.3, z: az, cast: false }));
   }
+  // satellite dish — rooftop-junk skyline texture
+  if (L.chance(0.3)) {
+    const sx = L.jitter(w / 3), sz = L.jitter(d / 3);
+    g.add(L.cyl(0.03, 0.03, 0.55, 6, L.MAT.metalDark, { x: sx, y: topY + 0.3, z: sz, cast: false }));
+    const dish = new T.Mesh(new T.CircleGeometry(0.32, 12), L.std({ color: 0xd8d4c8, roughness: 0.8, side: T.DoubleSide }));
+    dish.position.set(sx, topY + 0.62, sz);
+    dish.rotation.set(-0.95, L.rand(0, TAU), 0, 'YXZ');
+    g.add(dish);
+    g.add(L.cyl(0.015, 0.015, 0.3, 5, L.MAT.metalDark, { x: sx, y: topY + 0.7, z: sz + 0.12, cast: false }));
+  }
   // occasional rooftop garden
   if (opts.garden && L.chance(0.5)) {
     const gx = L.jitter(w / 4);

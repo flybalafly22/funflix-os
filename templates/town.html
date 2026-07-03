@@ -5,61 +5,66 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>THE FLY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #7ec9cb;
-               font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #fff5e9; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #5fc0b2;
+               font-family: 'Patrick Hand', ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #2c261c; }
   #wrap { position: fixed; inset: 0; }
   canvas { display: block; width: 100%; height: 100%; }
 
-  /* ── loading ── */
+  /* ── loading — white page, tiny envelope, handwritten (the Messenger loader) ── */
   #load { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center;
-          background: radial-gradient(120% 120% at 50% 30%, #3a2c1e, #15100a); transition: opacity .6s; }
+          background: #faf7ee; color: #2c261c; transition: opacity .6s; }
   #load.hide { opacity: 0; pointer-events: none; }
-  #load .t { font-size: 30px; font-weight: 900; letter-spacing: .04em; }
-  #load .b { margin-top: 14px; width: 180px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
-  #load .b i { display: block; height: 100%; width: 30%; background: #ffd27a; border-radius: 3px; animation: ld 1.1s ease-in-out infinite; }
+  #load .t { font-size: 20px; letter-spacing: .18em; font-weight: 400; }
+  #load .t::before { content: '✉'; display: block; font-size: 34px; margin-bottom: 8px; animation: bob 1.2s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-5px) rotate(-4deg); } }
+  #load .b { margin-top: 12px; width: 150px; height: 3px; border-radius: 2px; background: rgba(44,38,28,.14); overflow: hidden; }
+  #load .b i { display: block; height: 100%; width: 30%; background: #2c261c; border-radius: 2px; animation: ld 1.1s ease-in-out infinite; }
   @keyframes ld { 0%{margin-left:-30%} 100%{margin-left:100%} }
 
   /* ── HUD ── */
   #hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+  /* paper cards: warm white, ink border, tiny drop — hand-lettered */
+  .paper, #task, #score, #dist, #hint {
+    background: rgba(250,247,238,.95); color: #2c261c;
+    border: 2px solid #2c261c; box-shadow: 0 3px 0 rgba(44,38,28,.22); }
   #task { position: absolute; left: 16px; top: 14px; min-width: 220px;
-          background: rgba(28,22,16,.6); backdrop-filter: blur(10px);
-          border: 1px solid rgba(255,255,255,.14); border-radius: 14px; padding: 11px 15px;
-          box-shadow: 0 8px 28px rgba(0,0,0,.28); }
-  #task .lbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #ffd27a; font-weight: 800; }
-  #task .dst { font-size: 20px; font-weight: 800; margin-top: 2px; }
-  #task .sub { font-size: 11px; opacity: .7; margin-top: 3px; }
+          border-radius: 12px 14px 11px 13px; padding: 9px 14px; transform: rotate(-.4deg); }
+  #task .lbl { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #c04434; }
+  #task .dst { font-size: 21px; margin-top: 1px; line-height: 1.05; }
+  #task .sub { font-size: 13px; opacity: .72; margin-top: 2px; }
   #score { position: absolute; right: 16px; top: 14px; text-align: right;
-           background: rgba(28,22,16,.6); backdrop-filter: blur(10px);
-           border: 1px solid rgba(255,255,255,.14); border-radius: 14px; padding: 10px 16px;
-           box-shadow: 0 8px 28px rgba(0,0,0,.28); }
-  #score .n { font-size: 26px; font-weight: 800; line-height: 1; color: #7fe0a0; }
-  #score .l { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; opacity: .65; margin-top: 3px; }
+           border-radius: 13px 11px 14px 12px; padding: 8px 15px; transform: rotate(.4deg); }
+  #score .n { font-size: 26px; line-height: 1; color: #4d8a52; }
+  #score .l { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; margin-top: 2px; }
   #compass { position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
-             width: 54px; height: 54px; border-radius: 50%; background: rgba(28,22,16,.55);
-             backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.16);
-             display: grid; place-items: center; box-shadow: 0 6px 22px rgba(0,0,0,.28); }
-  #needle { font-size: 22px; color: #ffd27a; transition: transform .08s linear; text-shadow: 0 0 8px rgba(255,200,90,.7); }
-  #dist { position: absolute; left: 50%; top: 74px; transform: translateX(-50%); font-size: 11px;
-          background: rgba(28,22,16,.5); padding: 2px 9px; border-radius: 8px; font-weight: 700; }
+             width: 52px; height: 52px; border-radius: 50%; background: rgba(250,247,238,.95);
+             border: 2px solid #2c261c; display: grid; place-items: center;
+             box-shadow: 0 3px 0 rgba(44,38,28,.22); }
+  #needle { font-size: 20px; color: #c04434; transition: transform .08s linear; }
+  #dist { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); font-size: 13px;
+          padding: 1px 10px; border-radius: 9px 8px 9px 8px; }
   #hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
-          font: 600 11px ui-monospace, Menlo, monospace; opacity: .82; background: rgba(24,18,12,.5);
-          padding: 7px 13px; border-radius: 10px; backdrop-filter: blur(6px); white-space: nowrap; }
+          font-size: 14px; opacity: .92; padding: 4px 14px; border-radius: 10px 9px 11px 9px; white-space: nowrap; }
   #toast { position: absolute; left: 50%; top: 36%; transform: translate(-50%,-50%) scale(.8);
-           font-size: 30px; font-weight: 900; text-shadow: 0 4px 18px rgba(0,0,0,.5); opacity: 0;
+           font-size: 30px; color: #2c261c; opacity: 0;
+           text-shadow: -1.5px 0 0 #faf7ee, 1.5px 0 0 #faf7ee, 0 -1.5px 0 #faf7ee, 0 2px 0 #faf7ee, 0 4px 0 rgba(44,38,28,.2);
            transition: opacity .25s, transform .25s; text-align: center; }
   #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
   /* touch controls (mobile only) */
   #touch { position: absolute; inset: 0; pointer-events: none; }
   .tpad { position: absolute; pointer-events: auto; -webkit-user-select: none; user-select: none; touch-action: none; }
   #stick { left: 20px; bottom: 22px; width: 128px; height: 128px; border-radius: 50%;
-           background: rgba(255,255,255,.10); border: 1.5px solid rgba(255,255,255,.25); }
+           background: rgba(250,247,238,.3); border: 2px solid rgba(44,38,28,.55); }
   #knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px;
-          border-radius: 50%; background: rgba(255,255,255,.32); border: 1.5px solid rgba(255,255,255,.5); }
+          border-radius: 50%; background: rgba(250,247,238,.75); border: 2px solid #2c261c; }
   #btnUp, #btnDn { right: 24px; width: 64px; height: 64px; border-radius: 50%;
-                   background: rgba(255,255,255,.14); border: 1.5px solid rgba(255,255,255,.3);
-                   font-size: 26px; display: grid; place-items: center; font-weight: 800; }
+                   background: rgba(250,247,238,.75); border: 2px solid #2c261c;
+                   font-size: 26px; display: grid; place-items: center; }
   #btnUp { bottom: 96px; } #btnDn { bottom: 22px; }
   @media (hover: hover) and (pointer: fine) { #touch { display: none; } }
 </style>
@@ -113,37 +118,37 @@ const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-p
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.outputEncoding = T.sRGBEncoding;
 renderer.toneMapping = T.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.95;   // pulled back so saturated accents keep their chroma
+renderer.toneMappingExposure = 0.92;   // flat-bright: the frame lives in one narrow value band
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
 wrap.appendChild(renderer.domElement);
 
 const scene = new T.Scene();
-scene.fog = new T.FogExp2(0x9fd3d2, 0.0019);   // soft teal haze that melts into the painted horizon
+scene.fog = new T.FogExp2(0xa8dcd4, 0.0015);   // thin teal paper haze — distance stays flat, not murky
 const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
 
 /* lighting rig — golden-hour / dusk: warm low key light raking long shadows */
-const sun = new T.DirectionalLight(0xffd09a, 2.0);   // was 2.2 — less blowout, richer color
-sun.position.set(116, 60, 80); sun.castShadow = true;
+const sun = new T.DirectionalLight(0xfff2dc, 0.6);   // whisper of a key — shade is a TINT, not a slab
+sun.position.set(34, 96, 26); sun.castShadow = true;   // STEEP sun: shadows are small pools under things, not street-long slabs
 // 2048 map + a TIGHT frustum that follows the player each frame (see tick): only
 // casters near the camera render into the shadow map → sharp + cheap.
 sun.shadow.mapSize.set(2048, 2048);
 { const c = sun.shadow.camera; c.near = 1; c.far = 280; c.left = -70; c.right = 70; c.top = 70; c.bottom = -70; }
-sun.shadow.radius = 4; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;
+sun.shadow.radius = 8; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;   // blur wide: soft pooled shade
 scene.add(sun, sun.target);
-const hemi = new T.HemisphereLight(0xbfd2ec, 0x6b5236, 0.62); scene.add(hemi);
-const fill = new T.DirectionalLight(0xa9c6ef, 0.30); fill.position.set(-34, 22, -30); scene.add(fill);
-const bounce = new T.DirectionalLight(0xffd9a0, 0.20); bounce.position.set(0, -8, 22); scene.add(bounce);
+const hemi = new T.HemisphereLight(0xd6e8e2, 0x9a9484, 1.32); scene.add(hemi);  // the ambient IS the light source now
+const fill = new T.DirectionalLight(0xcfe0e8, 0.35); fill.position.set(-34, 22, -30); scene.add(fill);
+const bounce = new T.DirectionalLight(0xefe6d2, 0.18); bounce.position.set(0, -8, 22); scene.add(bounce);
 
 /* sky dome — Messenger look: flat painterly teal, softly lighter toward the
    horizon, with sparse soft-edged brushy clouds (value/fbm noise, 4 octaves). */
 const skyMat = new T.ShaderMaterial({
   side: T.BackSide, depthWrite: false, fog: false,
   uniforms: {
-    uTop:   { value: new T.Color(0x6fc2c6) },  // zenith teal
-    uHorz:  { value: new T.Color(0x9ad6d6) },  // horizon — slightly lighter (flat, not a strong ramp)
-    uCloud: { value: new T.Color(0xeef6f4) },  // soft off-white brush
-    uCShad: { value: new T.Color(0x86c9cb) },  // cloud underside / teal shadow
+    uTop:   { value: new T.Color(0x53bcae) },  // zenith teal — saturated, flat (the sky IS a color field)
+    uHorz:  { value: new T.Color(0x6cc8ba) },  // horizon — barely lighter
+    uCloud: { value: new T.Color(0xbfe8dc) },  // clouds are LIGHTER TEAL blobs, not white fluff
+    uCShad: { value: new T.Color(0x8fd4c6) },  // cloud underside
     uTime:  { value: 0.0 }
   },
   vertexShader: 'varying vec3 vd; void main(){ vd=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
@@ -183,7 +188,7 @@ scene.add(new T.Mesh(new T.SphereGeometry(640, 24, 14), skyMat));
 /* simple drifting clouds — flat off-white to match the painted sky (no shading) */
 const clouds = new T.Group(); scene.add(clouds);
 (function makeClouds() {
-  const cMat = new T.MeshBasicMaterial({ color: 0xeef6f4, transparent: true, opacity: 0.85, fog: false });
+  const cMat = new T.MeshBasicMaterial({ color: 0xbfe8dc, transparent: true, opacity: 0.95, fog: false });
   for (let i = 0; i < 10; i++) {
     const g = new T.Group();
     const n = 3 + (Math.random() * 3 | 0);
@@ -211,9 +216,9 @@ const clouds = new T.Group(); scene.add(clouds);
 
 /* post: bloom + grade + gamma */
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.26 }, uCon: { value: 1.08 }, uSat: { value: 1.14 },
-    uLift: { value: new T.Vector3(0.034, 0.024, 0.014) }, uGain: { value: new T.Vector3(1.08, 1.02, 0.90) },
-    uHatch: { value: 0.22 }, uRes: { value: new T.Vector2(1280, 720) } },
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.10 }, uCon: { value: 1.03 }, uSat: { value: 1.06 },
+    uLift: { value: new T.Vector3(0.030, 0.030, 0.026) }, uGain: { value: new T.Vector3(1.02, 1.01, 0.985) },
+    uHatch: { value: 0.18 }, uRes: { value: new T.Vector2(1280, 720) } },
   vertexShader: 'varying vec2 v; void main(){ v=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat,uHatch; uniform vec3 uLift,uGain; uniform vec2 uRes; varying vec2 v;
     void main(){ vec3 c=texture2D(tDiffuse,v).rgb; c=(c-0.5)*uCon+0.5; float l=dot(c,vec3(0.299,0.587,0.114));
@@ -236,7 +241,7 @@ try {
   if (T.EffectComposer && T.UnrealBloomPass && T.GammaCorrectionShader) {
     composer = new T.EffectComposer(renderer);
     composer.addPass(new T.RenderPass(scene, camera));
-    composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.26, 0.55, 0.86));
+    composer.addPass(new T.UnrealBloomPass(new T.Vector2(800, 600), 0.14, 0.55, 0.9));
     gradePass = new T.ShaderPass(GradeShader);
     composer.addPass(gradePass);
     composer.addPass(new T.ShaderPass(T.GammaCorrectionShader));
@@ -329,7 +334,7 @@ window.addEventListener('resize', resize); resize();
 const loadEl = document.getElementById('load');
 let started = false, last = performance.now();
 let perfFrames = 0, perfAccum = 0, perfTier = 0;
-const _sunBase = new T.Vector3(116, 60, 80);   // golden-hour direction, preserved
+const _sunBase = new T.Vector3(34, 96, 26);    // steep noon-bright direction (matches the rig above)
 function tick() {
   requestAnimationFrame(tick);
   const now = performance.now(); let dt = (now - last) / 1000; last = now; dt = Math.min(dt, 0.05);

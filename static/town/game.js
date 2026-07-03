@@ -57,69 +57,86 @@ function start(ctx, world) {
   /* ── injected CSS + new HUD elements (town.html stays untouched) ── */
   const css = document.createElement('style');
   css.textContent = `
+    .fpaper { background:rgba(250,247,238,.95); color:#2c261c; border:2px solid #2c261c;
+      box-shadow:0 3px 0 rgba(44,38,28,.22); }
     #flyTimerWrap { position:absolute; left:16px; top:96px; width:220px;
-      background:rgba(28,22,16,.6); backdrop-filter:blur(10px);
-      border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px 12px;
-      box-shadow:0 8px 28px rgba(0,0,0,.28); }
+      background:rgba(250,247,238,.95); color:#2c261c; border:2px solid #2c261c;
+      box-shadow:0 3px 0 rgba(44,38,28,.22); border-radius:11px 13px 12px 11px;
+      padding:6px 12px; transform:rotate(-.3deg); }
     #flyTimerWrap .row { display:flex; justify-content:space-between; align-items:baseline; }
-    #flyTimerWrap .lbl { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#9fd0ff; font-weight:800; }
-    #flyTimerWrap .t { font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
-    #flyTimerBar { margin-top:6px; height:6px; border-radius:4px; background:rgba(255,255,255,.16); overflow:hidden; }
+    #flyTimerWrap .lbl { font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#3a7d99; }
+    #flyTimerWrap .t { font-size:17px; font-variant-numeric:tabular-nums; }
+    #flyTimerBar { margin-top:4px; height:6px; border-radius:4px; background:rgba(44,38,28,.14); overflow:hidden; }
     #flyTimerBar i { display:block; height:100%; width:100%; border-radius:4px;
-      background:linear-gradient(90deg,#7fe0a0,#ffd27a); transition:width .12s linear, background .3s; }
-    #flyCombo { position:absolute; right:16px; top:78px; text-align:right;
-      background:rgba(28,22,16,.6); backdrop-filter:blur(10px);
-      border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px 16px;
-      box-shadow:0 8px 28px rgba(0,0,0,.28); opacity:0; transition:opacity .25s, transform .25s;
-      transform:translateY(-6px); }
-    #flyCombo.on { opacity:1; transform:translateY(0); }
-    #flyCombo .m { font-size:22px; font-weight:900; line-height:1; color:#ffd27a; text-shadow:0 0 10px rgba(255,200,90,.5); }
-    #flyCombo .l { font-size:9px; letter-spacing:.12em; text-transform:uppercase; opacity:.7; margin-top:3px; }
-    #flyComboBar { margin-top:5px; height:4px; border-radius:3px; background:rgba(255,255,255,.16); overflow:hidden; }
-    #flyComboBar i { display:block; height:100%; width:100%; background:#ffd27a; }
-    #flyBest { position:absolute; right:16px; top:150px; text-align:right; font-size:10px;
-      letter-spacing:.06em; line-height:1.5; opacity:.78; background:rgba(28,22,16,.42);
-      padding:6px 12px; border-radius:10px; backdrop-filter:blur(6px); }
-    #flyBest b { color:#7fe0a0; font-weight:800; }
+      background:#4d8a52; transition:width .12s linear, background .3s; }
+    #flyCombo { position:absolute; right:16px; top:82px; text-align:right;
+      background:rgba(250,247,238,.95); color:#2c261c; border:2px solid #2c261c;
+      box-shadow:0 3px 0 rgba(44,38,28,.22); border-radius:12px 11px 13px 11px; padding:6px 14px;
+      opacity:0; transition:opacity .25s, transform .25s; transform:translateY(-6px) rotate(.5deg); }
+    #flyCombo.on { opacity:1; transform:translateY(0) rotate(.5deg); }
+    #flyCombo .m { font-size:22px; line-height:1; color:#c8862a; }
+    #flyCombo .l { font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.65; margin-top:1px; }
+    #flyComboBar { margin-top:4px; height:4px; border-radius:3px; background:rgba(44,38,28,.14); overflow:hidden; }
+    #flyComboBar i { display:block; height:100%; width:100%; background:#c8862a; }
+    #flyBest { position:absolute; right:16px; top:156px; text-align:right; font-size:12px;
+      line-height:1.45; background:rgba(250,247,238,.9); color:#2c261c;
+      border:2px solid #2c261c; box-shadow:0 3px 0 rgba(44,38,28,.22);
+      padding:5px 12px; border-radius:10px 12px 10px 11px; transform:rotate(.3deg); }
+    #flyBest b { color:#4d8a52; }
     #flyMap { position:absolute; right:16px; bottom:16px; width:150px; height:150px;
-      border-radius:14px; background:rgba(10,14,22,.55); border:1px solid rgba(255,255,255,.18);
-      box-shadow:0 8px 28px rgba(0,0,0,.3); backdrop-filter:blur(6px); }
+      border-radius:12px 14px 12px 13px; background:#f2ecdc; border:2px solid #2c261c;
+      box-shadow:0 3px 0 rgba(44,38,28,.22); }
+    #flyLogBtn { position:absolute; right:16px; top:224px; width:40px; height:40px;
+      display:grid; place-items:center; font-size:20px; cursor:pointer; pointer-events:auto;
+      background:rgba(250,247,238,.95); color:#2c261c; border:2px solid #2c261c;
+      box-shadow:0 3px 0 rgba(44,38,28,.22); border-radius:11px 13px 11px 12px; }
+    #flyLog { position:absolute; right:64px; top:224px; min-width:240px; display:none;
+      background:rgba(250,247,238,.97); color:#2c261c; border:2px solid #2c261c;
+      box-shadow:0 3px 0 rgba(44,38,28,.22); border-radius:13px 11px 14px 12px;
+      padding:10px 14px; transform:rotate(-.4deg); pointer-events:auto; }
+    #flyLog.open { display:block; }
+    #flyLog .h { font-size:15px; letter-spacing:.08em; text-transform:uppercase; border-bottom:2px solid rgba(44,38,28,.25); padding-bottom:4px; margin-bottom:6px; }
+    #flyLog .q { font-size:14px; line-height:1.7; }
+    #flyLog .q.done { text-decoration:line-through; opacity:.55; }
+    #flyLog .q .n { opacity:.6; }
     @media (max-width: 560px) { #flyMap { width:118px; height:118px; bottom:96px; } #flyBest{ top:138px; } }
     #flyStart { position:absolute; inset:0; z-index:20; display:grid; place-items:center;
-      background:radial-gradient(120% 120% at 50% 32%, rgba(58,44,30,.30), rgba(21,16,10,.62));
-      pointer-events:auto; transition:opacity .6s; }
+      background:rgba(44,38,28,.18); pointer-events:auto; transition:opacity .6s; }
     #flyStart.gone { opacity:0; pointer-events:none; }
-    #flyStart .card { text-align:center; padding:26px 42px; border-radius:18px;
-      background:rgba(28,22,16,.66); border:1px solid rgba(255,244,222,.16);
-      backdrop-filter:blur(10px); box-shadow:0 14px 44px rgba(20,12,4,.4); }
-    #flyStart .t { font-size:40px; font-weight:900; letter-spacing:.05em; color:#fff5e9; }
-    #flyStart .s { margin-top:4px; font-size:13px; opacity:.75; font-style:italic; }
-    #flyStart .c { margin-top:16px; font:600 12px ui-monospace, Menlo, monospace; line-height:1.8; opacity:.85; }
-    #flyStart .go { margin-top:16px; font-size:12px; font-weight:800; letter-spacing:.14em;
-      text-transform:uppercase; color:#ffd27a; animation:flyGo 1.6s ease-in-out infinite; }
+    #flyStart .card { text-align:center; padding:24px 44px; border-radius:16px 19px 15px 18px;
+      background:rgba(250,247,238,.97); color:#2c261c; border:2.5px solid #2c261c;
+      box-shadow:0 5px 0 rgba(44,38,28,.25); transform:rotate(-.6deg); }
+    #flyStart .t { font-size:44px; letter-spacing:.06em; }
+    #flyStart .s { margin-top:0; font-size:15px; opacity:.7; font-style:italic; }
+    #flyStart .c { margin-top:14px; font-size:15px; line-height:1.7; opacity:.85; }
+    #flyStart .go { margin-top:14px; font-size:14px; letter-spacing:.14em;
+      text-transform:uppercase; color:#c04434; animation:flyGo 1.6s ease-in-out infinite; }
     @keyframes flyGo { 50% { opacity:.45; } }
-    .flyBub { position:absolute; transform:translate(-50%,-115%); max-width:220px;
-      background:rgba(255,248,236,.96); color:#3a2c1c; font-weight:700; font-size:12px;
-      padding:6px 11px; border-radius:12px; opacity:0; transition:opacity .15s;
-      pointer-events:none; white-space:nowrap; box-shadow:0 4px 14px rgba(40,24,8,.28); }
-    .flyBub::after { content:''; position:absolute; left:50%; bottom:-6px; margin-left:-6px;
-      border:6px solid transparent; border-top-color:rgba(255,248,236,.96); border-bottom:0; }
+    .flyBub { position:absolute; transform:translate(-50%,-115%) rotate(-.5deg); max-width:230px;
+      background:rgba(250,247,238,.97); color:#2c261c; font-size:15px;
+      border:2px solid #2c261c; padding:4px 11px; border-radius:11px 13px 11px 12px;
+      opacity:0; transition:opacity .15s; pointer-events:none; white-space:nowrap;
+      box-shadow:0 3px 0 rgba(44,38,28,.2); }
+    .flyBub::after { content:''; position:absolute; left:50%; bottom:-7px; margin-left:-6px;
+      border:7px solid transparent; border-top-color:#2c261c; border-bottom:0; }
     #flyOffer { position:absolute; left:50%; bottom:74px; transform:translateX(-50%);
       display:flex; gap:12px; pointer-events:auto; }
-    #flyOffer .card { width:210px; padding:12px 14px 10px; border-radius:14px; cursor:pointer;
-      background:rgba(28,22,16,.72); border:1px solid rgba(255,244,222,.18);
-      backdrop-filter:blur(10px); box-shadow:0 10px 30px rgba(20,12,4,.35);
-      transition:transform .12s, border-color .12s; }
-    #flyOffer .card:hover { transform:translateY(-3px); border-color:#ffd27a; }
-    #flyOffer .card .key { font-size:9px; letter-spacing:.12em; color:#9fd0ff; font-weight:800; text-transform:uppercase; }
-    #flyOffer .card.ex .key { color:#ffd27a; }
-    #flyOffer .card .route { font-size:14px; font-weight:800; margin-top:3px; line-height:1.25; }
-    #flyOffer .card .pay { font-size:11px; opacity:.75; margin-top:3px; font-style:italic; }
-    #flyOffer .card .meta { font-size:10px; margin-top:6px; opacity:.85; font-weight:700; color:#7fe0a0; }
-    #flyOffer .card.ex .meta { color:#ffd27a; }
+    #flyOffer .card { width:212px; padding:10px 14px 9px; cursor:pointer;
+      background:rgba(250,247,238,.97); color:#2c261c; border:2px solid #2c261c;
+      box-shadow:0 4px 0 rgba(44,38,28,.22); border-radius:12px 14px 11px 13px;
+      transition:transform .12s; }
+    #flyOffer .card:first-child { transform:rotate(-.7deg); }
+    #flyOffer .card:last-child { transform:rotate(.6deg); }
+    #flyOffer .card:hover { transform:translateY(-3px); }
+    #flyOffer .card .key { font-size:11px; letter-spacing:.12em; color:#3a7d99; text-transform:uppercase; }
+    #flyOffer .card.ex .key { color:#c8862a; }
+    #flyOffer .card .route { font-size:15px; margin-top:2px; line-height:1.2; }
+    #flyOffer .card .pay { font-size:13px; opacity:.7; margin-top:2px; font-style:italic; }
+    #flyOffer .card .meta { font-size:12px; margin-top:4px; color:#4d8a52; }
+    #flyOffer .card.ex .meta { color:#c8862a; }
     #flyOfferBar { position:absolute; left:50%; bottom:64px; transform:translateX(-50%);
-      width:160px; height:4px; border-radius:3px; background:rgba(255,255,255,.15); overflow:hidden; }
-    #flyOfferBar i { display:block; height:100%; background:#9fd0ff; }
+      width:160px; height:5px; border-radius:3px; background:rgba(250,247,238,.6); border:1px solid rgba(44,38,28,.4); overflow:hidden; }
+    #flyOfferBar i { display:block; height:100%; background:#3a7d99; }
   `;
   document.head.appendChild(css);
 
@@ -172,6 +189,33 @@ function start(ctx, world) {
   const QUIPS_DELIVER = ['¡Gracias!', '¡Justo a tiempo!', '¡Eres un sol!', '¡Qué rápido!', '¡Mil gracias!'];
   const NPCS = world.npcs || [];
   let quipCd = 5;
+
+  /* ── STORY CHAINS — small multi-step delivery tales with a paper checklist.
+     Steps arrive through the normal job flow (tagged 📜); finishing a chain
+     pays a bonus and strikes it through in the log. Progress persists. ── */
+  const CHAINS = [
+    { id: 'boda', name: 'La boda en la plaza', steps: 3, from: 'FLORERÍA', to: 'AYUNTAMIENTO', payload: 'flores para la boda' },
+    { id: 'faro', name: 'El crucigrama del farero', steps: 2, from: 'LA PRENSA', to: 'EL FARO', payload: 'el crucigrama del día' },
+    { id: 'postal', name: 'Postales de la costa', steps: 3, from: 'EL CORREO', to: 'GALERÍA', payload: 'una postal de la costa' },
+  ];
+  let chainProg = {};
+  try { chainProg = JSON.parse(localStorage.getItem('fly_chains') || '{}'); } catch (e) {}
+  const saveChains = () => { try { localStorage.setItem('fly_chains', JSON.stringify(chainProg)); } catch (e) {} };
+  const chainDone = c => (chainProg[c.id] || 0) >= c.steps;
+  const findAddr = nm => ADDR.find(a => a.name === nm);
+  const logBtn = document.createElement('div'); logBtn.id = 'flyLogBtn'; logBtn.textContent = '☰';
+  const logEl = document.createElement('div'); logEl.id = 'flyLog';
+  hud.appendChild(logBtn); hud.appendChild(logEl);
+  function renderLog() {
+    logEl.innerHTML = '<div class="h">Recados del pueblo</div>' + CHAINS.map(c => {
+      const n = Math.min(chainProg[c.id] || 0, c.steps);
+      const boxes = '◼'.repeat(n) + '◻'.repeat(c.steps - n);
+      return '<div class="q' + (chainDone(c) ? ' done' : '') + '">' + boxes + ' ' + c.name + ' <span class="n">(' + n + '/' + c.steps + ')</span></div>';
+    }).join('');
+  }
+  renderLog();
+  logBtn.addEventListener('pointerdown', e => { e.preventDefault(); logEl.classList.toggle('open'); });
+  addEventListener('keydown', e => { if (e.code === 'KeyL' && begun) logEl.classList.toggle('open'); });
 
   /* ── game state ── */
   const ADDR = world.addresses;
@@ -315,7 +359,15 @@ function start(ctx, world) {
   }
   /* ── JOBS: after onboarding the courier CHOOSES between two offers ── */
   let offer = null;   // { jobs: [a, b], t: seconds left to decide }
-  function makeJob() {
+  function makeJob(noStory) {
+    // sometimes the next step of an open story chain arrives instead
+    const open = CHAINS.filter(c => !chainDone(c) && findAddr(c.from) && findAddr(c.to));
+    if (!noStory && open.length && delivered >= 1 && L.chance(0.35)) {
+      const c = pick(open);
+      const pu = findAddr(c.from), dr = findAddr(c.to);
+      const route = planar(P.pos, pu.pos) + planar(pu.pos, dr.pos);
+      return { pickup: pu, dropoff: dr, payload: c.payload, express: false, budget: clamp(12 + route * 0.45, 16, 48), route, story: c };
+    }
     const pu = pick(ADDR);
     let dr; do { dr = pick(ADDR); } while (dr === pu);
     const ex = delivered >= 2 && L.chance(0.3);
@@ -324,12 +376,15 @@ function start(ctx, world) {
     if (delivered === 0) budget *= 1.6;           // warm-up welcome job
     return { pickup: pu, dropoff: dr, payload: pick(PAYLOADS), express: ex, budget, route };
   }
+  let curStory = null;
   function startJob(j) {
     pickup = j.pickup; dropoff = j.dropoff; payload = j.payload; express = j.express;
+    curStory = j.story || null;
     carrying = false; carriedLetter.visible = false;
     jobBudget = j.budget; jobLeft = jobBudget; jobActive = true;
     setObjective();
-    toast(express ? '⚡ Express — double pay! ' + Math.round(jobBudget) + 's' : 'New job · ' + Math.round(jobBudget) + 's', express ? '#ffd27a' : '#9fd0ff');
+    if (curStory) toast('📜 ' + curStory.name, '#c8862a');
+    else toast(express ? '⚡ Express — double pay! ' + Math.round(jobBudget) + 's' : 'New job · ' + Math.round(jobBudget) + 's', express ? '#c8862a' : '#3a7d99');
   }
   const offerEl = document.createElement('div'); offerEl.id = 'flyOffer'; offerEl.style.display = 'none';
   const offerBar = document.createElement('div'); offerBar.id = 'flyOfferBar'; offerBar.style.display = 'none';
@@ -344,15 +399,15 @@ function start(ctx, world) {
   }
   function newTask() {
     if (delivered < 2) { startJob(makeJob()); return; }    // onboarding: no decisions yet
-    const a = makeJob(); let b = makeJob();
-    for (let k = 0; k < 4 && b.pickup === a.pickup && b.dropoff === a.dropoff; k++) b = makeJob();
+    const a = makeJob(); let b = makeJob(!!a.story);
+    for (let k = 0; k < 4 && b.pickup === a.pickup && b.dropoff === a.dropoff; k++) b = makeJob(!!a.story);
     offer = { jobs: [a, b], t: 9 };
     beam.visible = ring.visible = objLetter.visible = false;
     elLbl.textContent = 'Encargos'; elDst.textContent = 'Choose a job'; elSub.textContent = 'press 1 / 2 — or tap a card';
     elTimerT.textContent = '--'; elTimerBar.style.width = '100%';
     offerEl.innerHTML = offer.jobs.map((j, i) =>
       '<div class="card' + (j.express ? ' ex' : '') + '" data-i="' + i + '">'
-      + '<div class="key">' + (i + 1) + (j.express ? ' · ⚡ express' : '') + '</div>'
+      + '<div class="key">' + (i + 1) + (j.express ? ' · ⚡ express' : '') + (j.story ? ' · 📜 historia' : '') + '</div>'
       + '<div class="route">' + j.pickup.name + ' → ' + j.dropoff.name + '</div>'
       + '<div class="pay">' + j.payload + '</div>'
       + '<div class="meta">~' + Math.round(j.route) + 'm · ' + Math.round(j.budget) + 's · ~' + estPts(j) + ' pts</div>'
@@ -749,6 +804,21 @@ function start(ctx, world) {
     if (speedy && timeFrac > 0.78) setTimeout(() => toast('⚡ Express run!', '#9fd0ff'), 700);
     else if (combo >= 4) setTimeout(() => toast('🔥 On fire — x' + combo + '!', '#ff9a6a'), 700);
 
+    // story-chain progress (capture the ref: curStory is nulled below, before
+    // the delayed toast closure fires)
+    if (curStory) {
+      const cs = curStory;
+      chainProg[cs.id] = Math.min((chainProg[cs.id] || 0) + 1, cs.steps);
+      saveChains(); renderLog();
+      if (chainDone(cs)) {
+        score += 400; elScore.textContent = score;
+        setTimeout(() => { toast('📜 ¡Historia completada! +400', '#c8862a'); sfxBonus(); }, 800);
+      } else {
+        setTimeout(() => toast('📜 ' + cs.name + ' (' + chainProg[cs.id] + '/' + cs.steps + ')', '#c8862a'), 800);
+      }
+      curStory = null;
+    }
+
     // persist bests + lifetime rank (with a little ceremony on promotion)
     const prevRank = rankName(totalDeliv);
     totalDeliv++; lsSet(LS.total, totalDeliv);
@@ -787,22 +857,22 @@ function start(ctx, world) {
     // town footprint
     const [bx0, by0] = mapXY(bounds.minX, bounds.minZ);
     const [bx1, by1] = mapXY(bounds.maxX, bounds.maxZ);
-    g.fillStyle = 'rgba(46,40,28,0.55)';
+    g.fillStyle = '#eee7d4';
     g.fillRect(bx0, by0, bx1 - bx0, by1 - by0);
     if (LY) {
-      const ROAD = 'rgba(172,160,138,0.55)';
+      const ROAD = '#d2cab6';
       // the real street grid: two avenues + two cross-streets
       rectWorld(g, -LY.AVX, -LY.SW, LY.AVX, LY.SW, ROAD);
       rectWorld(g, -LY.AV2X, LY.AV2Z - LY.SW, LY.AV2X, LY.AV2Z + LY.SW, ROAD);
       [LY.CROSSX, LY.CROSSX2].forEach(cx => rectWorld(g, cx - LY.SW, LY.CROSSZ0, cx + LY.SW, LY.CROSSZ1, ROAD));
       // green spaces + plaza
       const pk = LY.park, pz = LY.plaza, gr = LY.green;
-      rectWorld(g, pk.x - pk.hw, pk.z - pk.hd, pk.x + pk.hw, pk.z + pk.hd, 'rgba(104,150,86,0.65)');
-      rectWorld(g, gr.x - gr.hw, gr.z - gr.hd, gr.x + gr.hw, gr.z + gr.hd, 'rgba(104,150,86,0.6)');
-      rectWorld(g, pz.x - pz.hw, pz.z - pz.hd, pz.x + pz.hw, pz.z + pz.hd, 'rgba(202,185,150,0.6)');
+      rectWorld(g, pk.x - pk.hw, pk.z - pk.hd, pk.x + pk.hw, pk.z + pk.hd, '#a4c48c');
+      rectWorld(g, gr.x - gr.hw, gr.z - gr.hd, gr.x + gr.hw, gr.z + gr.hd, '#a4c48c');
+      rectWorld(g, pz.x - pz.hw, pz.z - pz.hd, pz.x + pz.hw, pz.z + pz.hd, '#e0d4b4');
     }
     // address dots (the building footprints, abstractly)
-    g.fillStyle = 'rgba(220,210,180,0.55)';
+    g.fillStyle = 'rgba(120,110,90,0.5)';
     for (const a of ADDR) {
       const [px, py] = mapXY(a.pos.x, a.pos.z);
       g.fillRect(px - 1.4, py - 1.4, 2.8, 2.8);
@@ -812,7 +882,7 @@ function start(ctx, world) {
     if (tg) {
       const [ox, oy] = mapXY(tg.pos.x, tg.pos.z);
       const pulse = 5 + Math.sin(performance.now() * 0.006) * 2.5;
-      g.fillStyle = carrying ? '#7fe0a0' : '#ffd060';
+      g.fillStyle = carrying ? '#4d8a52' : '#c8862a';
       g.beginPath(); g.arc(ox, oy, pulse, 0, TAU); g.fill();
       g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 1.5; g.stroke();
     }
@@ -823,9 +893,9 @@ function start(ctx, world) {
     // map yaw: canvas +y draws world +Z, so the "up"-pointing triangle needs
     // atan2(x, -z) to aim along the true heading
     g.rotate(Math.atan2(fwd.x, -fwd.z));
-    g.fillStyle = stun > 0 ? '#ff7a7a' : '#9fd0ff';
+    g.fillStyle = stun > 0 ? '#c04434' : '#3a7d99';
     g.beginPath(); g.moveTo(0, -7); g.lineTo(5, 6); g.lineTo(-5, 6); g.closePath(); g.fill();
-    g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1.2; g.stroke();
+    g.strokeStyle = 'rgba(44,38,28,0.8)'; g.lineWidth = 1.2; g.stroke();
     g.restore();
   }
 
