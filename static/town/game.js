@@ -99,6 +99,18 @@ function start(ctx, world) {
     #flyLog .q { font-size:14px; line-height:1.7; }
     #flyLog .q.done { text-decoration:line-through; opacity:.55; }
     #flyLog .q .n { opacity:.6; }
+    #flyDlg { position:absolute; left:50%; bottom:148px; transform:translateX(-50%) rotate(-.3deg);
+      width:min(560px, 84vw); background:rgba(250,247,238,.97); color:#2c261c;
+      border:2.5px solid #2c261c; border-radius:14px 16px 13px 15px;
+      box-shadow:0 4px 0 rgba(44,38,28,.25); padding:12px 18px 12px; display:none;
+      pointer-events:auto; cursor:pointer; }
+    #flyDlg.on { display:block; }
+    #flyDlg .who { position:absolute; top:-14px; left:14px; background:#3a7d99; color:#faf7ee;
+      font-size:13px; letter-spacing:.08em; padding:1px 12px; border:2px solid #2c261c;
+      border-radius:9px 11px 9px 10px; text-transform:uppercase; }
+    #flyDlg .tx { font-size:17px; line-height:1.45; min-height:24px; }
+    #flyDlg .adv { position:absolute; right:12px; bottom:4px; font-size:14px; color:#3a7d99;
+      animation:flyGo 1.4s ease-in-out infinite; }
     @media (max-width: 560px) { #flyMap { width:118px; height:118px; bottom:96px; } #flyBest{ top:138px; } }
     #flyStart { position:absolute; inset:0; z-index:20; display:grid; place-items:center;
       background:rgba(44,38,28,.18); pointer-events:auto; transition:opacity .6s; }
@@ -194,9 +206,15 @@ function start(ctx, world) {
      Steps arrive through the normal job flow (tagged 📜); finishing a chain
      pays a bonus and strikes it through in the log. Progress persists. ── */
   const CHAINS = [
-    { id: 'boda', name: 'La boda en la plaza', steps: 3, from: 'FLORERÍA', to: 'AYUNTAMIENTO', payload: 'flores para la boda' },
-    { id: 'faro', name: 'El crucigrama del farero', steps: 2, from: 'LA PRENSA', to: 'EL FARO', payload: 'el crucigrama del día' },
-    { id: 'postal', name: 'Postales de la costa', steps: 3, from: 'EL CORREO', to: 'GALERÍA', payload: 'una postal de la costa' },
+    { id: 'boda', name: 'La boda en la plaza', steps: 3, from: 'FLORERÍA', to: 'AYUNTAMIENTO', payload: 'flores para la boda',
+      pick: '¡Las flores de la boda! Que lleguen frescas, por favor.',
+      drops: ['La primera de tres… ¡gracias, mensajero!', 'Ya casi está todo listo para la ceremonia…', '¡La boda puede empezar! Eres un sol.'] },
+    { id: 'faro', name: 'El crucigrama del farero', steps: 2, from: 'LA PRENSA', to: 'EL FARO', payload: 'el crucigrama del día',
+      pick: 'El farero no puede vivir sin su crucigrama.',
+      drops: ['Dice que el siete vertical era «faro». Cómo no.', '¡Completado! El farero te saluda desde la torre.'] },
+    { id: 'postal', name: 'Postales de la costa', steps: 3, from: 'EL CORREO', to: 'GALERÍA', payload: 'una postal de la costa',
+      pick: 'Una postal de la costa — con arena y todo.',
+      drops: ['La galería la enmarcará esta tarde.', 'Otra más para la colección…', '¡La exposición está completa! Ven a verla.'] },
   ];
   let chainProg = {};
   try { chainProg = JSON.parse(localStorage.getItem('fly_chains') || '{}'); } catch (e) {}
@@ -216,6 +234,35 @@ function start(ctx, world) {
   renderLog();
   logBtn.addEventListener('pointerdown', e => { e.preventDefault(); logEl.classList.toggle('open'); });
   addEventListener('keydown', e => { if (e.code === 'KeyL' && begun) logEl.classList.toggle('open'); });
+
+  /* ── TYPEWRITER DIALOGUE — paper card, name chip, letter-by-letter (story beats) ── */
+  const dlgEl = document.createElement('div'); dlgEl.id = 'flyDlg';
+  dlgEl.innerHTML = '<div class="who"></div><div class="tx"></div><div class="adv">▶</div>';
+  hud.appendChild(dlgEl);
+  const dlgWho = dlgEl.querySelector('.who'), dlgTx = dlgEl.querySelector('.tx');
+  let dlgFull = '', dlgShown = 0, dlgHold = 0;
+  function say(name, text) {
+    dlgWho.textContent = name; dlgFull = text; dlgShown = 0; dlgHold = 0;
+    dlgTx.textContent = ''; dlgEl.classList.add('on');
+    blip(840, 0.05, 'triangle', 0.05);
+  }
+  function updateDlg(dt) {
+    if (!dlgEl.classList.contains('on')) return;
+    if (dlgShown < dlgFull.length) {
+      const prev = dlgShown | 0;
+      dlgShown = Math.min(dlgFull.length, dlgShown + dt * 32);
+      if ((dlgShown | 0) > prev) dlgTx.textContent = dlgFull.slice(0, dlgShown | 0);
+      if (dlgShown >= dlgFull.length) dlgTx.textContent = dlgFull;
+    } else {
+      dlgHold += dt;
+      if (dlgHold > 2.6) dlgEl.classList.remove('on');
+    }
+  }
+  dlgEl.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (dlgShown < dlgFull.length) { dlgShown = dlgFull.length; dlgTx.textContent = dlgFull; }
+    else dlgEl.classList.remove('on');
+  });
 
   /* ── game state ── */
   const ADDR = world.addresses;
@@ -748,10 +795,12 @@ function start(ctx, world) {
     /* ── pick-up / deliver ── */
     if (!choosing && dPlanar < 4.5) {
       if (!carrying) {
-        carrying = true; carriedLetter.visible = true; toast('✉ Letter picked up', '#ffd27a'); sfxPick(); setObjective();
-        bubble(tg.pos.x, 3.4, tg.pos.z, pick(QUIPS_PICKUP));
+        carrying = true; carriedLetter.visible = true; toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
+        if (curStory) say(pickup.name, curStory.pick);
+        else bubble(tg.pos.x, (tg.gy || 0) + 3.4, tg.pos.z, pick(QUIPS_PICKUP));
       } else {
-        bubble(tg.pos.x, 3.4, tg.pos.z, pick(QUIPS_DELIVER));
+        if (curStory) say(dropoff.name, curStory.drops[Math.min(chainProg[curStory.id] || 0, curStory.drops.length - 1)]);
+        else bubble(tg.pos.x, (tg.gy || 0) + 3.4, tg.pos.z, pick(QUIPS_DELIVER));
         deliver(tg);
       }
     }
@@ -771,6 +820,7 @@ function start(ctx, world) {
     checkTraffic();
     updateFX(dt);
     updateBubbles(dt);
+    updateDlg(dt);
 
     // minimap (throttled ~12fps)
     mapAcc += dt;
@@ -872,6 +922,10 @@ function start(ctx, world) {
       rectWorld(g, gr.x - gr.hw, gr.z - gr.hd, gr.x + gr.hw, gr.z + gr.hd, '#a4c48c');
       rectWorld(g, pz.x - pz.hw, pz.z - pz.hd, pz.x + pz.hw, pz.z + pz.hd, '#e0d4b4');
       (LY.hill || []).forEach(h => rectWorld(g, h.x - h.hw, h.z - h.hd, h.x + h.hw, h.z + h.hd, '#d8cba8'));
+      if (LY.harbor) {
+        rectWorld(g, LY.harbor.x + LY.harbor.hw, bounds.minZ, bounds.maxX + 30, bounds.maxZ, '#9ed2c6');
+        rectWorld(g, LY.harbor.x - LY.harbor.hw, LY.harbor.z - LY.harbor.hd, LY.harbor.x + LY.harbor.hw, LY.harbor.z + LY.harbor.hd, '#cbb891');
+      }
     }
     // address dots (the building footprints, abstractly)
     g.fillStyle = 'rgba(120,110,90,0.5)';

@@ -211,6 +211,19 @@ function makeTree(opts) {
   const th = (tall ? 3.0 : 2.0) * (big ? 1.15 : 1);
   // tapered trunk with slight bark variance + root flare
   const bark = L.MAT.wood(L.pick(['#6a4e30', '#5e4628', '#735436']));
+  // CYPRESS variant — the dark vertical exclamation mark (silhouette relief
+  // against the round lobed canopies; classic hill-town punctuation)
+  if (opts.kind === 'cypress' || (opts.kind == null && !big && L.chance(0.2))) {
+    const dk = L.MAT.flat(L.pick(['#31552c', '#3a5f33', '#2c4d28']));
+    g.add(L.cyl(0.09, 0.15, 0.5, 7, bark, { y: 0.25 }));
+    const hh = L.rand(3.0, 4.4);
+    for (let k = 0; k < 4; k++) {
+      const t = k / 4;
+      const cone = new T.Mesh(new T.ConeGeometry((0.6 - t * 0.32) * scale, hh * 0.4, 8), dk);
+      cone.position.y = 0.55 + hh * (0.18 + t * 0.23); cone.castShadow = true; g.add(cone);
+    }
+    return g;
+  }
   g.add(L.cyl(0.26 * scale, 0.4 * scale, 0.3, 8, bark, { y: 0.15 }));      // root flare
   g.add(L.cyl(0.14 * scale, 0.24 * scale, th, 8, bark, { y: th / 2 + 0.2 }));
   // a low branch fork for character

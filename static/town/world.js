@@ -894,7 +894,8 @@ function build(ctx) {
     wall((HX0 + (SX - GATE)) / 2, T1Z1, ((SX - GATE) - HX0) / 2, 0.4);
     wall((HX1 + (SX + GATE)) / 2, T1Z1, (HX1 - (SX + GATE)) / 2, 0.4);
     wall(HX0, (T1Z0 + T1Z1) / 2, 0.4, (T1Z1 - T1Z0) / 2 + 0.4);   // T1 west
-    wall(HX1, (T1Z0 + T1Z1) / 2, 0.4, (T1Z1 - T1Z0) / 2 + 0.4);   // T1 east
+    wall(HX1, ((-38.3) + T1Z1) / 2, 0.4, (T1Z1 - (-38.3)) / 2 + 0.2);   // T1 east (north of the east stairs)
+    wall(HX1, -42.05, 0.4, 0.45);                                        // T1 east (south stub)
     // T1 south face outside T2's span (T2 covers the middle)
     wall((HX0 + T2X0) / 2, T1Z0, (T2X0 - HX0) / 2, 0.4);
     wall((HX1 + T2X1) / 2, T1Z0, (HX1 - T2X1) / 2, 0.4);
@@ -998,6 +999,99 @@ function build(ctx) {
       }
       [x0, x1].forEach(px => root.add(L.cyl(0.06, 0.08, 4.8, 7, L.MAT.wood('#6a5840'), { x: px, y: T2Y + 2.4, z: T2Z1 + 0.4 })));
     })();
+
+    // east stairs — the hill loops down toward the west cross-street instead of
+    // dead-ending (route variety: up the park gate, down the east flank)
+    (function eastStairs() {
+      const ez = -40, w2 = 3.2, n = 8, x0 = HX1, x1 = HX1 + 4.2;
+      for (let k = 0; k < n; k++) {
+        const t = (k + 0.5) / n, xc = x0 + (x1 - x0) * t;
+        const yt = (T1Y + 0.14) * (1 - (k + 1) / n) + CH * ((k + 1) / n);
+        root.add(L.box((x1 - x0) / n + 0.05, yt, w2, stepMat, { x: xc, y: yt / 2, z: ez, receive: true }));
+        floorR(xc, ez, (x1 - x0) / n / 2 + 0.06, w2 / 2, yt);
+      }
+      colB((x0 + x1) / 2, ez - w2 / 2 - 0.22, (x1 - x0) / 2 + 0.3, 0.2);
+      colB((x0 + x1) / 2, ez + w2 / 2 + 0.22, (x1 - x0) / 2 + 0.3, 0.2);
+    })();
+  })();
+
+  /* ══════════ THE HARBOR — the avenue's east end opens onto the sea.
+     A plank quay, a beached fishing boat on cradles, a dock crane, bollards,
+     and the flat teal water running to the horizon (the Messenger coastline). ══ */
+  (function buildHarbor() {
+    const QX0 = 150, QX1 = 166, QZ = 22, DECK = 0.28;
+    // plank deck
+    const deckMat = L.std({ map: L.woodTex('#8f7f60'), roughness: 0.95 });
+    root.add(L.box(QX1 - QX0, DECK, QZ * 2, deckMat, { x: (QX0 + QX1) / 2, y: DECK / 2, z: 0, receive: true }));
+    floorR((QX0 + QX1) / 2, 0, (QX1 - QX0) / 2, QZ);
+    // quay face + water-edge guard
+    root.add(L.box(1.0, 1.1, QZ * 2 + 1, L.MAT.wall('#b9b09a'), { x: QX1 + 0.4, y: -0.25, z: 0, receive: true }));
+    colB(QX1 + 0.4, 0, 0.6, QZ + 0.6);
+    colB((QX0 + QX1) / 2, QZ + 0.2, (QX1 - QX0) / 2 + 0.5, 0.35);    // deck sides
+    colB((QX0 + QX1) / 2, -QZ - 0.2, (QX1 - QX0) / 2 + 0.5, 0.35);
+    // the sea — one flat teal field with a foam line at the quay
+    const sea = new T.Mesh(new T.PlaneGeometry(220, 300, 26, 2), L.std({ colorHex: '#3f938a', roughness: 1 }));
+    sea.rotation.x = -Math.PI / 2; sea.position.set(QX1 + 111, -0.45, 0); sea.receiveShadow = true; root.add(sea);
+    const foamMat = L.std({ colorHex: '#d8e8dc', roughness: 1 });
+    root.add(L.box(0.5, 0.06, QZ * 2 + 1, foamMat, { x: QX1 + 1.15, y: -0.42, z: 0, cast: false }));
+    for (let i = 0; i < 9; i++) {
+      const f = L.decal(L.rand(1.2, 3), 0.22, foamMat, 0.01);
+      f.position.set(QX1 + L.rand(2.5, 14), -0.43, L.rand(-QZ, QZ)); f.rotation.z = L.jitter(0.2); root.add(f);
+    }
+    // bollards along the edge
+    for (let z = -QZ + 3; z <= QZ - 3; z += 7) { const bo = P.makeBollard(); bo.position.set(QX1 - 1.2, DECK, z); root.add(bo); colC(QX1 - 1.2, z, 0.22); }
+
+    // EL PEZ VOLADOR — beached fishing boat on wooden cradles
+    (function boat() {
+      const bx = 158.5, bz = -9, by = DECK;
+      const bg = new T.Group(); bg.position.set(bx, by, bz); bg.rotation.y = 0.12;
+      const hullBlue = L.std({ colorHex: '#35597f', roughness: 0.6 });
+      const hullWhite = L.std({ colorHex: '#d5cdb9', roughness: 0.65 });
+      // cradles
+      [-2.2, 2.2].forEach(cx2 => { bg.add(L.box(0.5, 0.8, 2.9, L.MAT.wood('#6a5236'), { x: cx2, y: 0.4 })); });
+      bg.add(L.box(6.6, 1.0, 2.1, hullBlue, { y: 1.3 }));                       // lower hull
+      bg.add(L.box(7.2, 0.85, 2.4, hullWhite, { y: 2.2 }));                     // upper hull
+      bg.add(L.box(7.3, 0.18, 2.5, L.MAT.wood('#8a6a44'), { y: 2.7, cast: false }));  // gunwale
+      // bow taper (angled cheeks)
+      [-1, 1].forEach(s => { const cheek = L.box(1.8, 1.7, 0.5, hullWhite, { x: 3.4, y: 1.85, z: s * 0.85 }); cheek.rotation.y = -s * 0.55; bg.add(cheek); });
+      // cabin + windows + mast
+      bg.add(L.box(1.9, 1.5, 1.7, hullWhite, { x: -1.8, y: 3.5 }));
+      bg.add(L.box(1.95, 0.5, 1.4, L.MAT.glass, { x: -1.8, y: 3.75, cast: false }));
+      bg.add(L.box(2.1, 0.14, 1.9, hullBlue, { x: -1.8, y: 4.32, cast: false }));
+      bg.add(L.cyl(0.06, 0.09, 3.4, 7, L.MAT.wood('#6a5236'), { x: 0.8, y: 4.4 }));
+      const boom = L.cyl(0.04, 0.05, 2.6, 6, L.MAT.wood('#6a5236'), { x: 0.8, y: 5.2 }); boom.rotation.z = 1.25; bg.add(boom);
+      // name plate on the hull
+      const plate = new T.Mesh(new T.PlaneGeometry(2.6, 0.55), L.std({ map: L.signTex('EL PEZ VOLADOR', '#2f5878'), roughness: 0.7 }));
+      plate.position.set(0.6, 2.2, 1.22); bg.add(plate);
+      root.add(bg);
+      colB(bx, bz, 3.9, 1.8);
+      addresses.push({ name: 'EL PESQUERO', pos: new T.Vector3(bx - 0.5, 2.6, bz + 3.2), gy: DECK });
+    })();
+
+    // dock crane (orange jib over the water)
+    (function crane() {
+      const cx2 = 160.5, cz2 = 13;
+      const orange = L.std({ colorHex: '#a8621e', roughness: 0.6 });
+      root.add(L.cyl(0.7, 0.9, 0.9, 10, L.MAT.metalDark, { x: cx2, y: DECK + 0.45, z: cz2 }));
+      root.add(L.box(0.6, 3.6, 0.6, orange, { x: cx2, y: DECK + 2.7, z: cz2 }));
+      const jib = L.box(5.4, 0.4, 0.4, orange, { x: cx2 + 2.2, y: DECK + 4.9, z: cz2 });
+      jib.rotation.z = 0.38; root.add(jib);
+      root.add(L.box(0.9, 0.8, 0.8, L.MAT.metalDark, { x: cx2 - 1.2, y: DECK + 4.0, z: cz2, cast: false }));  // counterweight
+      root.add(L.box(0.03, 2.6, 0.03, L.MAT.flat('#2a2a30'), { x: cx2 + 4.6, y: DECK + 4.4, z: cz2, cast: false }));  // cable
+      root.add(L.box(0.3, 0.35, 0.3, L.MAT.metalDark, { x: cx2 + 4.6, y: DECK + 3.0, z: cz2, cast: false }));         // hook block
+      colC(cx2, cz2, 1.0);
+    })();
+
+    // LA LONJA — the little fish market on the quay
+    const lonja = P.makeMarketStall(); lonja.position.set(156, DECK, 6); lonja.rotation.y = -Math.PI / 2; root.add(lonja);
+    colC(156, 6, 2.1);
+    addresses.push({ name: 'LA LONJA', pos: new T.Vector3(153.4, 2.6, 6), gy: DECK });
+    // crate stacks + a stray cone
+    [[162.5, -2], [162, -3.6], [155, -15]].forEach(([x, z], i) => {
+      root.add(L.box(0.52, 0.36, 0.52, L.MAT.wood('#8a6a44'), { x, y: DECK + 0.18, z }));
+      if (i < 2) root.add(L.box(0.46, 0.32, 0.46, L.MAT.wood('#75593a'), { x: x + 0.05, y: DECK + 0.52, z: z - 0.04 }));
+      colC(x, z, 0.42);
+    });
   })();
 
   /* ── MOVING TRAFFIC on the avenues (along X) ── total ≤ 14 cars + tram ── */
@@ -1177,12 +1271,16 @@ function build(ctx) {
   }
   // simple circling birds high up (spread over the wider map)
   const birdMat = L.MAT.flat('#3a3540');
-  for (let k = 0; k < 9; k++) {
+  for (let k = 0; k < 12; k++) {
     const bd = new T.Group();
-    const wl = L.box(0.5, 0.04, 0.18, birdMat, { x: -0.3, cast: false });
-    const wr = L.box(0.5, 0.04, 0.18, birdMat, { x: 0.3, cast: false });
-    bd.add(wl, wr); bd.add(L.box(0.18, 0.08, 0.4, birdMat, { cast: false }));
-    bd.userData = { cx: L.rand(-90, 90), cz: L.rand(-10, AV2Z), r: L.rand(14, 30), a: L.rand(0, TAU), sp: L.rand(0.2, 0.45), yy: L.rand(22, 34), wl, wr };
+    const gull = k >= 9;   // the last three wheel low over the harbor
+    const gm = gull ? L.MAT.flat('#d8d4c8') : birdMat;
+    const wl = L.box(0.5, 0.04, 0.18, gm, { x: -0.3, cast: false });
+    const wr = L.box(0.5, 0.04, 0.18, gm, { x: 0.3, cast: false });
+    bd.add(wl, wr); bd.add(L.box(0.18, 0.08, 0.4, gm, { cast: false }));
+    bd.userData = gull
+      ? { cx: L.rand(155, 175), cz: L.rand(-12, 12), r: L.rand(6, 14), a: L.rand(0, TAU), sp: L.rand(0.3, 0.55), yy: L.rand(8, 15), wl, wr }
+      : { cx: L.rand(-90, 90), cz: L.rand(-10, AV2Z), r: L.rand(14, 30), a: L.rand(0, TAU), sp: L.rand(0.2, 0.45), yy: L.rand(22, 34), wl, wr };
     root.add(bd); birds.push(bd);
   }
 
@@ -1351,7 +1449,7 @@ function build(ctx) {
   // their rows (down to CROSSZ0, up to CROSSZ1 past the second avenue), the
   // second-avenue north row, the park (-Z) and the clock tower (+Z).
   const bounds = {
-    minX: -AVX - 4, maxX: AVX + 4,
+    minX: -AVX - 4, maxX: 165.4,       // east: the quay (guarded at the water)
     minZ: -62,                               // the mirador hill behind the park
     maxZ: CROSSZ1 + 6,                       // second-avenue north row / cross-street north ends
     minY: 2.2, maxY: 46,
@@ -1493,6 +1591,7 @@ function build(ctx) {
     park: { x: PARK_CX, z: (-SW - (ROWZ + 7)) / 2, hw: PARK_HALF, hd: ((ROWZ + 7) - SW) / 2 },
     green: { x: GREEN2_CX, z: ((AV2Z - SW - 1) + (ROW2ZF + 3.5)) / 2, hw: GREEN2_HALF, hd: ((AV2Z - SW - 1) - (ROW2ZF + 3.5)) / 2 },
     hill: [ { x: -78, z: -36, hw: 24, hd: 6 }, { x: -78, z: -52, hw: 16, hd: 6 } ],
+    harbor: { x: 158, z: 0, hw: 8, hd: 22 },
   };
 
   return { addresses, update, bounds, spawn, colliders, floors, layout, traffic: cars, npcs };

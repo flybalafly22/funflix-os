@@ -16,9 +16,9 @@ with sync_playwright() as p:
     pg.keyboard.press("Space"); pg.wait_for_timeout(500)
 
     def reset():
-        # park center: open ground, no roads/traffic/furniture to contaminate the probe
+        # bare southern dirt: guaranteed empty (no props, NPCs, traffic spawn here)
         pg.evaluate("""() => { const d = window.__fly.game.debug;
-            d.P.pos.set(-78, 0.25, -17); d.P.yaw = 0; d.camYaw = 0; }""")
+            d.P.pos.set(0, 0, -48); d.P.yaw = 0; d.camYaw = 0; }""")
         pg.wait_for_timeout(600)  # let the camera position settle behind (heading 0)
 
     def probe(key):
