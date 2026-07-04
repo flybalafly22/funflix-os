@@ -18,9 +18,34 @@ function start(ctx, world) {
   const player = ctx.player;
   const C = FLY.characters;
   const clamp = L.clamp, lerp = L.lerp, pick = L.pick, rand = L.rand;
+  // lost-letter persistence lives at the VERY top: renderLog is called during
+  // init long before the game-state section, and `let` doesn't hoist
+  function lsGet0(k) { try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; } catch (e) { return 0; } }
+  let lostMask = lsGet0('fly_lost_mask');
+  function lostCount() { let n = 0; for (let i = 0; i < 10; i++) if (lostMask & (1 << i)) n++; return n; }
 
   /* ── player (walking human courier) ── */
   const hero = (C.makeHero ? C.makeHero() : C.makeFly()); scene.add(hero);
+
+  /* ── LA BICI — the courier's bike, parked where you leave it ── */
+  let onBike = false;
+  const bike = FLY.props.makeBicycle();
+  bike.position.set(2.2, 0, -7); bike.rotation.y = 0.4;
+  scene.add(bike);
+  function mountBike() {
+    onBike = true;
+    scene.remove(bike); hero.add(bike);
+    bike.position.set(0, 0, 0.06); bike.rotation.set(0, 0, 0);
+    toast('🚲 ¡A pedalear!', '#3a7d99');
+    blip(1560, 0.09, 'square', 0.07); setTimeout(() => blip(1560, 0.12, 'square', 0.07), 130);
+  }
+  function dismountBike() {
+    onBike = false;
+    hero.remove(bike); scene.add(bike);
+    bike.position.set(P.pos.x + Math.cos(P.yaw) * 0.7, P.pos.y, P.pos.z - Math.sin(P.yaw) * 0.7);
+    bike.rotation.set(0, P.yaw, 0.16);
+    toast('🚲 aparcada', '#3a7d99');
+  }
   // FX / HUD markers live on layer 1 so the ink-outline normal pass skips them
   const toFx = obj => obj.traverse(c => c.layers.set(1));
   const blob = new T.Mesh(new T.CircleGeometry(0.8, 20), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.26, depthWrite: false }));
@@ -100,6 +125,17 @@ function start(ctx, world) {
     #flyLog .q { font-size:14px; line-height:1.7; }
     #flyLog .q.done { text-decoration:line-through; opacity:.55; }
     #flyLog .q .n { opacity:.6; }
+    #flyReport { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-.5deg);
+      min-width:320px; background:rgba(250,247,238,.98); color:#2c261c;
+      border:2.5px solid #2c261c; border-radius:16px 18px 15px 17px;
+      box-shadow:0 6px 0 rgba(44,38,28,.28); padding:18px 26px 16px; display:none;
+      pointer-events:auto; z-index:22; text-align:center; }
+    #flyReport.on { display:block; }
+    #flyReport .h { font-size:24px; letter-spacing:.1em; border-bottom:2px solid rgba(44,38,28,.25); padding-bottom:6px; }
+    #flyReport .r { font-size:16px; line-height:1.9; text-align:left; margin-top:8px; }
+    #flyReport .r b { float:right; color:#4d8a52; }
+    #flyReport .go { margin-top:12px; font-size:15px; letter-spacing:.1em; text-transform:uppercase;
+      color:#c04434; cursor:pointer; animation:flyGo 1.6s ease-in-out infinite; }
     #flyDlg { position:absolute; left:50%; bottom:148px; transform:translateX(-50%) rotate(-.3deg);
       width:min(560px, 84vw); background:rgba(250,247,238,.97); color:#2c261c;
       border:2.5px solid #2c261c; border-radius:14px 16px 13px 15px;
@@ -239,7 +275,9 @@ function start(ctx, world) {
   const logEl = document.createElement('div'); logEl.id = 'flyLog';
   hud.appendChild(logBtn); hud.appendChild(logEl);
   function renderLog() {
-    logEl.innerHTML = '<div class="h">Recados del pueblo</div>' + CHAINS.map(c => {
+    logEl.innerHTML = '<div class="h">Recados del pueblo</div>'
+      + '<div class="q">✉ Cartas perdidas <span class="n">(' + lostCount() + '/10)</span></div>'
+      + CHAINS.map(c => {
       const n = Math.min(chainProg[c.id] || 0, c.steps);
       const boxes = '◼'.repeat(n) + '◻'.repeat(c.steps - n);
       return '<div class="q' + (chainDone(c) ? ' done' : '') + '">' + boxes + ' ' + c.name + ' <span class="n">(' + n + '/' + c.steps + ')</span></div>';
@@ -277,6 +315,70 @@ function start(ctx, world) {
     if (dlgShown < dlgFull.length) { dlgShown = dlgFull.length; dlgTx.textContent = dlgFull; }
     else dlgEl.classList.remove('on');
   });
+
+  /* ── LOST LETTERS — ten golden envelopes hidden across every district.
+     A reason to wander off-route; persistence via a bitmask. ── */
+  const LOST_SPOTS = [
+    [-146, 12.5, 0], [34, -37, 0], [6.5, 20.5, 0.25], [-70, -49.8, 5.74], [164.5, 20, 0.28],
+    [-87, -21, 0.25], [-38, 52, 0.25], [86, 71, 0], [47.5, 13.4, 0.25], [-49.6, -40, 0.25],
+  ];
+  const lostMeshes = [];
+  LOST_SPOTS.forEach(([x, z, gy], i) => {
+    if (lostMask & (1 << i)) { lostMeshes.push(null); return; }
+    const gl = new T.Group();
+    const env = L.box(0.34, 0.24, 0.04, L.std({ colorHex: '#c8a648', roughness: 0.4, emissive: 0xc8a648, emissiveIntensity: 0.35 }));
+    env.add(L.box(0.09, 0.09, 0.01, L.std({ colorHex: '#a8352c', roughness: 0.6 }), { z: 0.026, cast: false }));
+    gl.add(env); gl.position.set(x, gy + 1.05, z);
+    scene.add(gl); toFx(gl); lostMeshes.push(gl);
+  });
+  function updateLost(dt, now) {
+    for (let i = 0; i < lostMeshes.length; i++) {
+      const gl = lostMeshes[i]; if (!gl) continue;
+      gl.rotation.y += dt * 1.8;
+      gl.position.y = LOST_SPOTS[i][2] + 1.05 + Math.sin(now * 0.003 + i) * 0.12;
+      const dx3 = gl.position.x - P.pos.x, dz3 = gl.position.z - P.pos.z;
+      if (dx3 * dx3 + dz3 * dz3 < 2.9) {
+        lostMask |= (1 << i); lsSet('fly_lost_mask', lostMask);
+        scene.remove(gl); lostMeshes[i] = null;
+        score += 150; elScore.textContent = score; dayLetters++;
+        fxBurst(gl.position, [0xc8a648, 0xffffff, 0xa8352c], 16, gl.position.y);
+        sfxBonus(); renderLog();
+        const n = lostCount();
+        if (n >= 10) { score += 1000; elScore.textContent = score; setTimeout(() => { toast('✉ ¡Las diez cartas! +1000', '#c8862a'); sfxDeliver(); }, 700); }
+        else toast('✉ Carta perdida ' + n + '/10  +150', '#c8862a');
+      }
+    }
+  }
+
+  /* ── the END-OF-DAY report card ── */
+  const repEl = document.createElement('div'); repEl.id = 'flyReport';
+  hud.appendChild(repEl);
+  function showReport() {
+    reporting = true;
+    beam.visible = ring.visible = objLetter.visible = false;
+    const nx = nextRank(totalDeliv);
+    repEl.innerHTML = '<div class="h">☀ DÍA ' + dayNum + ' — INFORME</div><div class="r">'
+      + 'Entregas <b>' + dayDeliv + '</b><br>'
+      + 'Puntos del día <b>' + dayScore + '</b><br>'
+      + 'Mejor combo <b>x' + dayBestCombo + '</b><br>'
+      + (dayLetters ? 'Cartas perdidas halladas <b>' + dayLetters + '</b><br>' : '')
+      + (dayStories ? 'Historias avanzadas <b>' + dayStories + '</b><br>' : '')
+      + 'Rango <b>' + rankName(totalDeliv) + '</b>'
+      + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' entregas para ' + nx[1] + '</span>' : '')
+      + '</div><div class="go">Comenzar el día ' + (dayNum + 1) + ' ▶</div>';
+    repEl.classList.add('on');
+    sfxDeliver();
+  }
+  function closeReport() {
+    if (!reporting) return;
+    reporting = false; repEl.classList.remove('on');
+    dayNum++; lsSet('fly_day', dayNum);
+    dayDeliv = 0; dayScore = 0; dayBestCombo = 1; dayStories = 0; dayLetters = 0;
+    toast('☀ Día ' + dayNum, '#c8862a');
+    newTask();
+  }
+  repEl.addEventListener('pointerdown', e => { e.preventDefault(); closeReport(); });
+  addEventListener('keydown', e => { if (reporting && (e.code === 'Enter' || e.code === 'Space')) closeReport(); });
 
   /* ── game state ── */
   const ADDR = world.addresses;
@@ -364,6 +466,10 @@ function start(ctx, world) {
   function lsGet(k) { try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; } catch (e) { return 0; } }
   function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
   let bestScore = lsGet(LS.score), bestStreak = lsGet(LS.streak), totalDeliv = lsGet(LS.total);
+  /* the day: 8 deliveries, then the paper report and a fresh morning */
+  const DAY_LEN = 8;
+  let dayNum = lsGet('fly_day') || 1, dayDeliv = 0, dayScore = 0, dayBestCombo = 1, dayStories = 0, dayLetters = 0;
+  let reporting = false;
   const RANKS = [[0, 'Recadero'], [5, 'Mensajero'], [15, 'Cartero de Barrio'], [30, 'Correo Exprés'], [60, 'Leyenda de Villa Mott']];
   function rankName(n) { let r = RANKS[0][1]; for (const [t, nm] of RANKS) if (n >= t) r = nm; return r; }
   function nextRank(n) { for (const [t, nm] of RANKS) if (n < t) return [t, nm]; return null; }
@@ -403,7 +509,34 @@ function start(ctx, world) {
     'a pressed flower', 'a thank-you note', "yesterday's crossword, solved",
     'a wedding invitation', 'a small tin of saffron', 'a secret, sealed twice',
   ];
-  let payload = '', express = false;
+  let payload = '', express = false, fragile = false;
+  /* the wind: sometimes it rips the letter out of your hands mid-run */
+  let gustPending = false, gustAt = 0, gustLoose = false, gustT = 0;
+  const gustPos = new T.Vector3(), gustFrom = new T.Vector3();
+  let gustGy = 0;
+  function triggerGust(now) {
+    gustPending = false; gustLoose = true; gustT = 0;
+    // the wind is mischievous, not cruel: reject landing spots inside solid
+    // masses so the letter is always catchable
+    let gx2 = P.pos.x + 6, gz2 = P.pos.z;
+    for (let tries = 0; tries < 14; tries++) {
+      const a = rand(0, TAU), r = rand(8, 14);
+      const cx3 = clamp(P.pos.x + Math.cos(a) * r, bounds.minX + 3, bounds.maxX - 3);
+      const cz3 = clamp(P.pos.z + Math.sin(a) * r, bounds.minZ + 3, bounds.maxZ - 3);
+      if (!occluded(cx3, cz3)) { gx2 = cx3; gz2 = cz3; break; }
+    }
+    gustPos.set(gx2, 0, gz2);
+    gustGy = groundAt(gustPos.x, gustPos.z);
+    gustFrom.copy(P.pos); gustFrom.y = 1.2;
+    carriedLetter.visible = false;
+    objLetter.visible = true;
+    beam.material.color.setHex(0x3ab0c8); ring.material.color.setHex(0x3ab0c8);
+    beam.position.set(gustPos.x, gustGy + 15, gustPos.z);
+    ring.position.set(gustPos.x, gustGy + 0.3, gustPos.z);
+    elLbl.textContent = '💨 ¡El viento!'; elDst.textContent = '¡Atrapa la carta!'; elSub.textContent = payload;
+    toast('💨 ¡El viento se llevó la carta!', '#3a7d99');
+    blip(220, 0.5, 'sawtooth', 0.05);
+  }
 
   function setObjective() {
     const tg = carrying ? dropoff : pickup;
@@ -414,7 +547,7 @@ function start(ctx, world) {
     ring.position.set(tg.pos.x, gy + 0.3, tg.pos.z);
     beam.visible = ring.visible = true;
     objLetter.position.set(tg.pos.x, gy + 3.6, tg.pos.z); objLetter.visible = !carrying;
-    elLbl.textContent = (express ? '⚡ ' : '') + (carrying ? 'Deliver to' : 'Pick up at');
+    elLbl.textContent = (express ? '⚡ ' : '') + (fragile ? '🎂 ' : '') + (carrying ? 'Deliver to' : 'Pick up at');
     elLbl.style.color = express ? '#ffd27a' : '#ffd27a';
     elDst.textContent = tg.name;
     elSub.textContent = carrying ? (payload + ' → the green-lit shop') : (payload + ' — grab the floating letter');
@@ -436,16 +569,24 @@ function start(ctx, world) {
     const route = planar(P.pos, pu.pos) + planar(pu.pos, dr.pos);
     let budget = clamp(10 + route * 0.42, 14, 46) * (ex ? 0.66 : 1);
     if (delivered === 0) budget *= 1.6;           // warm-up welcome job
-    return { pickup: pu, dropoff: dr, payload: pick(PAYLOADS), express: ex, budget, route };
+    // sweet shops sometimes hand you something breakable: double pay, but a
+    // traffic bump ruins it and sends you back for another
+    const FRAG_FROM = ['CONFITERÍA', 'HELADOS', 'PANADERÍA', 'DULCES', 'QUESERÍA', 'EL HORNO'];
+    const fr = !ex && delivered >= 2 && FRAG_FROM.includes(pu.name) && L.chance(0.55);
+    const pay2 = fr ? pick(['una tarta de tres pisos', 'helado de limón (se derrite)', 'una caja de merengues', 'flan de la abuela']) : pick(PAYLOADS);
+    return { pickup: pu, dropoff: dr, payload: pay2, express: ex, fragile: fr, budget, route };
   }
   let curStory = null;
   function startJob(j) {
+    gustPending = false; gustLoose = false;
     pickup = j.pickup; dropoff = j.dropoff; payload = j.payload; express = j.express;
+    fragile = !!j.fragile;
     curStory = j.story || null;
     carrying = false; carriedLetter.visible = false;
     jobBudget = j.budget; jobLeft = jobBudget; jobActive = true;
     setObjective();
     if (curStory) toast('📜 ' + curStory.name, '#c8862a');
+    else if (fragile) toast('🎂 Frágil — ¡ni un golpe! ×2', '#c04434');
     else toast(express ? '⚡ Express — double pay! ' + Math.round(jobBudget) + 's' : 'New job · ' + Math.round(jobBudget) + 's', express ? '#c8862a' : '#3a7d99');
   }
   const offerEl = document.createElement('div'); offerEl.id = 'flyOffer'; offerEl.style.display = 'none';
@@ -469,7 +610,7 @@ function start(ctx, world) {
     elTimerT.textContent = '--'; elTimerBar.style.width = '100%';
     offerEl.innerHTML = offer.jobs.map((j, i) =>
       '<div class="card' + (j.express ? ' ex' : '') + '" data-i="' + i + '">'
-      + '<div class="key">' + (i + 1) + (j.express ? ' · ⚡ express' : '') + (j.story ? ' · 📜 historia' : '') + '</div>'
+      + '<div class="key">' + (i + 1) + (j.express ? ' · ⚡ express' : '') + (j.fragile ? ' · 🎂 frágil ×2' : '') + (j.story ? ' · 📜 historia' : '') + '</div>'
       + '<div class="route">' + j.pickup.name + ' → ' + j.dropoff.name + '</div>'
       + '<div class="pay">' + j.payload + '</div>'
       + '<div class="meta">~' + Math.round(j.route) + 'm · ' + Math.round(j.budget) + 's · ~' + estPts(j) + ' pts</div>'
@@ -552,6 +693,11 @@ function start(ctx, world) {
   addEventListener('keydown', e => {
     keys[e.code] = true; initAudio();
     if (e.code === 'KeyM') toggleMute();
+    if (e.code === 'KeyE' && begun && !offer) {
+      if (onBike) dismountBike();
+      else if (Math.hypot(bike.position.x - P.pos.x, bike.position.z - P.pos.z) < 2.4) mountBike();
+    }
+    if (e.code === 'KeyB' && onBike) { blip(1560, 0.09, 'square', 0.09); setTimeout(() => blip(1560, 0.13, 'square', 0.08), 140); }
     if (e.code === 'KeyP' && begun) {
       const on = hud.classList.toggle('photo');
       if (!on) toast('📷', '#3a7d99');
@@ -613,6 +759,11 @@ function start(ctx, world) {
         else P.pos.x = car.position.x + (dx >= 0 ? 1 : -1) * (hx + 1.0);
         fxBurst(P.pos, [0xff6b6b, 0xffd166, 0xffffff], 14, 1.2);
         sfxHazard(); blip(392, 0.25, 'square', 0.12);   // honk
+        if (carrying && fragile && !gustLoose) {
+          carrying = false; carriedLetter.visible = false; setObjective();
+          elSub.textContent = '💥 se rompió — vuelve a por otra';
+          setTimeout(() => toast('💥 ¡La tarta! Vuelve a por otra…', '#c04434'), 500);
+        }
         breakCombo('🚗 Bumped by traffic!');
         if (jobActive) jobLeft = Math.max(2, jobLeft - 4);
         break;
@@ -633,7 +784,7 @@ function start(ctx, world) {
   let chimeIn = 35, lastTramBell = -1e9;   // ambience timers (clock bell / tram ding)
   const baseFov = camera.fov;
   const hintEl = document.querySelector('#hint');
-  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · L log · P photo · M mute';
+  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · E bici · B timbre · L log · P photo · M mute';
 
   /* ── start card — the town idles behind it; first input begins the shift ── */
   beam.visible = ring.visible = objLetter.visible = false;
@@ -665,7 +816,7 @@ function start(ctx, world) {
     let mag = Math.hypot(ix, iy);
     if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
     const running = keys['ShiftLeft'] || keys['ShiftRight'] || tRun > 0;
-    if (stunned || !begun) mag = 0;
+    if (stunned || !begun || reporting) mag = 0;
 
     if (mag > 0.05) {
       // screen-up = camera-forward; screen-right for heading θ is (-cosθ, 0, sinθ)
@@ -673,14 +824,15 @@ function start(ctx, world) {
       // atan2(+ix, iy) mirrors left/right.
       const wishYaw = camYaw + Math.atan2(-ix, iy);
       let dy = wishYaw - P.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-      P.yaw += dy * L.dampT(dt, 11);                          // quick, smooth turn-in
+      P.yaw += dy * L.dampT(dt, onBike ? 5.5 : 11);           // bikes carve wide arcs
       // camera settles behind scaled by alignment (cos dc): full chase when
       // running away from it, none on a pure strafe or reversal — otherwise the
       // chase rotates the input frame and straight lines become circles
       let dc = P.yaw - camYaw; dc = Math.atan2(Math.sin(dc), Math.cos(dc));
       camYaw += dc * L.dampT(dt, 2.6) * Math.max(0, Math.cos(dc));
     }
-    P.speed = lerp(P.speed, mag * (running ? RUN : WALK), L.dampT(dt, ACCEL));
+    const maxSpd = onBike ? 8.8 : (running ? RUN : WALK);
+    P.speed = lerp(P.speed, mag * maxSpd, L.dampT(dt, onBike ? 4.5 : ACCEL));
     fwd.set(Math.sin(P.yaw), 0, Math.cos(P.yaw));
     P.pos.x += fwd.x * P.speed * dt; P.pos.z += fwd.z * P.speed * dt;
     P.pos.x = clamp(P.pos.x, bounds.minX, bounds.maxX);
@@ -705,12 +857,15 @@ function start(ctx, world) {
 
     // place + animate the human (true pos drives world reactions: NPC waves, pigeon scatter)
     player.pos.copy(P.pos);
-    hero.position.set(P.pos.x, P.pos.y, P.pos.z);
+    hero.position.set(P.pos.x, P.pos.y, P.pos.z);   // (y adjusted below when riding)
     hero.rotation.set(0, 0, 0); hero.rotateY(P.yaw);
     if (stunned) hero.rotateZ(Math.sin(now * 0.04) * 0.2);
-    walkPhase += dt * (moving ? (5 + spd01 * 7) : 0);
-    C.animateWalk(hero, walkPhase, moving);
-    if (moving) { const fp = Math.floor(walkPhase / Math.PI); if (fp !== lastStep) { lastStep = fp; sfxStep(); } }
+    walkPhase += dt * (moving && !onBike ? (5 + spd01 * 7) : 0);
+    C.animateWalk(hero, walkPhase, moving && !onBike);
+    if (moving && !onBike) { const fp = Math.floor(walkPhase / Math.PI); if (fp !== lastStep) { lastStep = fp; sfxStep(); } }
+    else if (moving && onBike && Math.random() < dt * 2.2 * spd01) blip(1150, 0.02, 'square', 0.014);   // chain tick
+    hero.position.y = P.pos.y + (onBike ? 0.24 : 0);           // perched on the saddle
+    if (onBike) bike.position.y = -0.24;
     // scarf tail trails and flutters with speed (the brand accent in motion)
     const st = hero.userData.scarfTail;
     if (st) st.rotation.x = -(0.45 + spd01 * 0.9 + Math.sin(now * 0.02) * (0.05 + spd01 * 0.14));
@@ -787,10 +942,27 @@ function start(ctx, world) {
     }
     const choosing = !!offer;
 
+    /* the loose letter: flies out on the gust arc, then flutters until caught */
+    if (gustPending && carrying && !choosing && now > gustAt) triggerGust(now);
+    if (gustLoose) {
+      gustT = Math.min(1, gustT + dt * 0.9);
+      const gx = gustFrom.x + (gustPos.x - gustFrom.x) * gustT;
+      const gz = gustFrom.z + (gustPos.z - gustFrom.z) * gustT;
+      const gy2 = gustGy + 1.1 + Math.sin(gustT * Math.PI) * 2.2 + (gustT >= 1 ? Math.sin(now * 0.004) * 0.18 : 0);
+      objLetter.position.set(gx, gy2, gz);
+      objLetter.rotation.y += dt * 6; objLetter.rotation.z = Math.sin(now * 0.006) * 0.4;
+      const rdx = P.pos.x - gustPos.x, rdz = P.pos.z - gustPos.z;
+      if (gustT >= 1 && rdx * rdx + rdz * rdz < 3.2) {
+        gustLoose = false; objLetter.rotation.z = 0;
+        carriedLetter.visible = true; setObjective();
+        toast('✉ ¡Recuperada!', '#4d8a52'); sfxPick();
+      }
+    }
+
     // markers
-    const tg = carrying ? dropoff : pickup;
+    const tg = gustLoose ? { pos: gustPos, gy: gustGy } : (carrying ? dropoff : pickup);
     beam.rotation.y += dt * 0.4; ring.scale.setScalar(1 + Math.sin(now * 0.004) * 0.08);
-    objLetter.rotation.y += dt * 1.5; objLetter.position.y = (tg && tg.gy || 0) + 3.6 + Math.sin(now * 0.003) * 0.25;
+    if (!gustLoose) { objLetter.rotation.y += dt * 1.5; objLetter.position.y = (tg && tg.gy || 0) + 3.6 + Math.sin(now * 0.003) * 0.25; }
 
     const dx = P.pos.x - tg.pos.x, dz = P.pos.z - tg.pos.z, dPlanar = Math.hypot(dx, dz);
     elDist.textContent = (!choosing && dPlanar < 90) ? Math.round(dPlanar) + ' m' : '—';
@@ -829,9 +1001,10 @@ function start(ctx, world) {
     if (!choosing && dPlanar < 4.5) {
       if (!carrying) {
         carrying = true; carriedLetter.visible = true; toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
+        if (!curStory && !fragile && jobBudget > 18 && L.chance(0.3)) { gustPending = true; gustAt = now + rand(3500, 8500); }
         if (curStory) say(pickup.name, curStory.pick);
         else bubble(tg.pos.x, (tg.gy || 0) + 3.4, tg.pos.z, pick(QUIPS_PICKUP));
-      } else {
+      } else if (!gustLoose) {
         if (curStory) say(dropoff.name, curStory.drops[Math.min(chainProg[curStory.id] || 0, curStory.drops.length - 1)]);
         else bubble(tg.pos.x, (tg.gy || 0) + 3.4, tg.pos.z, pick(QUIPS_DELIVER));
         deliver(tg);
@@ -858,6 +1031,7 @@ function start(ctx, world) {
     updateFX(dt);
     updateBubbles(dt);
     updateDlg(dt);
+    updateLost(dt, now);
 
     // minimap (throttled ~12fps)
     mapAcc += dt;
@@ -875,7 +1049,7 @@ function start(ctx, world) {
     // combo: a quick delivery (with time to spare) builds the streak
     if (speedy) { streak++; combo = clamp(combo + 1, 1, 8); comboTimer = COMBO_WINDOW; }
     else { comboTimer = COMBO_WINDOW * 0.6; } // keep current combo alive briefly even on a slow drop
-    const gained = Math.round((base + timeBonus) * combo * (express ? 2 : 1));
+    const gained = Math.round((base + timeBonus) * combo * ((express || fragile) ? 2 : 1));
     score += gained;
     elScore.textContent = score;
 
@@ -897,6 +1071,7 @@ function start(ctx, world) {
     if (curStory) {
       const cs = curStory;
       chainProg[cs.id] = Math.min((chainProg[cs.id] || 0) + 1, cs.steps);
+      dayStories++;
       saveChains(); renderLog();
       if (chainDone(cs)) {
         score += 400; elScore.textContent = score;
@@ -923,7 +1098,9 @@ function start(ctx, world) {
     if (streak > bestStreak) { bestStreak = streak; lsSet(LS.streak, bestStreak); }
     renderBest();
 
-    newTask();
+    dayScore += gained; dayBestCombo = Math.max(dayBestCombo, combo); dayDeliv++;
+    if (dayDeliv >= DAY_LEN) showReport();
+    else newTask();
   }
 
   /* ── MINIMAP rendering ── */
@@ -979,6 +1156,11 @@ function start(ctx, world) {
       g.beginPath(); g.arc(ox, oy, pulse, 0, TAU); g.fill();
       g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 1.5; g.stroke();
     }
+    // parked bike
+    if (!onBike) {
+      const [bx2, by2] = mapXY(bike.position.x, bike.position.z);
+      g.fillStyle = '#3a7d99'; g.beginPath(); g.arc(bx2, by2, 3, 0, TAU); g.fill();
+    }
     // player + heading
     const [px, py] = mapXY(P.pos.x, P.pos.z);
     g.save();
@@ -1000,6 +1182,12 @@ function start(ctx, world) {
     get offer() { return offer; }, chooseJob,
     get capSel() { return capSel; }, get totalDeliv() { return totalDeliv; },
     get camYaw() { return camYaw; }, set camYaw(v) { camYaw = v; },
+    get onBike() { return onBike; }, get bikePos() { return bike.position; },
+    get gustLoose() { return gustLoose; }, get gustPos() { return gustPos; },
+    forceGust() { if (carrying) triggerGust(performance.now()); },
+    get dayDeliv() { return dayDeliv; }, set dayDeliv(v) { dayDeliv = v; },
+    get dayNum() { return dayNum; }, get reporting() { return reporting; },
+    lostCount, get fragile() { return fragile; },
     begin,
   } };
 }

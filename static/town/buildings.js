@@ -442,8 +442,14 @@ function awning(g, pair, w, frontZ, opts) {
   const aw = w - 0.6, depth = opts.depth || 1.6, y = opts.y || (GROUND_H - 0.55);
   const sheet = L.box(aw, 0.08, depth, awMat, { y, z: frontZ + depth / 2 - 0.1 });
   sheet.rotation.x = 0.34; g.add(sheet);
-  // scalloped valance
-  g.add(L.box(aw, 0.34, 0.05, awMat, { y: y - depth * 0.27, z: frontZ + depth * 0.78, cast: false }));
+  // scalloped valance — a real fringe of half-rounds, not a straight hem
+  g.add(L.box(aw, 0.26, 0.05, awMat, { y: y - depth * 0.25, z: frontZ + depth * 0.78, cast: false }));
+  const scN = Math.max(4, Math.round(aw / 0.42));
+  for (let si = 0; si < scN; si++) {
+    const sx2 = -aw / 2 + (aw / scN) * (si + 0.5);
+    const sc = L.cyl(0.19, 0.19, 0.05, 8, awMat, { x: sx2, y: y - depth * 0.25 - 0.13, z: frontZ + depth * 0.78, cast: false });
+    sc.rotation.x = Math.PI / 2; g.add(sc);
+  }
   // support arms
   for (const sx of [-1, 1]) g.add(L.box(0.05, 0.05, depth, L.MAT.metalDark, { x: sx * (aw / 2 - 0.2), y: y - 0.05, z: frontZ + depth / 2 - 0.1, cast: false }));
 }
