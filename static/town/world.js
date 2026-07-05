@@ -1377,6 +1377,91 @@ function build(ctx) {
     colC(x, z, 1.4);
   })();
 
+  // V8 — an OLD COUPLE share a bench and a slow chat on the second avenue
+  (function vCouple() {
+    const x = -20, z = AV2Z - 4;
+    const bench = P.makeBench(); bench.position.set(x, CH, z); bench.rotation.y = Math.PI; root.add(bench);
+    poseNPC(x - 0.5, z + 0.1, 0, null, 'sit', (n, dt, now) => {
+      const hg = n.userData.headGrp; if (hg) hg.rotation.y = 0.3 + Math.sin(now * 0.0011) * 0.12;   // nodding along
+    });
+    poseNPC(x + 0.5, z + 0.1, 0, null, 'sit', (n, dt, now) => {
+      const hg = n.userData.headGrp; if (hg) hg.rotation.y = -0.3 + Math.sin(now * 0.0009 + 1) * 0.1;
+    });
+    colC(x, z, 0.9);
+  })();
+
+  // V9 — a STREET MUSICIAN on the cross-street, guitar case open for coins
+  (function vBusker() {
+    const x = CROSSX2 - 11.5, z = 8;
+    root.add(L.box(0.9, 0.14, 0.34, L.MAT.wood('#6a5236'), { x, y: CH + 0.07, z: z + 0.7 }));  // open case
+    root.add(L.box(0.82, 0.06, 0.26, L.std({ colorHex: '#8a2a3a', roughness: 0.8 }), { x, y: CH + 0.12, z: z + 0.7, cast: false }));  // velvet lining
+    for (let k = 0; k < 5; k++) root.add(L.cyl(0.05, 0.05, 0.015, 8, L.std({ colorHex: '#c8a648', roughness: 0.4, metalness: 0.5 }), { x: x + L.jitter(0.3), y: CH + 0.16, z: z + 0.7 + L.jitter(0.1), cast: false }));  // coins
+    poseNPC(x, z, 0, null, null, (n, dt, now) => {
+      const lm = n.userData.limbs;
+      lm.armL.rotation.x = -1.2; lm.armR.rotation.x = -1.1 + Math.sin(now * 0.014) * 0.2;   // strumming
+      n.position.y = CH + Math.abs(Math.sin(now * 0.004)) * 0.02;                            // sway
+    });
+    // the guitar itself, held across the body
+    const guitar = L.box(0.16, 0.5, 0.1, L.MAT.wood('#8a5a30'), { x: x + 0.1, y: CH + 1.0, z: z + 0.28, cast: false });
+    guitar.rotation.z = 0.5; root.add(guitar);
+    colC(x, z, 0.7);
+  })();
+
+  // V10 — a WINDOW-WASHER on a stool wiping a shopfront on the avenue
+  (function vWasher() {
+    const x = 68, z = -13.0;
+    root.add(L.box(0.42, 0.5, 0.42, L.MAT.wood('#8a6a44'), { x, y: CH + 0.25, z }));   // stool
+    root.add(L.cyl(0.13, 0.16, 0.2, 9, L.std({ colorHex: '#4a7a90', roughness: 0.6 }), { x: x + 0.7, y: CH + 0.1, z: z + 0.2 }));  // bucket
+    poseNPC(x, z + 0.55, Math.PI, null, null, (n, dt, now) => {
+      n.position.y = CH + 0.72;                     // standing on the stool
+      const lm = n.userData.limbs;
+      lm.armR.rotation.x = -2.4; lm.armR.rotation.z = Math.sin(now * 0.012) * 0.5;   // wiping circles
+    }, CH + 0.72);
+    colC(x, z, 0.8);
+  })();
+
+  // V11 — KIDS chase a dog around a hilltop tree
+  (function vChase() {
+    const cx = -90, cz = -35, cy = 2.8 + 0.14;   // first terrace
+    const dog = C.makeDog ? C.makeDog() : null;
+    if (dog) {
+      dog.position.set(cx, cy, cz); root.add(dog);   // NOT pushed to dogs[] — own tick below
+      vigFns.push((dt, now) => {
+        const a = now * 0.0022 + 1.4;                 // just ahead of the kids
+        dog.position.set(cx + Math.cos(a) * 2.6, cy + Math.abs(Math.sin(now * 0.02)) * 0.06, cz + Math.sin(a) * 2.6);
+        dog.rotation.y = a + Math.PI / 2;
+      });
+    }
+    poseNPC(cx + 2.2, cz, 0, null, null, (n, dt, now) => {
+      const a = now * 0.0022;
+      n.position.set(cx + Math.cos(a) * 2.6, cy, cz + Math.sin(a) * 2.6);
+      n.rotation.y = a + Math.PI / 2;
+      C.animateWalk(n, now * 0.012, true);
+    }, cy);
+    poseNPC(cx + 2.6, cz + 0.5, 0, null, null, (n, dt, now) => {
+      const a = now * 0.0022 - 0.7;
+      n.position.set(cx + Math.cos(a) * 2.6, cy, cz + Math.sin(a) * 2.6);
+      n.rotation.y = a + Math.PI / 2;
+      C.animateWalk(n, now * 0.012 + 1, true);
+    }, cy);
+  })();
+
+  // V12 — a FRUIT VENDOR arranging his crates outside the plaza market
+  (function vFruitVendor() {
+    const x = -16, z = SW + 10.5;
+    const crMat = L.MAT.wood('#8a6a44');
+    [[0, 0], [0.7, 0.1], [0.35, -0.5]].forEach(([dx, dz]) => {
+      root.add(L.box(0.6, 0.28, 0.6, crMat, { x: x + dx, y: CH + 0.14, z: z + dz }));
+      const fruit = L.pick(['#c85a3a', '#d8a63c', '#6a9a4a', '#b83a4a']);
+      for (let k = 0; k < 5; k++) root.add(L.sphere(0.08, 6, L.std({ colorHex: fruit, roughness: 0.7 }), { x: x + dx + L.jitter(0.2), y: CH + 0.32, z: z + dz + L.jitter(0.2), cast: false }));
+    });
+    poseNPC(x - 0.6, z + 0.4, -0.5, null, null, (n, dt, now) => {
+      const lm = n.userData.limbs;
+      lm.armR.rotation.x = -1.8 + Math.sin(now * 0.005) * 0.5;   // stacking fruit
+    });
+    colC(x, z, 1.0);
+  })();
+
   // a vendor standing at each market stall area (static, faces the street)
   [[-9, SW + 11], [9, SW + 11], [0, SW + 13]].forEach(([x, z]) => {
     const n = C.makeNPC(); n.position.set(x, CH, z); n.rotation.y = Math.PI;
