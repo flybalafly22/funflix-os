@@ -1007,6 +1007,8 @@ function start(ctx, world) {
   const sfxDeliver = () => { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => blip(f, 0.16, 'triangle', 0.16), i * 70)); };
   const sfxBonus = () => { [784, 988, 1318].forEach((f, i) => setTimeout(() => blip(f, 0.12, 'square', 0.1), i * 55)); };
   const sfxHazard = () => { blip(150, 0.22, 'sawtooth', 0.18); setTimeout(() => blip(96, 0.28, 'sawtooth', 0.16), 80); };
+  const sfxCoin = () => { blip(1320, 0.06, 'square', 0.06); setTimeout(() => blip(1760, 0.09, 'square', 0.05), 55); };
+  const sfxTick = () => blip(880, 0.03, 'triangle', 0.04);
   const sfxStep = () => {                    // surface-aware footsteps
     const ly = world.layout;
     let surf = P.pos.y > 0.1 ? 'stone' : 'asphalt';
@@ -1551,6 +1553,7 @@ function start(ctx, world) {
 
     const coinGain = Math.max(5, Math.round(gained / 10));
     coins += coinGain; dayCoins += coinGain; lsSet('fly_coins', coins);
+    setTimeout(sfxCoin, 180);
     dayScore += gained; dayBestCombo = Math.max(dayBestCombo, combo); dayDeliv++;
     renderBest();
     if (dayDeliv >= DAY_LEN) showReport();
@@ -1617,7 +1620,7 @@ function start(ctx, world) {
   }
   function toggleBigMap(force) {
     bigOpen = force != null ? force : !bigOpen;
-    if (bigOpen) drawBigMap();
+    if (bigOpen) { drawBigMap(); sfxTick(); }
     bigWrap.classList.toggle('on', bigOpen);
   }
   addEventListener('keydown', e => {

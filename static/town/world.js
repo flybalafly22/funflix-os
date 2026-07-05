@@ -1777,7 +1777,15 @@ function build(ctx) {
       const lo = u.kind === 'plaza' ? (u.cx - 8) : u.lo;
       if (n.position.x > lim) u.speed = -Math.abs(u.speed);
       if (n.position.x < lo) u.speed = Math.abs(u.speed);
-      n.rotation.y = u.speed > 0 ? Math.PI / 2 : -Math.PI / 2;
+      // face travel — but when greeting the courier (paused, arm up), turn to
+      // face HIM so the wave lands as a real hello
+      if (!moving && u.wave > 0.4) {
+        const want = Math.atan2(PP.x - n.position.x, PP.z - n.position.z);
+        let dyy = want - n.rotation.y; dyy = Math.atan2(Math.sin(dyy), Math.cos(dyy));
+        n.rotation.y += dyy * Math.min(1, dt * 6);
+      } else {
+        n.rotation.y = u.speed > 0 ? Math.PI / 2 : -Math.PI / 2;
+      }
       C.animateWalk(n, t * 3 + u.phase, moving);
       n.position.y = (u.baseY != null ? u.baseY : CH) + (moving ? Math.abs(Math.sin(t * 3 + u.phase)) * 0.03 : 0);
       // wave (raise right arm) at the Fly
