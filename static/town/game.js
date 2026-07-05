@@ -517,7 +517,8 @@ function start(ctx, world) {
     reporting = false; repEl.classList.remove('on');
     dayNum++; lsSet('fly_day', dayNum);
     dayDeliv = 0; dayScore = 0; dayBestCombo = 1; dayStories = 0; dayLetters = 0; dayCoins = 0;
-    toast('☀ Día ' + dayNum, '#c8862a');
+    tod = 0; applyTOD(0);
+    toast('☀ Día ' + dayNum + ' — amanece', '#c8862a');
     newTask();
   }
   repEl.addEventListener('pointerdown', e => { e.preventDefault(); closeReport(); });
@@ -534,6 +535,36 @@ function start(ctx, world) {
   let carrying = false, pickup = null, dropoff = null, delivered = 0;
   let score = 0;
   const IS_TOUCH = window.matchMedia && matchMedia('(hover: none), (pointer: coarse)').matches;
+  /* ── TIME OF DAY — dawns bright, slides to a golden dusk across the day's 8
+     deliveries; the report is at last light. Interpolates the whole rig. ── */
+  const _sun = ctx.sun, _hemi = ctx.hemi, _sky = ctx.skyMat, _rend = ctx.renderer;
+  const _sunDay = new T.Color(0xfff2dc), _sunDusk = new T.Color(0xffb066);
+  const _hemiSkyDay = new T.Color(0xd6e8e2), _hemiSkyDusk = new T.Color(0xbcd0d8);
+  const _hemiGrDay = new T.Color(0x9a9484), _hemiGrDusk = new T.Color(0x6a5236);
+  const _fogDay = new T.Color(0xa8dcd4), _fogDusk = new T.Color(0xe8c49a);
+  const _skyTopDay = new T.Color(0x53bcae), _skyTopDusk = new T.Color(0x4a86b0);
+  const _skyHorDay = new T.Color(0x6cc8ba), _skyHorDusk = new T.Color(0xf0b878);
+  const _cloudDay = new T.Color(0xbfe8dc), _cloudDusk = new T.Color(0xf2d0a8);
+  let tod = 0;
+  function applyTOD(t) {
+    const k = t * t;
+    _sun.color.copy(_sunDay).lerp(_sunDusk, k); _sun.intensity = 0.6 - k * 0.28;
+    _hemi.color.copy(_hemiSkyDay).lerp(_hemiSkyDusk, k);
+    _hemi.groundColor.copy(_hemiGrDay).lerp(_hemiGrDusk, k);
+    _hemi.intensity = 1.32 - k * 0.34;
+    if (ctx.fog) ctx.fog.color.copy(_fogDay).lerp(_fogDusk, k);
+    if (_sky) {
+      _sky.uniforms.uTop.value.copy(_skyTopDay).lerp(_skyTopDusk, k);
+      _sky.uniforms.uHorz.value.copy(_skyHorDay).lerp(_skyHorDusk, k);
+      _sky.uniforms.uCloud.value.copy(_cloudDay).lerp(_cloudDusk, k);
+    }
+    _rend.toneMappingExposure = 0.92 + k * 0.06;
+    if (gradeU) {
+      gradeU.uGain.value.set(1.02 + k * 0.10, 1.01, 0.985 - k * 0.06);
+      gradeU.uLift.value.set(0.030 + k * 0.02, 0.030, 0.026 - k * 0.01);
+    }
+  }
+
   // reach the color-grade pass so rain can desaturate the world
   let gradeU = null, gradeBlend = 0, gradeSatBase = 1.06, gradeVigBase = 0.10;
   if (ctx.composer && ctx.composer.passes) {
@@ -1252,9 +1283,12 @@ function start(ctx, world) {
     updateWeather(dt, now);
     updateRival(dt, now);
     if (R.active) C.animateWalk(rival, now * 0.012, true);
+    const dayFrac = clamp((dayDeliv + (jobActive ? (1 - clamp(jobLeft / Math.max(1, jobBudget), 0, 1)) * 0.5 : 0)) / DAY_LEN, 0, 1);
+    tod += (dayFrac - tod) * L.dampT(dt, 0.5);
+    applyTOD(reporting ? 1 : tod);
     if (gradeU) {
       gradeU.uSat.value = gradeSatBase * (1 - gradeBlend * 0.28);
-      gradeU.uVig.value = gradeVigBase + gradeBlend * 0.14;
+      gradeU.uVig.value = gradeVigBase + gradeBlend * 0.14 + tod * 0.06;
     }
 
     // minimap (throttled ~12fps)

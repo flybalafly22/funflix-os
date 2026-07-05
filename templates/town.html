@@ -312,7 +312,7 @@ if (composer) {
 
 /* shared context handed to every module */
 const root = new T.Group(); scene.add(root);
-const ctx = { THREE: T, lib: FLY.lib, scene, root, renderer, camera, composer, sun, hemi, fog: scene.fog };
+const ctx = { THREE: T, lib: FLY.lib, scene, root, renderer, camera, composer, sun, hemi, fill, bounce, fog: scene.fog, skyMat };
 
 /* build the world, then start the game */
 let world = null, game = null, fatal = null;
