@@ -1600,8 +1600,10 @@ function start(ctx, world) {
         if (!u || u.kind === 'seated') continue;
         const dx2 = n.position.x - P.pos.x, dz2 = n.position.z - P.pos.z;
         if (dx2 * dx2 + dz2 * dz2 < 12) {
-          const line = u.name ? (u.name + ': ' + pick(PERSONA[u.name] || QUIPS_STREET)) : pick(QUIPS_STREET);
-          bubble(n.position.x, n.position.y + 2.05, n.position.z, line, u.name ? 3.0 : 2.4);
+          let base = u.name ? (u.name + ': ' + pick(PERSONA[u.name] || QUIPS_STREET)) : pick(QUIPS_STREET);
+          // a time-of-day greeting sometimes leads the line
+          if (!u.name && L.chance(0.4)) base = (tod < 0.35 ? '¡Buenos días!' : tod > 0.55 ? '¡Buenas tardes!' : '¡Hola!');
+          bubble(n.position.x, n.position.y + 2.05, n.position.z, base, u.name ? 3.0 : 2.4);
           quipCd = rand(7, 12); break;
         }
       }
