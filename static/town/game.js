@@ -105,6 +105,17 @@ function start(ctx, world) {
     bike.rotation.set(0, P.yaw, 0.16);
     toast('🚲 aparcada', '#3a7d99');
   }
+  // the context 'E' action, shared by keyboard + the touch button
+  function doAction() {
+    if (!begun || offer) return;
+    if (shopOpen) toggleShop(false);
+    else if (ridingTram) hopOffTram();
+    else if (bazarAddr && !onBike && Math.hypot(bazarAddr.pos.x - P.pos.x, bazarAddr.pos.z - P.pos.z) < 6) toggleShop(true);
+    else if (!onBike && nearestTram()) hopOnTram(nearestTram());
+    else if (onBike) dismountBike();
+    else if (Math.hypot(bike.position.x - P.pos.x, bike.position.z - P.pos.z) < 2.4) mountBike();
+    else initAudio();
+  }
   // FX / HUD markers live on layer 1 so the ink-outline normal pass skips them
   const toFx = obj => obj.traverse(c => c.layers.set(1));
   const blob = new T.Mesh(new T.CircleGeometry(0.8, 20), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.26, depthWrite: false }));
@@ -1068,14 +1079,7 @@ function start(ctx, world) {
     if (e.code === 'KeyM') toggleMute();
     if (e.code === 'KeyO' && begun) { reducedMotion = reducedMotion ? 0 : 1; lsSet('fly_reduced', reducedMotion);
       toast(reducedMotion ? '♿ Movimiento reducido' : 'Movimiento normal', '#3a7d99'); }
-    if (e.code === 'KeyE' && begun && !offer) {
-      if (shopOpen) toggleShop(false);
-      else if (ridingTram) hopOffTram();
-      else if (bazarAddr && !onBike && Math.hypot(bazarAddr.pos.x - P.pos.x, bazarAddr.pos.z - P.pos.z) < 6) toggleShop(true);
-      else if (!onBike && nearestTram() ) hopOnTram(nearestTram());
-      else if (onBike) dismountBike();
-      else if (Math.hypot(bike.position.x - P.pos.x, bike.position.z - P.pos.z) < 2.4) mountBike();
-    }
+    if (e.code === 'KeyE' && begun && !offer) doAction();
     if (e.code === 'KeyB' && onBike) { blip(1560, 0.09, 'square', 0.09); setTimeout(() => blip(1560, 0.13, 'square', 0.08), 140); }
     if (e.code === 'KeyP' && begun) {
       const on = hud.classList.toggle('photo');
@@ -1099,10 +1103,16 @@ function start(ctx, world) {
   const btnRun = document.getElementById('btnUp'), btnDn = document.getElementById('btnDn');
   if (btnDn) btnDn.style.display = 'none';
   if (btnRun) {
-    btnRun.textContent = '⚡'; btnRun.style.bottom = '40px';
+    btnRun.textContent = '⚡'; btnRun.style.bottom = '40px'; btnRun.style.right = '164px';
     btnRun.addEventListener('pointerdown', e => { e.preventDefault(); tRun = 1; initAudio(); });
     btnRun.addEventListener('pointerup', () => tRun = 0); btnRun.addEventListener('pointercancel', () => tRun = 0);
   }
+  // touch action buttons → the same verbs as E / Tab / L (bound after doAction/toggles exist)
+  function bindTap(id, fn) { const el = document.getElementById(id); if (!el) return;
+    el.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); fn(); }); }
+  bindTap('btnAct', () => doAction());
+  bindTap('btnMap', () => { if (begun && !shopOpen && !reporting) toggleBigMap(); });
+  bindTap('btnLog', () => { if (begun) logEl.classList.toggle('open'); });
 
   /* ── WEATHER: a passing drizzle every few days; umbrellas pop, streets darken ── */
   let raining = false, rainT = 0, rainNext = rand(50, 110);
