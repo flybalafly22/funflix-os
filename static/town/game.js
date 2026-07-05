@@ -481,6 +481,29 @@ function start(ctx, world) {
     gl.add(env); gl.position.set(x, gy + 1.05, z);
     scene.add(gl); toFx(gl); lostMeshes.push(gl);
   });
+  let heroDone = lsGet('fly_hero'), festival = 0;
+  function allChainsDone() { return CHAINS.every(c => chainDone(c)); }
+  function checkCompletion() {
+    if (heroDone) return;
+    if (lostCount() >= 10 && allChainsDone()) {
+      heroDone = 1; lsSet('fly_hero', 1); festival = 22;
+      toast('🎆 ¡Héroe de Villa Mott! ¡Fiesta en la plaza!', '#c8862a');
+      setTimeout(() => say('El Pueblo', '¡Gracias por todo, mensajero! El pueblo entero te lo agradece.'), 1500);
+    }
+  }
+  const _plazaC = new T.Vector3(0, 0, 14);
+  function updateFestival(dt, now) {
+    if (festival <= 0) return;
+    festival -= dt;
+    // fireworks over the plaza on a loop
+    if (Math.random() < dt * 2.5) {
+      const fx = _plazaC.x + rand(-14, 14), fz = _plazaC.z + rand(-6, 10);
+      fxBurst({ x: fx, y: 0, z: fz }, [0xffd27a, 0xff8f8f, 0x9fd0ff, 0x7fe0a0, 0xffffff], 22, rand(9, 15));
+      if (AC) blip(rand(400, 900), 0.18, 'triangle', 0.06);
+    }
+    if (festival <= 0) toast('✨ Villa Mott te recordará', '#c8862a');
+  }
+
   function updateLost(dt, now) {
     for (let i = 0; i < lostMeshes.length; i++) {
       const gl = lostMeshes[i]; if (!gl) continue;
@@ -497,6 +520,7 @@ function start(ctx, world) {
         if (n >= 10) { score += 1000; elScore.textContent = score; setTimeout(() => { toast('✉ ¡Las diez cartas! +1000', '#c8862a'); sfxDeliver(); }, 700); }
         else { toast('✉ Carta perdida ' + n + '/10  +150', '#c8862a');
           if (n === 1) setTimeout(() => tipOnce('letter', 'Hay 10 cartas perdidas escondidas por el pueblo ✉'), 1400); }
+        checkCompletion();
       }
     }
   }
@@ -1423,6 +1447,7 @@ function start(ctx, world) {
     updateBubbles(dt);
     updateDlg(dt);
     updateLost(dt, now);
+    updateFestival(dt, now);
     updateWeather(dt, now);
     updateRival(dt, now);
     if (R.active) C.animateWalk(rival, now * 0.012, true);
@@ -1485,7 +1510,7 @@ function start(ctx, world) {
       saveChains(); renderLog();
       if (chainDone(cs)) {
         score += 400; elScore.textContent = score;
-        setTimeout(() => { toast('📜 ¡Historia completada! +400', '#c8862a'); sfxBonus(); }, 800);
+        setTimeout(() => { toast('📜 ¡Historia completada! +400', '#c8862a'); sfxBonus(); checkCompletion(); }, 800);
       } else {
         setTimeout(() => toast('📜 ' + cs.name + ' (' + chainProg[cs.id] + '/' + cs.steps + ')', '#c8862a'), 800);
       }
@@ -1675,6 +1700,8 @@ function start(ctx, world) {
     get dayNum() { return dayNum; }, get reporting() { return reporting; },
     lostCount, get fragile() { return fragile; },
     get raining() { return raining; }, forceRain() { startRain(); },
+    get heroDone() { return heroDone; }, forceFinale() { heroDone = 0; lsSet('fly_hero', 0); for (const c of CHAINS) chainProg[c.id] = c.steps; lostMask = 1023; checkCompletion(); },
+    get festival() { return festival > 0; },
     get racing() { return R.active; }, forceRace() { startRace(dropoff); }, get rivalPos() { return R.pos; },
     get coins() { return coins; }, set coins(v) { coins = v; },
     get ridingTram() { return !!ridingTram; }, get shopOpen() { return shopOpen; },
