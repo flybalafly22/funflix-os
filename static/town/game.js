@@ -1186,6 +1186,29 @@ function start(ctx, world) {
     }
   }
 
+  /* ── DUST MOTES — tiny drifting specks that catch the light (golden at dusk) ── */
+  const MOTE_N = 48;
+  const moteGeo = new T.SphereGeometry(0.02, 4, 3);
+  const moteMat = new T.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, opacity: 0.0, depthWrite: false });
+  const motes = new T.InstancedMesh(moteGeo, moteMat, MOTE_N); motes.layers.set(1);
+  motes.frustumCulled = false; scene.add(motes);
+  const moteData = [];
+  const _mm = new T.Matrix4(), _mv = new T.Vector3();
+  for (let i = 0; i < MOTE_N; i++) moteData.push({ x: rand(-9, 9), y: rand(0.5, 4.5), z: rand(-9, 9), sp: rand(0.1, 0.3), ph: rand(0, TAU) });
+  function updateMotes(dt, now) {
+    if (reducedMotion) { moteMat.opacity = 0; return; }
+    moteMat.opacity = 0.12 + tod * 0.32;                 // faint by day, glowing at dusk
+    moteMat.color.setHex(tod > 0.4 ? 0xffe0a0 : 0xfff2d0);
+    for (let i = 0; i < MOTE_N; i++) {
+      const m = moteData[i];
+      m.y += m.sp * dt; m.x += Math.sin(now * 0.0006 + m.ph) * dt * 0.3;
+      if (m.y > 5) { m.y = 0.3; m.x = rand(-9, 9); m.z = rand(-9, 9); }
+      _mv.set(P.pos.x + m.x, m.y, P.pos.z + m.z);
+      _mm.makeTranslation(_mv.x, _mv.y, _mv.z); motes.setMatrixAt(i, _mm);
+    }
+    motes.instanceMatrix.needsUpdate = true;
+  }
+
   /* ── FX ── */
   const fxPool = []; const fxGeo = new T.SphereGeometry(0.12, 6, 5);
   function fxBurst(pos, cols, n, h) {
@@ -1555,6 +1578,7 @@ function start(ctx, world) {
     updateLost(dt, now);
     updateFestival(dt, now);
     updateWeather(dt, now);
+    updateMotes(dt, now);
     updateRival(dt, now);
     if (R.active) C.animateWalk(rival, now * 0.012, true);
     const dayFrac = clamp((dayDeliv + (jobActive ? (1 - clamp(jobLeft / Math.max(1, jobBudget), 0, 1)) * 0.5 : 0)) / DAY_LEN, 0, 1);
