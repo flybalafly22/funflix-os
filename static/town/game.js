@@ -563,13 +563,17 @@ function start(ctx, world) {
       gradeU.uGain.value.set(1.02 + k * 0.10, 1.01, 0.985 - k * 0.06);
       gradeU.uLift.value.set(0.030 + k * 0.02, 0.030, 0.026 - k * 0.01);
     }
+    // evening: bloom swells so every lamp, lit window and festoon bulb glows
+    if (bloomPass) bloomPass.strength = bloomBase + k * 0.5;
   }
 
   // reach the color-grade pass so rain can desaturate the world
   let gradeU = null, gradeBlend = 0, gradeSatBase = 1.06, gradeVigBase = 0.10;
+  let bloomPass = null, bloomBase = 0.14;
   if (ctx.composer && ctx.composer.passes) {
     for (const pz of ctx.composer.passes) {
-      if (pz.uniforms && pz.uniforms.uSat && pz.uniforms.uHatch) { gradeU = pz.uniforms; gradeSatBase = pz.uniforms.uSat.value; gradeVigBase = pz.uniforms.uVig.value; break; }
+      if (pz.uniforms && pz.uniforms.uSat && pz.uniforms.uHatch) { gradeU = pz.uniforms; gradeSatBase = pz.uniforms.uSat.value; gradeVigBase = pz.uniforms.uVig.value; }
+      if (pz.strength !== undefined && pz.radius !== undefined) { bloomPass = pz; bloomBase = pz.strength; }
     }
   }
 
@@ -808,7 +812,7 @@ function start(ctx, world) {
   });
 
   /* ── audio (lazy, synth) — everything through one master bus for mute ── */
-  let AC = null, wind = null, windGain = null, master = null, muted = false, fountainGain = null, seaGain = null;
+  let AC = null, wind = null, windGain = null, master = null, muted = false, fountainGain = null, seaGain = null, musicBus = null;
   function initAudio() {
     if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     master = AC.createGain(); master.gain.value = muted ? 0 : 1; master.connect(AC.destination);
@@ -845,6 +849,41 @@ function start(ctx, world) {
     lfo.connect(lfoG).connect(pad.gain); lfo.start();
     pad.gain.setValueAtTime(0.0001, AC.currentTime);
     pad.gain.linearRampToValueAtTime(0.03, AC.currentTime + 5);       // fade in gently
+
+    // ── a gentle generative melody: soft plucked pentatonic notes over the pad,
+    // sparse and unhurried, through a warm lowpass + a touch of delay ──
+    musicBus = AC.createGain(); musicBus.gain.value = 0.0;
+    const mLP = AC.createBiquadFilter(); mLP.type = 'lowpass'; mLP.frequency.value = 2200;
+    const delay = AC.createDelay(); delay.delayTime.value = 0.34;
+    const fb = AC.createGain(); fb.gain.value = 0.28;
+    musicBus.connect(mLP); mLP.connect(master);
+    mLP.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(master);
+    musicBus.gain.linearRampToValueAtTime(0.5, AC.currentTime + 8);
+  }
+  // A-major pentatonic across two octaves (Hz): A C# E F# A ...
+  const _scale = [220, 277.2, 329.6, 370, 440, 554.4, 659.3, 740, 880];
+  let _lastNote = 4, _melodyNext = 0;
+  function pluck(freq, when, vol) {
+    if (!AC || !musicBus) return;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'triangle'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(vol, when + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 1.1);
+    o.connect(g).connect(musicBus); o.start(when); o.stop(when + 1.2);
+  }
+  function updateMusic(now, duskK) {
+    if (!AC || !musicBus) return;
+    if (now < _melodyNext) return;
+    // step mostly by small intervals for a singable line; rest sometimes
+    if (Math.random() < 0.24) { _melodyNext = now + rand(900, 2200); return; }
+    let step = pick([-2, -1, -1, 1, 1, 2, 0]);
+    _lastNote = clamp(_lastNote + step, 0, _scale.length - 1);
+    const vol = 0.05 + duskK * 0.05;
+    pluck(_scale[_lastNote], AC.currentTime, vol);
+    // evenings get a soft harmony a third below
+    if (duskK > 0.4 && Math.random() < 0.5) pluck(_scale[Math.max(0, _lastNote - 2)], AC.currentTime + 0.02, vol * 0.6);
+    _melodyNext = now + rand(560, 1500) * (1 - duskK * 0.2);
   }
   function blip(freq, dur, type, vol) {
     if (!AC) return; const o = AC.createOscillator(), g = AC.createGain();
@@ -1286,6 +1325,7 @@ function start(ctx, world) {
     const dayFrac = clamp((dayDeliv + (jobActive ? (1 - clamp(jobLeft / Math.max(1, jobBudget), 0, 1)) * 0.5 : 0)) / DAY_LEN, 0, 1);
     tod += (dayFrac - tod) * L.dampT(dt, 0.5);
     applyTOD(reporting ? 1 : tod);
+    updateMusic(now, tod);
     if (gradeU) {
       gradeU.uSat.value = gradeSatBase * (1 - gradeBlend * 0.28);
       gradeU.uVig.value = gradeVigBase + gradeBlend * 0.14 + tod * 0.06;
