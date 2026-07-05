@@ -1663,7 +1663,7 @@ function build(ctx) {
     spots.forEach((s, i) => buckets[i % buckets.length].push(s));
     buckets.forEach((bkt, bi) => {
       if (!bkt.length) return;
-      const im = new T.InstancedMesh(tuftGeo, L.std({ colorHex: '#' + GRASS_COLS[bi].toString(16).padStart(6, '0'), side: T.DoubleSide, roughness: 0.95 }), bkt.length);
+      const im = new T.InstancedMesh(tuftGeo, L.grassLeaf('#' + GRASS_COLS[bi].toString(16).padStart(6, '0'), true), bkt.length);
       bkt.forEach(([x, z], i) => im.setMatrixAt(i, L.compose(x, CH, z, L.rand(0, TAU), 1, L.rand(0.7, 1.3), 1)));
       im.instanceMatrix.needsUpdate = true;
       im.castShadow = false; im.receiveShadow = false;

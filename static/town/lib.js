@@ -385,6 +385,23 @@ function applyWind(mat) {
   };
   return mat;
 }
+// low foliage (grass/shrubs): sway proportional to local height off the ground,
+// so short blades bend at the tip instead of standing frozen
+function applyWindLow(mat) {
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh) => {
+    if (prev) prev(sh);
+    sh.uniforms.uWind = _wind;
+    sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace(
+      '#include <begin_vertex>',
+      ['#include <begin_vertex>',
+       'float gLift = clamp(transformed.y * 4.0, 0.0, 1.0);',
+       'transformed.x += sin(uWind * 1.6 + position.x * 3.1 + position.z * 2.3) * 0.05 * gLift;',
+       'transformed.z += cos(uWind * 1.4 + position.z * 2.7) * 0.035 * gLift;'].join('\n')
+    );
+  };
+  return mat;
+}
 const _leafCache = new Map();
 // foliage-only material: cel + curvature + wind (kept out of std's cache so
 // walls/props never inherit the sway)
@@ -393,6 +410,17 @@ function leaf(hex) {
   const m = new T.MeshToonMaterial({ color: parseInt(hex.replace('#', '0x')), gradientMap: _toonGrad });
   applyCurve(m); applyWind(m);
   _leafCache.set(hex, m);
+  return m;
+}
+const _grassCache = new Map();
+function grassLeaf(hex, dbl) {
+  const key = hex + (dbl ? 'd' : '');
+  if (_grassCache.has(key)) return _grassCache.get(key);
+  const o = { color: parseInt(hex.replace('#', '0x')), gradientMap: _toonGrad };
+  if (dbl) o.side = T.DoubleSide;
+  const m = new T.MeshToonMaterial(o);
+  applyCurve(m); applyWindLow(m);
+  _grassCache.set(key, m);
   return m;
 }
 
@@ -486,6 +514,6 @@ window.FLY.lib = {
   PAL, MAT, std,
   box, cyl, sphere, instanced, decal, compose,
   curve: applyCurve, curveUniform: _curve,
-  leaf, wind: applyWind, windUniform: _wind,
+  leaf, grassLeaf, wind: applyWind, windUniform: _wind,
 };
 })();
