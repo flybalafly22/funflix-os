@@ -448,6 +448,15 @@ function start(ctx, world) {
     { id: 'carta', name: 'La carta del pescador', steps: 2, from: 'EL PESQUERO', to: 'LA ERMITA', payload: 'la carta del pescador',
       pick: 'Del muelle a la colina. El ermitaño espera noticias del mar.',
       drops: ['El ermitaño sonríe: «el mar sigue ahí», dice.', 'Y esta vez… ¡una lata de sardinas de regalo!'] },
+    { id: 'reloj', name: 'El reloj parado', steps: 2, from: 'RELOJERÍA', to: 'TORRE DEL RELOJ', payload: 'una pieza para el reloj',
+      pick: 'La torre lleva parada desde el martes. Esta pieza la arreglará.',
+      drops: ['El campanero la coloca con cuidado… tic, tic.', '¡La torre vuelve a dar la hora! Todo el pueblo lo oye.'] },
+    { id: 'concierto', name: 'El gran concierto', steps: 3, from: 'MÚSICA', to: 'TEATRO MOTT', payload: 'la partitura del concierto',
+      pick: 'La orquesta no puede ensayar sin la partitura. ¡Corre!',
+      drops: ['Los violines ya la tienen…', 'Ahora los vientos. Suena precioso.', '¡El teatro se llena esta noche! Guardan una entrada para ti.'] },
+    { id: 'tren', name: 'El último tren', steps: 2, from: 'CORREO CENTRAL', to: 'EL BUZÓN', payload: 'un billete de tren',
+      pick: 'Alguien se marcha esta tarde. Que llegue el billete a tiempo.',
+      drops: ['Lo dejas en el buzón, aún caliente de la imprenta.', '¡Justo a tiempo! Se despide con la mano desde el andén.'] },
   ];
   let chainProg = {};
   try { chainProg = JSON.parse(localStorage.getItem('fly_chains') || '{}'); } catch (e) {}
@@ -515,7 +524,8 @@ function start(ctx, world) {
     scene.add(gl); toFx(gl); lostMeshes.push(gl);
   });
   let heroDone = lsGet('fly_hero'), festival = 0;
-  function allChainsDone() { return CHAINS.every(c => chainDone(c)); }
+  const chainSpawnable = c => !!(findAddr(c.from) && findAddr(c.to));
+  function allChainsDone() { return CHAINS.every(c => !chainSpawnable(c) || chainDone(c)); }
   function checkCompletion() {
     if (heroDone) return;
     if (lostCount() >= 10 && allChainsDone()) {
