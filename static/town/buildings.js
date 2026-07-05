@@ -491,6 +491,238 @@ function muralTex(seed, baseHex) {
   return L.finishTex(c, { aniso: 8 });
 }
 
+/* ── PLAIN PARAPET (4 low walls around a flat roof edge) ─────────────────── */
+function parapet(g, w, d, topY, mat, ph) {
+  ph = ph || 0.5;
+  g.add(L.box(w + 0.12, ph, 0.18, mat, { y: topY + ph / 2, z: d / 2 }));
+  g.add(L.box(w + 0.12, ph, 0.18, mat, { y: topY + ph / 2, z: -d / 2 }));
+  g.add(L.box(0.18, ph, d + 0.12, mat, { y: topY + ph / 2, x: w / 2 }));
+  g.add(L.box(0.18, ph, d + 0.12, mat, { y: topY + ph / 2, x: -w / 2 }));
+}
+
+/* ── CHIMNEY (brick stack + capstone + pots) → registers a smoke emitter ──── */
+function chimney(g, x, z, baseY, wallHex, tall) {
+  const ch = tall ? L.rand(1.3, 1.9) : L.rand(0.85, 1.25);
+  g.add(L.box(0.62, ch, 0.62, L.MAT.brick(darker(wallHex, 0.78)), { x, y: baseY + ch / 2, z }));
+  g.add(L.box(0.76, 0.16, 0.76, L.MAT.flat('#3a3530'), { x, y: baseY + ch + 0.06, z, cast: false }));
+  for (const p of [-1, 1]) g.add(L.cyl(0.09, 0.11, 0.24, 8, L.MAT.flat('#7a4632'), { x: x + p * 0.15, y: baseY + ch + 0.22, z, cast: false }));
+  (g.userData.smoke = g.userData.smoke || []).push({ x, y: baseY + ch + 0.45, z });
+}
+
+/* ── PYRAMID (4-sided) TILED ROOF — for near-square plans (little tower read) ─ */
+function pyramidRoof(g, w, d, topY, roofHex, capH) {
+  const tileMat = roofTileMat(roofHex);
+  const r = Math.max(w, d) * 0.72;              // face-midpoints reach the walls
+  const cone = L.cyl(0, r, capH, 4, tileMat, { y: topY + capH / 2 });
+  cone.rotation.y = Math.PI / 4;                // flat faces parallel to walls
+  g.add(cone);
+  g.add(L.box(0.16, 0.36, 0.16, roofTileMat(darker(roofHex, 0.8)), { y: topY + capH + 0.14, cast: false }));
+  g.add(L.sphere(0.1, 8, L.MAT.metalLight, { y: topY + capH + 0.4, cast: false }));  // finial
+}
+
+/* ── DORMER WINDOWS poking out of a front (+Z) tiled slope (ridge:'z') ─────── */
+function dormers(g, w, d, topY, capH, roofHex, n) {
+  const wallM = L.MAT.trim('#e7ddc8');
+  const zc = d * 0.24;
+  const baseY = topY + capH * (1 - zc / (d / 2));   // slope surface height at zc
+  const usableW = w - 1.6;
+  for (let i = 0; i < n; i++) {
+    const dx = n === 1 ? L.jitter(w * 0.18) : -usableW / 2 + (usableW / (n - 1)) * i;
+    g.add(L.box(0.9, 1.0, 0.7, wallM, { x: dx, y: baseY + 0.35, z: zc }));
+    g.add(L.box(0.58, 0.7, 0.05, L.MAT.glassLit, { x: dx, y: baseY + 0.42, z: zc + 0.4, cast: false }));
+    const hood = L.cyl(0, 0.62, 0.44, 4, roofTileMat(roofHex), { x: dx, y: baseY + 1.05, z: zc });
+    hood.rotation.y = Math.PI / 4; g.add(hood);
+  }
+}
+
+/* ── SETBACK PENTHOUSE on a flat roof (tiered massing + a lit box + door) ──── */
+function penthouse(g, w, d, topY, wallMat, wallHex, trimMat) {
+  const pw = w * 0.56, pd = d * 0.5, ph = FLOOR_H * 0.92;
+  const px = L.jitter(w * 0.12), pz = -d * 0.1;
+  g.add(L.box(pw, ph, pd, wallMat, { x: px, y: topY + ph / 2, z: pz }));
+  g.add(L.box(pw + 0.22, 0.16, pd + 0.22, trimMat, { x: px, y: topY + ph, z: pz, cast: false }));
+  g.add(L.box(0.9, 1.9, 0.1, L.MAT.wood('#4a3422'), { x: px, y: topY + 0.95, z: pz + pd / 2 + 0.05 }));
+  for (const s of [-1, 1]) g.add(L.box(0.7, 0.9, 0.05, L.MAT.glassLit, { x: px + s * pw * 0.3, y: topY + ph * 0.55, z: pz + pd / 2 + 0.04, cast: false }));
+  if (L.chance(0.4)) chimney(g, px - pw * 0.4, pz - pd * 0.2, topY, wallHex, false);
+}
+
+/* ── STEPPED (art-deco ziggurat) CROWN over the front parapet ──────────────── */
+function steppedCrown(g, w, d, topY, wallMat, trimMat) {
+  const steps = L.randInt(2, 3);
+  let cw = w * 0.52, cy = topY + 0.5;
+  const cd = 0.7;
+  for (let i = 0; i < steps; i++) {
+    const sh = 0.55;
+    g.add(L.box(cw, sh, cd, wallMat, { x: 0, y: cy + sh / 2, z: d / 2 - 0.12 }));
+    g.add(L.box(cw + 0.14, 0.1, cd + 0.06, trimMat, { x: 0, y: cy + sh, z: d / 2 - 0.12, cast: false }));
+    cy += sh; cw *= 0.62;
+  }
+  g.add(L.box(0.14, 0.9, 0.14, trimMat, { x: 0, y: cy + 0.45, z: d / 2 - 0.12, cast: false }));  // flag mast
+  g.add(L.box(0.5, 0.32, 0.03, L.MAT.flat(L.pick(['#c8504a', '#3f72ae', '#3f9468', '#d8b14a'])), { x: 0.32, y: cy + 0.7, z: d / 2 - 0.12, cast: false }));
+}
+
+/* ── ROOFTOP TERRACE (pergola + planters + string lights + bistro table) ───── */
+function roofTerrace(g, w, d, topY, wallMat, trimMat) {
+  g.add(L.box(w - 0.3, 0.08, d - 0.3, L.MAT.flat('#9c8a6a'), { y: topY + 0.04, cast: false, receive: true }));
+  parapet(g, w, d, topY, wallMat, 0.6);
+  g.add(L.box(w + 0.16, 0.1, 0.12, trimMat, { y: topY + 0.6, z: d / 2, cast: false }));
+  const woodM = L.MAT.wood('#8a6a44');
+  const px = w * 0.24, pz = d * 0.18, ph = 1.7;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.add(L.box(0.12, ph, 0.12, woodM, { x: sx * px, y: topY + ph / 2, z: sz * pz, cast: false }));
+  for (const sz of [-1, 1]) g.add(L.box(px * 2 + 0.3, 0.1, 0.1, woodM, { y: topY + ph, z: sz * pz, cast: false }));
+  const nB = 5;
+  for (let i = 0; i <= nB; i++) g.add(L.box(0.08, 0.08, pz * 2 + 0.3, woodM, { x: -px + (2 * px / nB) * i, y: topY + ph + 0.05, z: 0, cast: false }));
+  for (let i = 0; i <= 6; i++) g.add(L.sphere(0.06, 6, L.MAT.emissive(L.pick(['#ffd070', '#ff9060', '#fff0c0']), 1.2), { x: -px + (2 * px / 6) * i, y: topY + ph - 0.15, z: L.jitter(pz), cast: false }));
+  const foliage = L.std({ color: parseInt(L.pick(L.PAL.foliage).replace('#', '0x')), roughness: 0.9 });
+  for (let i = 0; i < 3; i++) {
+    const plx = -w * 0.28 + i * w * 0.28;
+    g.add(L.box(0.9, 0.3, 0.4, woodM, { x: plx, y: topY + 0.25, z: -d * 0.28, cast: false }));
+    for (let k = 0; k < 3; k++) g.add(L.box(0.22, 0.4, 0.22, foliage, { x: plx - 0.28 + k * 0.28, y: topY + 0.55, z: -d * 0.28, cast: false }));
+  }
+  g.add(L.cyl(0.04, 0.04, 0.7, 8, L.MAT.metalDark, { x: w * 0.15, y: topY + 0.35, z: d * 0.05, cast: false }));
+  g.add(L.cyl(0.34, 0.34, 0.05, 12, woodM, { x: w * 0.15, y: topY + 0.7, z: d * 0.05 }));
+}
+
+/* ── CUPOLA / CORNER TURRET (drum + 4 lit windows + tiled pyramid cap) ─────── */
+function cupola(g, cx, cz, topY, size, wallHex, roofHex) {
+  const drumM = L.MAT.wall(mix(wallHex, '#ffffff', 0.18));
+  g.add(L.box(size, size * 1.15, size, drumM, { x: cx, y: topY + size * 0.575, z: cz }));
+  const wy = topY + size * 0.62;
+  g.add(L.box(size * 0.45, size * 0.55, 0.05, L.MAT.glassLit, { x: cx, y: wy, z: cz + size / 2 + 0.03, cast: false }));
+  g.add(L.box(size * 0.45, size * 0.55, 0.05, L.MAT.glassLit, { x: cx, y: wy, z: cz - size / 2 - 0.03, cast: false }));
+  g.add(L.box(0.05, size * 0.55, size * 0.45, L.MAT.glassLit, { x: cx + size / 2 + 0.03, y: wy, z: cz, cast: false }));
+  g.add(L.box(0.05, size * 0.55, size * 0.45, L.MAT.glassLit, { x: cx - size / 2 - 0.03, y: wy, z: cz, cast: false }));
+  g.add(L.box(size + 0.22, 0.14, size + 0.22, L.MAT.trim('#e7ddc8'), { x: cx, y: topY + size * 1.15 + 0.03, z: cz, cast: false }));
+  const capBase = topY + size * 1.15 + 0.1;
+  const cap = L.cyl(0, size * 0.82, size * 0.95, 4, roofTileMat(roofHex), { x: cx, y: capBase + size * 0.475, z: cz });
+  cap.rotation.y = Math.PI / 4; g.add(cap);
+  g.add(L.sphere(0.1, 8, L.MAT.metalLight, { x: cx, y: capBase + size * 0.95 + 0.12, z: cz, cast: false }));
+}
+
+/* ── DOME (drum + hemisphere + lantern + finial) — civic landmark ─────────── */
+function domeRoof(g, w, d, topY, wallHex, trimMat) {
+  const r = Math.min(w, d) * 0.34;
+  const drumM = L.MAT.wall(mix(wallHex, '#ffffff', 0.22));
+  g.add(L.cyl(r * 1.05, r * 1.15, 0.9, 18, drumM, { y: topY + 0.45 }));
+  g.add(L.cyl(r * 1.2, r * 1.2, 0.16, 18, trimMat, { y: topY + 0.9, cast: false }));
+  const dome = L.sphere(r * 1.12, 16, drumM, { y: topY + 0.95 }); dome.scale.y = 0.82; g.add(dome);
+  g.add(L.cyl(r * 1.12, r * 1.12, 0.12, 18, trimMat, { y: topY + 0.95, cast: false }));
+  g.add(L.cyl(r * 0.38, r * 0.44, 0.7, 12, drumM, { y: topY + 0.95 + r * 0.95 }));
+  g.add(L.cyl(r * 0.5, r * 0.5, 0.1, 12, trimMat, { y: topY + 0.95 + r * 0.95 + 0.4, cast: false }));
+  const capBall = L.sphere(r * 0.3, 12, L.MAT.metalLight, { y: topY + 0.95 + r * 0.95 + 0.55, cast: false }); capBall.scale.y = 1.1; g.add(capBall);
+  g.add(L.cyl(0, 0.05, 0.6, 6, L.MAT.metalDark, { y: topY + 0.95 + r * 0.95 + 1.05, cast: false }));
+}
+
+/* ── BALUSTRADE parapet with corner piers + urns — civic grandeur ─────────── */
+function balustrade(g, w, d, topY, trimMat) {
+  parapet(g, w, d, topY, trimMat, 0.28);
+  railing(g, 0, topY + 0.28, d / 2, w - 0.2, 0.55, trimMat, Math.round(w / 0.5));
+  railing(g, 0, topY + 0.28, -d / 2, w - 0.2, 0.55, trimMat, Math.round(w / 0.5));
+  for (const sx of [-1, 1]) g.add(L.box(0.14, 0.55, d - 0.2, trimMat, { x: sx * w / 2, y: topY + 0.28 + 0.28, z: 0, cast: false }));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    g.add(L.box(0.4, 0.9, 0.4, trimMat, { x: sx * (w / 2), y: topY + 0.45, z: sz * (d / 2), cast: false }));
+    g.add(L.sphere(0.24, 10, trimMat, { x: sx * (w / 2), y: topY + 1.05, z: sz * (d / 2), cast: false }));
+  }
+}
+
+/* ── QUOINS — chunky alternating corner stones on the front elevation ─────── */
+function quoins(g, w, h, frontZ, mat) {
+  for (const s of [-1, 1]) {
+    const qx = s * (w / 2);
+    let alt = 0;
+    for (let y = 0.75; y < h - 0.7; y += 0.86, alt++) {
+      g.add(L.box(alt % 2 === 0 ? 0.6 : 0.42, 0.44, 0.16, mat, { x: qx, y, z: frontZ + 0.02, cast: false }));
+    }
+  }
+}
+
+/* ── ORIEL BAY — a projecting canted bay window (1–2 floors) on the front ──── */
+function orielBay(g, w, floors, frontZ, wallMat, trimMat) {
+  const bw = Math.min(2.4, w * 0.44), proj = 0.6;
+  const nFl = Math.min(Math.max(1, floors - 1), L.chance(0.45) ? 2 : 1);
+  const y0 = GROUND_H + 0.35;
+  const bh = nFl * FLOOR_H * 0.94;
+  const cx = L.jitter(w * 0.14);
+  const fz = frontZ + proj / 2;
+  g.add(L.box(bw + 0.24, 0.34, proj + 0.06, trimMat, { x: cx, y: y0 - 0.12, z: fz, cast: false }));   // corbel shelf
+  const cor = L.cyl(0.2, 0.05, proj + 0.2, 8, trimMat, { x: cx, y: y0 - 0.36, z: frontZ + 0.12 }); cor.rotation.x = Math.PI / 2; g.add(cor);
+  g.add(L.box(bw, bh, proj, wallMat, { x: cx, y: y0 + bh / 2, z: fz }));                                 // bay mass
+  for (let f = 0; f < nFl; f++) {
+    const wy = y0 + f * FLOOR_H * 0.94 + 1.05;
+    const gm = L.chance(0.4) ? L.MAT.glassLit : L.MAT.glass;
+    g.add(L.box(bw - 0.28, 1.25, 0.06, trimMat, { x: cx, y: wy, z: frontZ + proj + 0.02, cast: false }));
+    g.add(L.box(bw - 0.44, 1.1, 0.05, gm, { x: cx, y: wy, z: frontZ + proj + 0.05, cast: false }));
+    for (const s of [-1, 1]) g.add(L.box(0.05, 1.1, proj - 0.24, gm, { x: cx + s * (bw / 2 + 0.02), y: wy, z: fz, cast: false }));
+  }
+  g.add(L.box(bw + 0.24, 0.16, proj + 0.14, trimMat, { x: cx, y: y0 + bh + 0.06, z: fz, cast: false })); // cap cornice
+  const hood = L.box(bw + 0.1, 0.5, proj + 0.06, roofTileMat(pickRoof()), { x: cx, y: y0 + bh + 0.34, z: frontZ + proj * 0.35 });
+  hood.rotation.x = 0.5; g.add(hood);
+}
+
+/* ── ROOFLINE DISPATCHER ─────────────────────────────────────────────────────
+   The #1 silhouette read. A wide, archetype-weighted menu of roof forms so no
+   two neighbours share a crown: flat parapets, gable/hip/pyramid tiled caps
+   (terracotta-biased), rooftop terraces, setback penthouses, stepped crowns,
+   civic domes/balustrades, and corner turrets. Chimneys/vents register smoke. */
+function roofline(g, ctx) {
+  const arch = ctx.arch, w = ctx.w, d = ctx.d, h = ctx.h, floors = ctx.floors;
+  const wallMat = ctx.wallMat, trimMat = ctx.trimMat, wallHex = ctx.wallHex;
+  const squareish = Math.abs(w - d) < Math.max(w, d) * 0.3;
+  const roofHex = pickRoof();
+  const tarDeck = () => g.add(L.box(w - 0.3, 0.08, d - 0.3, L.MAT.flat('#46423b'), { y: h + 0.04, cast: false }));
+
+  let menu;
+  if (arch === 'townhouse') menu = ['gable', 'gable', 'gableZ', 'hip', 'pyramid', 'flat'];
+  else if (arch === 'apartment') menu = ['flat', 'flat', 'hip', 'gableZ', 'penthouse', 'stepped', 'terrace'];
+  else if (arch === 'shop') menu = ['flat', 'flat', 'gableZ', 'stepped', 'turret'];
+  else if (arch === 'cafe') menu = ['terrace', 'terrace', 'gableZ', 'flat'];
+  else if (arch === 'civic') menu = ['dome', 'dome', 'balustrade', 'hip', 'stepped'];
+  else if (arch === 'corner') menu = ['turret', 'turret', 'flat', 'dome'];
+  else menu = ['flat', 'gable'];
+  let type = L.pick(menu);
+  if (type === 'pyramid' && !squareish) type = 'hip';
+
+  if (type === 'flat') {
+    rooftop(g, w, d, h, wallMat, { garden: (arch === 'apartment' || arch === 'civic') && L.chance(0.5) });
+  } else if (type === 'terrace') {
+    roofTerrace(g, w, d, h, wallMat, trimMat);
+  } else if (type === 'gable') {
+    const capH = L.rand(1.3, 2.0); tarDeck();
+    pitchedRoof(g, w, d, h, roofHex, { ridge: 'x', capH, gableMat: wallMat });
+    chimney(g, L.pick([-1, 1]) * w * 0.28, -d * 0.28, h + capH * 0.3, wallHex, true);
+  } else if (type === 'gableZ') {
+    const capH = L.rand(1.2, 1.8); tarDeck();
+    pitchedRoof(g, w, d, h, roofHex, { ridge: 'z', capH, gableMat: wallMat });
+    if (capH > 1.1 && d > 5 && L.chance(0.7)) dormers(g, w, d, h, capH, roofHex, L.randInt(1, 2));
+    chimney(g, L.pick([-1, 1]) * w * 0.3, -d * 0.14, h + capH * 0.55, wallHex, true);
+  } else if (type === 'hip') {
+    const ridge = w >= d ? 'x' : 'z', capH = L.rand(1.1, 1.7); tarDeck();
+    pitchedRoof(g, w, d, h, roofHex, { ridge, hip: true, capH, gableMat: wallMat });
+    chimney(g, w * 0.3, -d * 0.3, h + capH * 0.3, wallHex, true);
+  } else if (type === 'pyramid') {
+    const capH = L.rand(1.4, 2.2); tarDeck();
+    pyramidRoof(g, w, d, h, roofHex, capH);
+    if (L.chance(0.4)) chimney(g, w * 0.3, -d * 0.28, h + 0.2, wallHex, true);
+  } else if (type === 'penthouse') {
+    rooftop(g, w, d, h, wallMat, {});
+    penthouse(g, w, d, h, wallMat, wallHex, trimMat);
+  } else if (type === 'stepped') {
+    rooftop(g, w, d, h, wallMat, {});
+    steppedCrown(g, w, d, h, wallMat, trimMat);
+  } else if (type === 'dome') {
+    tarDeck(); balustrade(g, w, d, h, trimMat);
+    domeRoof(g, w, d, h, wallHex, trimMat);
+  } else if (type === 'balustrade') {
+    tarDeck(); balustrade(g, w, d, h, trimMat);
+    if (L.chance(0.5)) cupola(g, 0, 0, h + 0.3, Math.min(1.5, Math.min(w, d) * 0.28), wallHex, roofHex);
+  } else if (type === 'turret') {
+    rooftop(g, w, d, h, wallMat, {});
+    let cx = 0, cz = 0;
+    if (arch === 'corner') { cx = w / 2 - 0.9; cz = d / 2 - 0.9; }
+    cupola(g, cx, cz, h + 0.4, Math.min(1.7, Math.min(w, d) * 0.3), wallHex, roofHex);
+  }
+}
+
 /* ════════════════════════════════════════════════════════════════════════
    MAKE
    ════════════════════════════════════════════════════════════════════════ */
@@ -528,6 +760,11 @@ function make(spec) {
 
   /* ── COMMON STRUCTURE: bands + cornice ── */
   bandsAndCornice(g, w, d, h, floors, trimMat, { cornice: true });
+
+  /* ── QUOINS: chunky corner masonry on masonry archetypes (front elevation) ── */
+  if ((arch === 'townhouse' || arch === 'apartment' || arch === 'civic') && L.chance(arch === 'civic' ? 0.75 : 0.4)) {
+    quoins(g, w, h, frontZ, trimMat);
+  }
 
   /* ── UPPER WINDOWS (instanced) — skip ground floor (start at 1) ── */
   buildWindows(g, { w, d, h, floors, frontZ, backZ, sideX, winW, winH, litP, startFloor: 1, doSides, doBack });
@@ -643,6 +880,8 @@ function make(spec) {
         if ((has('flowerbox') || L.chance(0.35)) && f < floors) flowerBox(g, wx, wy - winH / 2 - 0.25, frontZ + 0.22, foliageMat);
       }
     }
+    // projecting oriel bay (dignified front massing) when there's no balcony
+    if (!has('balcony') && L.chance(0.32)) orielBay(g, w, floors, frontZ, wallMat, trimMat);
     // wall lamp by the door
     wallLamp(g, -1.4, GROUND_H - 0.3, frontZ);
     wallLamp(g, 1.4, GROUND_H - 0.3, frontZ);
@@ -720,6 +959,8 @@ function make(spec) {
         if (has('shutters') || L.chance(0.6)) shutters(g, wx, wy, frontZ + 0.06, winH + 0.08, shutterMat);
       }
     }
+    // projecting oriel bay — a classic townhouse front (no balcony)
+    if (!has('balcony') && L.chance(0.4)) orielBay(g, w, floors, frontZ, wallMat, trimMat);
     if (spec.name) {
       const sgT = L.signTex(spec.name, accentHex);
       const bw = Math.min(w - 0.6, 3.2);
@@ -745,51 +986,8 @@ function make(spec) {
     cd.rotation.y = -Math.PI / 4; g.add(cd);
   }
 
-  /* ════════ ROOFLINE VARIATION ════════ */
-  let roofOpts = { garden: (arch === 'apartment' || arch === 'civic') };
-  // townhouse: pitched cap / mansard + chimney
-  if (arch === 'townhouse') {
-    // classic pitched tiled cap (terracotta-biased), gable ends + a chimney
-    const capH = L.rand(1.2, 1.8);
-    const roofHex = pickRoof();
-    pitchedRoof(g, w, d, h, roofHex, { ridge: 'x', capH, gableMat: wallMat });
-    // chimney
-    g.add(L.box(0.7, 1.4, 0.7, L.MAT.brick(darker(wallHex, 0.8)), { x: w / 4, y: h + capH + 0.2, z: -d / 4 }));
-    g.add(L.box(0.85, 0.2, 0.85, L.MAT.flat('#3a3530'), { x: w / 4, y: h + capH + 0.9, z: -d / 4, cast: false }));
-    roofOpts.noParapet = true;
-  } else if (arch === 'civic') {
-    // civic gets a stronger cornice + central roof lantern/dome hint
-    g.add(L.box(w + 0.6, 0.3, d + 0.6, trimMat, { y: h + 0.3, cast: false }));
-    if (L.chance(0.5)) {
-      g.add(L.cyl(1.0, 1.2, 0.8, 12, L.MAT.wall(mix(wallHex, '#ffffff', 0.2)), { y: h + 0.8 }));
-      g.add(L.sphere(0.9, 14, L.MAT.metalLight, { y: h + 1.6, cast: true }));
-    }
-    rooftop(g, w, d, h, wallMat, roofOpts);
-  } else {
-    // shop / cafe / corner / apartment: mix flat-parapet with the occasional
-    // low TILED pitched/hipped cap so the aerial roofscape gets silhouette
-    // interest and reads terracotta-dominant (§3.4 / §5.4). Corner buildings
-    // keep flat parapets (their chamfer wedge wants a clean top).
-    const wantPitch = arch !== 'corner' && L.chance(arch === 'apartment' ? 0.4 : 0.5);
-    if (wantPitch) {
-      const roofHex = pickRoof();
-      // shallow cap; ridge runs along the longer plan axis, ends sometimes hipped
-      const ridge = w >= d ? 'x' : 'z';
-      const hip = L.chance(0.4);
-      const capH = L.rand(0.9, 1.5);
-      // tar deck under the cap (kept for grounded look), but no parapet
-      g.add(L.box(w - 0.3, 0.08, d - 0.3, L.MAT.flat('#46423b'), { y: h + 0.04, cast: false }));
-      pitchedRoof(g, w, d, h, roofHex, { ridge, hip, capH, gableMat: wallMat });
-      // a tasteful chimney or roof vent poking through (clutter, §5.4)
-      if (L.chance(0.5)) {
-        const cx = L.jitter(w / 4), cz = -L.rand(0, d / 4);
-        g.add(L.box(0.5, 1.0, 0.5, L.MAT.brick(darker(wallHex, 0.8)), { x: cx, y: h + capH + 0.3, z: cz }));
-        g.add(L.box(0.62, 0.14, 0.62, L.MAT.flat('#3a3530'), { x: cx, y: h + capH + 0.85, z: cz, cast: false }));
-      }
-    } else {
-      rooftop(g, w, d, h, wallMat, roofOpts);
-    }
-  }
+  /* ════════ ROOFLINE VARIATION (silhouette dispatcher) ════════ */
+  roofline(g, { arch, w, d, h, floors, wallMat, trimMat, wallHex });
 
   /* ════════ EXTRAS (shared, flagged) ════════ */
   // BALCONY (front, projecting, with railing + occasional laundry)
