@@ -125,6 +125,23 @@ function start(ctx, world) {
     #flyLog .q { font-size:14px; line-height:1.7; }
     #flyLog .q.done { text-decoration:line-through; opacity:.55; }
     #flyLog .q .n { opacity:.6; }
+    #flyShop { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(.4deg);
+      min-width:300px; background:rgba(250,247,238,.98); color:#2c261c;
+      border:2.5px solid #2c261c; border-radius:15px 17px 14px 16px;
+      box-shadow:0 6px 0 rgba(44,38,28,.28); padding:16px 22px 14px; display:none;
+      pointer-events:auto; z-index:22; }
+    #flyShop.on { display:block; }
+    #flyShop .h { font-size:20px; letter-spacing:.1em; text-align:center; border-bottom:2px solid rgba(44,38,28,.25); padding-bottom:5px; }
+    #flyShop .coins { text-align:center; font-size:14px; color:#c8862a; margin-top:3px; }
+    #flyShop .it { display:flex; justify-content:space-between; gap:14px; font-size:16px;
+      line-height:2.0; cursor:pointer; padding:0 6px; border-radius:8px; }
+    #flyShop .it:hover { background:rgba(44,38,28,.08); }
+    #flyShop .it .sw { display:inline-block; width:14px; height:14px; border-radius:4px;
+      border:1.5px solid #2c261c; margin-right:8px; vertical-align:-2px; }
+    #flyShop .it .pr { color:#c8862a; }
+    #flyShop .it.owned .pr { color:#4d8a52; }
+    #flyShop .it.worn .pr::after { content:' ✓'; }
+    #flyShop .bye { text-align:center; margin-top:10px; font-size:13px; opacity:.6; }
     #flyReport { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-.5deg);
       min-width:320px; background:rgba(250,247,238,.98); color:#2c261c;
       border:2.5px solid #2c261c; border-radius:16px 18px 15px 17px;
@@ -350,6 +367,72 @@ function start(ctx, world) {
     }
   }
 
+  /* ── THE TRAM — hop on as it passes, ride the avenue, hop off anywhere ── */
+  let ridingTram = null, tramSide = 1;
+  function nearestTram() {
+    for (const car of TRAFFIC) {
+      const d = car.userData.drive;
+      if (!d || !(d.hl > 4)) continue;
+      if (Math.hypot(car.position.x - P.pos.x, car.position.z - P.pos.z) < 3.4) return car;
+    }
+    return null;
+  }
+  function hopOnTram(tram) {
+    ridingTram = tram;
+    tramSide = P.pos.z >= tram.position.z ? 1 : -1;
+    toast('🚋 ¡Al tranvía!', '#3a7d99');
+    blip(988, 0.15, 'square', 0.08); setTimeout(() => blip(988, 0.2, 'square', 0.07), 170);
+  }
+  function hopOffTram() {
+    const t = ridingTram; ridingTram = null;
+    if (t) { P.pos.x = t.position.x; P.pos.z = t.position.z + tramSide * 2.4; }
+    toast('🚋 ¡Hasta luego!', '#3a7d99');
+  }
+
+  /* ── EL BAZAR — spend coins on scarf colorways (E near the shop) ── */
+  const SCARVES = [
+    ['#b5352a', 'Roja de siempre', 0], ['#a06414', 'Azafrán', 120], ['#1e5a52', 'Verde mar', 160],
+    ['#c9c2b0', 'Blanca de lino', 220], ['#a04868', 'Rosa vieja', 280], ['#2e2a26', 'Negra elegante', 400],
+  ];
+  let scarfMask = lsGet('fly_scarf_mask') | 1;   // the red one is yours already
+  let scarfSel = lsGet('fly_scarf_sel');
+  function applyScarf() {
+    const sm = hero.userData.scarfMat;
+    if (sm) sm.color.setHex(parseInt(SCARVES[scarfSel][0].replace('#', '0x')));
+  }
+  applyScarf();
+  const shopEl = document.createElement('div'); shopEl.id = 'flyShop';
+  hud.appendChild(shopEl);
+  let shopOpen = false;
+  const bazarAddr = world.addresses.find(a => a.name === 'BAZAR');
+  function renderShop() {
+    shopEl.innerHTML = '<div class="h">EL BAZAR</div><div class="coins">🪙 ' + coins + '</div>'
+      + SCARVES.map(([hex, nm, price], i) => {
+        const owned = !!(scarfMask & (1 << i));
+        return '<div class="it' + (owned ? ' owned' : '') + (i === scarfSel ? ' worn' : '') + '" data-i="' + i + '">'
+          + '<span><span class="sw" style="background:' + hex + '"></span>Bufanda ' + nm + '</span>'
+          + '<span class="pr">' + (owned ? (i === scarfSel ? 'puesta' : 'tuya') : price + ' 🪙') + '</span></div>';
+      }).join('')
+      + '<div class="bye">E para salir</div>';
+    shopEl.querySelectorAll('.it').forEach(el => el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const i = +el.dataset.i, [hex, nm, price] = SCARVES[i];
+      if (scarfMask & (1 << i)) { scarfSel = i; lsSet('fly_scarf_sel', scarfSel); applyScarf(); sfxPick(); }
+      else if (coins >= price) {
+        coins -= price; lsSet('fly_coins', coins);
+        scarfMask |= (1 << i); lsSet('fly_scarf_mask', scarfMask);
+        scarfSel = i; lsSet('fly_scarf_sel', scarfSel); applyScarf();
+        sfxBonus(); toast('🧣 ' + nm + ' — ¡preciosa!', '#c8862a'); renderBest();
+      } else { blip(160, 0.2, 'sawtooth', 0.08); toast('🪙 Te faltan ' + (price - coins), '#c04434'); }
+      renderShop();
+    }));
+  }
+  function toggleShop(force) {
+    shopOpen = force != null ? force : !shopOpen;
+    if (shopOpen) renderShop();
+    shopEl.classList.toggle('on', shopOpen);
+  }
+
   /* ── the END-OF-DAY report card ── */
   const repEl = document.createElement('div'); repEl.id = 'flyReport';
   hud.appendChild(repEl);
@@ -361,6 +444,7 @@ function start(ctx, world) {
       + 'Entregas <b>' + dayDeliv + '</b><br>'
       + 'Puntos del día <b>' + dayScore + '</b><br>'
       + 'Mejor combo <b>x' + dayBestCombo + '</b><br>'
+      + 'Monedas <b>+' + dayCoins + ' 🪙</b><br>'
       + (dayLetters ? 'Cartas perdidas halladas <b>' + dayLetters + '</b><br>' : '')
       + (dayStories ? 'Historias avanzadas <b>' + dayStories + '</b><br>' : '')
       + 'Rango <b>' + rankName(totalDeliv) + '</b>'
@@ -373,7 +457,7 @@ function start(ctx, world) {
     if (!reporting) return;
     reporting = false; repEl.classList.remove('on');
     dayNum++; lsSet('fly_day', dayNum);
-    dayDeliv = 0; dayScore = 0; dayBestCombo = 1; dayStories = 0; dayLetters = 0;
+    dayDeliv = 0; dayScore = 0; dayBestCombo = 1; dayStories = 0; dayLetters = 0; dayCoins = 0;
     toast('☀ Día ' + dayNum, '#c8862a');
     newTask();
   }
@@ -391,6 +475,13 @@ function start(ctx, world) {
   let carrying = false, pickup = null, dropoff = null, delivered = 0;
   let score = 0;
   const IS_TOUCH = window.matchMedia && matchMedia('(hover: none), (pointer: coarse)').matches;
+  // reach the color-grade pass so rain can desaturate the world
+  let gradeU = null, gradeBlend = 0, gradeSatBase = 1.06, gradeVigBase = 0.10;
+  if (ctx.composer && ctx.composer.passes) {
+    for (const pz of ctx.composer.passes) {
+      if (pz.uniforms && pz.uniforms.uSat && pz.uniforms.uHatch) { gradeU = pz.uniforms; gradeSatBase = pz.uniforms.uSat.value; gradeVigBase = pz.uniforms.uVig.value; break; }
+    }
+  }
 
   /* ── STATIC COLLISION (grid-bucketed circle-vs-shape resolve) ──
      world.js exports axis-aligned boxes (buildings, parked cars, hedges) and
@@ -469,6 +560,7 @@ function start(ctx, world) {
   /* the day: 8 deliveries, then the paper report and a fresh morning */
   const DAY_LEN = 8;
   let dayNum = lsGet('fly_day') || 1, dayDeliv = 0, dayScore = 0, dayBestCombo = 1, dayStories = 0, dayLetters = 0;
+  let coins = lsGet('fly_coins'), dayCoins = 0;
   let reporting = false;
   const RANKS = [[0, 'Recadero'], [5, 'Mensajero'], [15, 'Cartero de Barrio'], [30, 'Correo Exprés'], [60, 'Leyenda de Villa Mott']];
   function rankName(n) { let r = RANKS[0][1]; for (const [t, nm] of RANKS) if (n >= t) r = nm; return r; }
@@ -493,7 +585,8 @@ function start(ctx, world) {
   });
   function renderBest() {
     const nx = nextRank(totalDeliv);
-    bestEl.innerHTML = '<span style="color:#ffd27a">✦ ' + rankName(totalDeliv) + '</span><br>'
+    bestEl.innerHTML = '<span style="color:#c8862a">✦ ' + rankName(totalDeliv) + '</span><br>'
+      + '<span style="color:#c8862a">🪙 ' + coins + '</span><br>'
       + 'Best score <b>' + bestScore + '</b><br>Best streak <b>x' + bestStreak + '</b>'
       + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' more → ' + nx[1] + '</span>' : '');
   }
@@ -694,7 +787,11 @@ function start(ctx, world) {
     keys[e.code] = true; initAudio();
     if (e.code === 'KeyM') toggleMute();
     if (e.code === 'KeyE' && begun && !offer) {
-      if (onBike) dismountBike();
+      if (shopOpen) toggleShop(false);
+      else if (ridingTram) hopOffTram();
+      else if (bazarAddr && !onBike && Math.hypot(bazarAddr.pos.x - P.pos.x, bazarAddr.pos.z - P.pos.z) < 6) toggleShop(true);
+      else if (!onBike && nearestTram() ) hopOnTram(nearestTram());
+      else if (onBike) dismountBike();
       else if (Math.hypot(bike.position.x - P.pos.x, bike.position.z - P.pos.z) < 2.4) mountBike();
     }
     if (e.code === 'KeyB' && onBike) { blip(1560, 0.09, 'square', 0.09); setTimeout(() => blip(1560, 0.13, 'square', 0.08), 140); }
@@ -725,6 +822,52 @@ function start(ctx, world) {
     btnRun.addEventListener('pointerup', () => tRun = 0); btnRun.addEventListener('pointercancel', () => tRun = 0);
   }
 
+  /* ── WEATHER: a passing drizzle every few days; umbrellas pop, streets darken ── */
+  let raining = false, rainT = 0, rainNext = rand(50, 110);
+  const rainGroup = new T.Group(); rainGroup.visible = false; scene.add(rainGroup);
+  { rainGroup.traverse(o => o.layers && o.layers.set(1)); rainGroup.layers.set(1); }
+  const RAIN_N = 260;
+  const rainDrops = [];
+  const dropGeo = new T.CylinderGeometry(0.02, 0.02, 1.1, 3);
+  const dropMat = new T.MeshBasicMaterial({ color: 0x9fccd6, transparent: true, opacity: 0.7 });
+  const RAIN_R = 11;                        // concentrate the volume so it reads
+  for (let i = 0; i < RAIN_N; i++) {
+    const m = new T.Mesh(dropGeo, dropMat); m.layers.set(1);
+    m.rotation.z = 0.16;                    // wind slant
+    m.position.set(rand(-RAIN_R, RAIN_R), rand(0, 13), rand(-RAIN_R, RAIN_R));
+    rainGroup.add(m); rainDrops.push(m);
+  }
+  function startRain() {
+    raining = true; rainT = 0; rainGroup.visible = true;
+    toast('🌧 Empieza a llover…', '#3a7d99');
+    if (windGain) {}   // (wind bed already tracks)
+  }
+  function stopRain() {
+    raining = false; rainGroup.visible = false;
+    toast('🌤 Escampó', '#c8862a');
+  }
+  function updateWeather(dt, now) {
+    if (!raining) {
+      rainNext -= dt;
+      if (rainNext <= 0) { startRain(); rainNext = rand(90, 180); }
+    } else {
+      rainT += dt;
+      if (rainT > rand(35, 55) || rainT > 55) stopRain();
+      rainGroup.position.set(P.pos.x, 0, P.pos.z);
+      for (const m of rainDrops) {
+        m.position.y -= 20 * dt;
+        m.position.x += 3.2 * dt;               // wind-blown slant
+        if (m.position.y < -0.5) { m.position.set(rand(-RAIN_R, RAIN_R), rand(9, 13), rand(-RAIN_R, RAIN_R)); }
+      }
+    }
+    // grade responds: overcast pulls saturation/exposure down a touch
+    if (ctx.composer && gradeU) {
+      const t = raining ? Math.min(1, rainT / 3) : Math.max(0, 1 - (now - 0) * 0);
+      const target = raining ? 1 : 0;
+      gradeBlend += (target - gradeBlend) * L.dampT(dt, 1.5);
+    }
+  }
+
   /* ── FX ── */
   const fxPool = []; const fxGeo = new T.SphereGeometry(0.12, 6, 5);
   function fxBurst(pos, cols, n, h) {
@@ -747,7 +890,7 @@ function start(ctx, world) {
      which could never reach a walking courier.) ── */
   const TRAFFIC = world.traffic || [];
   function checkTraffic() {
-    if (stun > 0) return;
+    if (stun > 0 || ridingTram) return;
     for (const car of TRAFFIC) {
       const d = car.userData.drive; if (!d || !d.hl) continue;
       const hx = (d.axis === 'x' ? d.hl : d.hw) + 0.45, hz = (d.axis === 'x' ? d.hw : d.hl) + 0.45;
@@ -816,7 +959,7 @@ function start(ctx, world) {
     let mag = Math.hypot(ix, iy);
     if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
     const running = keys['ShiftLeft'] || keys['ShiftRight'] || tRun > 0;
-    if (stunned || !begun || reporting) mag = 0;
+    if (stunned || !begun || reporting || shopOpen) mag = 0;
 
     if (mag > 0.05) {
       // screen-up = camera-forward; screen-right for heading θ is (-cosθ, 0, sinθ)
@@ -835,9 +978,18 @@ function start(ctx, world) {
     P.speed = lerp(P.speed, mag * maxSpd, L.dampT(dt, onBike ? 4.5 : ACCEL));
     fwd.set(Math.sin(P.yaw), 0, Math.cos(P.yaw));
     P.pos.x += fwd.x * P.speed * dt; P.pos.z += fwd.z * P.speed * dt;
+    if (ridingTram) {
+      // hanging off the running board: the tram does the work
+      const d3 = ridingTram.userData.drive;
+      P.pos.x = ridingTram.position.x - (d3.dir > 0 ? 2.2 : -2.2);
+      P.pos.z = ridingTram.position.z + tramSide * 1.55;
+      P.yaw = d3.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+      P.speed = 0;
+      if (mag > 0.4) hopOffTram();                            // push any direction to drop off
+    }
     P.pos.x = clamp(P.pos.x, bounds.minX, bounds.maxX);
     P.pos.z = clamp(P.pos.z, bounds.minZ, bounds.maxZ);
-    resolveStatic();                                          // solid town
+    if (!ridingTram) resolveStatic();                         // solid town
     // townsfolk are soft: brushing past nudges both of you apart (no hard walls)
     for (const n of NPCS) {
       const u = n.userData.npc;
@@ -1011,6 +1163,9 @@ function start(ctx, world) {
       }
     }
 
+    // discoverability: a whisper when a ride is available
+    if (!ridingTram && !onBike && now % 4000 < 20 && nearestTram()) toast('🚋 E — súbete', '#3a7d99');
+
     /* idle townsfolk quips — someone nearby says something small */
     quipCd -= dt;
     if (quipCd <= 0) {
@@ -1032,6 +1187,11 @@ function start(ctx, world) {
     updateBubbles(dt);
     updateDlg(dt);
     updateLost(dt, now);
+    updateWeather(dt, now);
+    if (gradeU) {
+      gradeU.uSat.value = gradeSatBase * (1 - gradeBlend * 0.28);
+      gradeU.uVig.value = gradeVigBase + gradeBlend * 0.14;
+    }
 
     // minimap (throttled ~12fps)
     mapAcc += dt;
@@ -1098,7 +1258,10 @@ function start(ctx, world) {
     if (streak > bestStreak) { bestStreak = streak; lsSet(LS.streak, bestStreak); }
     renderBest();
 
+    const coinGain = Math.max(5, Math.round(gained / 10));
+    coins += coinGain; dayCoins += coinGain; lsSet('fly_coins', coins);
     dayScore += gained; dayBestCombo = Math.max(dayBestCombo, combo); dayDeliv++;
+    renderBest();
     if (dayDeliv >= DAY_LEN) showReport();
     else newTask();
   }
@@ -1188,6 +1351,10 @@ function start(ctx, world) {
     get dayDeliv() { return dayDeliv; }, set dayDeliv(v) { dayDeliv = v; },
     get dayNum() { return dayNum; }, get reporting() { return reporting; },
     lostCount, get fragile() { return fragile; },
+    get raining() { return raining; }, forceRain() { startRain(); },
+    get coins() { return coins; }, set coins(v) { coins = v; },
+    get ridingTram() { return !!ridingTram; }, get shopOpen() { return shopOpen; },
+    nearestTram: () => !!nearestTram(),
     begin,
   } };
 }

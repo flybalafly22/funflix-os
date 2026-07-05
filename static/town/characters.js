@@ -663,7 +663,8 @@ function makeHero() {
   // ── RED SCARF — the brand accent (ART BIBLE §2.8: the single most saturated
   // thing the camera usually frames). Ring at the neck + a tail that drapes over
   // the shoulder; game.js flutters the tail with run speed. ──
-  const scarfMat = L.std({ color: 0xb5352a, roughness: 0.85 });
+  // uncached: the BAZAR wardrobe recolors the scarf (shared cache would repaint strangers)
+  const scarfMat = L.std({ color: 0xb5352a, roughness: 0.85 }).clone(); L.curve(scarfMat);
   const scarfRing = new T.Mesh(new T.TorusGeometry(0.105 * build, 0.048, 8, 14), scarfMat);
   scarfRing.position.set(0, neckY - 0.02, 0.015); scarfRing.rotation.x = L.TAU / 4; scarfRing.scale.set(1, 1, 0.9);
   torso.add(scarfRing);
@@ -789,6 +790,7 @@ function makeHero() {
   g.userData.limbs = { legL, legR, armL, armR };
   g.userData.torso = torso;
   g.userData.capMat = capMat;   // wardrobe hook (rank colorways)
+  g.userData.scarfMat = scarfMat;   // BAZAR wardrobe hook
   g.userData.gait = {
     stride: 0.52,
     armSwing: 0.78,
