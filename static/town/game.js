@@ -694,20 +694,20 @@ function start(ctx, world) {
   let tod = 0;
   function applyTOD(t) {
     const k = t * t;
-    _sun.color.copy(_sunDay).lerp(_sunDusk, k); _sun.intensity = 0.6 - k * 0.28;
+    _sun.color.copy(_sunDay).lerp(_sunDusk, k); _sun.intensity = 1.45 - k * 0.5;   // strong directional key
     _hemi.color.copy(_hemiSkyDay).lerp(_hemiSkyDusk, k);
     _hemi.groundColor.copy(_hemiGrDay).lerp(_hemiGrDusk, k);
-    _hemi.intensity = 1.32 - k * 0.34;
+    _hemi.intensity = 0.72 - k * 0.14;   // fill supports the sun, doesn't drown it
     if (ctx.fog) ctx.fog.color.copy(_fogDay).lerp(_fogDusk, k);
     if (_sky) {
       _sky.uniforms.uTop.value.copy(_skyTopDay).lerp(_skyTopDusk, k);
       _sky.uniforms.uHorz.value.copy(_skyHorDay).lerp(_skyHorDusk, k);
       _sky.uniforms.uCloud.value.copy(_cloudDay).lerp(_cloudDusk, k);
     }
-    _rend.toneMappingExposure = 0.92 + k * 0.06;
+    _rend.toneMappingExposure = 0.98 + k * 0.04;
     if (gradeU) {
-      gradeU.uGain.value.set(1.02 + k * 0.10, 1.01, 0.985 - k * 0.06);
-      gradeU.uLift.value.set(0.030 + k * 0.02, 0.030, 0.026 - k * 0.01);
+      gradeU.uGain.value.set(1.05 + k * 0.10, 1.02, 0.96 - k * 0.04);
+      gradeU.uLift.value.set(0.018 + k * 0.02, 0.016, 0.012);
     }
     // evening: bloom swells so every lamp, lit window and festoon bulb glows
     if (bloomPass) bloomPass.strength = bloomBase + k * 0.5;
