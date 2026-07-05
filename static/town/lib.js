@@ -301,6 +301,27 @@ function posterTex(seed) {
   return finishTex(c);
 }
 
+// loose spray-paint tag — a transparent scribble decal for lower walls
+function graffitiTex(seed) {
+  setSeed(seed * 4177 + 11);
+  const w = 128, h = 64, c = cnv(w, h), g = c.getContext('2d');
+  const cols = ['#c8443c', '#2f6b8a', '#3f8a5a', '#7a3f8a', '#d8a63c'];
+  g.strokeStyle = pick(cols); g.lineWidth = rand(4, 7); g.lineCap = 'round'; g.lineJoin = 'round';
+  g.globalAlpha = 0.85;
+  const n = randInt(2, 4);
+  for (let s = 0; s < n; s++) {
+    g.beginPath();
+    let x = rand(14, 40), y = rand(20, 44);
+    g.moveTo(x, y);
+    for (let k = 0; k < 5; k++) { x += rand(10, 26); y += jitter(20); g.lineTo(x, clamp(y, 8, h - 8)); }
+    g.stroke();
+  }
+  // a couple of drips
+  g.lineWidth = 2;
+  for (let d = 0; d < 3; d++) { const dx = rand(20, w - 20); g.beginPath(); g.moveTo(dx, rand(30, 44)); g.lineTo(dx, rand(46, 60)); g.stroke(); }
+  return finishTex(c);
+}
+
 function shadeHex(hex, mul) {
   const n = parseInt(hex.replace('#', ''), 16);
   let r = (n >> 16) & 255, gg = (n >> 8) & 255, b = n & 255;
@@ -509,7 +530,7 @@ window.FLY.lib = {
   clamp, lerp, smooth, dampT,
   setSeed, rng, rand, randInt, pick, chance, jitter, shuffle,
   cnv, finishTex, grain, shadeHex,
-  plasterTex, brickTex, woodTex, awningTex, roadTex, sidewalkTex, dirtTex, signTex, neonTex, posterTex,
+  plasterTex, brickTex, woodTex, awningTex, roadTex, sidewalkTex, dirtTex, signTex, neonTex, posterTex, graffitiTex,
   plasterNormal, brickNormal, roadNormal, sidewalkNormal, dirtNormal,
   PAL, MAT, std,
   box, cyl, sphere, instanced, decal, compose,

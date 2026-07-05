@@ -828,14 +828,22 @@ function make(spec) {
     mural.position.set(sideSign * (w / 2 + 0.09), GROUND_H + muralH / 2 + 0.3, 0);
     mural.rotation.y = sideSign * Math.PI / 2; g.add(mural);
   }
-  // POSTERS (pasted on the ground-floor facade)
-  if (has('posters')) {
-    for (let pi = 0; pi < 2 + (L.rng() * 2 | 0); pi++) {
-      const pT = L.posterTex((spec.seed || 1) + pi * 7);
-      const poster = new T.Mesh(new T.PlaneGeometry(0.55, 0.82), L.std({ map: pT, roughness: 0.9 }));
-      poster.position.set(L.jitter(w / 2.4), 0.7 + L.rand(0.4, 1.6), frontZ + 0.10);
-      poster.rotation.z = L.jitter(0.05); g.add(poster);
-    }
+  // POSTERS (pasted on the ground-floor facade) — tagged buildings get a wall
+  // of them; most others still catch a stray flyer or two so no wall is blank.
+  const posterN = has('posters') ? (2 + (L.rng() * 2 | 0)) : (L.chance(0.5) ? (1 + (L.rng() * 2 | 0)) : 0);
+  for (let pi = 0; pi < posterN; pi++) {
+    const pT = L.posterTex((spec.seed || 1) + pi * 7);
+    const sc = L.rand(0.85, 1.15);
+    const poster = new T.Mesh(new T.PlaneGeometry(0.55 * sc, 0.82 * sc), L.std({ map: pT, roughness: 0.9, transparent: true, polygonOffset: true, polygonOffsetFactor: -1 }));
+    poster.position.set(L.jitter(w / 2.4), 0.7 + L.rand(0.3, 1.7), frontZ + 0.10 + pi * 0.004);
+    poster.rotation.z = L.jitter(0.06); g.add(poster);
+  }
+  // GRAFFITI — an occasional spray tag low on the wall
+  if (arch !== 'civic' && L.chance(0.28)) {
+    const gT = L.graffitiTex((spec.seed || 3) + 5);
+    const graf = new T.Mesh(new T.PlaneGeometry(1.2, 0.6), L.std({ map: gT, roughness: 0.92, transparent: true, polygonOffset: true, polygonOffsetFactor: -1 }));
+    graf.position.set(L.jitter(w / 3), L.rand(0.5, 1.1), frontZ + 0.09);
+    graf.rotation.z = L.jitter(0.04); g.add(graf);
   }
   // FLOWERBOX flag for non-apartment archetypes
   if (has('flowerbox') && arch !== 'apartment') {
