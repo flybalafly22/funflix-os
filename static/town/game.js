@@ -1422,6 +1422,10 @@ function start(ctx, world) {
     if (gradeU) {
       gradeU.uSat.value = gradeSatBase * (1 - gradeBlend * 0.28);
       gradeU.uVig.value = gradeVigBase + gradeBlend * 0.14 + tod * 0.06;
+      // speed lines: ramp in above ~65% top speed; go gold when the combo's hot
+      const fast = clamp((spd01 - 0.62) / 0.38, 0, 1) * (onBike ? 1 : 0.85);
+      gradeU.uSpeed.value = lerp(gradeU.uSpeed.value, fast * 0.5, L.dampT(dt, 8));
+      gradeU.uSpeedCol.value.setHex(combo >= 3 ? 0xffe4a0 : 0xffffff);
     }
 
     // minimap (throttled ~12fps)
@@ -1438,7 +1442,10 @@ function start(ctx, world) {
     const base = 100;
     const timeBonus = Math.round(timeFrac * 150);
     // combo: a quick delivery (with time to spare) builds the streak
-    if (speedy) { streak++; combo = clamp(combo + 1, 1, 8); comboTimer = COMBO_WINDOW; }
+    if (speedy) {
+      streak++; const prevCombo = combo; combo = clamp(combo + 1, 1, 8); comboTimer = COMBO_WINDOW;
+      if (combo > prevCombo && combo >= 3) { fxBurst(P.pos, [0xffe4a0, 0xffffff, 0xffd27a], 10 + combo * 2, P.pos.y + 1.6); }
+    }
     else { comboTimer = COMBO_WINDOW * 0.6; } // keep current combo alive briefly even on a slow drop
     const gained = Math.round((base + timeBonus) * combo * ((express || fragile) ? 2 : 1));
     score += gained;

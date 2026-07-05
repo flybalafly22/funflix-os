@@ -218,9 +218,10 @@ const clouds = new T.Group(); scene.add(clouds);
 const GradeShader = {
   uniforms: { tDiffuse: { value: null }, uVig: { value: 0.10 }, uCon: { value: 1.03 }, uSat: { value: 1.06 },
     uLift: { value: new T.Vector3(0.030, 0.030, 0.026) }, uGain: { value: new T.Vector3(1.02, 1.01, 0.985) },
-    uHatch: { value: 0.18 }, uRes: { value: new T.Vector2(1280, 720) } },
+    uHatch: { value: 0.18 }, uRes: { value: new T.Vector2(1280, 720) }, uSpeed: { value: 0.0 }, uSpeedCol: { value: new T.Color(0xffffff) } },
   vertexShader: 'varying vec2 v; void main(){ v=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat,uHatch; uniform vec3 uLift,uGain; uniform vec2 uRes; varying vec2 v;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat,uHatch,uSpeed; uniform vec3 uLift,uGain,uSpeedCol; uniform vec2 uRes; varying vec2 v;
+    float hash1(float n){ return fract(sin(n)*43758.5453); }
     void main(){ vec3 c=texture2D(tDiffuse,v).rgb; c=(c-0.5)*uCon+0.5; float l=dot(c,vec3(0.299,0.587,0.114));
       c=mix(vec3(l),c,uSat); float lum=clamp(l,0.0,1.0);
       c+=uLift*(1.0-smoothstep(0.0,0.5,lum)); c*=mix(vec3(1.0),uGain,smoothstep(0.4,1.0,lum));
@@ -236,6 +237,15 @@ const GradeShader = {
       // faint paper tooth — the page the town is drawn on
       float pg=fract(sin(dot(floor(px*0.5),vec2(127.1,311.7)))*43758.5453);
       c*=0.988+0.024*pg;
+      // SPEED LINES — radial ink streaks rushing in from the edges when fast
+      if(uSpeed>0.001){
+        vec2 rd=v-0.5; float rr2=length(rd); float ang=atan(rd.y,rd.x);
+        float lines=sin(ang*46.0+hash1(floor(ang*46.0))*6.28)*0.5+0.5;
+        lines=pow(lines,7.0);
+        float edge=smoothstep(0.28,0.52,rr2);              // only near the frame edge
+        float sl=lines*edge*uSpeed;
+        c=mix(c,uSpeedCol,clamp(sl,0.0,0.85));
+      }
       vec2 d=v-0.5; float r=dot(d,d)*2.0; c*=mix(1.0,smoothstep(0.95,0.26,r),uVig);
       gl_FragColor=vec4(max(c,0.0),1.0); }`
 };
