@@ -1171,12 +1171,22 @@ function start(ctx, world) {
         if (m.position.y < -0.5) { m.position.set(rand(-RAIN_R, RAIN_R), rand(9, 13), rand(-RAIN_R, RAIN_R)); }
       }
     }
-    // puddles: swell to a sheen while raining, dry up after
+    // puddles: swell to a sheen while raining, dry up after; splash if run through
+    const movingFast = Math.abs(P.speed) > 4;
     for (const p of puddles) {
       if (!p.placed) continue;
       p.wet = clamp(p.wet + (raining ? dt * 0.4 : -dt * 0.15), 0, 1);
       p.mesh.material.opacity = p.wet * 0.5;
-      if (p.wet <= 0.001) p.mesh.visible = false;
+      if (p.wet <= 0.001) { p.mesh.visible = false; continue; }
+      if (movingFast && p.wet > 0.3 && (p.splashCd = (p.splashCd || 0) - dt) <= 0) {
+        const dxp = p.mesh.position.x - P.pos.x, dzp = p.mesh.position.z - P.pos.z;
+        const rr = p.mesh.scale.x + 0.4;
+        if (dxp * dxp + dzp * dzp < rr * rr) {
+          fxBurst({ x: P.pos.x, y: 0, z: P.pos.z }, [0xbfe0e6, 0x9fccd6, 0xffffff], 8, 0.15);
+          blip(rand(600, 800), 0.05, 'sine', 0.03);
+          p.splashCd = 0.35;
+        }
+      }
     }
     // grade responds: overcast pulls saturation/exposure down a touch
     if (ctx.composer && gradeU) {
@@ -1560,7 +1570,7 @@ function start(ctx, world) {
     if (!choosing && dPlanar < 4.5) {
       if (!carrying) {
         carrying = true; carriedLetter.visible = true; squash = 1; popRing(tg.pos.x, tg.gy || 0, tg.pos.z, 0xc8862a); toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
-        if (!curStory && !fragile && jobBudget > 18 && L.chance(0.3 + dayDiff() * 0.12)) { gustPending = true; gustAt = now + rand(3500, 8500); }
+        if (!curStory && !fragile && jobBudget > 18 && L.chance(0.3 + dayDiff() * 0.12 + (raining ? 0.2 : 0))) { gustPending = true; gustAt = now + rand(3500, 8500); }
         else if (!curStory && !fragile && !gustPending && delivered >= 4 && L.chance(0.28 + dayDiff() * 0.12)) startRace(dropoff);
         if (curStory) say(pickup.name, curStory.pick);
         else bubble(tg.pos.x, (tg.gy || 0) + 3.4, tg.pos.z, pick(QUIPS_PICKUP));
