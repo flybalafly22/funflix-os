@@ -354,7 +354,7 @@ const _toonGrad = (() => {
   // Lifted shadow band (was 104): the old value stacked with dark albedos + ACES +
   // grade contrast into pure-black roads/shadows — the #1 look bug. Shadows must
   // stay warm-grey (ART BIBLE §1 "lifted blacks"), the grade adds the warmth.
-  const d = new Uint8Array([176, 176, 176, 255, 218, 218, 218, 255, 255, 255, 255, 255]); // 3 CLOSE steps — flat-bright cel, shadows only a shade darker
+  const d = new Uint8Array([120, 120, 120, 255, 184, 184, 184, 255, 255, 255, 255, 255]); // 3 SEPARATED steps: real shadow / mid / light — forms read
   const t = new T.DataTexture(d, 3, 1, T.RGBAFormat);
   t.magFilter = t.minFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
   return t;

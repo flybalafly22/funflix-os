@@ -127,7 +127,7 @@ const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-p
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.outputEncoding = T.sRGBEncoding;
 renderer.toneMapping = T.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.92;   // flat-bright: the frame lives in one narrow value band
+renderer.toneMappingExposure = 0.98;   // open a touch; the value range is wider now
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
 wrap.appendChild(renderer.domElement);
@@ -137,15 +137,15 @@ scene.fog = new T.FogExp2(0xa8dcd4, 0.0015);   // thin teal paper haze — dista
 const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
 
 /* lighting rig — golden-hour / dusk: warm low key light raking long shadows */
-const sun = new T.DirectionalLight(0xfff2dc, 0.6);   // whisper of a key — shade is a TINT, not a slab
-sun.position.set(34, 96, 26); sun.castShadow = true;   // STEEP sun: shadows are small pools under things, not street-long slabs
+const sun = new T.DirectionalLight(0xfff3e0, 1.45);  // a REAL directional key — defines a lit side and a shade side
+sun.position.set(62, 74, 44); sun.castShadow = true;   // angled key: clear lit/shade split + grounded contact shadows
 // 2048 map + a TIGHT frustum that follows the player each frame (see tick): only
 // casters near the camera render into the shadow map → sharp + cheap.
 sun.shadow.mapSize.set(2048, 2048);
 { const c = sun.shadow.camera; c.near = 1; c.far = 280; c.left = -70; c.right = 70; c.top = 70; c.bottom = -70; }
-sun.shadow.radius = 8; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;   // blur wide: soft pooled shade
+sun.shadow.radius = 4; sun.shadow.bias = -0.00018; sun.shadow.normalBias = 0.35;   // crisper contact shadows for grounding
 scene.add(sun, sun.target);
-const hemi = new T.HemisphereLight(0xd6e8e2, 0x9a9484, 1.32); scene.add(hemi);  // the ambient IS the light source now
+const hemi = new T.HemisphereLight(0xcfe4de, 0x8a8474, 0.72); scene.add(hemi);  // cool sky fill — supports the sun, doesn't drown it
 const fill = new T.DirectionalLight(0xcfe0e8, 0.35); fill.position.set(-34, 22, -30); scene.add(fill);
 const bounce = new T.DirectionalLight(0xefe6d2, 0.18); bounce.position.set(0, -8, 22); scene.add(bounce);
 
@@ -225,9 +225,9 @@ const clouds = new T.Group(); scene.add(clouds);
 
 /* post: bloom + grade + gamma */
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.10 }, uCon: { value: 1.03 }, uSat: { value: 1.06 },
-    uLift: { value: new T.Vector3(0.030, 0.030, 0.026) }, uGain: { value: new T.Vector3(1.02, 1.01, 0.985) },
-    uHatch: { value: 0.18 }, uRes: { value: new T.Vector2(1280, 720) }, uSpeed: { value: 0.0 }, uSpeedCol: { value: new T.Color(0xffffff) } },
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.16 }, uCon: { value: 1.13 }, uSat: { value: 1.14 },
+    uLift: { value: new T.Vector3(0.018, 0.016, 0.012) }, uGain: { value: new T.Vector3(1.05, 1.02, 0.96) },
+    uHatch: { value: 0.07 }, uRes: { value: new T.Vector2(1280, 720) }, uSpeed: { value: 0.0 }, uSpeedCol: { value: new T.Color(0xffffff) } },
   vertexShader: 'varying vec2 v; void main(){ v=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uCon,uSat,uHatch,uSpeed; uniform vec3 uLift,uGain,uSpeedCol; uniform vec2 uRes; varying vec2 v;
     float hash1(float n){ return fract(sin(n)*43758.5453); }
@@ -288,22 +288,22 @@ if (composer) {
     const OutlineShader = {
       uniforms: { tDiffuse: { value: null }, tNormal: { value: null }, tDepth: { value: null },
         uTexel: { value: new T.Vector2(1 / 1280, 1 / 720) }, uNear: { value: camera.near }, uFar: { value: camera.far },
-        uNStr: { value: 1.55 }, uDStr: { value: 34.0 }, uThick: { value: 1.0 }, uColor: { value: new T.Color(0x231d1a) } },
+        uNStr: { value: 1.0 }, uDStr: { value: 34.0 }, uThick: { value: 0.85 }, uColor: { value: new T.Color(0x241d18) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
       fragmentShader: `uniform sampler2D tDiffuse,tNormal,tDepth; uniform vec2 uTexel; uniform float uNear,uFar,uNStr,uDStr,uThick; uniform vec3 uColor; varying vec2 vUv;
         float rd(vec2 uv){ float z=texture2D(tDepth,uv).x; return (2.0*uNear)/(uFar+uNear-z*(uFar-uNear)); }
         void main(){ vec3 base=texture2D(tDiffuse,vUv).rgb;
-          // HAND-DRAWN IMPERFECTION: wobble where the edge is *detected* (not the
-          // image itself) so the ink meanders ±0.5px, and vary stroke thickness
-          // across the page — plotted-perfect lines are forbidden.
-          vec2 wUv=vUv+uTexel*vec2(sin(vUv.y*317.0+vUv.x*57.0),cos(vUv.x*291.0-vUv.y*43.0))*0.55;
-          float tvar=0.78+0.5*(0.5+0.5*sin(wUv.x*231.0)*sin(wUv.y*187.0));
-          // DISTANCE-AWARE INK: crease detail is a close-up privilege. Far away,
-          // only silhouettes survive (thin + faded) — otherwise the whole street
-          // dissolves into line spaghetti at range.
+          // CLEAN INK: a whisper of wobble only (steady lines read as defined, not
+          // scribbled), gentle thickness variation.
+          vec2 wUv=vUv+uTexel*vec2(sin(vUv.y*317.0+vUv.x*57.0),cos(vUv.x*291.0-vUv.y*43.0))*0.12;
+          float tvar=0.9+0.2*(0.5+0.5*sin(wUv.x*231.0)*sin(wUv.y*187.0));
+          // DISTANCE-AWARE: interior creases are a CLOSE-UP privilege and vanish
+          // fast with distance so mid/far read as clean shaded shapes, not a line
+          // tangle. Silhouettes persist to keep objects separated.
           float dHere=rd(wUv);
-          float distF=smoothstep(0.0035, 0.016, dHere);   // 1 near → 0 by ~55m
-          vec2 o=uTexel*uThick*tvar*mix(0.62,1.0,distF);
+          float distF=smoothstep(0.0035, 0.014, dHere);
+          float creaseF=smoothstep(0.0025, 0.007, dHere);   // creases die even faster
+          vec2 o=uTexel*uThick*tvar;
           vec3 nC=texture2D(tNormal,wUv).xyz*2.0-1.0;
           vec3 nR=texture2D(tNormal,wUv+vec2(o.x,0.0)).xyz*2.0-1.0;
           vec3 nL=texture2D(tNormal,wUv-vec2(o.x,0.0)).xyz*2.0-1.0;
@@ -312,16 +312,16 @@ if (composer) {
           // normal creases: strongest neighbour difference (sharper than a sum); a
           // dead-zone floor in the smoothstep kills micro-jitter speckle on flat walls
           float ne=max(max(1.0-dot(nC,nR),1.0-dot(nC,nL)),max(1.0-dot(nC,nU),1.0-dot(nC,nD)));
-          ne=smoothstep(0.18, 0.85, ne)*uNStr*mix(0.06, 1.0, distF);   // crease ink fades out fast
+          ne=smoothstep(0.30, 0.9, ne)*uNStr*creaseF;   // only strong, near creases draw
           // depth silhouettes: relative depth break, scaled so distant edges stay solid
           float dC=rd(wUv);
           float de=(abs(dC-rd(wUv+vec2(o.x,0.0)))+abs(dC-rd(wUv-vec2(o.x,0.0)))
                    +abs(dC-rd(wUv+vec2(0.0,o.y)))+abs(dC-rd(wUv-vec2(0.0,o.y))))/(dC+0.04);
-          de=smoothstep(0.018, 0.10, de)*(uDStr*0.04)*mix(0.55, 1.0, distF);   // silhouettes fade gently
+          de=smoothstep(0.02, 0.10, de)*(uDStr*0.04)*mix(0.55, 1.0, distF);   // clean object silhouettes
           // bias toward depth-silhouette + strong creases → one clean confident edge
           float edge=clamp(max(de, ne), 0.0, 1.0);
           // ink density breathes a little along the stroke (pen pressure)
-          edge=smoothstep(0.55, 0.92, edge)*(0.86+0.14*sin(wUv.x*401.0+wUv.y*367.0))*mix(0.6, 1.0, distF);
+          edge=smoothstep(0.5, 0.88, edge)*mix(0.7, 1.0, distF);   // steady, no jitter
           gl_FragColor=vec4(mix(base, uColor, edge), 1.0); }`
     };
     outlinePass = new T.ShaderPass(OutlineShader);
@@ -361,7 +361,7 @@ window.addEventListener('resize', resize); resize();
 const loadEl = document.getElementById('load');
 let started = false, last = performance.now();
 let perfFrames = 0, perfAccum = 0, perfTier = 0;
-const _sunBase = new T.Vector3(34, 96, 26);    // steep noon-bright direction (matches the rig above)
+const _sunBase = new T.Vector3(62, 74, 44);    // angled key direction (matches the rig above)
 function tick() {
   requestAnimationFrame(tick);
   const now = performance.now(); let dt = (now - last) / 1000; last = now; dt = Math.min(dt, 0.05);
