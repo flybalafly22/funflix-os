@@ -41,13 +41,13 @@ function start(ctx, world) {
   const rivalBike = FLY.props.makeBicycle(); rival.add(rivalBike); rivalBike.position.set(0, 0, 0.06);
   rival.visible = false; scene.add(rival);
   const R = { pos: new T.Vector3(), yaw: 0, active: false, target: null, progress: 0, done: false, phase: 0 };
-  const RIVAL_QUIPS = ['¡El último paga las cañas!', '¡Muy lento, novato!', '¡Te huelo el polvo!', '¡A que llego yo antes!'];
+  const RIVAL_QUIPS = ['Last one buys the drinks!', 'Too slow, rookie!', 'Eat my dust!', 'Bet I beat you there!'];
   function startRace(target) {
     R.active = true; R.done = false; R.target = target;
     // he starts a bit behind the player, on the street
     R.pos.set(P.pos.x - Math.cos(P.yaw) * 4, groundAt(P.pos.x, P.pos.z), P.pos.z + Math.sin(P.yaw) * 4);
     rival.visible = true;
-    toast('🏁 ¡Paco te reta a una carrera!', '#c04434');
+    toast('🏁 Paco challenges you to a race!', '#c04434');
     bubble(R.pos.x, R.pos.y + 2.2, R.pos.z, pick(RIVAL_QUIPS), 3);
     blip(660, 0.1, 'square', 0.08); setTimeout(() => blip(880, 0.14, 'square', 0.08), 160);
   }
@@ -56,10 +56,10 @@ function start(ctx, world) {
     if (playerWon) {
       const prize = 60;
       coins += prize; lsSet('fly_coins', coins); renderBest();
-      toast('🏁 ¡Ganaste a Paco! +' + prize + ' 🪙', '#4d8a52'); sfxBonus();
+      toast('🏁 You beat Paco! +' + prize + ' 🪙', '#4d8a52'); sfxBonus();
     } else {
-      toast('🏁 Paco llegó primero…', '#c04434');
-      bubble(R.pos.x, R.pos.y + 2.2, R.pos.z, '¡Te lo dije!', 2.5);
+      toast('🏁 Paco got there first…', '#c04434');
+      bubble(R.pos.x, R.pos.y + 2.2, R.pos.z, 'Told you so!', 2.5);
     }
     setTimeout(() => { rival.visible = false; }, 2500);
   }
@@ -95,7 +95,7 @@ function start(ctx, world) {
     onBike = true;
     scene.remove(bike); hero.add(bike);
     bike.position.set(0, 0, 0.06); bike.rotation.set(0, 0, 0);
-    toast('🚲 ¡A pedalear!', '#3a7d99');
+    toast('🚲 On the bike!', '#3a7d99');
     blip(1560, 0.09, 'square', 0.07); setTimeout(() => blip(1560, 0.12, 'square', 0.07), 130);
   }
   function dismountBike() {
@@ -103,7 +103,7 @@ function start(ctx, world) {
     hero.remove(bike); scene.add(bike);
     bike.position.set(P.pos.x + Math.cos(P.yaw) * 0.7, P.pos.y, P.pos.z - Math.sin(P.yaw) * 0.7);
     bike.rotation.set(0, P.yaw, 0.16);
-    toast('🚲 aparcada', '#3a7d99');
+    toast('🚲 parked', '#3a7d99');
   }
   // the context 'E' action, shared by keyboard + the touch button
   function doAction() {
@@ -393,19 +393,19 @@ function start(ctx, world) {
       b.el.style.top = ((-_bp.y * 0.5 + 0.5) * hud.clientHeight) + 'px';
     }
   }
-  const QUIPS_STREET = ['Bonito día, ¿no?', 'El pan huele genial hoy', '¿Has visto al gato?', '¡Hola, mensajero!', '¿Algo para mí?', '¡Qué prisa llevas!', 'Las palomas otra vez…', 'Saludos a la Sra. Ibáñez'];
+  const QUIPS_STREET = ['Lovely day, isn\'t it?', 'The bread smells great today', 'Have you seen the cat?', 'Hello, courier!', 'Anything for me?', 'In such a hurry!', 'Those pigeons again…', 'Say hi to Mrs. Ibbs'];
   const PERSONA = {
-    'DOÑA REMEDIOS': ['Estas palomas me arruinan.', 'De joven yo también corría así.', '¿Le llevas algo al alcalde? Dile que me debe una silla.'],
-    'SR. BIGOTES': ['El gato manda aquí, yo solo obedezco.', 'Ocho sardinas al día. Ni una menos.', 'Hoy casi maúlla mi nombre.'],
-    'TEO': ['¡Enséñame a correr así!', '¿Puedo ver la carta? ¿No? Vale…', 'Cuando sea grande seré mensajero.'],
-    'MARISOL': ['El mar está de buen humor hoy.', 'Si ves al ermitaño, dile que bajé el precio.', 'Las gaviotas me roban más que los impuestos.'],
-    'CHUS': ['Esta moto me va a matar.', 'Le falta una pieza. ¿Cuál? Buena pregunta.', 'Ayer funcionaba. AYER.'],
-    'EL VIEJO TOMÁS': ['Hoy pican. Mañana quién sabe.', 'El mar y yo tenemos un acuerdo.', 'Shhh. Los peces oyen todo.'],
-    'PILAR': ['La luz de hoy no se repite.', 'El estanque nunca posa quieto.', '¿Te pinto? Quédate quieto tres horas.'],
-    'RAMÓN': ['Medir dos veces, cortar una.', 'Esto era un armario. Ahora es… otra cosa.', 'El buen pino canta al serrarlo.'],
+    'GRANNY MABEL': ['These pigeons are the ruin of me.', 'I ran like that once, you know.', 'Off to the mayor? Tell him he owes me a chair.'],
+    'MR. WHISKERS': ['The cat runs this place, I just obey.', 'Eight sardines a day. Not one less.', 'He almost meowed my name today.'],
+    'TEO': ['Teach me to run like that!', 'Can I see the letter? No? Fine…', 'When I grow up I\'ll be a courier.'],
+    'MARISOL': ['The sea\'s in a good mood today.', 'See the hermit? Tell him I dropped the price.', 'The gulls rob me worse than the taxman.'],
+    'GUS': ['This scooter will be the death of me.', 'It\'s missing a part. Which? Good question.', 'It worked yesterday. YESTERDAY.'],
+    'OLD TOM': ['They\'re biting today. Tomorrow, who knows.', 'The sea and I have an understanding.', 'Shhh. Fish hear everything.'],
+    'PILAR': ['Today\'s light never comes twice.', 'The pond never holds still to pose.', 'Shall I paint you? Hold still three hours.'],
+    'RAMON': ['Measure twice, cut once.', 'This was a cupboard. Now it\'s… something else.', 'Good pine sings when you saw it.'],
   };
-  const QUIPS_PICKUP = ['¡Cuídalo bien!', '¡Es urgente!', 'Gracias, mensajero', 'Con cariño, por favor', 'Ni una arruga, ¿eh?'];
-  const QUIPS_DELIVER = ['¡Gracias!', '¡Justo a tiempo!', '¡Eres un sol!', '¡Qué rápido!', '¡Mil gracias!'];
+  const QUIPS_PICKUP = ['Take good care of it!', 'It\'s urgent!', 'Thank you, courier', 'Handle with love, please', 'Not a single crease, eh?'];
+  const QUIPS_DELIVER = ['Thank you!', 'Right on time!', 'You\'re a treasure!', 'So fast!', 'Thanks a million!'];
   const NPCS = world.npcs || [];
   let quipCd = 5;
 
@@ -427,36 +427,36 @@ function start(ctx, world) {
     tipCd = Math.max(0, tipCd - dt);
     if (!begun || onBike || ridingTram || offer || reporting) return;
     if (!(tipsSeen & TIP_BITS.bike) && Math.hypot(bike.position.x - P.pos.x, bike.position.z - P.pos.z) < 3.2)
-      tipOnce('bike', 'E — súbete a la bici 🚲');
+      tipOnce('bike', 'E — hop on your bike 🚲');
     else if (!(tipsSeen & TIP_BITS.shop) && bazarAddr && coins >= 120 && Math.hypot(bazarAddr.pos.x - P.pos.x, bazarAddr.pos.z - P.pos.z) < 8)
-      tipOnce('shop', 'E — entra al Bazar por una bufanda 🧣');
+      tipOnce('shop', 'E — visit the Bazaar for a scarf 🧣');
   }
 
   /* ── STORY CHAINS — small multi-step delivery tales with a paper checklist.
      Steps arrive through the normal job flow (tagged 📜); finishing a chain
      pays a bonus and strikes it through in the log. Progress persists. ── */
   const CHAINS = [
-    { id: 'boda', name: 'La boda en la plaza', steps: 3, from: 'FLORERÍA', to: 'AYUNTAMIENTO', payload: 'flores para la boda',
-      pick: '¡Las flores de la boda! Que lleguen frescas, por favor.',
-      drops: ['La primera de tres… ¡gracias, mensajero!', 'Ya casi está todo listo para la ceremonia…', '¡La boda puede empezar! Eres un sol.'] },
-    { id: 'faro', name: 'El crucigrama del farero', steps: 2, from: 'LA PRENSA', to: 'EL FARO', payload: 'el crucigrama del día',
-      pick: 'El farero no puede vivir sin su crucigrama.',
-      drops: ['Dice que el siete vertical era «faro». Cómo no.', '¡Completado! El farero te saluda desde la torre.'] },
-    { id: 'postal', name: 'Postales de la costa', steps: 3, from: 'EL CORREO', to: 'GALERÍA', payload: 'una postal de la costa',
-      pick: 'Una postal de la costa — con arena y todo.',
-      drops: ['La galería la enmarcará esta tarde.', 'Otra más para la colección…', '¡La exposición está completa! Ven a verla.'] },
-    { id: 'carta', name: 'La carta del pescador', steps: 2, from: 'EL PESQUERO', to: 'LA ERMITA', payload: 'la carta del pescador',
-      pick: 'Del muelle a la colina. El ermitaño espera noticias del mar.',
-      drops: ['El ermitaño sonríe: «el mar sigue ahí», dice.', 'Y esta vez… ¡una lata de sardinas de regalo!'] },
-    { id: 'reloj', name: 'El reloj parado', steps: 2, from: 'RELOJERÍA', to: 'TORRE DEL RELOJ', payload: 'una pieza para el reloj',
-      pick: 'La torre lleva parada desde el martes. Esta pieza la arreglará.',
-      drops: ['El campanero la coloca con cuidado… tic, tic.', '¡La torre vuelve a dar la hora! Todo el pueblo lo oye.'] },
-    { id: 'concierto', name: 'El gran concierto', steps: 3, from: 'MÚSICA', to: 'TEATRO MOTT', payload: 'la partitura del concierto',
-      pick: 'La orquesta no puede ensayar sin la partitura. ¡Corre!',
-      drops: ['Los violines ya la tienen…', 'Ahora los vientos. Suena precioso.', '¡El teatro se llena esta noche! Guardan una entrada para ti.'] },
-    { id: 'tren', name: 'El último tren', steps: 2, from: 'CORREO CENTRAL', to: 'EL BUZÓN', payload: 'un billete de tren',
-      pick: 'Alguien se marcha esta tarde. Que llegue el billete a tiempo.',
-      drops: ['Lo dejas en el buzón, aún caliente de la imprenta.', '¡Justo a tiempo! Se despide con la mano desde el andén.'] },
+    { id: 'boda', name: 'The wedding in the square', steps: 3, from: 'FLORERÍA', to: 'AYUNTAMIENTO', payload: 'flowers for the wedding',
+      pick: 'The wedding flowers! Please get them there fresh.',
+      drops: ['First of three… thank you, courier!', 'Almost everything\'s ready for the ceremony…', 'The wedding can begin! You\'re a gem.'] },
+    { id: 'faro', name: 'The lighthouse crossword', steps: 2, from: 'LA PRENSA', to: 'EL FARO', payload: 'the daily crossword',
+      pick: 'The keeper can\'t live without his crossword.',
+      drops: ['He says seven-down was \'lighthouse\'. Of course.', 'Done! The keeper waves from the tower.'] },
+    { id: 'postal', name: 'Postcards from the coast', steps: 3, from: 'EL CORREO', to: 'GALERÍA', payload: 'a postcard from the coast',
+      pick: 'A postcard from the coast — sand and all.',
+      drops: ['The gallery will frame it this afternoon.', 'One more for the collection…', 'The exhibition is complete! Come see it.'] },
+    { id: 'carta', name: 'The fisherman\'s letter', steps: 2, from: 'EL PESQUERO', to: 'LA ERMITA', payload: 'the fisherman\'s letter',
+      pick: 'From the docks to the hill. The hermit awaits news of the sea.',
+      drops: ['The hermit smiles: \'the sea\'s still there\', he says.', 'And this time… a tin of sardines as a gift!'] },
+    { id: 'reloj', name: 'The stopped clock', steps: 2, from: 'RELOJERÍA', to: 'TORRE DEL RELOJ', payload: 'a part for the clock',
+      pick: 'The tower\'s been stopped since Tuesday. This part will fix it.',
+      drops: ['The bellringer fits it carefully… tick, tick.', 'The tower keeps time again! The whole town hears it.'] },
+    { id: 'concierto', name: 'The grand concert', steps: 3, from: 'MÚSICA', to: 'TEATRO MOTT', payload: 'the concert score',
+      pick: 'The orchestra can\'t rehearse without the score. Run!',
+      drops: ['The violins have it now…', 'Now the winds. It sounds lovely.', 'The theatre fills tonight! They\'ve saved you a ticket.'] },
+    { id: 'tren', name: 'The last train', steps: 2, from: 'CORREO CENTRAL', to: 'EL BUZÓN', payload: 'a train ticket',
+      pick: 'Someone leaves this afternoon. Get the ticket there in time.',
+      drops: ['You drop it in the mailbox, still warm from the press.', 'Just in time! They wave from the platform.'] },
   ];
   let chainProg = {};
   try { chainProg = JSON.parse(localStorage.getItem('fly_chains') || '{}'); } catch (e) {}
@@ -467,8 +467,8 @@ function start(ctx, world) {
   const logEl = document.createElement('div'); logEl.id = 'flyLog';
   hud.appendChild(logBtn); hud.appendChild(logEl);
   function renderLog() {
-    logEl.innerHTML = '<div class="h">Recados del pueblo</div>'
-      + '<div class="q">✉ Cartas perdidas <span class="n">(' + lostCount() + '/10)</span></div>'
+    logEl.innerHTML = '<div class="h">Town errands</div>'
+      + '<div class="q">✉ Lost letters <span class="n">(' + lostCount() + '/10)</span></div>'
       + CHAINS.map(c => {
       const n = Math.min(chainProg[c.id] || 0, c.steps);
       const boxes = '◼'.repeat(n) + '◻'.repeat(c.steps - n);
@@ -530,8 +530,8 @@ function start(ctx, world) {
     if (heroDone) return;
     if (lostCount() >= 10 && allChainsDone()) {
       heroDone = 1; lsSet('fly_hero', 1); festival = 22;
-      toast('🎆 ¡Héroe de Villa Mott! ¡Fiesta en la plaza!', '#c8862a');
-      setTimeout(() => say('El Pueblo', '¡Gracias por todo, mensajero! El pueblo entero te lo agradece.'), 1500);
+      toast('🎆 Hero of Villa Mott! Festival in the square!', '#c8862a');
+      setTimeout(() => say('The Town', 'Thank you for everything, courier! The whole town is grateful.'), 1500);
     }
   }
   const _plazaC = new T.Vector3(0, 0, 14);
@@ -544,7 +544,7 @@ function start(ctx, world) {
       fxBurst({ x: fx, y: 0, z: fz }, [0xffd27a, 0xff8f8f, 0x9fd0ff, 0x7fe0a0, 0xffffff], 22, rand(9, 15));
       if (AC) blip(rand(400, 900), 0.18, 'triangle', 0.06);
     }
-    if (festival <= 0) toast('✨ Villa Mott te recordará', '#c8862a');
+    if (festival <= 0) toast('✨ Villa Mott will remember you', '#c8862a');
   }
 
   function updateLost(dt, now) {
@@ -560,9 +560,9 @@ function start(ctx, world) {
         fxBurst(gl.position, [0xc8a648, 0xffffff, 0xa8352c], 16, gl.position.y);
         sfxBonus(); renderLog();
         const n = lostCount();
-        if (n >= 10) { score += 1000; elScore.textContent = score; setTimeout(() => { toast('✉ ¡Las diez cartas! +1000', '#c8862a'); sfxDeliver(); }, 700); }
-        else { toast('✉ Carta perdida ' + n + '/10  +150', '#c8862a');
-          if (n === 1) setTimeout(() => tipOnce('letter', 'Hay 10 cartas perdidas escondidas por el pueblo ✉'), 1400); }
+        if (n >= 10) { score += 1000; elScore.textContent = score; setTimeout(() => { toast('✉ All ten letters! +1000', '#c8862a'); sfxDeliver(); }, 700); }
+        else { toast('✉ Lost letter ' + n + '/10  +150', '#c8862a');
+          if (n === 1) setTimeout(() => tipOnce('letter', '10 lost letters are hidden around town ✉'), 1400); }
         checkCompletion();
       }
     }
@@ -581,19 +581,19 @@ function start(ctx, world) {
   function hopOnTram(tram) {
     ridingTram = tram;
     tramSide = P.pos.z >= tram.position.z ? 1 : -1;
-    toast('🚋 ¡Al tranvía!', '#3a7d99');
+    toast('🚋 Hop on the tram!', '#3a7d99');
     blip(988, 0.15, 'square', 0.08); setTimeout(() => blip(988, 0.2, 'square', 0.07), 170);
   }
   function hopOffTram() {
     const t = ridingTram; ridingTram = null;
     if (t) { P.pos.x = t.position.x; P.pos.z = t.position.z + tramSide * 2.4; }
-    toast('🚋 ¡Hasta luego!', '#3a7d99');
+    toast('🚋 See you around!', '#3a7d99');
   }
 
   /* ── EL BAZAR — spend coins on scarf colorways (E near the shop) ── */
   const SCARVES = [
-    ['#b5352a', 'Roja de siempre', 0], ['#a06414', 'Azafrán', 120], ['#1e5a52', 'Verde mar', 160],
-    ['#c9c2b0', 'Blanca de lino', 220], ['#a04868', 'Rosa vieja', 280], ['#2e2a26', 'Negra elegante', 400],
+    ['#b5352a', 'Classic Red', 0], ['#a06414', 'Saffron', 120], ['#1e5a52', 'Sea Green', 160],
+    ['#c9c2b0', 'Linen White', 220], ['#a04868', 'Dusty Rose', 280], ['#2e2a26', 'Elegant Black', 400],
   ];
   let scarfMask = lsGet('fly_scarf_mask') | 1;   // the red one is yours already
   let scarfSel = lsGet('fly_scarf_sel');
@@ -607,14 +607,14 @@ function start(ctx, world) {
   let shopOpen = false;
   const bazarAddr = world.addresses.find(a => a.name === 'BAZAR');
   function renderShop() {
-    shopEl.innerHTML = '<div class="h">EL BAZAR</div><div class="coins">🪙 ' + coins + '</div>'
+    shopEl.innerHTML = '<div class="h">THE BAZAAR</div><div class="coins">🪙 ' + coins + '</div>'
       + SCARVES.map(([hex, nm, price], i) => {
         const owned = !!(scarfMask & (1 << i));
         return '<div class="it' + (owned ? ' owned' : '') + (i === scarfSel ? ' worn' : '') + '" data-i="' + i + '">'
-          + '<span><span class="sw" style="background:' + hex + '"></span>Bufanda ' + nm + '</span>'
-          + '<span class="pr">' + (owned ? (i === scarfSel ? 'puesta' : 'tuya') : price + ' 🪙') + '</span></div>';
+          + '<span><span class="sw" style="background:' + hex + '"></span>' + nm + ' scarf</span>'
+          + '<span class="pr">' + (owned ? (i === scarfSel ? 'worn' : 'owned') : price + ' 🪙') + '</span></div>';
       }).join('')
-      + '<div class="bye">E para salir</div>';
+      + '<div class="bye">E to leave</div>';
     shopEl.querySelectorAll('.it').forEach(el => el.addEventListener('pointerdown', e => {
       e.preventDefault();
       const i = +el.dataset.i, [hex, nm, price] = SCARVES[i];
@@ -623,8 +623,8 @@ function start(ctx, world) {
         coins -= price; lsSet('fly_coins', coins);
         scarfMask |= (1 << i); lsSet('fly_scarf_mask', scarfMask);
         scarfSel = i; lsSet('fly_scarf_sel', scarfSel); applyScarf();
-        sfxBonus(); toast('🧣 ' + nm + ' — ¡preciosa!', '#c8862a'); renderBest();
-      } else { blip(160, 0.2, 'sawtooth', 0.08); toast('🪙 Te faltan ' + (price - coins), '#c04434'); }
+        sfxBonus(); toast('🧣 ' + nm + ' — lovely!', '#c8862a'); renderBest();
+      } else { blip(160, 0.2, 'sawtooth', 0.08); toast('🪙 You need ' + (price - coins) + ' more', '#c04434'); }
       renderShop();
     }));
   }
@@ -641,17 +641,17 @@ function start(ctx, world) {
     reporting = true;
     beam.visible = ring.visible = objLetter.visible = false;
     const nx = nextRank(totalDeliv);
-    repEl.innerHTML = '<div class="h">☀ DÍA ' + dayNum + ' — INFORME</div><div class="r">'
-      + 'Entregas <b>' + dayDeliv + '</b><br>'
-      + 'Puntos del día <b>' + dayScore + '</b><br>'
-      + 'Mejor combo <b>x' + dayBestCombo + '</b><br>'
-      + 'Monedas <b>+' + dayCoins + ' 🪙</b><br>'
-      + (dayLetters ? 'Cartas perdidas halladas <b>' + dayLetters + '</b><br>' : '')
-      + (dayStories ? 'Historias avanzadas <b>' + dayStories + '</b><br>' : '')
-      + 'Rango <b>' + rankName(totalDeliv) + '</b><br>'
-      + 'Dificultad <b>' + ['tranquila','animada','ajetreada','frenética','legendaria'][Math.min(4, Math.floor(dayDiff() * 4.9))] + '</b>'
-      + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' entregas para ' + nx[1] + '</span>' : '')
-      + '</div><div class="go">Comenzar el día ' + (dayNum + 1) + ' ▶</div>';
+    repEl.innerHTML = '<div class="h">☀ DAY ' + dayNum + ' — REPORT</div><div class="r">'
+      + 'Deliveries <b>' + dayDeliv + '</b><br>'
+      + 'Points today <b>' + dayScore + '</b><br>'
+      + 'Best combo <b>x' + dayBestCombo + '</b><br>'
+      + 'Coins <b>+' + dayCoins + ' 🪙</b><br>'
+      + (dayLetters ? 'Lost letters found <b>' + dayLetters + '</b><br>' : '')
+      + (dayStories ? 'Stories advanced <b>' + dayStories + '</b><br>' : '')
+      + 'Rank <b>' + rankName(totalDeliv) + '</b><br>'
+      + 'Pace <b>' + ['calm','lively','busy','frantic','legendary'][Math.min(4, Math.floor(dayDiff() * 4.9))] + '</b>'
+      + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' deliveries to ' + nx[1] + '</span>' : '')
+      + '</div><div class="go">Start day ' + (dayNum + 1) + ' ▶</div>';
     repEl.classList.add('on');
     sfxDeliver();
   }
@@ -661,7 +661,7 @@ function start(ctx, world) {
     dayNum++; lsSet('fly_day', dayNum);
     dayDeliv = 0; dayScore = 0; dayBestCombo = 1; dayStories = 0; dayLetters = 0; dayCoins = 0;
     tod = 0; applyTOD(0);
-    toast('☀ Día ' + dayNum + ' — amanece', '#c8862a');
+    toast('☀ Day ' + dayNum + ' — dawn', '#c8862a');
     newTask();
   }
   repEl.addEventListener('pointerdown', e => { e.preventDefault(); closeReport(); });
@@ -802,14 +802,14 @@ function start(ctx, world) {
   let dayNum = lsGet('fly_day') || 1, dayDeliv = 0, dayScore = 0, dayBestCombo = 1, dayStories = 0, dayLetters = 0;
   let coins = lsGet('fly_coins'), dayCoins = 0;
   let reporting = false;
-  const RANKS = [[0, 'Recadero'], [5, 'Mensajero'], [15, 'Cartero de Barrio'], [30, 'Correo Exprés'], [60, 'Leyenda de Villa Mott']];
+  const RANKS = [[0, 'Errand Runner'], [5, 'Messenger'], [15, 'Neighborhood Postie'], [30, 'Express Courier'], [60, 'Legend of Villa Mott']];
   function rankName(n) { let r = RANKS[0][1]; for (const [t, nm] of RANKS) if (n >= t) r = nm; return r; }
   function nextRank(n) { for (const [t, nm] of RANKS) if (n < t) return [t, nm]; return null; }
   function rankIdx(n) { let i = 0; RANKS.forEach(([t], k) => { if (n >= t) i = k; }); return i; }
 
   /* ── WARDROBE: one cap colorway unlocked per rank; C cycles the unlocked set.
      Hexes authored dark for the hot ACES rig (same trick as the hair palette). */
-  const CAPS = [['#8f231b', 'Roja'], ['#a06414', 'Azafrán'], ['#1e5a52', 'Verde Mar'], ['#58245c', 'Ciruela'], ['#a89858', 'Dorada']];
+  const CAPS = [['#8f231b', 'Red'], ['#a06414', 'Saffron'], ['#1e5a52', 'Sea Green'], ['#58245c', 'Plum'], ['#a89858', 'Gold']];
   let capSel = Math.min(lsGet('fly_cap_sel'), rankIdx(lsGet(LS.total)), CAPS.length - 1);
   function applyCap() {
     const cm = hero.userData.capMat;
@@ -867,8 +867,8 @@ function start(ctx, world) {
     beam.material.color.setHex(0x3ab0c8); ring.material.color.setHex(0x3ab0c8);
     beam.position.set(gustPos.x, gustGy + 15, gustPos.z);
     ring.position.set(gustPos.x, gustGy + 0.3, gustPos.z);
-    elLbl.textContent = '💨 ¡El viento!'; elDst.textContent = '¡Atrapa la carta!'; elSub.textContent = payload;
-    toast('💨 ¡El viento se llevó la carta!', '#3a7d99');
+    elLbl.textContent = '💨 The wind!'; elDst.textContent = 'Catch the letter!'; elSub.textContent = payload;
+    toast('💨 The wind took the letter!', '#3a7d99');
     blip(220, 0.5, 'sawtooth', 0.05);
   }
 
@@ -910,7 +910,7 @@ function start(ctx, world) {
     // traffic bump ruins it and sends you back for another
     const FRAG_FROM = ['CONFITERÍA', 'HELADOS', 'PANADERÍA', 'DULCES', 'QUESERÍA', 'EL HORNO'];
     const fr = !ex && delivered >= 2 && FRAG_FROM.includes(pu.name) && L.chance(0.55);
-    const pay2 = fr ? pick(['una tarta de tres pisos', 'helado de limón (se derrite)', 'una caja de merengues', 'flan de la abuela']) : pick(PAYLOADS);
+    const pay2 = fr ? pick(['a three-tier cake', 'lemon ice cream (melting!)', 'a box of meringues', 'grandma\'s custard']) : pick(PAYLOADS);
     return { pickup: pu, dropoff: dr, payload: pay2, express: ex, fragile: fr, budget, route };
   }
   let curStory = null;
@@ -925,7 +925,7 @@ function start(ctx, world) {
     jobBudget = j.budget; jobLeft = jobBudget; jobActive = true;
     setObjective();
     if (curStory) toast('📜 ' + curStory.name, '#c8862a');
-    else if (fragile) toast('🎂 Frágil — ¡ni un golpe! ×2', '#c04434');
+    else if (fragile) toast('🎂 Fragile — not one bump! ×2', '#c04434');
     else toast(express ? '⚡ Express — double pay! ' + Math.round(jobBudget) + 's' : 'New job · ' + Math.round(jobBudget) + 's', express ? '#c8862a' : '#3a7d99');
   }
   const offerEl = document.createElement('div'); offerEl.id = 'flyOffer'; offerEl.style.display = 'none';
@@ -945,11 +945,11 @@ function start(ctx, world) {
     for (let k = 0; k < 4 && b.pickup === a.pickup && b.dropoff === a.dropoff; k++) b = makeJob(!!a.story);
     offer = { jobs: [a, b], t: 9 };
     beam.visible = ring.visible = objLetter.visible = false;
-    elLbl.textContent = 'Encargos'; elDst.textContent = 'Choose a job'; elSub.textContent = 'press 1 / 2 — or tap a card';
+    elLbl.textContent = 'Jobs'; elDst.textContent = 'Choose a job'; elSub.textContent = 'press 1 / 2 — or tap a card';
     elTimerT.textContent = '--'; elTimerBar.style.width = '100%';
     offerEl.innerHTML = offer.jobs.map((j, i) =>
       '<div class="card' + (j.express ? ' ex' : '') + '" data-i="' + i + '">'
-      + '<div class="key">' + (i + 1) + (j.express ? ' · ⚡ express' : '') + (j.fragile ? ' · 🎂 frágil ×2' : '') + (j.story ? ' · 📜 historia' : '') + '</div>'
+      + '<div class="key">' + (i + 1) + (j.express ? ' · ⚡ express' : '') + (j.fragile ? ' · 🎂 fragile ×2' : '') + (j.story ? ' · 📜 story' : '') + '</div>'
       + '<div class="route">' + j.pickup.name + ' → ' + j.dropoff.name + '</div>'
       + '<div class="pay">' + j.payload + '</div>'
       + '<div class="meta">~' + Math.round(j.route) + 'm · ' + Math.round(j.budget) + 's · ~' + estPts(j) + ' pts</div>'
@@ -1159,11 +1159,11 @@ function start(ctx, world) {
       p.mesh.scale.setScalar(rand(0.8, 2.2));
       p.mesh.visible = true; p.placed = true;
     }
-    toast('🌧 Empieza a llover…', '#3a7d99');
+    toast('🌧 It\'s starting to rain…', '#3a7d99');
   }
   function stopRain() {
     raining = false; rainGroup.visible = false;
-    toast('🌤 Escampó', '#c8862a');
+    toast('🌤 The rain cleared', '#c8862a');
   }
   function updateWeather(dt, now) {
     if (!raining) {
@@ -1323,8 +1323,8 @@ function start(ctx, world) {
         sfxHazard(); blip(392, 0.25, 'square', 0.12);   // honk
         if (carrying && fragile && !gustLoose) {
           carrying = false; carriedLetter.visible = false; setObjective();
-          elSub.textContent = '💥 se rompió — vuelve a por otra';
-          setTimeout(() => toast('💥 ¡La tarta! Vuelve a por otra…', '#c04434'), 500);
+          elSub.textContent = '💥 it broke — go back for another';
+          setTimeout(() => toast('💥 The cake! Go get another…', '#c04434'), 500);
         }
         breakCombo('🚗 Bumped by traffic!');
         if (jobActive) jobLeft = Math.max(2, jobLeft - 4);
@@ -1349,7 +1349,7 @@ function start(ctx, world) {
   function addShake(amt) { if (!reducedMotion) { shake = Math.min(0.5, shake + amt); hitStop = Math.max(hitStop, amt > 0.25 ? 0.06 : 0.03); } }
   const baseFov = camera.fov;
   const hintEl = document.querySelector('#hint');
-  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · E bici · Tab mapa · L recados · P foto · M mute · O accesib.';
+  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · E bike · Tab map · L log · P photo · M mute · O access.';
 
   /* ── start card — the town idles behind it; first input begins the shift ── */
   beam.visible = ring.visible = objLetter.visible = false;
@@ -1357,14 +1357,14 @@ function start(ctx, world) {
   const startEl = document.createElement('div'); startEl.id = 'flyStart';
   const returning = totalDeliv > 0;
   const standing = returning
-    ? '<div class="stand">✦ ' + rankName(totalDeliv) + '  ·  Día ' + dayNum + '<br>'
+    ? '<div class="stand">✦ ' + rankName(totalDeliv) + '  ·  Day ' + dayNum + '<br>'
       + '🪙 ' + coins + '  ·  ✉ ' + lostCount() + '/10  ·  📜 ' + CHAINS.filter(c => chainDone(c)).length + '/' + CHAINS.length
-      + (heroDone ? '<br>🎖 Héroe de Villa Mott' : '') + '</div>'
+      + (heroDone ? '<br>🎖 Hero of Villa Mott' : '') + '</div>'
     : '';
-  startEl.innerHTML = '<div class="card"><div class="t">THE FLY</div><div class="s">' + (returning ? 'bienvenido de vuelta a Villa Mott' : 'a tiny courier tale') + '</div>'
+  startEl.innerHTML = '<div class="card"><div class="t">THE FLY</div><div class="s">' + (returning ? 'welcome back to Villa Mott' : 'a tiny courier tale') + '</div>'
     + standing
-    + '<div class="c">' + (IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · SHIFT run · E bici · Tab mapa') + '</div>'
-    + '<div class="go">' + (IS_TOUCH ? (returning ? 'toca para continuar' : 'toca para empezar') : (returning ? 'pulsa para continuar el día ' + dayNum : 'press any key to start')) + '</div></div>';
+    + '<div class="c">' + (IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · SHIFT run · E bike · Tab map') + '</div>'
+    + '<div class="go">' + (IS_TOUCH ? (returning ? 'tap to continue' : 'tap to start') : (returning ? 'press any key — continue day ' + dayNum : 'press any key to start')) + '</div></div>';
   hud.appendChild(startEl);
   function begin() {
     if (begun) return; begun = true;
@@ -1571,7 +1571,7 @@ function start(ctx, world) {
       if (gustT >= 1 && rdx * rdx + rdz * rdz < 3.2) {
         gustLoose = false; objLetter.rotation.z = 0;
         carriedLetter.visible = true; setObjective();
-        toast('✉ ¡Recuperada!', '#4d8a52'); sfxPick();
+        toast('✉ Got it back!', '#4d8a52'); sfxPick();
       }
     }
 
@@ -1631,7 +1631,7 @@ function start(ctx, world) {
 
     // discoverability: a whisper when a ride is available
     if (!ridingTram && !onBike && nearestTram()) {
-      if (!(tipsSeen & TIP_BITS.tram)) tipOnce('tram', '🚋 E — engánchate al tranvía (¡gratis!)');
+      if (!(tipsSeen & TIP_BITS.tram)) tipOnce('tram', '🚋 E — grab the tram (it\'s free!)');
       else if (now % 4000 < 20) toast('🚋 E', '#3a7d99');
     }
 
@@ -1646,7 +1646,7 @@ function start(ctx, world) {
         if (dx2 * dx2 + dz2 * dz2 < 12) {
           let base = u.name ? (u.name + ': ' + pick(PERSONA[u.name] || QUIPS_STREET)) : pick(QUIPS_STREET);
           // a time-of-day greeting sometimes leads the line
-          if (!u.name && L.chance(0.4)) base = (tod < 0.35 ? '¡Buenos días!' : tod > 0.55 ? '¡Buenas tardes!' : '¡Hola!');
+          if (!u.name && L.chance(0.4)) base = (tod < 0.35 ? 'Good morning!' : tod > 0.55 ? 'Good evening!' : 'Hello!');
           bubble(n.position.x, n.position.y + 2.05, n.position.z, base, u.name ? 3.0 : 2.4);
           quipCd = rand(7, 12); break;
         }
@@ -1726,7 +1726,7 @@ function start(ctx, world) {
       saveChains(); renderLog();
       if (chainDone(cs)) {
         score += 400; elScore.textContent = score;
-        setTimeout(() => { toast('📜 ¡Historia completada! +400', '#c8862a'); sfxBonus(); checkCompletion(); }, 800);
+        setTimeout(() => { toast('📜 Story complete! +400', '#c8862a'); sfxBonus(); checkCompletion(); }, 800);
       } else {
         setTimeout(() => toast('📜 ' + cs.name + ' (' + chainProg[cs.id] + '/' + cs.steps + ')', '#c8862a'), 800);
       }
@@ -1738,7 +1738,7 @@ function start(ctx, world) {
     totalDeliv++; lsSet(LS.total, totalDeliv);
     const nowRank = rankName(totalDeliv);
     if (nowRank !== prevRank) {
-      setTimeout(() => { toast('✦ ¡Ascenso! — ' + nowRank, '#ffd27a'); sfxBonus(); fxBurst(P.pos, [0xffd060, 0xffffff, 0xff9a6a], 26, 1.6); }, 1200);
+      setTimeout(() => { toast('✦ Promoted! — ' + nowRank, '#ffd27a'); sfxBonus(); fxBurst(P.pos, [0xffd060, 0xffffff, 0xff9a6a], 26, 1.6); }, 1200);
       const ni = rankIdx(totalDeliv);
       if (ni < CAPS.length) {
         capSel = ni; lsSet('fly_cap_sel', capSel); applyCap();

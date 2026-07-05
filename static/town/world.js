@@ -1230,8 +1230,8 @@ function build(ctx) {
   // NAMED REGULARS — the same four townsfolk, always at their spots (userData
   // carries the name; game.js gives them personal lines)
   [
-    ['DOÑA REMEDIOS', 1.2, SW + 3.6, Math.PI],        // by the fountain, feeding pigeons
-    ['SR. BIGOTES', PARK_CX + 9.5, -(SW + 2.3), 0],   // beside the park cat
+    ['GRANNY MABEL', 1.2, SW + 3.6, Math.PI],        // by the fountain, feeding pigeons
+    ['MR. WHISKERS', PARK_CX + 9.5, -(SW + 2.3), 0],   // beside the park cat
     ['TEO', 13.5, SW + 2.6, Math.PI / 2],             // loitering at the plaza café
     ['MARISOL', 154.2, 3.2, -Math.PI / 2],            // works the fish quay
   ].forEach(([nm, x, z, ry]) => {
@@ -1274,7 +1274,7 @@ function build(ctx) {
     wheel.position.set(x - 1.1, CH + 0.08, z + 0.9); wheel.rotation.x = Math.PI / 2 - 0.22; wheel.castShadow = true; root.add(wheel);
     root.add(L.box(0.5, 0.22, 0.3, L.std({ colorHex: '#8a3a30', roughness: 0.6 }), { x: x + 1.1, y: CH + 0.11, z: z + 0.8 }));
     for (let k = 0; k < 3; k++) root.add(L.cyl(0.02, 0.02, 0.22, 5, L.MAT.metalLight, { x: x + 0.9 + k * 0.12, y: CH + 0.03, z: z + 1.15, cast: false }));
-    poseNPC(x + 0.1, z + 1.25, Math.PI, 'CHUS', 'kneel', (n, dt, now) => {
+    poseNPC(x + 0.1, z + 1.25, Math.PI, 'GUS', 'kneel', (n, dt, now) => {
       n.userData.limbs.armR.rotation.x = -0.9 + Math.sin(now * 0.008) * 0.28;   // wrenching
     });
     colC(x, z, 1.1);
@@ -1296,7 +1296,7 @@ function build(ctx) {
   // V3 — EL VIEJO TOMÁS fishes off the quay edge (bobber in the water)
   (function vFisher() {
     const x = 165.1, z = -16.5, dy = 0.28;
-    poseNPC(x, z, Math.PI / 2, 'EL VIEJO TOMÁS', 'sit', null, dy);
+    poseNPC(x, z, Math.PI / 2, 'OLD TOM', 'sit', null, dy);
     const rod = L.cyl(0.015, 0.025, 1.7, 5, L.MAT.wood('#6a5236'), { x: x + 0.75, y: dy + 0.75, z: z + 0.1 });
     rod.rotation.z = -1.05; root.add(rod);
     root.add(L.box(0.012, 1.05, 0.012, L.MAT.flat('#2a2a30'), { x: x + 1.55, y: dy + 0.6, z: z + 0.1, cast: false }));
@@ -1369,7 +1369,7 @@ function build(ctx) {
     root.add(L.box(2.6, 0.07, 0.34, L.MAT.wood('#9a8058'), { x, y: CH + 0.95, z }));
     root.add(L.box(1.6, 0.3, 0.5, L.MAT.wood('#75593a'), { x: x - 0.4, y: CH + 0.15, z: z + 1.1 }));
     const dust = L.decal(1.4, 0.9, L.std({ colorHex: '#d8cba8', roughness: 1 }), CH + 0.012); dust.position.set(x + 0.4, CH + 0.012, z + 0.5); root.add(dust);
-    poseNPC(x + 0.3, z - 1.05, 0, 'RAMÓN', null, (n, dt, now) => {
+    poseNPC(x + 0.3, z - 1.05, 0, 'RAMON', null, (n, dt, now) => {
       const lm = n.userData.limbs;
       lm.armR.rotation.x = -0.85 + Math.sin(now * 0.011) * 0.42;   // sawing
       if (lm.armR.userData.fore) lm.armR.userData.fore.rotation.x = -0.4;
