@@ -157,6 +157,7 @@ function start(ctx, world) {
   function setCarryItem() {
     for (const t in carries) carries[t].visible = false;
     carriedLetter = carries[carryType()];
+    setObjMarker();
   }
 
   /* ── objective markers ── */
@@ -165,11 +166,30 @@ function start(ctx, world) {
   const ring = new T.Mesh(new T.TorusGeometry(1.6, 0.13, 8, 28), new T.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.85, depthWrite: false }));
   ring.rotation.x = -Math.PI / 2; scene.add(ring); toFx(ring); L.curve(ring.material);
   const objLetter = new T.Group();
+  const objEnv = new T.Group();
   { const env = L.box(0.9, 0.62, 0.1, letterMat);
     env.add(L.box(0.9, 0.34, 0.01, L.std({ color: 0xdcd0b0, roughness: 0.7 }), { y: 0.05, z: 0.052, cast: false }));
     env.add(L.box(0.22, 0.22, 0.01, L.std({ color: 0xc0463e, roughness: 0.7, emissive: 0x802820, emissiveIntensity: 0.2 }), { x: 0.26, y: 0.13, z: 0.053, cast: false }));
-    objLetter.add(env); }
+    objEnv.add(env); }
+  objLetter.add(objEnv);
   scene.add(objLetter); toFx(objLetter);
+  // scaled-up parcel markers (built after makeCarry is defined, below)
+  let objMarkers = null;
+  function buildObjMarkers() {
+    objMarkers = {};
+    ['cake', 'bouquet', 'parcel', 'postcard'].forEach(t => {
+      const m = makeCarry(t); m.scale.setScalar(2.2); m.visible = false; objLetter.add(m); toFx(m); objMarkers[t] = m;
+    });
+  }
+  function setObjMarker() {
+    if (!objMarkers) return;
+    const t = carryType();
+    objEnv.visible = (t === 'envelope' || t === 'postcard' ? t === 'envelope' : false) || t === 'envelope';
+    for (const k in objMarkers) objMarkers[k].visible = false;
+    if (t !== 'envelope' && objMarkers[t]) { objMarkers[t].visible = true; objEnv.visible = false; }
+    else objEnv.visible = true;
+  }
+  buildObjMarkers();
 
   /* ── HUD refs (existing ids) ── */
   const $ = s => document.querySelector(s);
