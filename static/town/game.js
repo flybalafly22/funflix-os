@@ -325,6 +325,29 @@ function start(ctx, world) {
   const NPCS = world.npcs || [];
   let quipCd = 5;
 
+  /* ── ONBOARDING — one-time contextual tips (persisted), so the new verbs
+     (bike, tram, shop) are discoverable without nagging. ── */
+  let tipsSeen = lsGet('fly_tips');
+  const TIP_BITS = { bike: 1, tram: 2, shop: 4, letter: 8, day: 16 };
+  let tipCd = 0;
+  function tipOnce(key, text) {
+    const bit = TIP_BITS[key];
+    if (tipsSeen & bit) return false;
+    if (tipCd > 0) return false;                 // don't stack tips
+    tipsSeen |= bit; lsSet('fly_tips', tipsSeen);
+    toast(text, '#3a7d99'); tipCd = 4;
+    blip(720, 0.08, 'triangle', 0.05);
+    return true;
+  }
+  function updateTips(dt) {
+    tipCd = Math.max(0, tipCd - dt);
+    if (!begun || onBike || ridingTram || offer || reporting) return;
+    if (!(tipsSeen & TIP_BITS.bike) && Math.hypot(bike.position.x - P.pos.x, bike.position.z - P.pos.z) < 3.2)
+      tipOnce('bike', 'E — súbete a la bici 🚲');
+    else if (!(tipsSeen & TIP_BITS.shop) && bazarAddr && coins >= 120 && Math.hypot(bazarAddr.pos.x - P.pos.x, bazarAddr.pos.z - P.pos.z) < 8)
+      tipOnce('shop', 'E — entra al Bazar por una bufanda 🧣');
+  }
+
   /* ── STORY CHAINS — small multi-step delivery tales with a paper checklist.
      Steps arrive through the normal job flow (tagged 📜); finishing a chain
      pays a bonus and strikes it through in the log. Progress persists. ── */
@@ -421,7 +444,8 @@ function start(ctx, world) {
         sfxBonus(); renderLog();
         const n = lostCount();
         if (n >= 10) { score += 1000; elScore.textContent = score; setTimeout(() => { toast('✉ ¡Las diez cartas! +1000', '#c8862a'); sfxDeliver(); }, 700); }
-        else toast('✉ Carta perdida ' + n + '/10  +150', '#c8862a');
+        else { toast('✉ Carta perdida ' + n + '/10  +150', '#c8862a');
+          if (n === 1) setTimeout(() => tipOnce('letter', 'Hay 10 cartas perdidas escondidas por el pueblo ✉'), 1400); }
       }
     }
   }
@@ -1296,7 +1320,10 @@ function start(ctx, world) {
     }
 
     // discoverability: a whisper when a ride is available
-    if (!ridingTram && !onBike && now % 4000 < 20 && nearestTram()) toast('🚋 E — súbete', '#3a7d99');
+    if (!ridingTram && !onBike && nearestTram()) {
+      if (!(tipsSeen & TIP_BITS.tram)) tipOnce('tram', '🚋 E — engánchate al tranvía (¡gratis!)');
+      else if (now % 4000 < 20) toast('🚋 E', '#3a7d99');
+    }
 
     /* idle townsfolk quips — someone nearby says something small */
     quipCd -= dt;
@@ -1326,6 +1353,7 @@ function start(ctx, world) {
     tod += (dayFrac - tod) * L.dampT(dt, 0.5);
     applyTOD(reporting ? 1 : tod);
     updateMusic(now, tod);
+    updateTips(dt);
     if (gradeU) {
       gradeU.uSat.value = gradeSatBase * (1 - gradeBlend * 0.28);
       gradeU.uVig.value = gradeVigBase + gradeBlend * 0.14 + tod * 0.06;
