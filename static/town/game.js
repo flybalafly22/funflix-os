@@ -1831,6 +1831,17 @@ function start(ctx, world) {
       g.beginPath(); g.arc(ox, oy, pulse, 0, TAU); g.fill();
       g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 1.5; g.stroke();
     }
+    // nearby uncollected letters twinkle (only when within ~18m — a warm hint,
+    // not a solution)
+    for (let i = 0; i < LOST_SPOTS.length; i++) {
+      if (lostMask & (1 << i)) continue;
+      const [lx, lz] = LOST_SPOTS[i];
+      if (Math.hypot(lx - P.pos.x, lz - P.pos.z) > 18) continue;
+      const [px2, py2] = mapXY(lx, lz);
+      const tw = 0.5 + 0.5 * Math.sin(performance.now() * 0.006 + i);
+      g.fillStyle = 'rgba(200,166,72,' + (0.35 + tw * 0.5).toFixed(2) + ')';
+      g.beginPath(); g.arc(px2, py2, 2.4, 0, TAU); g.fill();
+    }
     // parked bike
     if (!onBike) {
       const [bx2, by2] = mapXY(bike.position.x, bike.position.z);
