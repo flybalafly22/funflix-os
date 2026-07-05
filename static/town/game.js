@@ -721,6 +721,7 @@ function start(ctx, world) {
     'a wedding invitation', 'a small tin of saffron', 'a secret, sealed twice',
   ];
   let payload = '', express = false, fragile = false;
+  let squash = 0;   // brief squash-and-stretch impulse (pickup/deliver juice)
   /* the wind: sometimes it rips the letter out of your hands mid-run */
   let gustPending = false, gustAt = 0, gustLoose = false, gustT = 0;
   const gustPos = new T.Vector3(), gustFrom = new T.Vector3();
@@ -1178,6 +1179,28 @@ function start(ctx, world) {
     // secondary motion: lean into the run (the pack and hood ride the torso)
     const tor = hero.userData.torso, ga = hero.userData.gait;
     if (tor && ga) tor.rotation.x = ga.baseRX + spd01 * 0.16;
+    // HEAD-TURN: glance toward the current objective (or the loose letter), clamped
+    const hg = hero.userData.headGrp;
+    if (hg) {
+      const _lt = carrying ? dropoff : pickup;
+      const look = gustLoose ? gustPos : (_lt && _lt.pos ? _lt.pos : null);
+      let wantYaw = 0, wantPitch = 0;
+      if (look && !reporting) {
+        const bearing = Math.atan2(look.x - P.pos.x, look.z - P.pos.z);
+        let rel = bearing - P.yaw; rel = Math.atan2(Math.sin(rel), Math.cos(rel));
+        wantYaw = clamp(rel, -0.7, 0.7);                       // don't crank the neck past a glance
+        const d2t = Math.hypot(look.x - P.pos.x, look.z - P.pos.z);
+        if (d2t < 6) wantPitch = clamp(((look.y || 0) + 1.4 - (P.pos.y + 1.5)) / Math.max(2, d2t), -0.35, 0.4);
+      }
+      hg.rotation.y = lerp(hg.rotation.y, wantYaw, L.dampT(dt, 6));
+      hg.rotation.x = lerp(hg.rotation.x, wantPitch + Math.sin(now * 0.0013) * 0.03, L.dampT(dt, 5));
+    }
+    // SQUASH-AND-STRETCH: a springy pop on pickup/deliver
+    if (squash > 0) {
+      squash = Math.max(0, squash - dt * 3.4);
+      const s = Math.sin(squash * Math.PI);        // 0→peak→0
+      hero.scale.set(1 - s * 0.14, 1 + s * 0.2, 1 - s * 0.14);
+    } else if (hero.scale.y !== 1) hero.scale.set(1, 1, 1);
     // one shared breeze clock for every leaf in town
     L.windUniform.value = now * 0.0011;
 
@@ -1306,7 +1329,7 @@ function start(ctx, world) {
     /* ── pick-up / deliver ── */
     if (!choosing && dPlanar < 4.5) {
       if (!carrying) {
-        carrying = true; carriedLetter.visible = true; toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
+        carrying = true; carriedLetter.visible = true; squash = 1; toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
         if (!curStory && !fragile && jobBudget > 18 && L.chance(0.3)) { gustPending = true; gustAt = now + rand(3500, 8500); }
         else if (!curStory && !fragile && !gustPending && delivered >= 4 && L.chance(0.28)) startRace(dropoff);
         if (curStory) say(pickup.name, curStory.pick);
@@ -1365,7 +1388,7 @@ function start(ctx, world) {
   }
 
   function deliver(tg) {
-    delivered++;
+    delivered++; squash = 1;
     jobActive = false;
     // speed/time bonus: more left on the clock = more points
     const timeFrac = clamp(jobLeft / jobBudget, 0, 1);

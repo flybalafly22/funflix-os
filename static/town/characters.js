@@ -683,46 +683,49 @@ function makeHero() {
   // neck
   torso.add(L.cyl(0.06, 0.07, 0.13, 8, skMat, { y: neckY - 0.03, cast: false }));
 
-  // ── HEAD + expressive face ──
+  // ── HEAD + expressive face (a HEAD PIVOT at the neck so game.js can turn it) ──
   const headR = 0.20 * build;
-  const head = L.sphere(headR, 16, skMat, { y: headY });
-  head.scale.set(0.96, 1.06, 0.98); torso.add(head);
+  const headGrp = new T.Group(); headGrp.position.set(0, headY, 0); torso.add(headGrp);
+  g.userData.headGrp = headGrp;   // head-turn target
+  const H = headGrp;   // pieces are positioned RELATIVE to the pivot (subtract headY)
+  const head = L.sphere(headR, 16, skMat, { y: 0 });
+  head.scale.set(0.96, 1.06, 0.98); H.add(head);
   // ears
-  [-1, 1].forEach(s => torso.add(L.sphere(0.05, 6, skMat, { x: s * headR * 0.95, y: headY - 0.01, z: -0.01, cast: false })));
+  [-1, 1].forEach(s => H.add(L.sphere(0.05, 6, skMat, { x: s * headR * 0.95, y: -0.01, z: -0.01, cast: false })));
   // small nose
-  torso.add(L.sphere(0.036, 6, skMat, { y: headY - 0.015, z: headR * 0.98, cast: false }));
+  H.add(L.sphere(0.036, 6, skMat, { y: -0.015, z: headR * 0.98, cast: false }));
   // eyes (whites + pupils) — set a touch wide & bright for a youthful read
   [-0.075, 0.075].forEach(ex => {
-    torso.add(L.sphere(0.044, 8, WHITE, { x: ex, y: headY + 0.025, z: headR * 0.84, cast: false }));
-    torso.add(L.sphere(0.024, 6, EYE, { x: ex, y: headY + 0.02, z: headR * 0.92, cast: false }));
+    H.add(L.sphere(0.044, 8, WHITE, { x: ex, y: 0.025, z: headR * 0.84, cast: false }));
+    H.add(L.sphere(0.024, 6, EYE, { x: ex, y: 0.02, z: headR * 0.92, cast: false }));
     // catch-light glint
-    torso.add(L.sphere(0.008, 6, WHITE, { x: ex + 0.012, y: headY + 0.05, z: headR * 0.95, cast: false }));
+    H.add(L.sphere(0.008, 6, WHITE, { x: ex + 0.012, y: 0.05, z: headR * 0.95, cast: false }));
   });
   // brows
-  [-0.075, 0.075].forEach(ex => torso.add(L.box(0.06, 0.014, 0.01, hrMat, { x: ex, y: headY + 0.085, z: headR * 0.88, cast: false })));
+  [-0.075, 0.075].forEach(ex => H.add(L.box(0.06, 0.014, 0.01, hrMat, { x: ex, y: 0.085, z: headR * 0.88, cast: false })));
   // a small friendly smile
-  torso.add(L.box(0.07, 0.016, 0.012, MOUTH, { y: headY - 0.08, z: headR * 0.90, cast: false }));
+  H.add(L.box(0.07, 0.016, 0.012, MOUTH, { y: -0.08, z: headR * 0.90, cast: false }));
   // rosy cheek dabs
-  [-1, 1].forEach(s => torso.add(L.sphere(0.026, 6, L.std({ color: 0xe09a7a, roughness: 0.7 }), { x: s * 0.10, y: headY - 0.04, z: headR * 0.86, cast: false })));
+  [-1, 1].forEach(s => H.add(L.sphere(0.026, 6, L.std({ color: 0xe09a7a, roughness: 0.7 }), { x: s * 0.10, y: -0.04, z: headR * 0.86, cast: false })));
 
   // ── HAIR (a tuft front fringe + sides peeking under the cap) ──
-  const hairCap = L.sphere(headR * 1.04, 12, hrMat, { y: headY + 0.04, cast: false });
-  hairCap.scale.set(1.04, 0.86, 1.04); torso.add(hairCap);
+  const hairCap = L.sphere(headR * 1.04, 12, hrMat, { y: 0.04, cast: false });
+  hairCap.scale.set(1.04, 0.86, 1.04); H.add(hairCap);
   // front fringe tufts
   for (let i = -1; i <= 1; i++) {
-    torso.add(L.sphere(0.05, 8, hrMat, { x: i * 0.08, y: headY + 0.10, z: headR * 0.70, cast: false }));
+    H.add(L.sphere(0.05, 8, hrMat, { x: i * 0.08, y: 0.10, z: headR * 0.70, cast: false }));
   }
   // sideburn hints
-  [-1, 1].forEach(s => torso.add(L.box(0.03, 0.10, 0.04, hrMat, { x: s * headR * 0.92, y: headY - 0.02, z: headR * 0.30, cast: false })));
+  [-1, 1].forEach(s => H.add(L.box(0.03, 0.10, 0.04, hrMat, { x: s * headR * 0.92, y: -0.02, z: headR * 0.30, cast: false })));
 
   // ── CAP (red ball-cap with a forward bill) — echoes the pack ──
-  const dome = L.sphere(headR * 1.05, 12, capMat, { y: headY + 0.07, cast: false });
-  dome.scale.set(1.04, 0.66, 1.04); torso.add(dome);
-  torso.add(L.box(0.22, 0.022, 0.16, capMat, { y: headY + 0.09, z: headR * 0.92, cast: false })); // bill
-  torso.add(L.sphere(0.02, 6, capMat, { y: headY + 0.20, cast: false }));                          // button
+  const dome = L.sphere(headR * 1.05, 12, capMat, { y: 0.07, cast: false });
+  dome.scale.set(1.04, 0.66, 1.04); H.add(dome);
+  H.add(L.box(0.22, 0.022, 0.16, capMat, { y: 0.09, z: headR * 0.92, cast: false })); // bill
+  H.add(L.sphere(0.02, 6, capMat, { y: 0.20, cast: false }));                          // button
   // cream base band so the cap reads as a cap, not a painted scalp
   const capBand = new T.Mesh(new T.TorusGeometry(headR * 1.0, 0.02, 6, 16), L.std({ color: 0xd8cdb2, roughness: 0.8 }));
-  capBand.position.y = headY + 0.02; capBand.rotation.x = L.TAU / 4; torso.add(capBand);
+  capBand.position.y = 0.02; capBand.rotation.x = L.TAU / 4; H.add(capBand);
 
   // ── ARMS (pivot at shoulder; internal forearm group + hand) ── hoodie sleeves
   const armL = new T.Group(), armR = new T.Group();
