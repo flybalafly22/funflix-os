@@ -810,6 +810,36 @@ function make(spec) {
       if (L.chance(0.35)) {
         for (let i = 0; i < 3; i++) g.add(L.box(0.3, 0.4, 0.02, L.MAT.flat(L.pick(['#e8e0d0', '#d06080', '#5080b0', '#e0c050'])), { x: -span / 4 + i * span / 4, y: by + 0.9, z: frontZ + proj - 0.1, cast: false }));
       }
+      // ── balcony life — potted plants, a chair, a watering can, sometimes a cat ──
+      const bz = frontZ + proj * 0.55, bfloorY = by + 0.09;
+      // a potted plant or two on the ledge
+      const potN = L.randInt(1, 2);
+      for (let pi = 0; pi < potN; pi++) {
+        const pxb = L.rand(-span / 2 + 0.2, span / 2 - 0.2);
+        g.add(L.cyl(0.12, 0.09, 0.22, 8, L.std({ color: parseInt(L.pick(['#b06a48', '#9a5a3a', '#c4b8a0']).replace('#', '0x')), roughness: 0.9 }), { x: pxb, y: bfloorY + 0.11, z: bz, cast: false }));
+        const leaf = L.std({ color: parseInt(L.pick(L.PAL.foliage).replace('#', '0x')), roughness: 0.9 });
+        for (let l = 0; l < 3; l++) g.add(L.sphere(0.12, 6, leaf, { x: pxb + L.jitter(0.08), y: bfloorY + 0.32 + l * 0.06, z: bz + L.jitter(0.06), cast: false }));
+      }
+      // a little chair
+      if (L.chance(0.4)) {
+        const cxb = L.rand(-span / 3, span / 3);
+        g.add(L.box(0.28, 0.05, 0.28, L.MAT.wood('#8a6a44'), { x: cxb, y: bfloorY + 0.22, z: bz, cast: false }));
+        g.add(L.box(0.28, 0.3, 0.05, L.MAT.wood('#8a6a44'), { x: cxb, y: bfloorY + 0.38, z: bz - 0.11, cast: false }));
+        for (const lx of [-1, 1]) g.add(L.box(0.04, 0.22, 0.04, L.MAT.wood('#75593a'), { x: cxb + lx * 0.11, y: bfloorY + 0.11, z: bz + 0.11, cast: false }));
+      }
+      // a watering can
+      if (L.chance(0.3)) {
+        const wxb = L.rand(-span / 2 + 0.3, span / 2 - 0.3);
+        g.add(L.cyl(0.09, 0.1, 0.16, 8, L.MAT.metalLight, { x: wxb, y: bfloorY + 0.12, z: bz, cast: false }));
+        const spout = L.cyl(0.02, 0.03, 0.2, 6, L.MAT.metalLight, { x: wxb + 0.14, y: bfloorY + 0.16, z: bz, cast: false }); spout.rotation.z = 0.8; g.add(spout);
+      }
+      // a sunning cat, top floor only
+      if (f === Math.min(floors - 1, 3) && L.chance(0.14)) {
+        const kxb = L.rand(-span / 3, span / 3), catMat = L.std({ color: parseInt(L.pick(['#3a3330', '#c8a860', '#d8d0c4', '#8a6040']).replace('#', '0x')), roughness: 0.85 });
+        const body = L.sphere(0.13, 8, catMat, { x: kxb, y: bfloorY + 0.15, z: bz, cast: false }); body.scale.set(1.5, 0.7, 0.9); g.add(body);
+        g.add(L.sphere(0.08, 7, catMat, { x: kxb + 0.16, y: bfloorY + 0.2, z: bz, cast: false }));   // head
+        for (const ex2 of [-1, 1]) g.add(L.box(0.03, 0.05, 0.02, catMat, { x: kxb + 0.16 + ex2 * 0.04, y: bfloorY + 0.27, z: bz, cast: false }));  // ears
+      }
     }
   }
   // NEON blade sign (if not already added through archetype; civic/apartment etc.)
