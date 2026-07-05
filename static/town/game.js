@@ -436,25 +436,25 @@ function start(ctx, world) {
      Steps arrive through the normal job flow (tagged 📜); finishing a chain
      pays a bonus and strikes it through in the log. Progress persists. ── */
   const CHAINS = [
-    { id: 'boda', name: 'The wedding in the square', steps: 3, from: 'FLORERÍA', to: 'AYUNTAMIENTO', payload: 'flowers for the wedding',
+    { id: 'boda', name: 'The wedding in the square', steps: 3, from: 'FLORIST', to: 'TOWN HALL', payload: 'flowers for the wedding',
       pick: 'The wedding flowers! Please get them there fresh.',
       drops: ['First of three… thank you, courier!', 'Almost everything\'s ready for the ceremony…', 'The wedding can begin! You\'re a gem.'] },
-    { id: 'faro', name: 'The lighthouse crossword', steps: 2, from: 'LA PRENSA', to: 'EL FARO', payload: 'the daily crossword',
+    { id: 'faro', name: 'The lighthouse crossword', steps: 2, from: 'THE PRESS', to: 'THE LIGHTHOUSE', payload: 'the daily crossword',
       pick: 'The keeper can\'t live without his crossword.',
       drops: ['He says seven-down was \'lighthouse\'. Of course.', 'Done! The keeper waves from the tower.'] },
-    { id: 'postal', name: 'Postcards from the coast', steps: 3, from: 'EL CORREO', to: 'GALERÍA', payload: 'a postcard from the coast',
+    { id: 'postal', name: 'Postcards from the coast', steps: 3, from: 'THE POST OFFICE', to: 'GALLERY', payload: 'a postcard from the coast',
       pick: 'A postcard from the coast — sand and all.',
       drops: ['The gallery will frame it this afternoon.', 'One more for the collection…', 'The exhibition is complete! Come see it.'] },
-    { id: 'carta', name: 'The fisherman\'s letter', steps: 2, from: 'EL PESQUERO', to: 'LA ERMITA', payload: 'the fisherman\'s letter',
+    { id: 'carta', name: 'The fisherman\'s letter', steps: 2, from: 'THE FISHING BOAT', to: 'THE CHAPEL', payload: 'the fisherman\'s letter',
       pick: 'From the docks to the hill. The hermit awaits news of the sea.',
       drops: ['The hermit smiles: \'the sea\'s still there\', he says.', 'And this time… a tin of sardines as a gift!'] },
-    { id: 'reloj', name: 'The stopped clock', steps: 2, from: 'RELOJERÍA', to: 'TORRE DEL RELOJ', payload: 'a part for the clock',
+    { id: 'reloj', name: 'The stopped clock', steps: 2, from: 'CLOCKMAKER', to: 'CLOCK TOWER', payload: 'a part for the clock',
       pick: 'The tower\'s been stopped since Tuesday. This part will fix it.',
       drops: ['The bellringer fits it carefully… tick, tick.', 'The tower keeps time again! The whole town hears it.'] },
-    { id: 'concierto', name: 'The grand concert', steps: 3, from: 'MÚSICA', to: 'TEATRO MOTT', payload: 'the concert score',
+    { id: 'concierto', name: 'The grand concert', steps: 3, from: 'MUSIC SHOP', to: 'MOTT THEATRE', payload: 'the concert score',
       pick: 'The orchestra can\'t rehearse without the score. Run!',
       drops: ['The violins have it now…', 'Now the winds. It sounds lovely.', 'The theatre fills tonight! They\'ve saved you a ticket.'] },
-    { id: 'tren', name: 'The last train', steps: 2, from: 'CORREO CENTRAL', to: 'EL BUZÓN', payload: 'a train ticket',
+    { id: 'tren', name: 'The last train', steps: 2, from: 'CENTRAL POST', to: 'THE MAILBOX', payload: 'a train ticket',
       pick: 'Someone leaves this afternoon. Get the ticket there in time.',
       drops: ['You drop it in the mailbox, still warm from the press.', 'Just in time! They wave from the platform.'] },
   ];
@@ -605,7 +605,7 @@ function start(ctx, world) {
   const shopEl = document.createElement('div'); shopEl.id = 'flyShop';
   hud.appendChild(shopEl);
   let shopOpen = false;
-  const bazarAddr = world.addresses.find(a => a.name === 'BAZAR');
+  const bazarAddr = world.addresses.find(a => a.name === 'BAZAAR');
   function renderShop() {
     shopEl.innerHTML = '<div class="h">THE BAZAAR</div><div class="coins">🪙 ' + coins + '</div>'
       + SCARVES.map(([hex, nm, price], i) => {
@@ -908,7 +908,7 @@ function start(ctx, world) {
     if (delivered === 0) budget *= 1.6;           // warm-up welcome job
     // sweet shops sometimes hand you something breakable: double pay, but a
     // traffic bump ruins it and sends you back for another
-    const FRAG_FROM = ['CONFITERÍA', 'HELADOS', 'PANADERÍA', 'DULCES', 'QUESERÍA', 'EL HORNO'];
+    const FRAG_FROM = ['SWEET SHOP', 'ICE CREAM', 'BAKERY', 'SWEETS', 'CHEESE SHOP', 'THE BAKEHOUSE'];
     const fr = !ex && delivered >= 2 && FRAG_FROM.includes(pu.name) && L.chance(0.55);
     const pay2 = fr ? pick(['a three-tier cake', 'lemon ice cream (melting!)', 'a box of meringues', 'grandma\'s custard']) : pick(PAYLOADS);
     return { pickup: pu, dropoff: dr, payload: pay2, express: ex, fragile: fr, budget, route };
