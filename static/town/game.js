@@ -496,7 +496,7 @@ function start(ctx, world) {
     if (festival <= 0) return;
     festival -= dt;
     // fireworks over the plaza on a loop
-    if (Math.random() < dt * 2.5) {
+    if (Math.random() < dt * (reducedMotion ? 0.8 : 2.5)) {
       const fx = _plazaC.x + rand(-14, 14), fz = _plazaC.z + rand(-6, 10);
       fxBurst({ x: fx, y: 0, z: fz }, [0xffd27a, 0xff8f8f, 0x9fd0ff, 0x7fe0a0, 0xffffff], 22, rand(9, 15));
       if (AC) blip(rand(400, 900), 0.18, 'triangle', 0.06);
@@ -634,6 +634,9 @@ function start(ctx, world) {
   let carrying = false, pickup = null, dropoff = null, delivered = 0;
   let score = 0;
   const IS_TOUCH = window.matchMedia && matchMedia('(hover: none), (pointer: coarse)').matches;
+  // accessibility: honor the OS reduced-motion preference, plus a manual toggle (O)
+  let reducedMotion = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 1 : lsGet0('fly_reduced');
+  if (localStorage.getItem('fly_reduced') != null) reducedMotion = lsGet0('fly_reduced');
   /* ── TIME OF DAY — dawns bright, slides to a golden dusk across the day's 8
      deliveries; the report is at last light. Interpolates the whole rig. ── */
   const _sun = ctx.sun, _hemi = ctx.hemi, _sky = ctx.skyMat, _rend = ctx.renderer;
@@ -1017,6 +1020,8 @@ function start(ctx, world) {
   addEventListener('keydown', e => {
     keys[e.code] = true; initAudio();
     if (e.code === 'KeyM') toggleMute();
+    if (e.code === 'KeyO' && begun) { reducedMotion = reducedMotion ? 0 : 1; lsSet('fly_reduced', reducedMotion);
+      toast(reducedMotion ? '♿ Movimiento reducido' : 'Movimiento normal', '#3a7d99'); }
     if (e.code === 'KeyE' && begun && !offer) {
       if (shopOpen) toggleShop(false);
       else if (ridingTram) hopOffTram();
@@ -1085,7 +1090,9 @@ function start(ctx, world) {
       rainT += dt;
       if (rainT > rand(35, 55) || rainT > 55) stopRain();
       rainGroup.position.set(P.pos.x, 0, P.pos.z);
-      for (const m of rainDrops) {
+      for (let ri = 0; ri < rainDrops.length; ri++) {
+        const m = rainDrops[ri];
+        m.visible = !(reducedMotion && (ri & 1));      // half the drops in reduced mode
         m.position.y -= 20 * dt;
         m.position.x += 3.2 * dt;               // wind-blown slant
         if (m.position.y < -0.5) { m.position.set(rand(-RAIN_R, RAIN_R), rand(9, 13), rand(-RAIN_R, RAIN_R)); }
@@ -1159,7 +1166,7 @@ function start(ctx, world) {
   let mapAcc2 = 0;
   const baseFov = camera.fov;
   const hintEl = document.querySelector('#hint');
-  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · E bici · Tab mapa · L recados · P foto · M mute';
+  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · E bici · Tab mapa · L recados · P foto · M mute · O accesib.';
 
   /* ── start card — the town idles behind it; first input begins the shift ── */
   beam.visible = ring.visible = objLetter.visible = false;
@@ -1460,7 +1467,7 @@ function start(ctx, world) {
       gradeU.uSat.value = gradeSatBase * (1 - gradeBlend * 0.28);
       gradeU.uVig.value = gradeVigBase + gradeBlend * 0.14 + tod * 0.06;
       // speed lines: ramp in above ~65% top speed; go gold when the combo's hot
-      const fast = clamp((spd01 - 0.62) / 0.38, 0, 1) * (onBike ? 1 : 0.85);
+      const fast = reducedMotion ? 0 : clamp((spd01 - 0.62) / 0.38, 0, 1) * (onBike ? 1 : 0.85);
       gradeU.uSpeed.value = lerp(gradeU.uSpeed.value, fast * 0.5, L.dampT(dt, 8));
       gradeU.uSpeedCol.value.setHex(combo >= 3 ? 0xffe4a0 : 0xffffff);
     }
