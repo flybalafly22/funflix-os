@@ -1206,6 +1206,40 @@ function start(ctx, world) {
     }
   }
 
+  /* ── FIREFLIES — glow-green sparks that rise over the park & greens at dusk ── */
+  const FLY_N = 26;
+  const ffGeo = new T.SphereGeometry(0.035, 5, 4);
+  const ffMat = new T.MeshBasicMaterial({ color: 0xcfff8a, transparent: true, opacity: 0, depthWrite: false });
+  const fireflies = new T.InstancedMesh(ffGeo, ffMat, FLY_N); fireflies.layers.set(1);
+  fireflies.frustumCulled = false; scene.add(fireflies);
+  // anchor points: park center + second-avenue green (from world layout)
+  const _greens = [];
+  if (world.layout) { const pk = world.layout.park, gr = world.layout.green;
+    if (pk) _greens.push(pk); if (gr) _greens.push(gr); }
+  const ffData = [];
+  for (let i = 0; i < FLY_N; i++) { const gz = _greens.length ? pick(_greens) : { x: -78, z: -36, hw: 20, hd: 6 };
+    ffData.push({ hx: gz.x, hz: gz.z, hw: gz.hw, hd: gz.hd, x: rand(-gz.hw, gz.hw), y: rand(0.3, 2.2), z: rand(-gz.hd, gz.hd), ph: rand(0, TAU), blink: rand(0, TAU) }); }
+  const _ffm = new T.Matrix4();
+  function updateFireflies(dt, now) {
+    const on = !reducedMotion && tod > 0.45;
+    ffMat.opacity = on ? (tod - 0.45) * 1.4 : 0;
+    if (!on) return;
+    // only worth animating when the player is near a green
+    let near = false;
+    for (const g of _greens) if (Math.abs(P.pos.x - g.x) < g.hw + 20 && Math.abs(P.pos.z - g.z) < g.hd + 20) near = true;
+    if (!near) { ffMat.opacity = 0; return; }
+    for (let i = 0; i < FLY_N; i++) {
+      const f = ffData[i];
+      f.x += Math.sin(now * 0.0009 + f.ph) * dt * 0.4;
+      f.y += Math.cos(now * 0.0007 + f.ph) * dt * 0.3;
+      f.y = clamp(f.y, 0.3, 2.4);
+      const blink = 0.5 + 0.5 * Math.sin(now * 0.004 + f.blink);
+      _ffm.makeScale(blink, blink, blink); _ffm.setPosition(f.hx + f.x, f.y, f.hz + f.z);
+      fireflies.setMatrixAt(i, _ffm);
+    }
+    fireflies.instanceMatrix.needsUpdate = true;
+  }
+
   /* ── DUST MOTES — tiny drifting specks that catch the light (golden at dusk) ── */
   const MOTE_N = 48;
   const moteGeo = new T.SphereGeometry(0.02, 4, 3);
@@ -1628,6 +1662,7 @@ function start(ctx, world) {
     updateFestival(dt, now);
     updateWeather(dt, now);
     updateMotes(dt, now);
+    updateFireflies(dt, now);
     updateRival(dt, now);
     if (R.active) C.animateWalk(rival, now * 0.012, true);
     const dayFrac = clamp((dayDeliv + (jobActive ? (1 - clamp(jobLeft / Math.max(1, jobBudget), 0, 1)) * 0.5 : 0)) / DAY_LEN, 0, 1);
