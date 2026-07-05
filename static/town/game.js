@@ -1167,6 +1167,7 @@ function start(ctx, world) {
         if (d.axis === 'x') P.pos.z = car.position.z + (dz >= 0 ? 1 : -1) * (hz + 1.0);
         else P.pos.x = car.position.x + (dx >= 0 ? 1 : -1) * (hx + 1.0);
         fxBurst(P.pos, [0xff6b6b, 0xffd166, 0xffffff], 14, 1.2);
+        addShake(0.42);
         sfxHazard(); blip(392, 0.25, 'square', 0.12);   // honk
         if (carrying && fragile && !gustLoose) {
           carrying = false; carriedLetter.visible = false; setObjective();
@@ -1192,6 +1193,8 @@ function start(ctx, world) {
   let mapAcc = 0, walkPhase = 0, lastStep = -1;
   let chimeIn = 35, lastTramBell = -1e9;   // ambience timers (clock bell / tram ding)
   let mapAcc2 = 0;
+  let shake = 0, hitStop = 0;   // impact juice
+  function addShake(amt) { if (!reducedMotion) { shake = Math.min(0.5, shake + amt); hitStop = Math.max(hitStop, amt > 0.25 ? 0.06 : 0.03); } }
   const baseFov = camera.fov;
   const hintEl = document.querySelector('#hint');
   if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · E bici · Tab mapa · L recados · P foto · M mute · O accesib.';
@@ -1220,6 +1223,9 @@ function start(ctx, world) {
   startEl.addEventListener('pointerdown', e => { e.preventDefault(); begin(); });
 
   function update(dt, now) {
+    // hit-stop: a micro-freeze on impact for weight (doesn't touch real time,
+    // just the sim step; camera still renders)
+    if (hitStop > 0) { hitStop -= dt; dt *= 0.15; }
     // stun briefly disables steering input (player got bumped)
     const stunned = stun > 0;
     if (stunned) stun -= dt;
@@ -1340,6 +1346,12 @@ function start(ctx, world) {
     if (tC < 1) desired.set(P.pos.x + (desired.x - P.pos.x) * tC, desired.y - (1 - tC) * 0.6, P.pos.z + (desired.z - P.pos.z) * tC);
     resolveCircle(desired, 0.4);   // and never wedge inside geometry
     camera.position.lerp(desired, L.dampT(dt, 6));
+    if (shake > 0.001) {
+      shake = Math.max(0, shake - dt * 2.2);
+      const sm = shake * shake;
+      camera.position.x += (Math.random() - 0.5) * sm * 2.2;
+      camera.position.y += (Math.random() - 0.5) * sm * 2.2;
+    }
     camera.lookAt(P.pos.x + camF.x * lead, P.pos.y + 1.3, P.pos.z + camF.z * lead);
     const wantFov = baseFov + (running ? spd01 * 4 : 0);
     if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov = lerp(camera.fov, wantFov, L.dampT(dt, 3)); camera.updateProjectionMatrix(); }
@@ -1513,7 +1525,7 @@ function start(ctx, world) {
   }
 
   function deliver(tg) {
-    delivered++; squash = 1;
+    delivered++; squash = 1; addShake(0.12);
     jobActive = false;
     // speed/time bonus: more left on the clock = more points
     const timeFrac = clamp(jobLeft / jobBudget, 0, 1);
