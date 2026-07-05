@@ -1300,7 +1300,7 @@ function start(ctx, world) {
   const fwd = new T.Vector3(), camF = new T.Vector3();
   let mapAcc = 0, walkPhase = 0, lastStep = -1;
   let chimeIn = 35, lastTramBell = -1e9;   // ambience timers (clock bell / tram ding)
-  let mapAcc2 = 0;
+  let mapAcc2 = 0, idleT = 0;
   let shake = 0, hitStop = 0;   // impact juice
   function addShake(amt) { if (!reducedMotion) { shake = Math.min(0.5, shake + amt); hitStop = Math.max(hitStop, amt > 0.25 ? 0.06 : 0.03); } }
   const baseFov = camera.fov;
@@ -1414,17 +1414,20 @@ function start(ctx, world) {
     const tor = hero.userData.torso, ga = hero.userData.gait;
     if (tor && ga) tor.rotation.x = ga.baseRX + spd01 * 0.16;
     // HEAD-TURN: glance toward the current objective (or the loose letter), clamped
+    idleT = moving ? 0 : idleT + dt;
     const hg = hero.userData.headGrp;
     if (hg) {
       const _lt = carrying ? dropoff : pickup;
       const look = gustLoose ? gustPos : (_lt && _lt.pos ? _lt.pos : null);
       let wantYaw = 0, wantPitch = 0;
-      if (look && !reporting) {
+      const d2t = look ? Math.hypot(look.x - P.pos.x, look.z - P.pos.z) : 99;
+      if (look && !reporting && !(idleT > 3 && d2t > 12)) {
         const bearing = Math.atan2(look.x - P.pos.x, look.z - P.pos.z);
         let rel = bearing - P.yaw; rel = Math.atan2(Math.sin(rel), Math.cos(rel));
-        wantYaw = clamp(rel, -0.7, 0.7);                       // don't crank the neck past a glance
-        const d2t = Math.hypot(look.x - P.pos.x, look.z - P.pos.z);
+        wantYaw = clamp(rel, -0.7, 0.7);                       // glance at the objective
         if (d2t < 6) wantPitch = clamp(((look.y || 0) + 1.4 - (P.pos.y + 1.5)) / Math.max(2, d2t), -0.35, 0.4);
+      } else if (idleT > 3) {
+        wantYaw = Math.sin(now * 0.0007) * 0.55;               // idle: look around unhurried
       }
       hg.rotation.y = lerp(hg.rotation.y, wantYaw, L.dampT(dt, 6));
       hg.rotation.x = lerp(hg.rotation.x, wantPitch + Math.sin(now * 0.0013) * 0.03, L.dampT(dt, 5));
