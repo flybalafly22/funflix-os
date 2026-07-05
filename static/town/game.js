@@ -1002,6 +1002,24 @@ function start(ctx, world) {
     g.gain.exponentialRampToValueAtTime(0.0001, when + 1.1);
     o.connect(g).connect(musicBus); o.start(when); o.stop(when + 1.2);
   }
+  let _critterNext = 0;
+  function bird(now) {
+    if (!AC || !musicBus) return;
+    // a quick two-or-three note chirp, bright and short
+    const base = rand(2400, 3400), n = L.randInt(2, 3);
+    for (let i = 0; i < n; i++) setTimeout(() => blip(base * (1 + i * 0.12) * (Math.random() < 0.5 ? 1 : 1.5), 0.05, 'sine', 0.035), i * 70);
+  }
+  function cricket(now) {
+    if (!AC || !musicBus) return;
+    // a little rhythmic trill
+    for (let i = 0; i < 4; i++) setTimeout(() => blip(rand(4200, 4600), 0.015, 'square', 0.012), i * 55);
+  }
+  function updateCritters(now, duskK) {
+    if (!AC || now < _critterNext) return;
+    if (duskK < 0.35) { bird(now); _critterNext = now + rand(2500, 6000); }      // morning/day: birds
+    else if (duskK > 0.55) { cricket(now); _critterNext = now + rand(1800, 3800); }  // evening: crickets
+    else _critterNext = now + 2000;                                              // midday lull
+  }
   function updateMusic(now, duskK) {
     if (!AC || !musicBus) return;
     if (now < _melodyNext) return;
@@ -1509,6 +1527,7 @@ function start(ctx, world) {
     tod += (dayFrac - tod) * L.dampT(dt, 0.5);
     applyTOD(reporting ? 1 : tod);
     updateMusic(now, tod);
+    updateCritters(now, tod);
     updateTips(dt);
     if (gradeU) {
       gradeU.uSat.value = gradeSatBase * (1 - gradeBlend * 0.28);
