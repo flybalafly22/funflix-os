@@ -284,6 +284,8 @@ function start(ctx, world) {
       box-shadow:0 5px 0 rgba(44,38,28,.25); transform:rotate(-.6deg); }
     #flyStart .t { font-size:44px; letter-spacing:.06em; }
     #flyStart .s { margin-top:0; font-size:15px; opacity:.7; font-style:italic; }
+    #flyStart .stand { margin-top:12px; font-size:14px; line-height:1.7; color:#c8862a;
+      border-top:2px solid rgba(44,38,28,.18); border-bottom:2px solid rgba(44,38,28,.18); padding:8px 0; }
     #flyStart .c { margin-top:14px; font-size:15px; line-height:1.7; opacity:.85; }
     #flyStart .go { margin-top:14px; font-size:14px; letter-spacing:.14em;
       text-transform:uppercase; color:#c04434; animation:flyGo 1.6s ease-in-out infinite; }
@@ -1172,9 +1174,16 @@ function start(ctx, world) {
   beam.visible = ring.visible = objLetter.visible = false;
   elLbl.textContent = 'Welcome to'; elDst.textContent = 'Villa Mott'; elSub.textContent = 'the town is waking up…';
   const startEl = document.createElement('div'); startEl.id = 'flyStart';
-  startEl.innerHTML = '<div class="card"><div class="t">THE FLY</div><div class="s">a tiny courier tale</div>'
-    + '<div class="c">' + (IS_TOUCH ? 'drag the stick to walk<br>hold ⚡ to run' : 'WASD to walk &nbsp;·&nbsp; SHIFT to run<br>M to mute') + '</div>'
-    + '<div class="go">' + (IS_TOUCH ? 'tap to start' : 'press any key to start') + '</div></div>';
+  const returning = totalDeliv > 0;
+  const standing = returning
+    ? '<div class="stand">✦ ' + rankName(totalDeliv) + '  ·  Día ' + dayNum + '<br>'
+      + '🪙 ' + coins + '  ·  ✉ ' + lostCount() + '/10  ·  📜 ' + CHAINS.filter(c => chainDone(c)).length + '/' + CHAINS.length
+      + (heroDone ? '<br>🎖 Héroe de Villa Mott' : '') + '</div>'
+    : '';
+  startEl.innerHTML = '<div class="card"><div class="t">THE FLY</div><div class="s">' + (returning ? 'bienvenido de vuelta a Villa Mott' : 'a tiny courier tale') + '</div>'
+    + standing
+    + '<div class="c">' + (IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · SHIFT run · E bici · Tab mapa') + '</div>'
+    + '<div class="go">' + (IS_TOUCH ? (returning ? 'toca para continuar' : 'toca para empezar') : (returning ? 'pulsa para continuar el día ' + dayNum : 'press any key to start')) + '</div></div>';
   hud.appendChild(startEl);
   function begin() {
     if (begun) return; begun = true;
