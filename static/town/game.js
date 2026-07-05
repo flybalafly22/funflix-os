@@ -607,7 +607,8 @@ function start(ctx, world) {
       + 'Monedas <b>+' + dayCoins + ' 🪙</b><br>'
       + (dayLetters ? 'Cartas perdidas halladas <b>' + dayLetters + '</b><br>' : '')
       + (dayStories ? 'Historias avanzadas <b>' + dayStories + '</b><br>' : '')
-      + 'Rango <b>' + rankName(totalDeliv) + '</b>'
+      + 'Rango <b>' + rankName(totalDeliv) + '</b><br>'
+      + 'Dificultad <b>' + ['tranquila','animada','ajetreada','frenética','legendaria'][Math.min(4, Math.floor(dayDiff() * 4.9))] + '</b>'
       + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' entregas para ' + nx[1] + '</span>' : '')
       + '</div><div class="go">Comenzar el día ' + (dayNum + 1) + ' ▶</div>';
     repEl.classList.add('on');
@@ -846,6 +847,8 @@ function start(ctx, world) {
   }
   /* ── JOBS: after onboarding the courier CHOOSES between two offers ── */
   let offer = null;   // { jobs: [a, b], t: seconds left to decide }
+  // difficulty ramps with the day number (gentle days 1-3, demanding by ~day 10)
+  function dayDiff() { return clamp((dayNum - 1) / 9, 0, 1); }
   function makeJob(noStory) {
     // sometimes the next step of an open story chain arrives instead
     const open = CHAINS.filter(c => !chainDone(c) && findAddr(c.from) && findAddr(c.to));
@@ -857,9 +860,10 @@ function start(ctx, world) {
     }
     const pu = pick(ADDR);
     let dr; do { dr = pick(ADDR); } while (dr === pu);
-    const ex = delivered >= 2 && L.chance(0.3);
+    const dd = dayDiff();
+    const ex = delivered >= 2 && L.chance(0.3 + dd * 0.18);
     const route = planar(P.pos, pu.pos) + planar(pu.pos, dr.pos);
-    let budget = clamp(10 + route * 0.42, 14, 46) * (ex ? 0.66 : 1);
+    let budget = clamp(10 + route * 0.42, 14, 46) * (ex ? 0.66 : 1) * (1 - dd * 0.18);   // clocks tighten
     if (delivered === 0) budget *= 1.6;           // warm-up welcome job
     // sweet shops sometimes hand you something breakable: double pay, but a
     // traffic bump ruins it and sends you back for another
@@ -1426,8 +1430,8 @@ function start(ctx, world) {
     if (!choosing && dPlanar < 4.5) {
       if (!carrying) {
         carrying = true; carriedLetter.visible = true; squash = 1; toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
-        if (!curStory && !fragile && jobBudget > 18 && L.chance(0.3)) { gustPending = true; gustAt = now + rand(3500, 8500); }
-        else if (!curStory && !fragile && !gustPending && delivered >= 4 && L.chance(0.28)) startRace(dropoff);
+        if (!curStory && !fragile && jobBudget > 18 && L.chance(0.3 + dayDiff() * 0.12)) { gustPending = true; gustAt = now + rand(3500, 8500); }
+        else if (!curStory && !fragile && !gustPending && delivered >= 4 && L.chance(0.28 + dayDiff() * 0.12)) startRace(dropoff);
         if (curStory) say(pickup.name, curStory.pick);
         else bubble(tg.pos.x, (tg.gy || 0) + 3.4, tg.pos.z, pick(QUIPS_PICKUP));
       } else if (!gustLoose) {
@@ -1551,7 +1555,7 @@ function start(ctx, world) {
     if (streak > bestStreak) { bestStreak = streak; lsSet(LS.streak, bestStreak); }
     renderBest();
 
-    const coinGain = Math.max(5, Math.round(gained / 10));
+    const coinGain = Math.max(5, Math.round(gained / 10 * (1 + dayDiff() * 0.6)));
     coins += coinGain; dayCoins += coinGain; lsSet('fly_coins', coins);
     setTimeout(sfxCoin, 180);
     dayScore += gained; dayBestCombo = Math.max(dayBestCombo, combo); dayDeliv++;
