@@ -27,6 +27,65 @@ function start(ctx, world) {
   /* ── player (walking human courier) ── */
   const hero = (C.makeHero ? C.makeHero() : C.makeFly()); scene.add(hero);
 
+  /* ── PACO, the rival courier — a second hero on a bike who races you.
+     He moves toward the dropoff along a simple steer-and-avoid, on his own
+     bike, and trades quips. Beat him for coins; lose and he gloats. ── */
+  const rival = (C.makeHero ? C.makeHero() : C.makeFly());
+  // repaint the rival so he's unmistakable: green pack, blue cap
+  rival.traverse(o => {
+    if (o.material && o.material.color) {
+      const h = o.material.color.getHex();
+      if (h === 0xa52d24 || h === 0x8f231b || h === 0x872017) o.material = o.material.clone(), o.material.color.setHex(0x2f6b4a);
+    }
+  });
+  const rivalBike = FLY.props.makeBicycle(); rival.add(rivalBike); rivalBike.position.set(0, 0, 0.06);
+  rival.visible = false; scene.add(rival);
+  const R = { pos: new T.Vector3(), yaw: 0, active: false, target: null, progress: 0, done: false, phase: 0 };
+  const RIVAL_QUIPS = ['¡El último paga las cañas!', '¡Muy lento, novato!', '¡Te huelo el polvo!', '¡A que llego yo antes!'];
+  function startRace(target) {
+    R.active = true; R.done = false; R.target = target;
+    // he starts a bit behind the player, on the street
+    R.pos.set(P.pos.x - Math.cos(P.yaw) * 4, groundAt(P.pos.x, P.pos.z), P.pos.z + Math.sin(P.yaw) * 4);
+    rival.visible = true;
+    toast('🏁 ¡Paco te reta a una carrera!', '#c04434');
+    bubble(R.pos.x, R.pos.y + 2.2, R.pos.z, pick(RIVAL_QUIPS), 3);
+    blip(660, 0.1, 'square', 0.08); setTimeout(() => blip(880, 0.14, 'square', 0.08), 160);
+  }
+  function endRace(playerWon) {
+    R.active = false;
+    if (playerWon) {
+      const prize = 60;
+      coins += prize; lsSet('fly_coins', coins); renderBest();
+      toast('🏁 ¡Ganaste a Paco! +' + prize + ' 🪙', '#4d8a52'); sfxBonus();
+    } else {
+      toast('🏁 Paco llegó primero…', '#c04434');
+      bubble(R.pos.x, R.pos.y + 2.2, R.pos.z, '¡Te lo dije!', 2.5);
+    }
+    setTimeout(() => { rival.visible = false; }, 2500);
+  }
+  const _rv = new T.Vector3();
+  function updateRival(dt, now) {
+    if (!R.active || !R.target) return;
+    const tx = R.target.pos.x, tz = R.target.pos.z;
+    _rv.set(tx - R.pos.x, 0, tz - R.pos.z);
+    const dist = _rv.length();
+    if (dist < 4) { if (!R.done) { R.done = true; endRace(false); } return; }
+    _rv.normalize();
+    // desired yaw toward target, eased
+    let wy = Math.atan2(_rv.x, _rv.z);
+    let dy = wy - R.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    R.yaw += dy * L.dampT(dt, 3.2);
+    // rival speed scales so he's a real but beatable threat
+    const rsp = 7.6;
+    R.pos.x += Math.sin(R.yaw) * rsp * dt;
+    R.pos.z += Math.cos(R.yaw) * rsp * dt;
+    R.pos.y = lerp(R.pos.y, groundAt(R.pos.x, R.pos.z), L.dampT(dt, 10));
+    rival.position.set(R.pos.x, R.pos.y + 0.24, R.pos.z);
+    rival.rotation.set(0, R.yaw, 0);
+    R.phase += dt;
+    if (R.phase > 4) { R.phase = 0; bubble(R.pos.x, R.pos.y + 2.2, R.pos.z, pick(RIVAL_QUIPS), 2.2); }
+  }
+
   /* ── LA BICI — the courier's bike, parked where you leave it ── */
   let onBike = false;
   const bike = FLY.props.makeBicycle();
@@ -672,6 +731,7 @@ function start(ctx, world) {
   let curStory = null;
   function startJob(j) {
     gustPending = false; gustLoose = false;
+    if (R.active) { R.active = false; rival.visible = false; }
     pickup = j.pickup; dropoff = j.dropoff; payload = j.payload; express = j.express;
     fragile = !!j.fragile;
     curStory = j.story || null;
@@ -1154,9 +1214,11 @@ function start(ctx, world) {
       if (!carrying) {
         carrying = true; carriedLetter.visible = true; toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
         if (!curStory && !fragile && jobBudget > 18 && L.chance(0.3)) { gustPending = true; gustAt = now + rand(3500, 8500); }
+        else if (!curStory && !fragile && !gustPending && delivered >= 4 && L.chance(0.28)) startRace(dropoff);
         if (curStory) say(pickup.name, curStory.pick);
         else bubble(tg.pos.x, (tg.gy || 0) + 3.4, tg.pos.z, pick(QUIPS_PICKUP));
       } else if (!gustLoose) {
+        if (R.active && !R.done) { R.done = true; endRace(true); }
         if (curStory) say(dropoff.name, curStory.drops[Math.min(chainProg[curStory.id] || 0, curStory.drops.length - 1)]);
         else bubble(tg.pos.x, (tg.gy || 0) + 3.4, tg.pos.z, pick(QUIPS_DELIVER));
         deliver(tg);
@@ -1188,6 +1250,8 @@ function start(ctx, world) {
     updateDlg(dt);
     updateLost(dt, now);
     updateWeather(dt, now);
+    updateRival(dt, now);
+    if (R.active) C.animateWalk(rival, now * 0.012, true);
     if (gradeU) {
       gradeU.uSat.value = gradeSatBase * (1 - gradeBlend * 0.28);
       gradeU.uVig.value = gradeVigBase + gradeBlend * 0.14;
@@ -1324,6 +1388,12 @@ function start(ctx, world) {
       const [bx2, by2] = mapXY(bike.position.x, bike.position.z);
       g.fillStyle = '#3a7d99'; g.beginPath(); g.arc(bx2, by2, 3, 0, TAU); g.fill();
     }
+    // rival during a race
+    if (R.active) {
+      const [rx, ry2] = mapXY(R.pos.x, R.pos.z);
+      g.fillStyle = '#2f6b4a'; g.beginPath(); g.arc(rx, ry2, 3.5, 0, TAU); g.fill();
+      g.strokeStyle = '#fff'; g.lineWidth = 1; g.stroke();
+    }
     // player + heading
     const [px, py] = mapXY(P.pos.x, P.pos.z);
     g.save();
@@ -1352,6 +1422,7 @@ function start(ctx, world) {
     get dayNum() { return dayNum; }, get reporting() { return reporting; },
     lostCount, get fragile() { return fragile; },
     get raining() { return raining; }, forceRain() { startRain(); },
+    get racing() { return R.active; }, forceRace() { startRace(dropoff); }, get rivalPos() { return R.pos; },
     get coins() { return coins; }, set coins(v) { coins = v; },
     get ridingTram() { return !!ridingTram; }, get shopOpen() { return shopOpen; },
     nearestTram: () => !!nearestTram(),
