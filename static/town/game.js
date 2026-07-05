@@ -266,6 +266,16 @@ function start(ctx, world) {
     #flyDlg .adv { position:absolute; right:12px; bottom:4px; font-size:14px; color:#3a7d99;
       animation:flyGo 1.4s ease-in-out infinite; }
     @media (max-width: 560px) { #flyMap { width:118px; height:118px; bottom:96px; } #flyBest{ top:138px; } }
+    #flyBigMap { position:absolute; inset:0; z-index:21; display:none; place-items:center;
+      background:rgba(44,38,28,.34); pointer-events:auto; }
+    #flyBigMap.on { display:grid; }
+    #flyBigMap .frame { position:relative; background:#f4ecd6; border:3px solid #2c261c;
+      border-radius:8px; box-shadow:0 8px 0 rgba(44,38,28,.3); padding:10px; transform:rotate(-.4deg); }
+    #flyBigMap canvas { display:block; border-radius:4px; }
+    #flyBigMap .ttl { position:absolute; top:-16px; left:50%; transform:translateX(-50%);
+      background:#f4ecd6; padding:0 14px; font-size:22px; letter-spacing:.14em; color:#2c261c; }
+    #flyBigMap .tip { position:absolute; bottom:-24px; left:50%; transform:translateX(-50%);
+      font-size:13px; color:#faf7ee; opacity:.85; }
     #flyStart { position:absolute; inset:0; z-index:20; display:grid; place-items:center;
       background:rgba(44,38,28,.18); pointer-events:auto; transition:opacity .6s; }
     #flyStart.gone { opacity:0; pointer-events:none; }
@@ -1122,9 +1132,10 @@ function start(ctx, world) {
   const fwd = new T.Vector3(), camF = new T.Vector3();
   let mapAcc = 0, walkPhase = 0, lastStep = -1;
   let chimeIn = 35, lastTramBell = -1e9;   // ambience timers (clock bell / tram ding)
+  let mapAcc2 = 0;
   const baseFov = camera.fov;
   const hintEl = document.querySelector('#hint');
-  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · E bici · B timbre · L log · P photo · M mute';
+  if (hintEl) hintEl.textContent = IS_TOUCH ? 'drag to walk · hold ⚡ to run' : 'WASD walk · Shift run · E bici · Tab mapa · L recados · P foto · M mute';
 
   /* ── start card — the town idles behind it; first input begins the shift ── */
   beam.visible = ring.visible = objLetter.visible = false;
@@ -1156,7 +1167,8 @@ function start(ctx, world) {
     let mag = Math.hypot(ix, iy);
     if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
     const running = keys['ShiftLeft'] || keys['ShiftRight'] || tRun > 0;
-    if (stunned || !begun || reporting || shopOpen) mag = 0;
+    if (stunned || !begun || reporting || shopOpen || bigOpen) mag = 0;
+    if (bigOpen && mapAcc2 > 0.2) { mapAcc2 = 0; drawBigMap(); } mapAcc2 += dt;
 
     if (mag > 0.05) {
       // screen-up = camera-forward; screen-right for heading θ is (-cosθ, 0, sinθ)
@@ -1505,6 +1517,73 @@ function start(ctx, world) {
   }
 
   /* ── MINIMAP rendering ── */
+  /* ── FULL TOWN MAP (Tab) — a hand-drawn chart of the whole place ── */
+  const bigWrap = document.createElement('div'); bigWrap.id = 'flyBigMap';
+  const BIG = 560;
+  bigWrap.innerHTML = '<div class="frame"><div class="ttl">VILLA MOTT</div><canvas width="' + BIG + '" height="' + BIG + '"></canvas><div class="tip">Tab / Esc — cerrar</div></div>';
+  hud.appendChild(bigWrap);
+  const bigCanvas = bigWrap.querySelector('canvas'), bctx = bigCanvas.getContext('2d');
+  let bigOpen = false;
+  const BPAD = 26;
+  function bmapXY(x, z) {
+    const u = (x - bounds.minX) / ((bounds.maxX - bounds.minX) || 1);
+    const vv = (z - bounds.minZ) / ((bounds.maxZ - bounds.minZ) || 1);
+    return [BPAD + u * (BIG - BPAD * 2), BPAD + vv * (BIG - BPAD * 2)];
+  }
+  function brect(x0w, z0w, x1w, z1w, col) {
+    const [ax, ay] = bmapXY(x0w, z0w), [bx, by] = bmapXY(x1w, z1w);
+    bctx.fillStyle = col; bctx.fillRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay));
+  }
+  function drawBigMap() {
+    const g = bctx; g.clearRect(0, 0, BIG, BIG);
+    g.fillStyle = '#f4ecd6'; g.fillRect(0, 0, BIG, BIG);
+    if (LY) {
+      const ROAD = '#d2c6ac';
+      brect(-LY.AVX, -LY.SW, LY.AVX, LY.SW, ROAD);
+      brect(-LY.AV2X, LY.AV2Z - LY.SW, LY.AV2X, LY.AV2Z + LY.SW, ROAD);
+      [LY.CROSSX, LY.CROSSX2].forEach(cx => brect(cx - LY.SW, LY.CROSSZ0, cx + LY.SW, LY.CROSSZ1, ROAD));
+      const pk = LY.park, pz = LY.plaza, gr = LY.green;
+      brect(pk.x - pk.hw, pk.z - pk.hd, pk.x + pk.hw, pk.z + pk.hd, '#a8c890');
+      brect(gr.x - gr.hw, gr.z - gr.hd, gr.x + gr.hw, gr.z + gr.hd, '#a8c890');
+      brect(pz.x - pz.hw, pz.z - pz.hd, pz.x + pz.hw, pz.z + pz.hd, '#e2d4b0');
+      (LY.hill || []).forEach(h => brect(h.x - h.hw, h.z - h.hd, h.x + h.hw, h.z + h.hd, '#cdbf9a'));
+      if (LY.harbor) { brect(LY.harbor.x + LY.harbor.hw, bounds.minZ, bounds.maxX + 30, bounds.maxZ, '#9ed2c6');
+        brect(LY.harbor.x - LY.harbor.hw, LY.harbor.z - LY.harbor.hd, LY.harbor.x + LY.harbor.hw, LY.harbor.z + LY.harbor.hd, '#cbb891'); }
+    }
+    // building footprints
+    g.fillStyle = 'rgba(120,110,90,0.5)';
+    for (const a of ADDR) { const [px, py] = bmapXY(a.pos.x, a.pos.z); g.fillRect(px - 2, py - 2, 4, 4); }
+    // district labels
+    g.fillStyle = '#2c261c'; g.textAlign = 'center'; g.font = '15px "Patrick Hand", cursive';
+    const labels = [['La Plaza', 0, 26], ['El Parque', -78, -18], ['El Mirador', -78, -50],
+                    ['El Puerto', 158, 0], ['2ª Avenida', -30, 64], ['Villa alta', -86, 20]];
+    labels.forEach(([nm, x, z]) => { const [px, py] = bmapXY(x, z); g.fillText(nm, px, py); });
+    // lost letters (found = gold dot, missing = faint ring)
+    LOST_SPOTS.forEach(([x, z], i) => { const [px, py] = bmapXY(x, z);
+      if (lostMask & (1 << i)) { g.fillStyle = '#c8a648'; g.beginPath(); g.arc(px, py, 4, 0, TAU); g.fill(); }
+      else { g.strokeStyle = 'rgba(180,140,60,.5)'; g.lineWidth = 1.5; g.beginPath(); g.arc(px, py, 4, 0, TAU); g.stroke(); }
+    });
+    // objective
+    const tg = carrying ? dropoff : pickup;
+    if (tg && !offer) { const [ox, oy] = bmapXY(tg.pos.x, tg.pos.z);
+      g.fillStyle = carrying ? '#4d8a52' : '#c8862a'; g.beginPath(); g.arc(ox, oy, 6, 0, TAU); g.fill();
+      g.strokeStyle = '#2c261c'; g.lineWidth = 1.5; g.stroke(); }
+    // player
+    const [px, py] = bmapXY(P.pos.x, P.pos.z);
+    g.save(); g.translate(px, py); g.rotate(Math.atan2(fwd.x, -fwd.z));
+    g.fillStyle = '#c04434'; g.beginPath(); g.moveTo(0, -9); g.lineTo(6, 7); g.lineTo(-6, 7); g.closePath(); g.fill();
+    g.strokeStyle = '#2c261c'; g.lineWidth = 1.5; g.stroke(); g.restore();
+  }
+  function toggleBigMap(force) {
+    bigOpen = force != null ? force : !bigOpen;
+    if (bigOpen) drawBigMap();
+    bigWrap.classList.toggle('on', bigOpen);
+  }
+  addEventListener('keydown', e => {
+    if (e.code === 'Tab' && begun && !shopOpen && !reporting) { e.preventDefault(); toggleBigMap(); }
+    else if (e.code === 'Escape' && bigOpen) toggleBigMap(false);
+  });
+
   const spanX = (bounds.maxX - bounds.minX) || 1;
   const spanZ = (bounds.maxZ - bounds.minZ) || 1;
   const PAD = 14;
