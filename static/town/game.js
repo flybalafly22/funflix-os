@@ -110,13 +110,54 @@ function start(ctx, world) {
   const blob = new T.Mesh(new T.CircleGeometry(0.8, 20), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.26, depthWrite: false }));
   blob.rotation.x = -Math.PI / 2; scene.add(blob); toFx(blob);
 
-  // carried letter on the fly
+  // carried parcel — hand-built items; the job picks which one shows
   const letterMat = L.std({ color: 0xf4ecd6, roughness: 0.7 });
-  const carriedLetter = new T.Group();
-  { const env = L.box(0.4, 0.28, 0.05, letterMat, { cast: false });
-    env.add(L.box(0.1, 0.1, 0.01, L.std({ color: 0xc0463e, roughness: 0.7 }), { x: 0.12, y: 0.07, z: 0.03, cast: false }));
-    carriedLetter.add(env); }
-  carriedLetter.visible = false; carriedLetter.position.set(0.34, 1.05, 0.3); hero.add(carriedLetter); toFx(carriedLetter);
+  function makeCarry(type) {
+    const g2 = new T.Group();
+    if (type === 'cake') {
+      g2.add(L.box(0.34, 0.26, 0.34, L.std({ color: 0xf2ece0, roughness: 0.7 }), { cast: false }));
+      g2.add(L.box(0.36, 0.05, 0.08, L.std({ color: 0xc85a7a, roughness: 0.6 }), { y: 0.02, cast: false }));
+      g2.add(L.box(0.08, 0.05, 0.36, L.std({ color: 0xc85a7a, roughness: 0.6 }), { y: 0.02, cast: false }));
+      g2.add(L.sphere(0.05, 6, L.std({ color: 0xc85a7a, roughness: 0.6 }), { y: 0.16, cast: false }));
+    } else if (type === 'bouquet') {
+      g2.add(L.cyl(0.05, 0.09, 0.28, 7, L.std({ color: 0xe8ddc0, roughness: 0.8 }), { cast: false }));
+      const bloom = ['#c85a5a', '#d8a63c', '#c86a9a', '#e0d050'];
+      for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; g2.add(L.sphere(0.06, 6, L.std({ color: parseInt(bloom[k % 4].replace('#','0x')), roughness: 0.7 }), { x: Math.cos(a) * 0.09, y: 0.2, z: Math.sin(a) * 0.09, cast: false })); }
+      g2.add(L.sphere(0.06, 6, L.std({ color: 0xe8d84a, roughness: 0.7 }), { y: 0.24, cast: false }));
+    } else if (type === 'parcel') {
+      g2.add(L.box(0.32, 0.26, 0.28, L.std({ color: 0xb08a5a, roughness: 0.85 }), { cast: false }));
+      g2.add(L.box(0.34, 0.03, 0.06, L.std({ color: 0x6a5236, roughness: 0.8 }), { y: 0.01, cast: false }));
+      g2.add(L.box(0.06, 0.03, 0.3, L.std({ color: 0x6a5236, roughness: 0.8 }), { y: 0.01, cast: false }));
+      g2.add(L.box(0.12, 0.09, 0.01, letterMat, { x: 0.06, y: 0.06, z: 0.145, cast: false }));
+    } else if (type === 'postcard') {
+      const pc = L.box(0.42, 0.28, 0.02, letterMat, { cast: false });
+      pc.add(L.box(0.34, 0.14, 0.005, L.std({ color: 0x7cc8ba, roughness: 0.7 }), { y: 0.05, z: 0.012, cast: false }));
+      pc.add(L.box(0.34, 0.08, 0.005, L.std({ color: 0xd8c48a, roughness: 0.7 }), { y: -0.06, z: 0.012, cast: false }));
+      g2.add(pc);
+    } else {
+      const env = L.box(0.4, 0.28, 0.05, letterMat, { cast: false });
+      env.add(L.box(0.1, 0.1, 0.01, L.std({ color: 0xc0463e, roughness: 0.7 }), { x: 0.12, y: 0.07, z: 0.03, cast: false }));
+      g2.add(env);
+    }
+    return g2;
+  }
+  function carryType() {
+    if (fragile) return 'cake';
+    const pl = (payload || '').toLowerCase();
+    if (pl.includes('flor')) return 'bouquet';
+    if (pl.includes('postal')) return 'postcard';
+    if (pl.includes('caja') || pl.includes('llav') || pl.includes('libro') || pl.includes('recambio') || pl.includes('lata')) return 'parcel';
+    return 'envelope';
+  }
+  const carries = {};
+  ['envelope', 'cake', 'bouquet', 'parcel', 'postcard'].forEach(t => {
+    const m = makeCarry(t); m.visible = false; m.position.set(0.34, 1.05, 0.3); hero.add(m); toFx(m); carries[t] = m;
+  });
+  let carriedLetter = carries.envelope;
+  function setCarryItem() {
+    for (const t in carries) carries[t].visible = false;
+    carriedLetter = carries[carryType()];
+  }
 
   /* ── objective markers ── */
   const beam = new T.Mesh(new T.CylinderGeometry(1.1, 1.5, 30, 16, 1, true), new T.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.26, depthWrite: false, side: T.DoubleSide }));
@@ -795,6 +836,7 @@ function start(ctx, world) {
     pickup = j.pickup; dropoff = j.dropoff; payload = j.payload; express = j.express;
     fragile = !!j.fragile;
     curStory = j.story || null;
+    setCarryItem();
     carrying = false; carriedLetter.visible = false;
     jobBudget = j.budget; jobLeft = jobBudget; jobActive = true;
     setObjective();
