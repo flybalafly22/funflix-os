@@ -1225,6 +1225,29 @@ function start(ctx, world) {
   }
   function updateFX(dt) { for (const p of fxPool) { if (!p.mesh.visible) continue; p.life -= dt * 1.4; if (p.life <= 0) { p.mesh.visible = false; continue; } p.vel.y -= 9 * dt; p.mesh.position.addScaledVector(p.vel, dt); p.mesh.material.opacity = p.life; p.mesh.scale.setScalar(0.5 + p.life * 0.8); } }
 
+  /* ── SHOCKWAVE RINGS — an expanding ground ring on pickup/delivery ── */
+  const ringPool = [];
+  for (let i = 0; i < 4; i++) {
+    const m = new T.Mesh(new T.RingGeometry(0.7, 0.9, 28), new T.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0, side: T.DoubleSide, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.layers.set(1); m.visible = false; scene.add(m);
+    ringPool.push({ mesh: m, t: 0 });
+  }
+  function popRing(x, y, z, hex) {
+    const r = ringPool.find(r => r.t <= 0) || ringPool[0];
+    r.mesh.position.set(x, (y || 0) + 0.06, z); r.mesh.material.color.setHex(hex || 0xffd27a);
+    r.mesh.visible = true; r.t = 1;
+  }
+  function updateRings(dt) {
+    for (const r of ringPool) {
+      if (r.t <= 0) continue;
+      r.t -= dt * 1.6;
+      if (r.t <= 0) { r.mesh.visible = false; continue; }
+      const s = (1 - r.t) * 6 + 0.5;
+      r.mesh.scale.setScalar(s);
+      r.mesh.material.opacity = r.t * 0.7;
+    }
+  }
+
   /* ── HAZARD: moving traffic. Crossing the street carelessly gets you bumped —
      brief stun, shoved out of the lane, combo broken, a little time lost.
      (Replaces the old airborne-balloon system left over from the flying build,
@@ -1536,7 +1559,7 @@ function start(ctx, world) {
     /* ── pick-up / deliver ── */
     if (!choosing && dPlanar < 4.5) {
       if (!carrying) {
-        carrying = true; carriedLetter.visible = true; squash = 1; toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
+        carrying = true; carriedLetter.visible = true; squash = 1; popRing(tg.pos.x, tg.gy || 0, tg.pos.z, 0xc8862a); toast('✉ Letter picked up', '#c8862a'); sfxPick(); setObjective();
         if (!curStory && !fragile && jobBudget > 18 && L.chance(0.3 + dayDiff() * 0.12)) { gustPending = true; gustAt = now + rand(3500, 8500); }
         else if (!curStory && !fragile && !gustPending && delivered >= 4 && L.chance(0.28 + dayDiff() * 0.12)) startRace(dropoff);
         if (curStory) say(pickup.name, curStory.pick);
@@ -1573,6 +1596,7 @@ function start(ctx, world) {
 
     checkTraffic();
     updateFX(dt);
+    updateRings(dt);
     updateBubbles(dt);
     updateDlg(dt);
     updateLost(dt, now);
@@ -1620,6 +1644,7 @@ function start(ctx, world) {
     elScore.textContent = score;
 
     sfxDeliver();
+    popRing(tg.pos.x, tg.gy || 0, tg.pos.z, 0x7fe0a0);
     fxBurst(tg.pos, null, 18, (tg.gy || 0) + 2.8);
     if (combo > 1) { fxBurst(tg.pos, [0xffd060, 0xffffff, 0xff9a6a], 12, 3.6); sfxBonus(); }
 
