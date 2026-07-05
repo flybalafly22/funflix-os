@@ -1129,10 +1129,27 @@ function start(ctx, world) {
     m.position.set(rand(-RAIN_R, RAIN_R), rand(0, 13), rand(-RAIN_R, RAIN_R));
     rainGroup.add(m); rainDrops.push(m);
   }
+  // puddles that pool on the road during rain and dry after
+  const puddles = [], PUD_N = 10;
+  const pudGeo = new T.CircleGeometry(1, 14);
+  for (let i = 0; i < PUD_N; i++) {
+    const m = new T.Mesh(pudGeo, new T.MeshBasicMaterial({ color: 0x3a4650, transparent: true, opacity: 0, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.layers.set(1); m.visible = false;
+    scene.add(m); puddles.push({ mesh: m, wet: 0, placed: false });
+  }
+  let pudSeed = 0;
   function startRain() {
     raining = true; rainT = 0; rainGroup.visible = true;
+    // scatter puddles on the road around wherever the player is
+    for (const p of puddles) {
+      const a = rand(0, TAU), r = rand(4, 22);
+      const px = P.pos.x + Math.cos(a) * r, pz = P.pos.z + Math.sin(a) * r;
+      if (groundAt(px, pz) > 0.05) { p.placed = false; continue; }   // only on the road, not sidewalks
+      p.mesh.position.set(px, 0.02, pz);
+      p.mesh.scale.setScalar(rand(0.8, 2.2));
+      p.mesh.visible = true; p.placed = true;
+    }
     toast('🌧 Empieza a llover…', '#3a7d99');
-    if (windGain) {}   // (wind bed already tracks)
   }
   function stopRain() {
     raining = false; rainGroup.visible = false;
@@ -1153,6 +1170,13 @@ function start(ctx, world) {
         m.position.x += 3.2 * dt;               // wind-blown slant
         if (m.position.y < -0.5) { m.position.set(rand(-RAIN_R, RAIN_R), rand(9, 13), rand(-RAIN_R, RAIN_R)); }
       }
+    }
+    // puddles: swell to a sheen while raining, dry up after
+    for (const p of puddles) {
+      if (!p.placed) continue;
+      p.wet = clamp(p.wet + (raining ? dt * 0.4 : -dt * 0.15), 0, 1);
+      p.mesh.material.opacity = p.wet * 0.5;
+      if (p.wet <= 0.001) p.mesh.visible = false;
     }
     // grade responds: overcast pulls saturation/exposure down a touch
     if (ctx.composer && gradeU) {
