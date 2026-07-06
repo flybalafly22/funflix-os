@@ -1861,6 +1861,7 @@ function start(ctx, world) {
     }
     const dayFrac = clamp((dayDeliv + (jobActive ? (1 - clamp(jobLeft / Math.max(1, jobBudget), 0, 1)) * 0.5 : 0)) / DAY_LEN, 0, 1);
     tod += (dayFrac - tod) * L.dampT(dt, 0.5);
+    ctx.tod = tod;                      // share with world.js for NPC routines
     applyTOD(reporting ? 1 : tod);
     updateMusic(now, tod);
     updateCritters(now, tod);

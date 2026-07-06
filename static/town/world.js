@@ -1215,6 +1215,35 @@ function build(ctx) {
   // plaza strollers
   for (let k = 0; k < 7; k++) spawnNPC(L.rand(-PLAZA_HALF + 2, PLAZA_HALF - 2), SW + L.rand(2, 13), 'plaza');
 
+  /* ── LIVING TOWN (Sprint 44): give the main-avenue & plaza walkers real
+     daily itineraries instead of pacing one lane. Waypoints are held strictly
+     inside known-open ground — the avenue corridor (z=±10.5 sidewalks + the
+     open road between) and the plaza pocket (|x|<18, z 11..17) — so a straight
+     hop between any two stops never crosses a building. Assignment is
+     DETERMINISTIC (index-based, no RNG) so downstream seeded placement — grass,
+     butterflies, everything after this — is byte-for-byte unchanged. ── */
+  const AVENUE_POIS = [
+    [-130, -10.5], [-130, 10.5], [-90, 10.5], [-90, -10.5], [-50, -10.5], [-50, 10.5],
+    [-15, 10.5], [-15, -10.5], [15, -10.5], [15, 10.5], [50, 10.5], [50, -10.5],
+    [90, -10.5], [90, 10.5], [130, 10.5], [130, -10.5],
+  ];
+  const PLAZA_POIS = [[-12, 12], [12, 12], [-9, 16], [9, 16], [0, 13.5], [0, 17]];
+  (function assignRoutes() {
+    let ai = 0;
+    for (const n of npcs) {
+      const u = n.userData.npc;
+      if (!u || u.state == null || u.baseY != null) continue;   // walkers only; skip hill (elevated)
+      if (Math.abs(n.position.z - AV2Z) < 24) continue;         // skip the 2nd-avenue lane
+      const plaza = n.position.z > 9 && Math.abs(n.position.x) < 20;
+      const pool = plaza ? PLAZA_POIS : AVENUE_POIS, N = pool.length;
+      u.route = [pool[ai % N], pool[(ai * 3 + 1) % N], pool[(ai * 5 + 2) % N], pool[(ai * 7 + 3) % N]];
+      u.rp = ai % u.route.length; u.browse = 0;
+      u.sp = Math.min(1.5, Math.abs(u.speed) || 1.0);
+      u.homebody = (ai % 5) < 2;                                 // ~40% head home at deep night
+      ai++;
+    }
+  })();
+
   // seated folk at café tables + on some benches, and vendors at stalls (static, idle anim)
   function seatNPC(x, z, faceY) {
     const n = C.makeNPC();
@@ -1748,6 +1777,7 @@ function build(ctx) {
   const PP = ctx.player.pos;
   function update(dt, now) {
     const t = now * 0.004;
+    const tod = ctx.tod || 0;   // day→dusk fraction, set by game.js (one frame stale, fine)
     // ── NPCs: walk/pause state machine + wave when the Fly is near ──
     for (const n of npcs) {
       const u = n.userData.npc;
@@ -1764,6 +1794,28 @@ function build(ctx) {
       }
 
       // walkers
+      // ── routed wanderer: head to the next stop, browse a moment, move on ──
+      if (u.route) {
+        n.visible = !(u.homebody && tod > 0.82);                // some folk go home at night
+        if (!n.visible) continue;
+        const tgt = u.route[u.rp];
+        const dx = tgt[0] - n.position.x, dz = tgt[1] - n.position.z, dist = Math.hypot(dx, dz);
+        const greeting = u.wave > 0.4;
+        if (u.browse > 0) u.browse -= dt;
+        if (dist < 1.1 && u.browse <= 0) { u.rp = (u.rp + 1) % u.route.length; u.browse = L.rand(1.2, 4.0); }
+        const moving = dist >= 1.1 && u.browse <= 0 && !greeting;
+        if (moving) {
+          const sp = u.sp * (tod > 0.72 ? 1.22 : 1);            // hurry along after dusk
+          n.position.x += (dx / dist) * sp * dt; n.position.z += (dz / dist) * sp * dt;
+        }
+        const wantY = greeting ? Math.atan2(PP.x - n.position.x, PP.z - n.position.z) : Math.atan2(dx, dz);
+        let dyy = wantY - n.rotation.y; dyy = Math.atan2(Math.sin(dyy), Math.cos(dyy));
+        n.rotation.y += dyy * Math.min(1, dt * 6);
+        C.animateWalk(n, t * 3 + u.phase, moving);
+        n.position.y = CH + (moving ? Math.abs(Math.sin(t * 3 + u.phase)) * 0.03 : 0);
+        if (u.wave > 0.05 && n.userData.limbs) n.userData.limbs.armR.rotation.x = -2.4 * u.wave + Math.sin(now * 0.02) * 0.4 * u.wave;
+        continue;
+      }
       u.timer -= dt;
       if (u.state === 'walk') {
         if (u.timer <= 0 && L.chance(0.5)) { u.state = 'pause'; u.timer = L.rand(1.2, 3.5); }
