@@ -108,8 +108,10 @@ function start(ctx, world) {
   // the context 'E' action, shared by keyboard + the touch button
   function doAction() {
     if (!begun || offer) return;
-    if (shopOpen) toggleShop(false);
-    else if (ridingTram) hopOffTram();
+    if (shopOpen) { toggleShop(false); return; }
+    if (inside) { if (atExit()) exitInterior(); return; }
+    if (nearestDoor()) { enterInterior(nearestDoor().name); return; }
+    if (ridingTram) hopOffTram();
     else if (bazarAddr && !onBike && Math.hypot(bazarAddr.pos.x - P.pos.x, bazarAddr.pos.z - P.pos.z) < 6) toggleShop(true);
     else if (!onBike && nearestTram()) hopOnTram(nearestTram());
     else if (onBike) dismountBike();
@@ -634,6 +636,180 @@ function start(ctx, world) {
     shopEl.classList.toggle('on', shopOpen);
   }
 
+  /* ════════ ENTERABLE SHOP INTERIORS (Sprint 43) ════════
+     Walk to a shop door and press E to step inside a hand-built little room —
+     counter, themed dressing, a shopkeeper who greets you. Rooms live off the
+     map at (600,600), shown one at a time; the courier is teleported in/out and
+     the room is fully enclosed so the town never peeks through. */
+  const INT_ORIGIN = new T.Vector3(600, 0, 600);
+  const INT_CFG = {
+    'CORNER CAFÉ':  { label: 'the Café',        accent: '#9c5a2c', wall: '#e9dcc0', kind: 'cafe',     greet: 'Morning! Kettle’s on ☕' },
+    'SWEET SHOP':   { label: 'the Sweet Shop',  accent: '#c85a7a', wall: '#f1e2d0', kind: 'sweets',   greet: 'Something sweet, dear? 🍬' },
+    'GALLERY':      { label: 'the Gallery',     accent: '#5a4a78', wall: '#efe8e0', kind: 'gallery',  greet: 'Take your time — browse 🖼' },
+    'PHARMACY':     { label: 'the Pharmacy',    accent: '#2a8858', wall: '#e7efe4', kind: 'pharmacy', greet: 'Keeping well, I hope? 💊' },
+    'RARE BOOKS':   { label: 'the Bookshop',    accent: '#6a4a2a', wall: '#e7dcc4', kind: 'books',    greet: 'Mind the stacks 📚' },
+    'TOY SHOP':     { label: 'the Toy Shop',    accent: '#e0783a', wall: '#f0e6d2', kind: 'toys',     greet: 'Come in, come play! 🧸' },
+    'GREENGROCER':  { label: 'the Greengrocer', accent: '#4a8050', wall: '#e6eed8', kind: 'grocer',   greet: 'Fresh in this morning! 🍎' },
+  };
+  const ENTERABLE = world.addresses.filter(a => INT_CFG[a.name]);
+  const INT_NAMES = Object.keys(INT_CFG);
+  const intCache = {};
+  let inside = false, curInt = null, savedOut = null;
+  let intVisited = lsGet0('fly_int_visited');   // bitmask of first-visit welcome coins
+
+  function frame(w, h, hex, x, y, z, ry) {   // a framed picture on a wall
+    const grp = new T.Group();
+    grp.add(L.box(w + 0.16, h + 0.16, 0.06, L.std({ color: '#6a5238' }), { cast: false }));
+    grp.add(L.box(w, h, 0.02, L.std({ color: hex }), { z: 0.05, cast: false }));
+    grp.position.set(x, y, z); if (ry) grp.rotation.y = ry; return grp;
+  }
+  function shelfUnit(x, z, ry, tone) {       // a stocked back shelf
+    const g = new T.Group(); const wood = L.std({ color: '#7a5a38' });
+    g.add(L.box(2.4, 2.6, 0.4, wood, { y: 1.3, cast: false }));
+    for (let s = 0; s < 3; s++) {
+      g.add(L.box(2.3, 0.08, 0.44, wood, { y: 0.7 + s * 0.8, z: 0.02, cast: false }));
+      for (let i = 0; i < 5; i++)
+        g.add(L.box(0.34, 0.5, 0.28, L.std({ color: tone[(s + i) % tone.length] }), { x: -0.92 + i * 0.46, y: 1.0 + s * 0.8, z: 0.05, cast: false }));
+    }
+    g.position.set(x, 0, z); if (ry) g.rotation.y = ry; return g;
+  }
+  function dressRoom(root, cfg, accMat, trimMat) {
+    const K = cfg.kind, wood = L.std({ color: '#7a5a38' });
+    if (K === 'cafe') {
+      root.add(L.box(1.1, 0.6, 0.6, L.std({ color: '#b8bcc0' }), { x: -1.2, y: 1.35, z: -3.9, cast: false }));   // espresso machine
+      root.add(L.cyl(0.05, 0.05, 0.2, 8, accMat, { x: -1.2, y: 1.0, z: -3.5, cast: false }));
+      root.add(frame(2.2, 1.2, '#2c2620', 0, 2.1, -5.82, 0));                                                    // chalkboard menu
+      for (const sx of [-3, 3]) {
+        root.add(L.cyl(0.5, 0.5, 0.06, 16, trimMat, { x: sx, y: 0.75, z: 2.4, cast: false }));
+        root.add(L.cyl(0.06, 0.06, 0.75, 8, wood, { x: sx, y: 0.37, z: 2.4, cast: false }));
+        for (const ox of [-0.75, 0.75]) { root.add(L.cyl(0.22, 0.22, 0.06, 12, accMat, { x: sx + ox, y: 0.5, z: 2.4, cast: false })); root.add(L.cyl(0.05, 0.05, 0.5, 8, wood, { x: sx + ox, y: 0.25, z: 2.4, cast: false })); }
+      }
+    } else if (K === 'sweets') {
+      root.add(shelfUnit(-4.4, -2, Math.PI / 2, ['#e05a7a', '#e0b040', '#5ac0a0', '#c86ad0', '#e07a4a']));
+      root.add(shelfUnit(4.4, -2, -Math.PI / 2, ['#e05a7a', '#e0b040', '#5ac0a0', '#c86ad0']));
+      const jarC = ['#e05a7a', '#e0b040', '#5ac0a0', '#c86ad0', '#e07a4a'];
+      for (let i = 0; i < 5; i++) { root.add(L.cyl(0.16, 0.16, 0.4, 12, L.std({ color: '#eef2f4' }), { x: -1.4 + i * 0.7, y: 1.3, z: -3.7, cast: false })); root.add(L.sphere(0.13, 8, L.std({ color: jarC[i] }), { x: -1.4 + i * 0.7, y: 1.36, z: -3.7, cast: false })); }
+    } else if (K === 'gallery') {
+      const art = ['#c04a4a', '#3a6a9a', '#d0a040', '#4a8a5a', '#8a4a9a'];
+      for (let i = 0; i < 4; i++) root.add(frame(1.3, 1.0, art[i], -3.5 + i * 2.3, 2.2, -5.82, 0));
+      root.add(frame(1.1, 1.5, art[4], -5.82, 2.2, -1, Math.PI / 2));
+      root.add(L.box(0.7, 1.0, 0.7, trimMat, { x: 2.4, y: 0.5, z: 1.5, cast: false }));                          // pedestal
+      root.add(L.sphere(0.28, 12, accMat, { x: 2.4, y: 1.28, z: 1.5, cast: false }));
+    } else if (K === 'pharmacy') {
+      root.add(L.box(0.7, 0.2, 0.06, L.std({ color: '#2a8858' }), { y: 3.0, z: -5.8, cast: false }));            // green cross
+      root.add(L.box(0.2, 0.7, 0.06, L.std({ color: '#2a8858' }), { y: 3.0, z: -5.8, cast: false }));
+      root.add(shelfUnit(0, -5.4, 0, ['#eef2f4', '#dfe8ee', '#e8eef0', '#f0f4f6']));
+      for (let i = 0; i < 4; i++) root.add(L.cyl(0.1, 0.1, 0.26, 10, L.std({ color: '#eef4f6' }), { x: -1 + i * 0.66, y: 1.22, z: -3.7, cast: false }));
+    } else if (K === 'books') {
+      root.add(shelfUnit(-4.4, -1, Math.PI / 2, ['#8a3a2a', '#2a4a6a', '#3a6a3a', '#7a6a2a', '#5a2a5a']));
+      root.add(shelfUnit(-4.4, 2, Math.PI / 2, ['#8a3a2a', '#2a4a6a', '#3a6a3a', '#7a6a2a']));
+      root.add(shelfUnit(4.4, -1, -Math.PI / 2, ['#7a6a2a', '#2a4a6a', '#8a3a2a', '#3a6a3a']));
+      root.add(L.box(1.0, 0.5, 1.0, accMat, { x: 3, y: 0.4, z: 2.5, cast: false }));                             // reading chair
+      root.add(L.box(1.0, 1.0, 0.2, accMat, { x: 3, y: 0.9, z: 2.0, cast: false }));
+    } else if (K === 'toys') {
+      root.add(shelfUnit(-4.4, -2, Math.PI / 2, ['#e05a5a', '#e0c040', '#4a9ae0', '#5ac06a']));
+      root.add(L.box(0.9, 0.28, 0.24, L.std({ color: '#d8a060' }), { x: 2.6, y: 0.9, z: 1.8, cast: false }));    // rocking horse
+      root.add(L.box(0.24, 0.5, 0.24, L.std({ color: '#d8a060' }), { x: 3.0, y: 1.15, z: 1.8, cast: false }));
+      root.add(L.box(1.1, 0.14, 0.24, L.std({ color: '#b07838' }), { x: 2.6, y: 0.34, z: 1.8, cast: false }));
+      for (const [bx, bc] of [[-2, '#e05a5a'], [-1.4, '#4a9ae0'], [1.6, '#5ac06a']]) { root.add(L.sphere(0.22, 10, L.std({ color: bc }), { x: bx, y: 2.6, z: 0, cast: false })); root.add(L.box(0.01, 0.9, 0.01, L.std({ color: '#8a8a8a' }), { x: bx, y: 2.1, z: 0, cast: false })); }
+    } else if (K === 'grocer') {
+      const fruit = ['#e05a4a', '#e0a040', '#7ab04a', '#c8503a', '#e0c050'];
+      for (let c = 0; c < 3; c++) { const cx = -2.6 + c * 2.0; root.add(L.box(1.3, 0.5, 0.9, L.std({ color: '#9a7a4a' }), { x: cx, y: 0.28, z: 2.6, cast: false })); for (let i = 0; i < 6; i++) root.add(L.sphere(0.15, 8, L.std({ color: fruit[(c + i) % 5] }), { x: cx - 0.4 + (i % 3) * 0.4, y: 0.6, z: 2.4 + Math.floor(i / 3) * 0.4, cast: false })); }
+      root.add(shelfUnit(-4.4, -2, Math.PI / 2, ['#7ab04a', '#e0a040', '#e05a4a', '#c8b050']));
+    }
+  }
+  function buildRoom(name, cfg) {
+    const root = new T.Group(); root.position.copy(INT_ORIGIN); root.visible = false; scene.add(root);
+    const wallMat = L.std({ color: cfg.wall });
+    const floorMat = L.std({ color: '#c9b48c' });
+    const trimMat = L.std({ color: '#efe7d4' });
+    const accMat = L.std({ color: cfg.accent });
+    root.add(L.box(12, 0.3, 12, floorMat, { y: -0.15, cast: false }));
+    root.add(L.box(12, 0.3, 12, L.std({ color: '#d8cbb0' }), { y: 4.35, cast: false }));      // ceiling
+    root.add(L.box(12, 4.4, 0.3, wallMat, { y: 2.2, z: -6, cast: false }));                    // back
+    root.add(L.box(0.3, 4.4, 12, wallMat, { x: -6, y: 2.2, cast: false }));                    // left
+    root.add(L.box(0.3, 4.4, 12, wallMat, { x: 6, y: 2.2, cast: false }));                     // right
+    root.add(L.box(4.4, 4.4, 0.3, wallMat, { x: -3.8, y: 2.2, z: 6, cast: false }));           // front (door gap centre)
+    root.add(L.box(4.4, 4.4, 0.3, wallMat, { x: 3.8, y: 2.2, z: 6, cast: false }));
+    root.add(L.box(3.4, 1.5, 0.3, wallMat, { y: 3.65, z: 6, cast: false }));                   // lintel over door
+    root.add(L.box(12, 0.24, 0.32, trimMat, { y: 0.12, z: -5.86, cast: false }));              // skirting
+    root.add(L.box(11.6, 0.16, 0.34, accMat, { y: 3.0, z: -5.86, cast: false }));              // picture rail
+    root.add(L.box(2.6, 0.05, 1.3, accMat, { z: 5.0, y: 0.01, cast: false }));                 // welcome mat
+    root.add(L.box(4.2, 1.02, 0.9, accMat, { y: 0.51, z: -3.7, cast: false }));                // counter
+    root.add(L.box(4.5, 0.12, 1.06, trimMat, { y: 1.08, z: -3.7, cast: false }));
+    root.add(L.cyl(0.34, 0.42, 0.34, 12, L.std({ color: '#f0e2b8', emissive: 0x2a2410 }), { y: 3.5, cast: false }));  // hanging lamp
+    root.add(L.box(0.04, 0.85, 0.04, L.std({ color: '#3a3128' }), { y: 3.95, cast: false }));
+    // a soft even fill so the enclosed toon walls never fall into the dark band —
+    // it's a child of the room, so it only lights while the room is visible.
+    root.add(new T.HemisphereLight(0xffeed2, 0x5a4a34, 0.72));
+    const lamp = new T.PointLight(0xffe0a8, 2.0, 24, 1.2); lamp.position.set(0, 3.4, 0); root.add(lamp);
+    const lamp2 = new T.PointLight(0xffe8c8, 0.85, 18, 1.4); lamp2.position.set(0, 2.2, 2.6); root.add(lamp2);
+    dressRoom(root, cfg, accMat, trimMat);
+    const keep = C.makeNPC({ shirt: cfg.accent }); keep.position.set(0, 0, -4.6); root.add(keep);
+    return { root, keep, spawn: { x: INT_ORIGIN.x, z: INT_ORIGIN.z + 3.2, yaw: Math.PI }, exit: { x: INT_ORIGIN.x, z: INT_ORIGIN.z + 4.8 } };
+  }
+
+  const doorEl = document.createElement('div'); doorEl.id = 'flyDoor';
+  doorEl.style.cssText = 'position:absolute;left:50%;bottom:92px;transform:translateX(-50%);'
+    + 'font-family:\'Patrick Hand\',cursive;font-size:19px;color:#2c261c;background:#fbf6e8;'
+    + 'border:2px solid #2c261c;border-radius:12px;padding:5px 16px;box-shadow:2px 3px 0 rgba(44,38,28,.45);'
+    + 'opacity:0;transition:opacity .18s;pointer-events:none;white-space:nowrap;z-index:40;';
+  hud.appendChild(doorEl);
+  const intBanner = document.createElement('div'); intBanner.id = 'flyIntBanner';
+  intBanner.style.cssText = 'position:absolute;left:50%;top:16px;transform:translateX(-50%);'
+    + 'font-family:\'Patrick Hand\',cursive;font-size:22px;color:#2c261c;background:#fbf6e8;'
+    + 'border:2px solid #2c261c;border-radius:12px;padding:4px 20px;box-shadow:2px 3px 0 rgba(44,38,28,.45);'
+    + 'opacity:0;transition:opacity .25s;pointer-events:none;z-index:40;';
+  hud.appendChild(intBanner);
+  let curDoor = null;
+  function nearestDoor() {
+    if (inside || onBike || !begun) return null;
+    let best = null, bd = 3.4;
+    for (const a of ENTERABLE) { const d = Math.hypot(a.pos.x - P.pos.x, a.pos.z - P.pos.z); if (d < bd) { bd = d; best = a; } }
+    return best;
+  }
+  function atExit() { return inside && curInt && Math.hypot(curInt.exit.x - P.pos.x, curInt.exit.z - P.pos.z) < 2.2; }
+  function updateDoorPrompt() {
+    let txt = '';
+    if (inside) { if (atExit()) txt = '🚪 E — step outside'; }
+    else { curDoor = nearestDoor(); if (curDoor) txt = '🚪 E — step into ' + INT_CFG[curDoor.name].label; }
+    if (txt) { doorEl.textContent = txt; doorEl.style.opacity = '1'; } else doorEl.style.opacity = '0';
+  }
+  function enterInterior(name) {
+    const cfg = INT_CFG[name]; if (!cfg) return;
+    if (onBike) dismountBike();
+    const rec = intCache[name] || (intCache[name] = buildRoom(name, cfg));
+    savedOut = { x: P.pos.x, y: P.pos.y, z: P.pos.z, yaw: P.yaw, cam: camYaw };
+    rec.root.visible = true; inside = true; curInt = rec;
+    P.pos.set(rec.spawn.x, 0, rec.spawn.z); P.yaw = rec.spawn.yaw; camYaw = rec.spawn.yaw; P.speed = 0; idleT = 0;
+    snapCam();   // don't fly the camera across the world — teleport it too
+    intBanner.textContent = '— ' + cfg.label.replace(/^the /, 'The ') + ' —'; intBanner.style.opacity = '1';
+    bubble(rec.root.position.x, 2.5, rec.root.position.z - 4.2, cfg.greet, 4);
+    sfxPick();
+    const bit = 1 << INT_NAMES.indexOf(name);
+    if (!(intVisited & bit)) {
+      intVisited |= bit; lsSet('fly_int_visited', intVisited);
+      const reward = 15; coins += reward; dayCoins += reward; lsSet('fly_coins', coins);
+      setTimeout(() => { if (inside) { toast('🪙 +' + reward + ' — welcome, regular!', '#4d8a52'); renderBest(); } }, 800);
+    }
+  }
+  function exitInterior() {
+    if (!inside || !curInt) return;
+    curInt.root.visible = false;
+    if (savedOut) { P.pos.set(savedOut.x, savedOut.y, savedOut.z); P.yaw = savedOut.yaw; camYaw = savedOut.cam; }
+    P.speed = 0; inside = false; curInt = null; intBanner.style.opacity = '0'; doorEl.style.opacity = '0';
+    snapCam();
+  }
+  function snapCam() {   // place the chase camera behind the courier instantly (no cross-map lerp)
+    const cf = new T.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw));
+    camera.position.set(P.pos.x - cf.x * 5.4, P.pos.y + 2.9, P.pos.z - cf.z * 5.4);
+    if (inside && curInt) {
+      const cx = curInt.root.position.x, cz = curInt.root.position.z, cr = 5.4;
+      camera.position.x = clamp(camera.position.x, cx - cr, cx + cr);
+      camera.position.z = clamp(camera.position.z, cz - cr, cz + cr);
+    }
+  }
+
   /* ── the END-OF-DAY report card ── */
   const repEl = document.createElement('div'); repEl.id = 'flyReport';
   hud.appendChild(repEl);
@@ -1121,7 +1297,7 @@ function start(ctx, world) {
   function bindTap(id, fn) { const el = document.getElementById(id); if (!el) return;
     el.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); fn(); }); }
   bindTap('btnAct', () => doAction());
-  bindTap('btnMap', () => { if (begun && !shopOpen && !reporting) toggleBigMap(); });
+  bindTap('btnMap', () => { if (begun && !shopOpen && !reporting && !inside) toggleBigMap(); });
   bindTap('btnLog', () => { if (begun) logEl.classList.toggle('open'); });
 
   /* ── WEATHER: a passing drizzle every few days; umbrellas pop, streets darken ── */
@@ -1420,9 +1596,15 @@ function start(ctx, world) {
       P.speed = 0;
       if (mag > 0.4) hopOffTram();                            // push any direction to drop off
     }
-    P.pos.x = clamp(P.pos.x, bounds.minX, bounds.maxX);
-    P.pos.z = clamp(P.pos.z, bounds.minZ, bounds.maxZ);
-    if (!ridingTram) resolveStatic();                         // solid town
+    if (inside && curInt) {                                   // enclosed by shop walls
+      const cx = curInt.root.position.x, cz = curInt.root.position.z, rr = 5.2;
+      P.pos.x = clamp(P.pos.x, cx - rr, cx + rr);
+      P.pos.z = clamp(P.pos.z, cz - rr, cz + rr);
+    } else {
+      P.pos.x = clamp(P.pos.x, bounds.minX, bounds.maxX);
+      P.pos.z = clamp(P.pos.z, bounds.minZ, bounds.maxZ);
+      if (!ridingTram) resolveStatic();                       // solid town
+    }
     // townsfolk are soft: brushing past nudges both of you apart (no hard walls)
     for (const n of NPCS) {
       const u = n.userData.npc;
@@ -1500,6 +1682,12 @@ function start(ctx, world) {
     }
     if (tC < 1) desired.set(P.pos.x + (desired.x - P.pos.x) * tC, desired.y - (1 - tC) * 0.6, P.pos.z + (desired.z - P.pos.z) * tC);
     resolveCircle(desired, 0.4);   // and never wedge inside geometry
+    if (inside && curInt) {        // keep the camera inside the little room
+      const cx = curInt.root.position.x, cz = curInt.root.position.z, cr = 5.4;
+      desired.x = clamp(desired.x, cx - cr, cx + cr);
+      desired.z = clamp(desired.z, cz - cr, cz + cr);
+      desired.y = Math.min(desired.y, 3.9);
+    }
     camera.position.lerp(desired, L.dampT(dt, 6));
     if (shake > 0.001) {
       shake = Math.max(0, shake - dt * 2.2);
@@ -1629,8 +1817,10 @@ function start(ctx, world) {
       }
     }
 
+    updateDoorPrompt();
+
     // discoverability: a whisper when a ride is available
-    if (!ridingTram && !onBike && nearestTram()) {
+    if (!inside && !ridingTram && !onBike && nearestTram()) {
       if (!(tipsSeen & TIP_BITS.tram)) tipOnce('tram', '🚋 E — grab the tram (it\'s free!)');
       else if (now % 4000 < 20) toast('🚋 E', '#3a7d99');
     }
@@ -1653,18 +1843,22 @@ function start(ctx, world) {
       }
     }
 
-    checkTraffic();
     updateFX(dt);
     updateRings(dt);
     updateBubbles(dt);
     updateDlg(dt);
-    updateLost(dt, now);
-    updateFestival(dt, now);
-    updateWeather(dt, now);
-    updateMotes(dt, now);
-    updateFireflies(dt, now);
-    updateRival(dt, now);
-    if (R.active) C.animateWalk(rival, now * 0.012, true);
+    if (!inside) {
+      checkTraffic();
+      updateLost(dt, now);
+      updateFestival(dt, now);
+      updateWeather(dt, now);
+      updateMotes(dt, now);
+      updateFireflies(dt, now);
+      updateRival(dt, now);
+      if (R.active) C.animateWalk(rival, now * 0.012, true);
+    } else if (curInt && curInt.keep) {
+      C.animateWalk(curInt.keep, now * 0.004, false);   // shopkeeper breathes
+    }
     const dayFrac = clamp((dayDeliv + (jobActive ? (1 - clamp(jobLeft / Math.max(1, jobBudget), 0, 1)) * 0.5 : 0)) / DAY_LEN, 0, 1);
     tod += (dayFrac - tod) * L.dampT(dt, 0.5);
     applyTOD(reporting ? 1 : tod);
@@ -1682,7 +1876,7 @@ function start(ctx, world) {
 
     // minimap (throttled ~12fps)
     mapAcc += dt;
-    if (mapAcc > 0.08) { mapAcc = 0; drawMap(); }
+    if (mapAcc > 0.08 && !inside) { mapAcc = 0; drawMap(); }
   }
 
   function deliver(tg) {
@@ -1822,7 +2016,7 @@ function start(ctx, world) {
     bigWrap.classList.toggle('on', bigOpen);
   }
   addEventListener('keydown', e => {
-    if (e.code === 'Tab' && begun && !shopOpen && !reporting) { e.preventDefault(); toggleBigMap(); }
+    if (e.code === 'Tab' && begun && !shopOpen && !reporting && !inside) { e.preventDefault(); toggleBigMap(); }
     else if (e.code === 'Escape' && bigOpen) toggleBigMap(false);
   });
 
@@ -1934,6 +2128,9 @@ function start(ctx, world) {
     get coins() { return coins; }, set coins(v) { coins = v; },
     get ridingTram() { return !!ridingTram; }, get shopOpen() { return shopOpen; },
     nearestTram: () => !!nearestTram(),
+    get inside() { return inside; }, get nearDoor() { const d = nearestDoor(); return d ? d.name : null; },
+    enterShop: (name) => enterInterior(name), leaveShop: () => exitInterior(),
+    enterableNames: () => ENTERABLE.map(a => a.name),
     begin,
   } };
 }
