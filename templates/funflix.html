@@ -1,531 +1,347 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FUNFLIX — Maison</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/os.css">
-  <style>
-    /* ════════ hero ════════ */
-    .hero {
-      position: relative;
-      min-height: calc(100vh - 85px);
-      width: 100%;
-      overflow: hidden;
-      background: var(--paper);
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FUNFLIX — Maison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; background:#F1ECE1; color:#1B1712; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  a{ color:#B23A22; text-decoration:none; }
+  a:hover{ color:#8C2C18; }
+  ::selection{ background:#1B1712; color:#F1ECE1; }
+  @keyframes marquee{ to{ transform:translateX(-50%); } }
+  @keyframes bar{ 0%,100%{ transform:scaleY(.22); } 50%{ transform:scaleY(1); } }
+  @keyframes rainmove{ to{ background-position:0 240px; } }
+  @keyframes flydot{ 0%{ left:2%; } 100%{ left:96%; } }
+  @keyframes rise{ from{ opacity:0; transform:translateY(22px); } to{ opacity:1; transform:none; } }
+  @keyframes floaty{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-9px); } }
+  @keyframes gh{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(6px); } }
 
-    .hero-video, .hero-canvas {
-      position: absolute;
-      inset: auto 0 0 0;
-      top: 300px;
-      width: 100%; height: calc(100% - 300px);
-      object-fit: cover;
-      z-index: 0;
-      opacity: 0;
-    }
-    .hero-canvas { display: none; }
+  /* work-index row states (hover / active) */
+  .work-row{ display:grid; grid-template-columns:auto 1fr auto; gap:clamp(12px,2vw,24px); align-items:baseline;
+    width:100%; text-align:left; background:transparent; border:0; border-top:1px solid rgba(27,23,18,0.16);
+    padding:clamp(16px,2.2vw,26px) 4px; cursor:pointer; font:inherit; color:#6B6152; opacity:0.66;
+    transition:all .38s cubic-bezier(.2,.7,.2,1); }
+  .work-row.active{ color:#1B1712; opacity:1; padding-left:14px; }
+  .work-num{ font-family:'Space Mono',monospace; font-size:12px; letter-spacing:0.12em; color:#A79C8C; padding-top:6px; }
+  .work-row.active .work-num{ color:#B23A22; }
+  .work-name{ display:block; font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(24px,2.8vw,38px); line-height:1; letter-spacing:-0.01em; }
+  .work-tag{ display:block; font-family:'Space Grotesk',sans-serif; font-weight:300; font-size:13px; margin-top:0; color:#9A9082;
+    max-height:0; opacity:0; overflow:hidden; transition:all .38s ease; }
+  .work-row.active .work-tag{ margin-top:6px; max-height:40px; opacity:1; color:#6B6152; }
+  .work-arrow{ color:#B23A22; font-size:20px; opacity:0; transform:translateX(-10px); transition:all .38s ease; align-self:center; }
+  .work-row.active .work-arrow{ opacity:1; transform:translateX(0); }
+  .work-row:last-child{ border-bottom:1px solid rgba(27,23,18,0.16); }
 
-    .hero-grad {
-      position: absolute; inset: 0; z-index: 1;
-      pointer-events: none;
-      background: linear-gradient(to bottom,
-        var(--paper) 0%,
-        rgba(255,255,255,0) 38%,
-        rgba(255,255,255,0) 62%,
-        var(--paper) 100%);
-    }
+  .cta-btn{ display:inline-flex; align-items:center; gap:14px; font-family:'Space Grotesk',sans-serif; font-weight:500;
+    font-size:15px; color:#1B1712; background:#F6F0E6; padding:16px 26px; border-radius:100px; white-space:nowrap;
+    transition:transform .3s, background .3s; }
+  .cta-btn:hover{ transform:translateY(-3px); background:#F0C79B; color:#1B1712; }
 
-    .hero-content {
-      position: relative; z-index: 10;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center;
-      padding: calc(8rem - 75px) 24px 160px;
-      max-width: 1280px;
-      margin: 0 auto;
-    }
+  .stage-cta{ display:inline-flex; align-items:center; gap:12px; font-family:'Space Grotesk',sans-serif; font-weight:500;
+    font-size:14px; color:#211A15; background:#F6F0E6; padding:13px 22px; border-radius:100px; transition:transform .25s, background .25s; }
+  .stage-cta:hover{ transform:translateY(-2px); background:#F0C79B; color:#211A15; }
 
-    .hero-h1 {
-      font-family: var(--serif);
-      font-weight: 400;
-      font-size: 48px;
-      line-height: 0.95;
-      letter-spacing: -0.026em;
-      color: var(--black);
-      max-width: 1180px;
-    }
-    @media (min-width: 640px) { .hero-h1 { font-size: 72px; } }
-    @media (min-width: 880px) { .hero-h1 { font-size: 96px; } }
-    .hero-h1 em {
-      font-style: italic;
-      color: var(--gray);
-    }
+  /* motifs (one per work, code-drawn, no assets) */
+  .motif{ position:absolute; inset:0; overflow:hidden; z-index:1; }
+  .motif-compute{ padding:9%; display:grid; grid-template-columns:repeat(4,1fr); gap:3px; background:#EFE7D8; }
+  .motif-compute span{ display:grid; place-items:center; font-family:'Space Mono',monospace; font-size:clamp(16px,2.4vw,30px); color:#211A15; background:rgba(33,26,21,0.05); border-radius:3px; }
+  .motif-compute span.eq{ color:#F6F0E6; background:#B23A22; }
 
-    .hero-desc {
-      margin-top: 32px;
-      max-width: 672px;
-      font-family: var(--sans);
-      font-size: 16px; line-height: 1.625;
-      color: var(--gray);
-    }
-    @media (min-width: 640px) { .hero-desc { font-size: 18px; } }
+  .motif-synth{ background:#0f0f10; }
+  .motif-synth .bg{ position:absolute; inset:0; background:radial-gradient(120% 90% at 30% 20%, #3a4a63 0%, #202a3a 42%, #0c0f15 100%); }
+  .motif-synth .desk{ position:absolute; left:12%; right:12%; bottom:0; height:46%; background:linear-gradient(180deg,#241a12,#0c0805); border-radius:6px 6px 0 0; }
+  .motif-synth .screen{ position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); width:34%; height:26%;
+    background:linear-gradient(180deg,#7fe3b0,#2f9e6a); border-radius:4px; box-shadow:0 0 50px 8px rgba(95,197,154,0.45); border:3px solid #14100c; }
+  .motif-synth .stand{ position:absolute; left:50%; top:66%; transform:translateX(-50%); width:6%; height:8%; background:#14100c; }
+  .motif-synth .cap{ position:absolute; left:0; right:0; text-align:center; font-family:Impact,'Arial Narrow',sans-serif; font-weight:400; color:#fff;
+    font-size:clamp(18px,3.4vw,42px); line-height:1; letter-spacing:0.01em; text-transform:uppercase; -webkit-text-stroke:clamp(1px,0.35vw,2.5px) #000; padding:0 5%; z-index:2; }
 
-    .hero-cta {
-      margin-top: 48px;
-      background: var(--black); color: #fff;
-      border: none; border-radius: 999px;
-      font-family: var(--sans); font-size: 16px; font-weight: 500;
-      padding: 20px 56px;
-      text-decoration: none;
-      transition: transform 0.2s ease;
-      display: inline-block;
-    }
-    .hero-cta:hover { transform: scale(1.03); }
-    .hero-cta:active { transform: scale(0.97); }
+  .motif-press{ background:#EFE7D8; padding:8%; }
+  .motif-press .head{ font-family:'Instrument Serif',serif; font-size:clamp(22px,3.6vw,46px); color:#211A15; border-bottom:2px solid #211A15; padding-bottom:8px; margin-bottom:12px; letter-spacing:0.02em; }
+  .motif-press .cols{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; height:62%; }
+  .motif-press .col{ display:flex; flex-direction:column; gap:6px; }
+  .motif-press .ln{ height:3px; width:100%; background:rgba(33,26,21,0.28); }
+  .motif-press .ln.hd{ width:70%; background:#B23A22; }
 
-    /* ════════ the collection ════════ */
-    .collection {
-      max-width: 1180px; width: 100%;
-      margin: 0 auto;
-      padding: 40px 32px 110px;
-    }
-    @media (max-width: 640px) { .collection { padding: 24px 20px 70px; } }
+  .motif-noir{ background:linear-gradient(180deg,#10151c,#1c2733); }
+  .motif-noir .rain{ position:absolute; inset:0; background:repeating-linear-gradient(105deg, rgba(200,220,255,0.16) 0 1px, transparent 1px 9px);
+    background-size:auto 240px; animation:rainmove .5s linear infinite; }
+  .motif-noir .streetlamp{ position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(0,0,0,0.32) 0 5px, transparent 5px 22px); }
+  .motif-noir .moon{ position:absolute; left:50%; top:34%; transform:translate(-50%,-50%); width:clamp(40px,9vw,90px); height:clamp(40px,9vw,90px);
+    border-radius:50%; background:radial-gradient(circle at 40% 35%, #F0C79B, #B98A5E 60%, transparent 72%); filter:blur(1px); }
 
-    .col-head {
-      display: flex; align-items: baseline; justify-content: space-between;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--rule-2);
-    }
-    .col-head-label {
-      font-family: var(--sans); font-size: 11px; font-weight: 600;
-      letter-spacing: 0.28em; text-transform: uppercase;
-      color: var(--black);
-    }
-    .col-head-count {
-      font-family: var(--serif); font-style: italic;
-      font-size: 16px; color: var(--gray-2);
-    }
+  .motif-vista{ display:flex; flex-direction:column; }
+  .motif-vista .band{ width:100%; }
+  .motif-vista .sun{ position:absolute; left:50%; top:30%; transform:translate(-50%,-50%); width:clamp(44px,10vw,100px); height:clamp(44px,10vw,100px);
+    border-radius:50%; background:#FCEBC6; box-shadow:0 0 60px 20px rgba(252,235,198,0.6); animation:floaty 5s ease-in-out infinite; }
+  .motif-vista .rooftops{ position:absolute; left:0; right:0; bottom:0; height:34%; background:repeating-linear-gradient(90deg, rgba(20,12,10,0.35) 0 2px, transparent 2px 46px); }
 
-    .work {
-      display: grid;
-      grid-template-columns: 100px 1fr auto;
-      align-items: baseline;
-      gap: 28px;
-      padding: 36px 8px;
-      border-bottom: 1px solid var(--rule);
-      text-decoration: none;
-      transition: padding-left 0.4s cubic-bezier(0.22,1,0.36,1), background 0.3s;
-    }
-    .work:hover { background: var(--wash); padding-left: 28px; }
-    @media (max-width: 720px) {
-      .work { grid-template-columns: 60px 1fr; gap: 16px; padding: 26px 4px; }
-      .work-go { display: none; }
-    }
-    .work-no {
-      font-family: var(--serif); font-style: italic;
-      font-size: 17px; color: var(--gray-2);
-      transition: color 0.25s;
-    }
-    .work:hover .work-no { color: var(--black); }
-    .work-name {
-      font-family: var(--serif);
-      font-size: clamp(30px, 4.6vw, 52px);
-      font-weight: 400;
-      letter-spacing: -0.02em;
-      color: var(--black);
-      line-height: 1.06;
-      display: block;
-    }
-    .work-desc {
-      display: block; margin-top: 8px;
-      font-family: var(--sans);
-      font-size: 14px; color: var(--gray);
-    }
-    .work-go {
-      display: flex; align-items: center; gap: 12px;
-      font-family: var(--sans); font-size: 11px; font-weight: 600;
-      letter-spacing: 0.22em; text-transform: uppercase;
-      color: var(--gray-2);
-      transition: color 0.25s;
-      align-self: center;
-    }
-    .work:hover .work-go { color: var(--black); }
-    .work-go .arr {
-      width: 0; height: 1px; background: var(--black);
-      transition: width 0.4s cubic-bezier(0.22,1,0.36,1);
-      position: relative;
-    }
-    .work:hover .work-go .arr { width: 40px; }
-    .work-go .arr::after {
-      content: ''; position: absolute; right: 0; top: -2.5px;
-      width: 6px; height: 6px;
-      border-top: 1px solid var(--black); border-right: 1px solid var(--black);
-      transform: rotate(45deg);
-      opacity: 0; transition: opacity 0.25s 0.12s;
-    }
-    .work:hover .work-go .arr::after { opacity: 1; }
+  .motif-study{ background:#12211C; display:flex; align-items:center; justify-content:center; gap:2.4%; padding:0 8%; }
+  .motif-study .bar{ flex:1; height:46%; background:#5BC59A; transform-origin:center; }
+  .motif-study .bar.acc{ background:#B23A22; }
 
-    .colophon {
-      margin-top: 56px;
-      text-align: center;
-      font-family: var(--serif); font-style: italic;
-      font-size: 15px; color: var(--gray-2);
-      line-height: 2;
-    }
+  .motif-fly{ background:#EAE0CC; }
+  .motif-fly .dots{ position:absolute; top:52%; left:0; right:0; display:flex; justify-content:space-between; padding:0 6%; }
+  .motif-fly .dots span{ width:6px; height:6px; border-radius:50%; background:rgba(33,26,21,0.35); }
+  .motif-fly .courier{ position:absolute; top:52%; width:22px; height:22px; margin-top:-11px; border-radius:50%; background:#B23A22;
+    box-shadow:0 0 0 6px rgba(178,58,34,0.18); animation:flydot 3s ease-in-out infinite alternate; }
+  .motif-fly .grid{ position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(33,26,21,0.05) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, rgba(33,26,21,0.05) 0 1px, transparent 1px 34px); }
 
-    /* ════════ the vault ════════ */
-    .vault-overlay {
-      position: fixed; inset: 0; z-index: 300;
-      background: rgba(255,255,255,0.7);
-      backdrop-filter: blur(14px);
-      display: none;
-      align-items: center; justify-content: center;
-      padding: 24px;
-    }
-    .vault-overlay.open { display: flex; }
-    .vault {
-      width: min(520px, 100%);
-      background: #fff;
-      border: 1px solid var(--rule);
-      border-radius: 28px;
-      padding: 54px 56px 48px;
-      position: relative;
-      box-shadow: 0 50px 140px rgba(0,0,0,0.14);
-      animation: vIn 0.4s cubic-bezier(0.22,1,0.36,1);
-    }
-    @media (max-width: 560px) { .vault { padding: 40px 28px; } }
-    @keyframes vIn { from { opacity: 0; transform: translateY(20px); } }
-    .vault-close {
-      position: absolute; top: 22px; right: 26px;
-      background: none; border: none;
-      color: var(--gray-2);
-      font-family: var(--sans); font-size: 10px; font-weight: 600;
-      letter-spacing: 0.22em;
-      transition: color 0.2s;
-    }
-    .vault-close:hover { color: var(--black); }
-    .vault-head {
-      text-align: center;
-      font-family: var(--sans); font-size: 10px; font-weight: 600;
-      letter-spacing: 0.34em; text-transform: uppercase;
-      color: var(--gray-2);
-      margin-bottom: 10px;
-    }
-    .vault-title {
-      text-align: center;
-      font-family: var(--serif); font-style: italic; font-weight: 400;
-      font-size: 38px; color: var(--black);
-      margin-bottom: 34px;
-    }
-    .vault-lines {
-      min-height: 215px;
-      font-family: var(--serif);
-      font-size: 18px; line-height: 2.4;
-      color: var(--gray);
-    }
-    .vault-lines .vl-black { color: var(--black); font-style: italic; }
-    .vault-lines .vl-dim { color: var(--gray-2); }
-    .vault-caret {
-      display: inline-block; width: 1px; height: 1em;
-      background: var(--black);
-      vertical-align: text-bottom; margin-left: 2px;
-      animation: vBlink 0.85s steps(1) infinite;
-    }
-    @keyframes vBlink { 50% { opacity: 0; } }
-    .vault-seal { display: none; margin-top: 24px; text-align: center; }
-    .vault-seal.show { display: block; animation: sealIn 0.5s cubic-bezier(0.2,1.4,0.4,1); }
-    @keyframes sealIn { from { opacity: 0; transform: scale(1.25); } }
-    .seal-ring {
-      width: 88px; height: 88px;
-      margin: 0 auto 16px;
-      border: 1px solid var(--black);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--serif); font-style: italic;
-      font-size: 38px; color: var(--black);
-      position: relative;
-    }
-    .seal-ring::before {
-      content: ''; position: absolute; inset: 6px;
-      border: 1px dashed var(--rule-2);
-      border-radius: 50%;
-    }
-    .seal-line1 {
-      font-family: var(--sans); font-size: 11px; font-weight: 700;
-      letter-spacing: 0.32em; text-transform: uppercase;
-      color: var(--black);
-    }
-    .seal-line2 {
-      margin-top: 6px;
-      font-family: var(--serif); font-style: italic;
-      font-size: 14px; color: var(--gray);
-    }
-    .seal-btn {
-      margin-top: 22px;
-      background: var(--black); border: none;
-      color: #fff; border-radius: 999px;
-      font-family: var(--sans); font-size: 14px; font-weight: 500;
-      padding: 13px 34px;
-      transition: transform 0.2s;
-    }
-    .seal-btn:hover { transform: scale(1.03); }
-  </style>
+  .vault-input{ width:100%; background:transparent; border:0; border-bottom:1px solid rgba(241,236,225,0.3); color:#F1ECE1;
+    font-family:'Instrument Serif',serif; font-size:clamp(34px,5vw,58px); padding:0 0 12px; outline:none; letter-spacing:0.08em; }
+  .vault-input:focus{ border-bottom-color:#F1ECE1; }
+
+  .nav-links{ display:flex; gap:clamp(16px,3vw,40px); align-items:center; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; }
+  @media (max-width:560px){
+    .nav-links{ gap:14px; }
+    .nav-links .nav-est{ display:none; }
+  }
+</style>
 </head>
 <body>
 
-<div class="page-wrap">
+<div style="position:relative; overflow-x:hidden;">
 
-  <!-- ════════ hero ════════ -->
-  <section class="hero">
-    <video class="hero-video" id="heroVid" muted playsinline preload="auto"
+  <!-- NAV -->
+  <nav style="position:fixed; top:0; left:0; right:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,4vw,54px); mix-blend-mode:difference; color:#F1ECE1;">
+    <a href="#top" style="color:inherit; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; letter-spacing:0.42em;">FUNFLIX</a>
+    <div class="nav-links">
+      <a href="#collection" style="color:inherit;">The Collection</a>
+      <a href="#vault" style="color:inherit;">The Vault</a>
+      <span class="nav-est" style="opacity:.55;">Est. MMXXVI</span>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header id="top" style="position:relative; min-height:100vh; display:flex; align-items:flex-end; padding:clamp(24px,5vw,60px); padding-bottom:clamp(40px,6vw,72px); overflow:hidden; background:#2A1712;">
+    <div style="position:absolute; inset:0; background:radial-gradient(120% 90% at 78% 18%, #E7B98F 0%, #C97A4E 34%, #6E3B2E 68%, #2A1712 100%); z-index:0;"></div>
+    <video id="heroVid" muted loop playsinline preload="auto" autoplay
+      style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; opacity:0; transition:opacity 1.2s ease; mix-blend-mode:normal;"
       src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4"></video>
-    <canvas class="hero-canvas" id="heroCanvas"></canvas>
-    <div class="hero-grad"></div>
+    <div style="position:absolute; inset:0; background:radial-gradient(120% 90% at 78% 18%, rgba(231,185,143,0.42) 0%, rgba(201,122,78,0.5) 34%, rgba(110,59,46,0.62) 68%, rgba(42,23,18,0.78) 100%); z-index:2; pointer-events:none;"></div>
+    <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(20,12,10,0.28) 0%, rgba(20,12,10,0) 30%, rgba(20,12,10,0) 62%, rgba(20,12,10,0.66) 100%); z-index:3;"></div>
 
-    <div class="hero-content">
-      <h1 class="hero-h1 fade-rise">Made by <em>you,</em><br/>made for <em>you.</em></h1>
-      <p class="hero-desc fade-rise-d1">Six instruments cut entirely from code &mdash; a calculator of uncommon precision, an atelier of jokes, a tireless newsroom, two playable worlds, and a data study that answers back. No assets, no weight, nothing borrowed.</p>
-      <a class="hero-cta fade-rise-d2" href="#collection" id="ctaBtn">Enter the Collection</a>
+    <div style="position:relative; z-index:4; width:100%; max-width:1500px; margin:0 auto; color:#F6F0E6;">
+      <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; opacity:0.82; margin-bottom:clamp(20px,4vw,40px); animation:rise .8s .1s both;">Seven instruments &middot; Cut entirely from code</div>
+      <h1 style="font-family:'Instrument Serif',serif; font-weight:400; line-height:0.92; letter-spacing:-0.01em; margin:0; font-size:clamp(52px,10.5vw,168px); text-wrap:balance; animation:rise .9s .2s both;">Made by <em style="font-style:italic; color:#F0C79B;">you,</em><br>made for <em style="font-style:italic; color:#F0C79B;">you.</em></h1>
+      <div style="display:flex; flex-wrap:wrap; gap:clamp(20px,4vw,52px); align-items:flex-end; justify-content:space-between; margin-top:clamp(26px,4vw,44px); animation:rise 1s .35s both;">
+        <p style="font-family:'Space Grotesk',sans-serif; font-weight:300; font-size:clamp(15px,1.5vw,19px); line-height:1.5; max-width:44ch; margin:0; opacity:0.92;">A calculator of uncommon precision, an atelier of jokes, a tireless newsroom, two playable worlds and a study that answers back. No assets, no weight, nothing borrowed.</p>
+        <a href="#collection" class="cta-btn" id="ctaBtn">Enter the Collection <span style="font-size:18px;">&rarr;</span></a>
+      </div>
+    </div>
+
+    <div style="position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:4; color:#F6F0E6; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.3em; opacity:0.6; animation:gh 2.4s ease-in-out infinite;">SCROLL</div>
+  </header>
+
+  <!-- COLLECTION -->
+  <section id="collection" style="position:relative; background:#F1ECE1; padding:clamp(56px,8vw,120px) clamp(20px,4vw,54px);">
+    <div style="max-width:1500px; margin:0 auto;">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:16px; border-bottom:1px solid rgba(27,23,18,0.18); padding-bottom:22px; margin-bottom:clamp(28px,4vw,54px);">
+        <h2 style="font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(34px,5vw,72px); margin:0; letter-spacing:-0.01em;">The Collection</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:#7A7062;">Seven works &middot; Hover to preview</span>
+      </div>
+
+      <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:clamp(28px,4vw,64px); align-items:start;">
+
+        <!-- INDEX -->
+        <div id="workIndex" style="min-width:0;"></div>
+
+        <!-- STAGE -->
+        <div style="position:sticky; top:24px; min-width:0;">
+          <div style="position:relative; aspect-ratio:4/3.15; width:100%; border-radius:6px; overflow:hidden; background:#211A15; box-shadow:0 40px 80px -40px rgba(27,23,18,0.55);">
+            <div id="motifHost"></div>
+            <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(20,14,11,0) 38%, rgba(20,14,11,0.5) 74%, rgba(20,14,11,0.88) 100%); z-index:3;"></div>
+            <div style="position:absolute; left:0; right:0; bottom:0; z-index:4; padding:clamp(20px,3vw,38px); color:#F6F0E6;">
+              <div id="stageKicker" style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:#F0C79B; margin-bottom:10px;"></div>
+              <h3 id="stageName" style="font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(30px,4.4vw,62px); line-height:0.98; margin:0 0 14px;"></h3>
+              <p id="stageDesc" style="font-family:'Space Grotesk',sans-serif; font-weight:300; font-size:clamp(14px,1.3vw,17px); line-height:1.5; max-width:46ch; margin:0 0 22px; opacity:0.9;"></p>
+              <a id="stageCta" href="#" class="stage-cta"></a>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </section>
 
-  <!-- ════════ the collection ════════ -->
-  <section class="collection" id="collection">
-    <div class="col-head">
-      <span class="col-head-label">The Collection</span>
-      <span class="col-head-count">seven works</span>
+  <!-- MARQUEE -->
+  <section style="background:#F1ECE1; padding:clamp(20px,3vw,44px) 0; border-top:1px solid rgba(27,23,18,0.18); border-bottom:1px solid rgba(27,23,18,0.18); overflow:hidden;">
+    <div style="display:flex; width:max-content; animation:marquee 26s linear infinite; will-change:transform;">
+      <span style="font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(38px,7vw,110px); white-space:nowrap; padding-right:0.4em; color:#1B1712;">No assets &mdash; no weight &mdash; nothing borrowed &mdash; No assets &mdash; no weight &mdash; nothing borrowed &mdash;&nbsp;</span>
+      <span style="font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(38px,7vw,110px); white-space:nowrap; padding-right:0.4em; color:#1B1712;">No assets &mdash; no weight &mdash; nothing borrowed &mdash; No assets &mdash; no weight &mdash; nothing borrowed &mdash;&nbsp;</span>
     </div>
-
-    <nav class="works">
-      <a href="/calculator" data-nav class="work">
-        <span class="work-no">No. I</span>
-        <span>
-          <span class="work-name">Compute</span>
-          <span class="work-desc">A scientific instrument of uncommon precision.</span>
-        </span>
-        <span class="work-go">Open <span class="arr"></span></span>
-      </a>
-      <a href="/meme" data-nav class="work">
-        <span class="work-no">No. II</span>
-        <span>
-          <span class="work-name">Synthesis</span>
-          <span class="work-desc">An atelier for the manufacture of jokes.</span>
-        </span>
-        <span class="work-go">Open <span class="arr"></span></span>
-      </a>
-      <a href="/journalist" data-nav class="work">
-        <span class="work-no">No. III</span>
-        <span>
-          <span class="work-name">The Press</span>
-          <span class="work-desc">A newsroom staffed by one tireless machine.</span>
-        </span>
-        <span class="work-go">Open <span class="arr"></span></span>
-      </a>
-      <a href="/game" data-nav class="work">
-        <span class="work-no">No. IV</span>
-        <span>
-          <span class="work-name">Flyuserfly</span>
-          <span class="work-desc">A noir in three case files &mdash; rain included.</span>
-        </span>
-        <span class="work-go">Play <span class="arr"></span></span>
-      </a>
-      <a href="/play/city-game" data-nav class="work">
-        <span class="work-no">No. V</span>
-        <span>
-          <span class="work-name">Costa Vista</span>
-          <span class="work-desc">An open world, kept permanently at golden hour.</span>
-        </span>
-        <span class="work-go">Play <span class="arr"></span></span>
-      </a>
-      <a href="/study" data-nav class="work">
-        <span class="work-no">No. VI</span>
-        <span>
-          <span class="work-name">The Study</span>
-          <span class="work-desc">A bio-analytics dossier, read aloud by a machine.</span>
-        </span>
-        <span class="work-go">Open <span class="arr"></span></span>
-      </a>
-      <a href="/play/the-fly" data-nav class="work">
-        <span class="work-no">No. VII</span>
-        <span>
-          <span class="work-name">The Fly</span>
-          <span class="work-desc">Fly a courier through a hand-built town, one letter at a time.</span>
-        </span>
-        <span class="work-go">Play <span class="arr"></span></span>
-      </a>
-    </nav>
-
-    <p class="colophon">Set in Instrument Serif &amp; Inter. Lit by hand. Est. MMXXVI.</p>
   </section>
 
-</div>
-
-<!-- the vault -->
-<div class="vault-overlay" id="vaultOverlay">
-  <div class="vault">
-    <button class="vault-close" onclick="closeAccess()">CLOSE</button>
-    <div class="vault-head">Private Entrance</div>
-    <div class="vault-title">The Vault</div>
-    <div class="vault-lines" id="vaultLines"></div>
-    <div class="vault-seal" id="vaultSeal">
-      <div class="seal-ring">F</div>
-      <div class="seal-line1">Admitted</div>
-      <div class="seal-line2">Member No. 0001 &mdash; Connoisseur class</div>
-      <button class="seal-btn" onclick="closeAccess()">Proceed</button>
+  <!-- VAULT -->
+  <section id="vault" style="background:#1B1712; color:#F1ECE1; padding:clamp(56px,9vw,130px) clamp(20px,4vw,54px);">
+    <div style="max-width:1500px; margin:0 auto; display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr); gap:clamp(32px,5vw,80px); align-items:end;">
+      <div>
+        <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; color:#B98A5E; margin-bottom:24px;">Private Entrance</div>
+        <h2 style="font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(40px,7vw,104px); line-height:0.94; margin:0 0 18px;">The Vault</h2>
+        <p style="font-family:'Space Grotesk',sans-serif; font-weight:300; font-size:clamp(15px,1.4vw,18px); line-height:1.55; max-width:40ch; margin:0; color:rgba(241,236,225,0.72);">Enter a member number to be admitted. The house keeps its finest instruments for the Connoisseur class.</p>
+      </div>
+      <div style="border:1px solid rgba(241,236,225,0.16); border-radius:6px; padding:clamp(22px,3vw,34px);">
+        <label style="display:block; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:rgba(241,236,225,0.5); margin-bottom:12px;">Member Number</label>
+        <input id="vaultInput" class="vault-input" placeholder="0001" maxlength="4" inputmode="numeric">
+        <div id="vaultDisplay" style="font-family:'Space Grotesk',sans-serif; font-size:13px; color:#B98A5E; margin-top:16px; min-height:20px;">Awaiting credentials&hellip;</div>
+        <a href="#collection" style="display:flex; align-items:center; justify-content:space-between; margin-top:26px; color:#1B1712; background:#F1ECE1; padding:15px 22px; border-radius:100px; font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:14px;">Proceed to the Collection <span style="font-size:18px;">&rarr;</span></a>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="background:#F1ECE1; padding:clamp(30px,4vw,54px) clamp(20px,4vw,54px);">
+    <div style="max-width:1500px; margin:0 auto; display:flex; flex-wrap:wrap; gap:18px; align-items:center; justify-content:space-between;">
+      <span style="font-family:'Space Grotesk',sans-serif; font-weight:600; letter-spacing:0.42em; font-size:14px;">FUNFLIX</span>
+      <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#7A7062; text-align:center;">Set in Instrument Serif, Space Grotesk &amp; Space Mono. Lit by hand.</span>
+      <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#7A7062;">Est. MMXXVI</span>
+    </div>
+  </footer>
+
 </div>
 
 <script>
-  window.OS_PALETTE_EXTRA = [
-    { id: '&#10022;', label: 'Request entry', hint: 'the vault', run: () => openAccess() },
-  ];
-</script>
-<script src="/static/os.js"></script>
-<script>
-  /* ════════ video loop with manual fade (per spec) ════════ */
-  const vid = document.getElementById('heroVid');
-  const heroCanvas = document.getElementById('heroCanvas');
-  const FADE = 0.5;
-  let vidAlive = false, fallbackOn = false;
-
-  function monitor() {
-    requestAnimationFrame(monitor);
-    if (!vidAlive || fallbackOn) return;
-    const d = vid.duration, t = vid.currentTime;
-    if (!d || isNaN(d)) return;
-    let o = 1;
-    if (t < FADE) o = t / FADE;                       // fade in over 0.5s
-    else if (d - t < FADE) o = Math.max(0, (d - t) / FADE);  // fade out before the end
-    vid.style.opacity = o.toFixed(3);
-  }
-  monitor();
-
-  vid.addEventListener('ended', () => {
-    vid.style.opacity = '0';
-    setTimeout(() => { vid.currentTime = 0; vid.play().catch(() => {}); }, 100);
-  });
-  vid.addEventListener('canplay', () => {
-    if (fallbackOn) return;
-    vidAlive = true;
-    vid.play().catch(() => {
-      // some browsers want a gesture even for muted video
-      const kick = () => { vid.play().catch(() => {}); document.removeEventListener('pointerdown', kick); };
-      document.addEventListener('pointerdown', kick);
-    });
-  });
-  vid.addEventListener('error', enableFallback);
-  setTimeout(() => { if (!vidAlive) enableFallback(); }, 4500);
-
-  /* graceful fallback: a soft, slow ink-wash animation in grayscale */
-  function enableFallback() {
-    if (fallbackOn) return;
-    fallbackOn = true;
-    vid.style.display = 'none';
-    heroCanvas.style.display = 'block';
-    heroCanvas.style.opacity = '1';
-    const ctx = heroCanvas.getContext('2d');
-    const blobs = Array.from({ length: 5 }, (_, i) => ({
-      x: Math.random(), y: 0.3 + Math.random() * 0.6,
-      r: 0.22 + Math.random() * 0.2,
-      vx: (Math.random() - 0.5) * 0.0009,
-      vy: (Math.random() - 0.5) * 0.0005,
-      g: 188 + i * 12,
-    }));
-    function size() {
-      heroCanvas.width = heroCanvas.clientWidth;
-      heroCanvas.height = heroCanvas.clientHeight;
-    }
-    size();
-    window.addEventListener('resize', size);
-    (function paint() {
-      requestAnimationFrame(paint);
-      const w = heroCanvas.width, h = heroCanvas.height;
-      ctx.clearRect(0, 0, w, h);
-      blobs.forEach(b => {
-        b.x += b.vx; b.y += b.vy;
-        if (b.x < -0.2 || b.x > 1.2) b.vx *= -1;
-        if (b.y < 0.1 || b.y > 1.1) b.vy *= -1;
-        const g = ctx.createRadialGradient(b.x * w, b.y * h, 0, b.x * w, b.y * h, b.r * w);
-        g.addColorStop(0, `rgba(${b.g},${b.g},${b.g - 4},0.55)`);
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, w, h);
+  /* hero background video — fade in once it's actually playing; if autoplay
+     is blocked (some mobile browsers), kick playback on the first tap */
+  (function () {
+    const vid = document.getElementById('heroVid');
+    if (!vid) return;
+    let alive = false;
+    vid.addEventListener('canplay', () => {
+      alive = true;
+      vid.style.opacity = '1';
+      vid.play().catch(() => {
+        const kick = () => { vid.play().catch(() => {}); document.removeEventListener('pointerdown', kick); };
+        document.addEventListener('pointerdown', kick);
       });
-    })();
+    });
+    vid.addEventListener('error', () => { vid.style.display = 'none'; });
+    setTimeout(() => { if (!alive) vid.style.display = 'none'; }, 6000);
+  })();
+
+  const WORKS = [
+    { numeral:'I',   name:'Compute',    tagline:'A scientific instrument of uncommon precision.', href:'/calculator', cta:'Open', key:'compute',
+      desc:'A calculator of uncommon precision — scientific to the last decimal, and quietly beautiful about it.' },
+    { numeral:'II',  name:'Synthesis',  tagline:'An atelier for the manufacture of jokes.', href:'/meme', cta:'Open', key:'synth',
+      desc:'An atelier for the manufacture of jokes. Feed it a subject; it returns a punchline, assembled on the spot.' },
+    { numeral:'III', name:'The Press',  tagline:'A newsroom staffed by one tireless machine.', href:'/journalist', cta:'Open', key:'press',
+      desc:'A newsroom staffed by one tireless machine — headlines, columns and copy, filed on demand.' },
+    { numeral:'IV',  name:'Flyuserfly', tagline:'A noir in three case files — rain included.', href:'/game', cta:'Play', key:'noir',
+      desc:'A noir in three case files. Rain included. Solve what the machine has hidden across the city.' },
+    { numeral:'V',   name:'Costa Vista',tagline:'An open world, kept permanently at golden hour.', href:'/play/city-game', cta:'Play', key:'vista',
+      desc:'An open world kept permanently at golden hour. Wander a town that never stops glowing.' },
+    { numeral:'VI',  name:'The Study',  tagline:'A bio-analytics dossier, read aloud by a machine.', href:'/study', cta:'Open', key:'study',
+      desc:'A bio-analytics dossier, read aloud by a machine. Ask it about a body; it answers back.' },
+    { numeral:'VII', name:'The Fly',    tagline:'Fly a courier through a hand-built town.', href:'/play/the-fly', cta:'Play', key:'fly',
+      desc:'Fly a courier through a hand-built town, one letter at a time. The whole map is made of code.' },
+  ];
+
+  const MOTIF_HTML = {
+    compute: () => {
+      const chars = ['7','8','9','÷','4','5','6','×','1','2','3','−','0','.','=','+'];
+      return '<div class="motif motif-compute">' + chars.map(c =>
+        '<span' + (c === '=' ? ' class="eq"' : '') + '>' + c + '</span>').join('') + '</div>';
+    },
+    synth: () => '<div class="motif motif-synth"><div class="bg"></div><div class="desk"></div><div class="screen"></div><div class="stand"></div>' +
+      '<div class="cap" style="top:6%">ME AFTER ONE LINE</div><div class="cap" style="bottom:6%">OF CODE COMPILES</div></div>',
+    press: () => {
+      let cols = '';
+      for (let c = 0; c < 4; c++) {
+        let rows = '';
+        for (let r = 0; r < 11; r++) rows += '<div class="ln' + (r % 4 === 0 ? ' hd' : '') + '" style="width:' + (r % 4 === 0 ? '70%' : '100%') + '"></div>';
+        cols += '<div class="col">' + rows + '</div>';
+      }
+      return '<div class="motif motif-press"><div class="head">THE PRESS</div><div class="cols">' + cols + '</div></div>';
+    },
+    noir: () => '<div class="motif motif-noir"><div class="rain"></div><div class="streetlamp"></div><div class="moon"></div></div>',
+    vista: () => {
+      const bands = [['#F6D9A6','12%'],['#F0B884','14%'],['#DE8E63','16%'],['#B5633F','18%'],['#6E3B2E','40%']];
+      const bandHtml = bands.map(b => '<div class="band" style="height:' + b[1] + ';background:' + b[0] + '"></div>').join('');
+      return '<div class="motif motif-vista">' + bandHtml + '<div class="sun"></div><div class="rooftops"></div></div>';
+    },
+    study: () => {
+      let bars = '';
+      for (let i = 0; i < 26; i++) bars += '<div class="bar' + (i % 6 === 0 ? ' acc' : '') + '" style="animation:bar ' + (1 + (i % 5) * 0.18) + 's ease-in-out ' + (i * 0.05) + 's infinite"></div>';
+      return '<div class="motif motif-study">' + bars + '</div>';
+    },
+    fly: () => {
+      let dots = '';
+      for (let i = 0; i < 22; i++) dots += '<span></span>';
+      return '<div class="motif motif-fly"><div class="dots">' + dots + '</div><div class="courier"></div><div class="grid"></div></div>';
+    },
+  };
+
+  const indexEl = document.getElementById('workIndex');
+  const motifHost = document.getElementById('motifHost');
+  const stageKicker = document.getElementById('stageKicker');
+  const stageName = document.getElementById('stageName');
+  const stageDesc = document.getElementById('stageDesc');
+  const stageCta = document.getElementById('stageCta');
+
+  let active = 0;
+
+  function renderIndex() {
+    indexEl.innerHTML = WORKS.map((w, i) => (
+      '<button class="work-row' + (i === active ? ' active' : '') + '" data-i="' + i + '">' +
+        '<span class="work-num">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span style="min-width:0;">' +
+          '<span class="work-name">' + w.name + '</span>' +
+          '<span class="work-tag">' + w.tagline + '</span>' +
+        '</span>' +
+        '<span class="work-arrow">&rarr;</span>' +
+      '</button>'
+    )).join('');
+    indexEl.querySelectorAll('.work-row').forEach(btn => {
+      const go = () => setActive(+btn.dataset.i);
+      btn.addEventListener('mouseenter', go);
+      btn.addEventListener('focus', go);
+      btn.addEventListener('click', go);
+    });
   }
 
-  /* smooth scroll for the CTA */
+  function renderStage() {
+    const w = WORKS[active];
+    motifHost.innerHTML = MOTIF_HTML[w.key]();
+    stageKicker.textContent = 'No. ' + w.numeral + ' — ' + w.cta;
+    stageName.textContent = w.name;
+    stageDesc.textContent = w.desc;
+    stageCta.href = w.href;
+    stageCta.target = w.href.startsWith('/') ? '_self' : '_blank';
+    stageCta.innerHTML = w.cta + ' the instrument <span>&rarr;</span>';
+  }
+
+  function setActive(i) {
+    if (i === active) return;
+    active = i;
+    indexEl.querySelectorAll('.work-row').forEach((btn, idx) => btn.classList.toggle('active', idx === active));
+    renderStage();
+  }
+
+  renderIndex();
+  renderStage();
+
   document.getElementById('ctaBtn').addEventListener('click', e => {
     e.preventDefault();
     document.getElementById('collection').scrollIntoView({ behavior: 'smooth' });
   });
 
-  /* ════════ the vault ════════ */
-  const overlay = document.getElementById('vaultOverlay');
-  const linesEl = document.getElementById('vaultLines');
-  const sealEl  = document.getElementById('vaultSeal');
-  let vaultAbort = false;
-
-  document.addEventListener('click', e => {
-    if (e.target === overlay) closeAccess();
+  /* the vault — cosmetic member display, no real gating */
+  const vaultInput = document.getElementById('vaultInput');
+  const vaultDisplay = document.getElementById('vaultDisplay');
+  vaultInput.addEventListener('input', () => {
+    const v = vaultInput.value.replace(/[^0-9]/g, '').slice(0, 4);
+    vaultInput.value = v;
+    vaultDisplay.textContent = v
+      ? 'Member No. ' + v.padStart(4, '0') + ' — Connoisseur class · Admitted'
+      : 'Awaiting credentials…';
   });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && overlay.classList.contains('open')) closeAccess();
-  });
-
-  window.openAccess = function () {
-    overlay.classList.add('open');
-    linesEl.innerHTML = '';
-    sealEl.classList.remove('show');
-    vaultAbort = false;
-    ceremony();
-  };
-  function closeAccess() {
-    vaultAbort = true;
-    overlay.classList.remove('open');
-  }
-
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-  async function typeLine(html, charDelay = 26) {
-    if (vaultAbort) return;
-    const line = document.createElement('div');
-    linesEl.appendChild(line);
-    const caret = document.createElement('span');
-    caret.className = 'vault-caret';
-    const tmp = document.createElement('span');
-    line.append(tmp, caret);
-    const text = html.replace(/<[^>]+>/g, '');
-    for (let i = 0; i <= text.length; i++) {
-      if (vaultAbort) return;
-      tmp.textContent = text.slice(0, i);
-      await sleep(charDelay);
-    }
-    line.innerHTML = html;
-    line.appendChild(caret);
-    await sleep(120);
-    caret.remove();
-  }
-
-  async function ceremony() {
-    await sleep(300);
-    await typeLine('Good evening.');
-    await typeLine('<span class="vl-dim">Verifying patronage&hellip;</span>', 20);
-    await sleep(350);
-    await typeLine('Taste &mdash; <span class="vl-black">impeccable.</span>');
-    await typeLine('Streaming history &mdash; <span class="vl-black">forgiven.</span>');
-    await typeLine('Netflix subscription &mdash; <span class="vl-dim">irrelevant here.</span>');
-    await sleep(250);
-    await typeLine('Clearance raised to <span class="vl-black">Connoisseur.</span>');
-    if (vaultAbort) return;
-    await sleep(400);
-    sealEl.classList.add('show');
-  }
 </script>
 </body>
 </html>
