@@ -89,6 +89,10 @@ def boot(page, url):
     page.goto(url, wait_until="domcontentloaded", timeout=45000)
     page.wait_for_selector("canvas", timeout=20000)
     page.wait_for_timeout(3500)   # let world build + batch + settle
+    # dismiss the "PRESS ANY KEY TO START" card so baseline shots show the town,
+    # not the title overlay (camera is frozen for framing regardless)
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(1200)
     batch = next((l for l in logs if "batched static geometry" in l), None)
     return errors, batch
 
