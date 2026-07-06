@@ -998,6 +998,8 @@ function start(ctx, world) {
       + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' deliveries to ' + nx[1] + '</span>' : '')
       + '<br>🏢 You <b>' + Math.round(repYou) + '</b> vs ' + RIVAL_FIRM + ' <b>' + Math.round(repRiv) + '</b> ' + (leading ? '<span style="color:#4d8a52">▲ ahead</span>' : '<span style="color:#c04434">▼ behind</span>')
       + '<br><span style="opacity:.7">You are ' + repTitle() + '</span>'
+      + (activeEvent ? '<br><span style="color:' + activeEvent.col + '">' + activeEvent.emoji + ' ' + activeEvent.name + ' today!</span>'
+          : '<br><span style="opacity:.6">Next festival: ' + EVENTS[seasonForDay(nextEventDay(dayNum))].name + ' in ' + (nextEventDay(dayNum) - dayNum) + ' day' + (nextEventDay(dayNum) - dayNum > 1 ? 's' : '') + '</span>')
       + '</div><div class="go">Start day ' + (dayNum + 1) + ' ▶</div>';
     repEl.classList.add('on');
     sfxDeliver();
@@ -1011,6 +1013,7 @@ function start(ctx, world) {
     tod = 0; applyTOD(0);
     toast('☀ Day ' + dayNum + ' — dawn', '#c8862a');
     if (season !== seasonWas) setTimeout(() => refreshSeason(true), 1400);   // announce a turned season
+    applyEvent(false); if (activeEvent) setTimeout(() => applyEvent(true), season !== seasonWas ? 2600 : 1400);
     newTask();
   }
   repEl.addEventListener('pointerdown', e => { e.preventDefault(); closeReport(); });
@@ -1607,6 +1610,78 @@ function start(ctx, world) {
     }
   }
   refreshSeason(false);
+
+  /* ════════ FESTIVALS & LIVE EVENTS CALENDAR (Sprint 51) ════════
+     Every third day the square throws a festival keyed to the season — the plaza
+     is decked out, deliveries pay a festive bonus, and the sky sparkles at dusk. */
+  const EVENTS = [
+    { season: 0, name: 'Blossom Fair',    emoji: '🌸', kind: 'blossom', col: '#e58bb0' },
+    { season: 1, name: 'Harbour Regatta', emoji: '⛵', kind: 'regatta', col: '#3a86c8' },
+    { season: 2, name: 'Lantern Night',   emoji: '🏮', kind: 'lantern', col: '#e07a3a' },
+    { season: 3, name: 'Winter Market',   emoji: '🎄', kind: 'market',  col: '#5a9a5a' },
+  ];
+  function eventForDay(dNum) { return (dNum % 3 === 0) ? EVENTS[seasonForDay(dNum)] : null; }
+  function nextEventDay(dNum) { let x = dNum + 1; while (x % 3 !== 0) x++; return x; }
+  let eventOverride;            // undefined = follow the calendar; null = off; obj = forced
+  let activeEvent = null;
+  const eventDecor = new T.Group(); scene.add(eventDecor);
+  function buildEventDecor(ev) {
+    const g = eventDecor; while (g.children.length) g.remove(g.children[0]);
+    if (!ev) return;
+    const cx = 0, cord = L.MAT.flat('#2a2620'), bulbMat = L.MAT.emissive('#ffd27a', 1.0);
+    for (const z of [8.5, 17.5]) {                              // festoon strands + poles
+      for (let i = 0; i <= 10; i++) { const t = i / 10, x = -14 + 28 * t, y = 5.2 - 4 * 1.4 * t * (1 - t); g.add(L.sphere(0.09, 6, bulbMat, { x, y, z, cast: false })); }
+      g.add(L.cyl(0.09, 0.09, 5.4, 8, cord, { x: -14, y: 2.7, z, cast: false }));
+      g.add(L.cyl(0.09, 0.09, 5.4, 8, cord, { x: 14, y: 2.7, z, cast: false }));
+    }
+    const flagMat = L.std({ colorHex: ev.col, roughness: 0.8, side: T.DoubleSide });
+    for (const z of [8.5, 17.5]) for (let i = 0; i < 10; i++) { const fl = L.box(0.36, 0.36, 0.02, flagMat, { x: -13 + 2.6 * i, y: 4.2, z, cast: false }); fl.rotation.z = Math.PI / 4; g.add(fl); }
+    if (ev.kind === 'blossom') {
+      g.add(L.cyl(0.12, 0.14, 4.2, 8, L.std({ colorHex: '#8a6a44' }), { x: cx, y: 2.1, z: 19, cast: false }));
+      for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; g.add(L.box(0.06, 3.4, 0.06, L.std({ colorHex: ['#e58bb0', '#f0c0d4', '#ffffff'][k % 3] }), { x: cx + Math.cos(a) * 0.6, y: 2.3, z: 19 + Math.sin(a) * 0.6, cast: false })); }
+      g.add(L.sphere(0.5, 10, L.std({ colorHex: '#f4b8cf' }), { x: cx, y: 4.3, z: 19, cast: false }));
+    } else if (ev.kind === 'regatta') {
+      g.add(L.box(1.8, 0.4, 0.7, L.std({ colorHex: '#8a5a2a' }), { x: cx, y: 0.5, z: 19, cast: false }));
+      g.add(L.cyl(0.06, 0.06, 2.4, 8, L.std({ colorHex: '#c8bda0' }), { x: cx, y: 1.7, z: 19, cast: false }));
+      g.add(L.box(0.05, 1.6, 1.2, L.std({ colorHex: '#eef2f4', side: T.DoubleSide }), { x: cx + 0.02, y: 1.9, z: 19, cast: false }));
+    } else if (ev.kind === 'lantern') {
+      for (let k = 0; k < 12; k++) { const x = -12 + 2.2 * k, z = k % 2 ? 8.5 : 17.5; g.add(L.cyl(0.02, 0.02, 0.5, 6, cord, { x, y: 3.85, z, cast: false })); g.add(L.sphere(0.2, 8, L.MAT.emissive('#ff9a4a', 1.15), { x, y: 3.4, z, cast: false })); }
+    } else if (ev.kind === 'market') {
+      for (const sx of [-9, 9]) { g.add(L.box(2.6, 0.14, 1.8, L.std({ colorHex: '#b5352a' }), { x: sx, y: 2.3, z: 10, cast: false })); g.add(L.box(2.6, 1.5, 0.1, L.std({ colorHex: '#cfc3a2' }), { x: sx, y: 1.2, z: 10.8, cast: false })); }
+      g.add(L.cyl(0.02, 1.4, 3.2, 10, L.std({ colorHex: '#3a6a3a' }), { x: cx, y: 1.6, z: 19, cast: false }));
+      for (let k = 0; k < 10; k++) g.add(L.sphere(0.09, 6, L.MAT.emissive(['#ff8f8f', '#9fd0ff', '#ffd27a'][k % 3], 1.0), { x: cx + rand(-1, 1), y: 1 + rand(0, 2.4), z: 19 + rand(-1, 1), cast: false }));
+    }
+    g.traverse(o => o.layers && o.layers.set(0));
+  }
+  const eventBadge = document.createElement('div'); eventBadge.id = 'flyEvent';
+  eventBadge.style.cssText = 'position:absolute;left:16px;top:154px;font-family:\'Patrick Hand\',cursive;'
+    + 'font-size:17px;color:#2c261c;background:#fbf6e8;border:2px solid #2c261c;border-radius:12px;'
+    + 'padding:5px 13px;box-shadow:2px 3px 0 rgba(44,38,28,.4);pointer-events:none;z-index:38;display:none;';
+  hud.appendChild(eventBadge);
+  function applyEvent(announce) {
+    activeEvent = eventOverride !== undefined ? eventOverride : eventForDay(dayNum);
+    buildEventDecor(activeEvent);
+    eventDecor.visible = !!activeEvent;
+    if (activeEvent) {
+      eventBadge.textContent = activeEvent.emoji + ' ' + activeEvent.name + ' — festive pay!';
+      eventBadge.style.display = 'block';
+      if (announce) toast(activeEvent.emoji + ' ' + activeEvent.name + ' — the square is decked out! (+50% pay)', activeEvent.col);
+    } else eventBadge.style.display = 'none';
+  }
+  function updateEvents(dt, now) {
+    if (!activeEvent) return;
+    const rate = (reducedMotion ? 0.3 : 0.9) * (0.5 + tod * 1.3);   // builds toward dusk
+    if (Math.random() < dt * rate) {
+      const fx = _plazaC.x + rand(-14, 14), fz = _plazaC.z + rand(-6, 10);
+      const pal = activeEvent.kind === 'lantern' ? [0xff9a4a, 0xffd27a, 0xffb060, 0xffffff]
+        : activeEvent.kind === 'regatta' ? [0x9fd0ff, 0x3a86c8, 0xffffff, 0x7fe0a0]
+        : activeEvent.kind === 'blossom' ? [0xe58bb0, 0xf0c0d4, 0xffffff, 0xffd27a]
+        : [0xff8f8f, 0x9fd0ff, 0x7fe0a0, 0xffd27a, 0xffffff];
+      fxBurst({ x: fx, y: 0, z: fz }, pal, 16, rand(8, 13));
+      if (AC && Math.random() < 0.4) blip(rand(500, 900), 0.12, 'triangle', 0.05);
+    }
+  }
+  applyEvent(false);
 
   /* ════════ TOURIST BOARD — photo quests (Sprint 48) ════════
      The Tourist Board wants postcards of the town. Enter photo mode (P), frame a
@@ -2219,6 +2294,7 @@ function start(ctx, world) {
       updateFestival(dt, now);
       updateWeather(dt, now);
       updateSeasonParticles(dt, now);
+      updateEvents(dt, now);
       updateMotes(dt, now);
       updateFireflies(dt, now);
       updateRival(dt, now);
@@ -2314,7 +2390,7 @@ function start(ctx, world) {
     if (streak > bestStreak) { bestStreak = streak; lsSet(LS.streak, bestStreak); }
     renderBest();
 
-    const coinGain = Math.max(5, Math.round(gained / 10 * (1 + dayDiff() * 0.6))) + (hasUp('network') ? 2 : 0);
+    const coinGain = Math.round((Math.max(5, Math.round(gained / 10 * (1 + dayDiff() * 0.6))) + (hasUp('network') ? 2 : 0)) * (activeEvent ? 1.5 : 1));
     coins += coinGain; dayCoins += coinGain; lsSet('fly_coins', coins);
     setTimeout(sfxCoin, 180);
     dayScore += gained; dayBestCombo = Math.max(dayBestCombo, combo); dayDeliv++;
@@ -2509,6 +2585,9 @@ function start(ctx, world) {
     get season() { return SEASONS[season].name; }, get seasonN() { return seasonActiveN; },
     setSeason: (i) => { seasonOverride = ((i % 4) + 4) % 4; refreshSeason(true); applyTOD(reporting ? 1 : tod); },
     get rep() { return { you: Math.round(repYou), rival: Math.round(repRiv), title: repTitle() }; },
+    get event() { return activeEvent ? activeEvent.name : null; }, get nextEvent() { const nd = nextEventDay(dayNum); return { name: EVENTS[seasonForDay(nd)].name, inDays: nd - dayNum }; },
+    setEvent: (i) => { eventOverride = (i == null || i < 0) ? null : EVENTS[((i % 4) + 4) % 4]; applyEvent(true); },
+    clearEventOverride: () => { eventOverride = undefined; applyEvent(false); },
     gainRep: (n) => gainRep(n), rivalGains: (n) => rivalGains(n, null),
     get photoState() { return { done: photoCount(), total: PHOTO.length, on: photoOn }; },
     photoMode: (v) => { photoOn = v == null ? !photoOn : !!v; hud.classList.toggle('photo', photoOn); updatePhotoUI(); },
