@@ -999,8 +999,10 @@ function start(ctx, world) {
     reporting = false; repEl.classList.remove('on');
     dayNum++; lsSet('fly_day', dayNum);
     dayDeliv = 0; dayScore = 0; dayBestCombo = 1; dayStories = 0; dayLetters = 0; dayCoins = 0;
+    const seasonWas = season; refreshSeason(false);
     tod = 0; applyTOD(0);
     toast('☀ Day ' + dayNum + ' — dawn', '#c8862a');
+    if (season !== seasonWas) setTimeout(() => refreshSeason(true), 1400);   // announce a turned season
     newTask();
   }
   repEl.addEventListener('pointerdown', e => { e.preventDefault(); closeReport(); });
@@ -1031,6 +1033,28 @@ function start(ctx, world) {
   const _skyHorDay = new T.Color(0x6cc8ba), _skyHorDusk = new T.Color(0xf0b878);
   const _cloudDay = new T.Color(0xbfe8dc), _cloudDusk = new T.Color(0xf2d0a8);
   let tod = 0;
+
+  /* ════════ SEASONS (Sprint 47) — the town turns with the calendar ════════
+     A season per 3 in-game days (derived from the persisted dayNum), each with
+     its own sky/fog/light tint and drifting particle (petals, leaves, snow). */
+  const SEASONS = [
+    { name: 'Spring', emoji: '🌸', fog: 0xbfe0d0, ground: 0x8aa06a, skyTop: 0x66c2b0, skyHor: 0x8fd6b8, sun: 0xfff2e0, part: 'petal', cols: ['#f6c4d4', '#fadbe6', '#ffffff'], n: 68 },
+    { name: 'Summer', emoji: '☀️', fog: 0xa8dcd4, ground: 0x9a9060, skyTop: 0x53bcae, skyHor: 0x6cc8ba, sun: 0xfff4dc, part: 'none',  cols: ['#fff0c0'], n: 0 },
+    { name: 'Autumn', emoji: '🍂', fog: 0xe0c49a, ground: 0x8a6a3a, skyTop: 0x7ab0b0, skyHor: 0xe0b070, sun: 0xffdca0, part: 'leaf',  cols: ['#c86a2a', '#d89a3a', '#a8482a', '#8a6a2a'], n: 60 },
+    { name: 'Winter', emoji: '❄️', fog: 0xdce6ee, ground: 0xb8c0c8, skyTop: 0x8fb4c8, skyHor: 0xc8dae4, sun: 0xeef4ff, part: 'snow',  cols: ['#ffffff', '#eef4f8'], n: 78 },
+  ];
+  SEASONS.forEach(s => { s._fog = new T.Color(s.fog); s._ground = new T.Color(s.ground); s._skyTop = new T.Color(s.skyTop); s._skyHor = new T.Color(s.skyHor); s._sun = new T.Color(s.sun); });
+  function seasonForDay(d) { return ((Math.floor((d - 1) / 3) % 4) + 4) % 4; }
+  let seasonOverride = null;
+  let season = 1;   // real value set by refreshSeason() once dayNum is initialised below
+  function applySeason() {   // nudge the post-TOD colours toward the season palette
+    const s = SEASONS[season]; if (!s) return;
+    _hemi.groundColor.lerp(s._ground, 0.42);
+    if (ctx.fog) ctx.fog.color.lerp(s._fog, 0.4);
+    if (_sky) { _sky.uniforms.uTop.value.lerp(s._skyTop, 0.3); _sky.uniforms.uHorz.value.lerp(s._skyHor, 0.3); }
+    _sun.color.lerp(s._sun, 0.28);
+  }
+
   function applyTOD(t) {
     const k = t * t;
     _sun.color.copy(_sunDay).lerp(_sunDusk, k); _sun.intensity = 1.45 - k * 0.5;   // strong directional key
@@ -1050,6 +1074,7 @@ function start(ctx, world) {
     }
     // evening: bloom swells so every lamp, lit window and festoon bulb glows
     if (bloomPass) bloomPass.strength = bloomBase + k * 0.5;
+    applySeason();   // layer the calendar tint on top of time-of-day
   }
 
   // reach the color-grade pass so rain can desaturate the world
@@ -1494,6 +1519,52 @@ function start(ctx, world) {
     scene.add(m); puddles.push({ mesh: m, wet: 0, placed: false });
   }
   let pudSeed = 0;
+
+  /* seasonal drift — petals / leaves / snow that follow the courier like the rain */
+  const seasonGroup = new T.Group(); seasonGroup.layers.set(1); scene.add(seasonGroup);
+  const SEAS_MAX = 80, SEAS_R = 12;
+  const seasParts = [];
+  const seasGeo = new T.PlaneGeometry(0.14, 0.14);
+  for (let i = 0; i < SEAS_MAX; i++) {
+    const mat = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, side: T.DoubleSide, depthWrite: false });
+    const m = new T.Mesh(seasGeo, mat); m.layers.set(1);
+    m.position.set(rand(-SEAS_R, SEAS_R), rand(0, 12), rand(-SEAS_R, SEAS_R));
+    m.userData = { vy: rand(0.4, 1.0), sw: rand(0.5, 1.4), ph: rand(0, TAU), spin: rand(-1.5, 1.5) };
+    seasonGroup.add(m); seasParts.push(m);
+  }
+  let seasonActiveN = 0;
+  function configureSeason() {
+    const s = SEASONS[season];
+    const cols = s.cols.map(c => new T.Color(c));
+    seasonActiveN = reducedMotion ? Math.floor(s.n * 0.4) : s.n;
+    const sz = s.part === 'leaf' ? 0.22 : s.part === 'snow' ? 0.1 : 0.15;
+    for (let i = 0; i < SEAS_MAX; i++) {
+      const m = seasParts[i];
+      m.visible = i < seasonActiveN;
+      m.material.color.copy(cols[i % cols.length]);
+      m.scale.setScalar(sz / 0.14);
+      m.userData.vy = s.part === 'snow' ? rand(0.3, 0.6) : s.part === 'leaf' ? rand(0.5, 0.9) : rand(0.5, 1.1);
+    }
+    seasonGroup.visible = seasonActiveN > 0;
+  }
+  function refreshSeason(announce) {
+    const s = seasonOverride != null ? seasonOverride : seasonForDay(dayNum);
+    season = s; configureSeason();
+    if (announce) { const S = SEASONS[season]; toast(S.emoji + ' ' + S.name + ' comes to Villa Mott', '#7a5aa8'); }
+  }
+  function updateSeasonParticles(dt, now) {
+    if (seasonActiveN <= 0) return;
+    seasonGroup.position.set(P.pos.x, 0, P.pos.z);
+    const snow = SEASONS[season].part === 'snow';
+    for (let i = 0; i < seasonActiveN; i++) {
+      const m = seasParts[i], u = m.userData;
+      m.position.y -= u.vy * dt;
+      m.position.x += Math.sin(now * 0.001 + u.ph) * u.sw * dt * (snow ? 0.4 : 1);
+      m.rotation.z += u.spin * dt * (snow ? 0.3 : 1.4);
+      if (m.position.y < -0.3) m.position.set(rand(-SEAS_R, SEAS_R), rand(9, 12), rand(-SEAS_R, SEAS_R));
+    }
+  }
+  refreshSeason(false);
   function startRain() {
     raining = true; rainT = 0; rainGroup.visible = true;
     // scatter puddles on the road around wherever the player is
@@ -2024,6 +2095,7 @@ function start(ctx, world) {
       updateLost(dt, now);
       updateFestival(dt, now);
       updateWeather(dt, now);
+      updateSeasonParticles(dt, now);
       updateMotes(dt, now);
       updateFireflies(dt, now);
       updateRival(dt, now);
@@ -2310,6 +2382,8 @@ function start(ctx, world) {
     get homeUp() { return homeUp; }, hasUp,
     buyUp: (id) => { const i = HOME_UPS.findIndex(u => u.id === id); if (i >= 0) { homeUp |= (1 << i); lsSet('fly_home_up', homeUp); if (curInt && curInt.kind === 'home') refreshHomeDecor(curInt); } },
     get campState() { return { step: camp.step, branch: camp.branch, done: camp.done }; }, get inChoice() { return inChoice; },
+    get season() { return SEASONS[season].name; }, get seasonN() { return seasonActiveN; },
+    setSeason: (i) => { seasonOverride = ((i % 4) + 4) % 4; refreshSeason(true); applyTOD(reporting ? 1 : tod); },
     campDeliver: () => advanceCampaign(camp.step), campChoose: (i) => { camp.branch = i; saveCamp(); inChoice = false; campCard.style.display = 'none'; },
     campReset: () => { camp = { step: 0, branch: null, done: false }; saveCamp(); },
     begin,
