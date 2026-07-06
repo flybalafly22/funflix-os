@@ -107,7 +107,7 @@ function start(ctx, world) {
   }
   // the context 'E' action, shared by keyboard + the touch button
   function doAction() {
-    if (!begun || offer) return;
+    if (!begun || offer || inChoice) return;
     if (shopOpen) { toggleShop(false); return; }
     if (inside) { if (atExit()) exitInterior(); return; }
     if (nearestDoor()) { enterInterior(nearestDoor().name); return; }
@@ -465,6 +465,91 @@ function start(ctx, world) {
   const saveChains = () => { try { localStorage.setItem('fly_chains', JSON.stringify(chainProg)); } catch (e) {} };
   const chainDone = c => (chainProg[c.id] || 0) >= c.steps;
   const findAddr = nm => ADDR.find(a => a.name === nm);
+
+  /* ════════ BRANCHING CAMPAIGN (Sprint 46) — "The Keeper's Letters" ════════
+     A recurring tale with Nadia (café) and the lighthouse keeper. Two ordinary
+     legs, then a FORK: the player chooses where her final answer goes, and that
+     choice picks the last delivery + the ending. Runs through the normal job
+     loop via a synthetic `story` object, so pickup/deliver dialogue just works. */
+  const CAMP = {
+    id: 'keeper', name: "The keeper's letters",
+    legs: [
+      { from: 'CORNER CAFÉ',    to: 'THE LIGHTHOUSE', payload: 'a sealed letter',
+        pick: "Nadia at the café slips you a sealed letter. 'For the keeper… please.'",
+        drop: "The lighthouse keeper reads it twice, then smiles like the sun came out." },
+      { from: 'THE LIGHTHOUSE', to: 'CORNER CAFÉ',    payload: "the keeper's reply",
+        pick: "The keeper folds his reply small and careful. 'Tell her I said yes.'",
+        drop: "Nadia reads it by the window. 'He remembered the tide,' she whispers." },
+      { branch: true, from: 'CORNER CAFÉ', payload: "Nadia's answer",
+        pick: "Her answer, sealed with a pressed flower. It's already decided — you just carry it." },
+    ],
+    branchChoices: [
+      { label: '🚢 To the harbour — she sails tonight', to: 'THE FISHING BOAT',
+        drop: "She waves from the deck as the boat slips out. A bittersweet goodbye — she leaves you her sketch of the lighthouse.",
+        ending: "She chose the sea. Her sketch of the lighthouse hangs in your depot now — and somewhere out there, a friend who won't forget you." },
+      { label: '🗼 Back to the lighthouse — she stays', to: 'THE LIGHTHOUSE',
+        drop: "The keeper meets her at the door. They watch the great beam turn, together. You did that.",
+        ending: "She chose to stay. The lighthouse keeps two now — and you're always welcome at their table." },
+    ],
+  };
+  let camp; try { camp = JSON.parse(localStorage.getItem('fly_campaign') || 'null'); } catch (e) {}
+  if (!camp || typeof camp.step !== 'number') camp = { step: 0, branch: null, done: false };
+  const saveCamp = () => { try { localStorage.setItem('fly_campaign', JSON.stringify(camp)); } catch (e) {} };
+  function campLeg() {
+    if (camp.done) return null;
+    const leg = CAMP.legs[camp.step]; if (!leg) return null;
+    if (leg.branch && camp.branch == null) return null;        // waiting on the fork
+    const to = leg.branch ? CAMP.branchChoices[camp.branch].to : leg.to;
+    if (!findAddr(leg.from) || !findAddr(to)) return null;
+    return { leg, to };
+  }
+  function campStory(cl) {
+    const dropText = cl.leg.branch ? CAMP.branchChoices[camp.branch].drop : cl.leg.drop;
+    return { id: CAMP.id, name: CAMP.name, pick: cl.leg.pick, drops: [dropText], camp: true, campStep: camp.step };
+  }
+  let inChoice = false;
+  const campCard = document.createElement('div'); campCard.id = 'flyCamp';
+  campCard.style.cssText = 'position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(88vw,460px);'
+    + 'font-family:\'Patrick Hand\',cursive;color:#2c261c;background:#fbf6e8;border:3px solid #2c261c;'
+    + 'border-radius:16px;padding:18px 20px;box-shadow:4px 6px 0 rgba(44,38,28,.5);text-align:center;'
+    + 'display:none;z-index:60;';
+  hud.appendChild(campCard);
+  function showCampChoice() {
+    inChoice = true;
+    campCard.innerHTML = '<div style="font-size:22px;margin-bottom:4px">📖 ' + CAMP.name + '</div>'
+      + '<div style="font-size:16px;opacity:.85;margin-bottom:14px">Nadia looks at you, the letter trembling in her hand.<br>Where does it belong?</div>'
+      + CAMP.branchChoices.map((c, i) => '<div class="cc" data-i="' + i + '" style="margin:8px 0;padding:10px 12px;border:2px solid #2c261c;border-radius:10px;background:#fff;cursor:pointer;font-size:17px">' + c.label + '</div>').join('');
+    campCard.querySelectorAll('.cc').forEach(el => el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      camp.branch = +el.dataset.i; saveCamp();
+      inChoice = false; campCard.style.display = 'none';
+      sfxBonus(); toast('📖 The choice is made…', '#7a5aa8');
+    }));
+    campCard.style.display = 'block';
+  }
+  function showCampEnd(text, reward) {
+    inChoice = true;
+    campCard.innerHTML = '<div style="font-size:22px;margin-bottom:8px">📖 ' + CAMP.name + ' — end</div>'
+      + '<div style="font-size:16px;opacity:.9;line-height:1.5;margin-bottom:14px">' + text + '</div>'
+      + '<div style="font-size:15px;color:#4d8a52;margin-bottom:12px">+ ' + reward + ' 🪙 · a keepsake for the depot</div>'
+      + '<div class="cc" data-i="0" style="padding:8px 12px;border:2px solid #2c261c;border-radius:10px;background:#fff;cursor:pointer;font-size:17px">Close ▸</div>';
+    campCard.querySelector('.cc').addEventListener('pointerdown', e => { e.preventDefault(); inChoice = false; campCard.style.display = 'none'; });
+    campCard.style.display = 'block';
+  }
+  function advanceCampaign(step) {
+    if (camp.done || step !== camp.step) return;              // guard replays
+    camp.step++; saveCamp();
+    if (camp.step >= CAMP.legs.length) {
+      camp.done = true; saveCamp();
+      const reward = 140; coins += reward; dayCoins += reward; lsSet('fly_coins', coins); renderBest();
+      score += 500; elScore.textContent = score;
+      setTimeout(() => { sfxBonus(); showCampEnd(CAMP.branchChoices[camp.branch || 0].ending, reward); }, 1000);
+    } else if (CAMP.legs[camp.step].branch && camp.branch == null) {
+      setTimeout(showCampChoice, 1200);                       // the fork
+    } else {
+      setTimeout(() => toast('📖 ' + CAMP.name + ' — a letter answered…', '#7a5aa8'), 900);
+    }
+  }
   const logBtn = document.createElement('div'); logBtn.id = 'flyLogBtn'; logBtn.textContent = '☰';
   const logEl = document.createElement('div'); logEl.id = 'flyLog';
   hud.appendChild(logBtn); hud.appendChild(logEl);
@@ -852,6 +937,11 @@ function start(ctx, world) {
     if (hasUp('bike')) { g.add(L.cyl(0.42, 0.42, 0.06, 16, L.std({ color: '#2c2620' }), { x: -5.78, y: 2.4, z: 0.6, cast: false })); g.add(L.cyl(0.42, 0.42, 0.05, 16, L.std({ color: '#2c2620' }), { x: -5.78, y: 2.4, z: -0.6, cast: false })); }  // spare wheels
     if (hasUp('wind')) { g.add(L.cyl(0.3, 0.3, 0.08, 14, trimForHome, { x: 0, y: 3.0, z: -5.78, cast: false })); g.add(L.box(0.02, 0.22, 0.02, L.std({ color: '#2c2620' }), { x: 0, y: 3.08, z: -5.72, cast: false })); }  // wall clock
     if (hasUp('network')) for (let i = 0; i < 4; i++) g.add(L.sphere(0.05, 6, L.std({ color: '#c04434' }), { x: 2.4 + (i - 1.5) * 0.5, y: 2.2 + Math.sin(i) * 0.3, z: -5.72, cast: false }));  // map pins
+    if (typeof camp !== 'undefined' && camp && camp.done) {  // Nadia's lighthouse sketch — the campaign keepsake
+      g.add(frame(0.9, 1.1, '#dfe7ee', -1.4, 2.2, -5.78, 0));
+      g.add(L.box(0.16, 0.5, 0.02, L.std({ color: '#c8bda0' }), { x: -1.4, y: 2.05, z: -5.7, cast: false }));   // the tower
+      g.add(L.sphere(0.12, 8, L.std({ color: '#e0b23a' }), { x: -1.4, y: 2.34, z: -5.7, cast: false }));        // the light
+    }
   }
   const trimForHome = L.std({ color: '#efe7d4' });
   const homeEl = document.createElement('div'); homeEl.id = 'flyHome';
@@ -1140,6 +1230,13 @@ function start(ctx, world) {
   // difficulty ramps with the day number (gentle days 1-3, demanding by ~day 10)
   function dayDiff() { return clamp((dayNum - 1) / 9, 0, 1); }
   function makeJob(noStory) {
+    // the branching campaign takes priority when its next leg is ready
+    const cl = campLeg();
+    if (!noStory && cl && delivered >= 1 && L.chance(0.5)) {
+      const pu = findAddr(cl.leg.from), dr = findAddr(cl.to);
+      const route = planar(P.pos, pu.pos) + planar(pu.pos, dr.pos);
+      return { pickup: pu, dropoff: dr, payload: cl.leg.payload, express: false, budget: clamp(14 + route * 0.45, 18, 52), route, story: campStory(cl) };
+    }
     // sometimes the next step of an open story chain arrives instead
     const open = CHAINS.filter(c => !chainDone(c) && findAddr(c.from) && findAddr(c.to));
     if (!noStory && open.length && delivered >= 1 && L.chance(0.35)) {
@@ -1642,7 +1739,7 @@ function start(ctx, world) {
     let mag = Math.hypot(ix, iy);
     if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
     const running = keys['ShiftLeft'] || keys['ShiftRight'] || tRun > 0;
-    if (stunned || !begun || reporting || shopOpen || bigOpen) mag = 0;
+    if (stunned || !begun || reporting || shopOpen || bigOpen || inChoice) mag = 0;
     if (bigOpen && mapAcc2 > 0.2) { mapAcc2 = 0; drawBigMap(); } mapAcc2 += dt;
 
     if (mag > 0.05) {
@@ -1991,14 +2088,17 @@ function start(ctx, world) {
     // the delayed toast closure fires)
     if (curStory) {
       const cs = curStory;
-      chainProg[cs.id] = Math.min((chainProg[cs.id] || 0) + 1, cs.steps);
-      dayStories++;
-      saveChains(); renderLog();
-      if (chainDone(cs)) {
-        score += 400; elScore.textContent = score;
-        setTimeout(() => { toast('📜 Story complete! +400', '#c8862a'); sfxBonus(); checkCompletion(); }, 800);
-      } else {
-        setTimeout(() => toast('📜 ' + cs.name + ' (' + chainProg[cs.id] + '/' + cs.steps + ')', '#c8862a'), 800);
+      if (cs.camp) { dayStories++; advanceCampaign(cs.campStep); }
+      else {
+        chainProg[cs.id] = Math.min((chainProg[cs.id] || 0) + 1, cs.steps);
+        dayStories++;
+        saveChains(); renderLog();
+        if (chainDone(cs)) {
+          score += 400; elScore.textContent = score;
+          setTimeout(() => { toast('📜 Story complete! +400', '#c8862a'); sfxBonus(); checkCompletion(); }, 800);
+        } else {
+          setTimeout(() => toast('📜 ' + cs.name + ' (' + chainProg[cs.id] + '/' + cs.steps + ')', '#c8862a'), 800);
+        }
       }
       curStory = null;
     }
@@ -2209,6 +2309,9 @@ function start(ctx, world) {
     enterableNames: () => ENTERABLE.map(a => a.name),
     get homeUp() { return homeUp; }, hasUp,
     buyUp: (id) => { const i = HOME_UPS.findIndex(u => u.id === id); if (i >= 0) { homeUp |= (1 << i); lsSet('fly_home_up', homeUp); if (curInt && curInt.kind === 'home') refreshHomeDecor(curInt); } },
+    get campState() { return { step: camp.step, branch: camp.branch, done: camp.done }; }, get inChoice() { return inChoice; },
+    campDeliver: () => advanceCampaign(camp.step), campChoose: (i) => { camp.branch = i; saveCamp(); inChoice = false; campCard.style.display = 'none'; },
+    campReset: () => { camp = { step: 0, branch: null, done: false }; saveCamp(); },
     begin,
   } };
 }
