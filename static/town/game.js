@@ -650,6 +650,7 @@ function start(ctx, world) {
     'RARE BOOKS':   { label: 'the Bookshop',    accent: '#6a4a2a', wall: '#e7dcc4', kind: 'books',    greet: 'Mind the stacks 📚' },
     'TOY SHOP':     { label: 'the Toy Shop',    accent: '#e0783a', wall: '#f0e6d2', kind: 'toys',     greet: 'Come in, come play! 🧸' },
     'GREENGROCER':  { label: 'the Greengrocer', accent: '#4a8050', wall: '#e6eed8', kind: 'grocer',   greet: 'Fresh in this morning! 🍎' },
+    'THE POST OFFICE': { label: 'the Depot',    accent: '#b5352a', wall: '#e7ddc6', kind: 'home',     greet: 'Welcome home, courier 🏠' },
   };
   const ENTERABLE = world.addresses.filter(a => INT_CFG[a.name]);
   const INT_NAMES = Object.keys(INT_CFG);
@@ -716,6 +717,16 @@ function start(ctx, world) {
       const fruit = ['#e05a4a', '#e0a040', '#7ab04a', '#c8503a', '#e0c050'];
       for (let c = 0; c < 3; c++) { const cx = -2.6 + c * 2.0; root.add(L.box(1.3, 0.5, 0.9, L.std({ color: '#9a7a4a' }), { x: cx, y: 0.28, z: 2.6, cast: false })); for (let i = 0; i < 6; i++) root.add(L.sphere(0.15, 8, L.std({ color: fruit[(c + i) % 5] }), { x: cx - 0.4 + (i % 3) * 0.4, y: 0.6, z: 2.4 + Math.floor(i / 3) * 0.4, cast: false })); }
       root.add(shelfUnit(-4.4, -2, Math.PI / 2, ['#7ab04a', '#e0a040', '#e05a4a', '#c8b050']));
+    } else if (K === 'home') {
+      // the courier's depot: a sorting desk, a wall map, a bunk, a coat rack
+      root.add(frame(2.6, 1.7, '#cde0d6', 3.6, 2.2, -5.82, 0));                                   // town map on the wall
+      root.add(L.box(2.6, 0.04, 0.04, accMat, { x: 3.6, y: 3.1, z: -5.78, cast: false }));
+      root.add(L.box(2.2, 0.5, 1.0, L.std({ color: '#8a6a44' }), { x: 4.2, y: 0.55, z: 3.4, cast: false }));  // bunk base
+      root.add(L.box(2.2, 0.3, 1.0, L.std({ color: '#c05a4a' }), { x: 4.2, y: 0.9, z: 3.4, cast: false }));   // bedding
+      root.add(L.box(0.5, 0.28, 0.9, L.std({ color: '#eae2d0' }), { x: 3.4, y: 0.95, z: 3.4, cast: false })); // pillow
+      root.add(L.cyl(0.06, 0.06, 2.0, 8, L.std({ color: '#5a4a34' }), { x: -5.4, y: 1.0, z: 3.2, cast: false }));  // coat rack post
+      root.add(L.box(0.6, 0.1, 0.6, L.std({ color: '#5a4a34' }), { x: -5.4, y: 2.0, z: 3.2, cast: false }));
+      root.add(L.sphere(0.14, 8, L.std({ color: '#b5352a' }), { x: -5.4, y: 1.75, z: 3.3, cast: false }));   // a spare red cap
     }
   }
   function buildRoom(name, cfg) {
@@ -745,8 +756,9 @@ function start(ctx, world) {
     const lamp = new T.PointLight(0xffe0a8, 2.0, 24, 1.2); lamp.position.set(0, 3.4, 0); root.add(lamp);
     const lamp2 = new T.PointLight(0xffe8c8, 0.85, 18, 1.4); lamp2.position.set(0, 2.2, 2.6); root.add(lamp2);
     dressRoom(root, cfg, accMat, trimMat);
-    const keep = C.makeNPC({ shirt: cfg.accent }); keep.position.set(0, 0, -4.6); root.add(keep);
-    return { root, keep, spawn: { x: INT_ORIGIN.x, z: INT_ORIGIN.z + 3.2, yaw: Math.PI }, exit: { x: INT_ORIGIN.x, z: INT_ORIGIN.z + 4.8 } };
+    const decor = new T.Group(); root.add(decor);   // home-depot upgrades live here
+    const keep = C.makeNPC({ shirt: cfg.accent, hair: '#c8c4bc' }); keep.position.set(cfg.kind === 'home' ? -3.2 : 0, 0, -4.6); if (cfg.kind === 'home') keep.rotation.y = 0.4; root.add(keep);
+    return { root, keep, decor, kind: cfg.kind, spawn: { x: INT_ORIGIN.x, z: INT_ORIGIN.z + 3.2, yaw: Math.PI }, exit: { x: INT_ORIGIN.x, z: INT_ORIGIN.z + 4.8 } };
   }
 
   const doorEl = document.createElement('div'); doorEl.id = 'flyDoor';
@@ -786,6 +798,7 @@ function start(ctx, world) {
     intBanner.textContent = '— ' + cfg.label.replace(/^the /, 'The ') + ' —'; intBanner.style.opacity = '1';
     bubble(rec.root.position.x, 2.5, rec.root.position.z - 4.2, cfg.greet, 4);
     sfxPick();
+    if (cfg.kind === 'home') { refreshHomeDecor(rec); renderHome(); homeEl.style.display = 'block'; requestAnimationFrame(() => homeEl.style.opacity = '1'); }
     const bit = 1 << INT_NAMES.indexOf(name);
     if (!(intVisited & bit)) {
       intVisited |= bit; lsSet('fly_int_visited', intVisited);
@@ -798,6 +811,7 @@ function start(ctx, world) {
     curInt.root.visible = false;
     if (savedOut) { P.pos.set(savedOut.x, savedOut.y, savedOut.z); P.yaw = savedOut.yaw; camYaw = savedOut.cam; }
     P.speed = 0; inside = false; curInt = null; intBanner.style.opacity = '0'; doorEl.style.opacity = '0';
+    homeEl.style.opacity = '0'; setTimeout(() => { if (!inside) homeEl.style.display = 'none'; }, 220);
     snapCam();
   }
   function snapCam() {   // place the chase camera behind the courier instantly (no cross-map lerp)
@@ -808,6 +822,65 @@ function start(ctx, world) {
       camera.position.x = clamp(camera.position.x, cx - cr, cx + cr);
       camera.position.z = clamp(camera.position.z, cz - cr, cz + cr);
     }
+  }
+
+  /* ════════ HOME DEPOT UPGRADES (Sprint 45) ════════
+     Your base (THE POST OFFICE) is enterable; an upgrade board spends coins on
+     perks that change how you play AND visibly furnish the room as you invest. */
+  const HOME_UPS = [
+    { id: 'satchel', name: 'Cushioned Satchel', desc: 'fragile parcels shrug off most bumps', price: 120 },
+    { id: 'bike',    name: 'Tuned Bike',        desc: '+15% bike top speed',                 price: 200 },
+    { id: 'network', name: 'Regulars’ Network', desc: '+2 🪙 tip on every delivery',          price: 240 },
+    { id: 'wind',    name: 'Second Wind',       desc: '+15% time on every job',              price: 300 },
+    { id: 'shelf',   name: 'Trophy Shelf',      desc: 'a home for your best runs',           price: 150 },
+    { id: 'cards',   name: 'Wall of Postcards', desc: 'a card from every corner of town',    price: 110 },
+  ];
+  let homeUp = lsGet0('fly_home_up');
+  function hasUp(id) { const i = HOME_UPS.findIndex(u => u.id === id); return i >= 0 && !!(homeUp & (1 << i)); }
+  function refreshHomeDecor(rec) {
+    const g = rec.decor; if (!g) return;
+    while (g.children.length) g.remove(g.children[0]);
+    if (hasUp('shelf')) {                                   // gold trophies on a wall shelf
+      g.add(L.box(2.2, 0.1, 0.4, L.std({ color: '#7a5a38' }), { x: -3.5, y: 2.0, z: -5.7, cast: false }));
+      for (let i = 0; i < 3; i++) { g.add(L.cyl(0.1, 0.14, 0.28, 10, L.std({ color: '#e0b23a' }), { x: -4.2 + i * 0.7, y: 2.19, z: -5.6, cast: false })); g.add(L.sphere(0.1, 8, L.std({ color: '#e0b23a' }), { x: -4.2 + i * 0.7, y: 2.4, z: -5.6, cast: false })); }
+    }
+    if (hasUp('cards')) {                                   // a grid of postcards on the side wall
+      const col = ['#c85a5a', '#d8a63c', '#3a7d99', '#5a9a5a', '#a04868', '#7a5aa8'];
+      for (let i = 0; i < 6; i++) g.add(frame(0.5, 0.36, col[i], -5.82, 2.5 - (i % 2) * 0.6, -2.2 + Math.floor(i / 2) * 0.9, Math.PI / 2));
+    }
+    if (hasUp('satchel')) g.add(L.box(0.4, 0.5, 0.22, L.std({ color: '#8a5a2a' }), { x: -5.2, y: 1.2, z: 3.3, cast: false }));  // satchel on the rack
+    if (hasUp('bike')) { g.add(L.cyl(0.42, 0.42, 0.06, 16, L.std({ color: '#2c2620' }), { x: -5.78, y: 2.4, z: 0.6, cast: false })); g.add(L.cyl(0.42, 0.42, 0.05, 16, L.std({ color: '#2c2620' }), { x: -5.78, y: 2.4, z: -0.6, cast: false })); }  // spare wheels
+    if (hasUp('wind')) { g.add(L.cyl(0.3, 0.3, 0.08, 14, trimForHome, { x: 0, y: 3.0, z: -5.78, cast: false })); g.add(L.box(0.02, 0.22, 0.02, L.std({ color: '#2c2620' }), { x: 0, y: 3.08, z: -5.72, cast: false })); }  // wall clock
+    if (hasUp('network')) for (let i = 0; i < 4; i++) g.add(L.sphere(0.05, 6, L.std({ color: '#c04434' }), { x: 2.4 + (i - 1.5) * 0.5, y: 2.2 + Math.sin(i) * 0.3, z: -5.72, cast: false }));  // map pins
+  }
+  const trimForHome = L.std({ color: '#efe7d4' });
+  const homeEl = document.createElement('div'); homeEl.id = 'flyHome';
+  homeEl.style.cssText = 'position:absolute;left:16px;top:50%;transform:translateY(-50%);width:250px;'
+    + 'font-family:\'Patrick Hand\',cursive;color:#2c261c;background:#fbf6e8;border:2px solid #2c261c;'
+    + 'border-radius:14px;padding:12px 14px;box-shadow:3px 4px 0 rgba(44,38,28,.45);opacity:0;'
+    + 'transition:opacity .2s;pointer-events:none;z-index:41;display:none;';
+  hud.appendChild(homeEl);
+  function renderHome() {
+    homeEl.innerHTML = '<div style="font-size:20px;border-bottom:2px solid #2c261c;padding-bottom:4px;margin-bottom:6px">🏠 Depot Upgrades <span style="float:right">🪙 ' + coins + '</span></div>'
+      + HOME_UPS.map((u, i) => {
+        const owned = !!(homeUp & (1 << i));
+        return '<div class="hu" data-i="' + i + '" style="margin:6px 0;padding:5px 7px;border-radius:8px;border:1.5px solid ' + (owned ? '#4d8a52' : '#2c261c') + ';background:' + (owned ? '#e7f2e2' : '#fff') + ';cursor:' + (owned ? 'default' : 'pointer') + '">'
+          + '<div style="font-size:16px">' + u.name + '<span style="float:right">' + (owned ? '✓' : u.price + '🪙') + '</span></div>'
+          + '<div style="font-size:12px;opacity:.7">' + u.desc + '</div></div>';
+      }).join('')
+      + '<div style="font-size:12px;opacity:.6;margin-top:6px">🚪 walk to the door · E to head out</div>';
+    homeEl.querySelectorAll('.hu').forEach(el => el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const i = +el.dataset.i, u = HOME_UPS[i];
+      if (homeUp & (1 << i)) return;
+      if (coins >= u.price) {
+        coins -= u.price; lsSet('fly_coins', coins);
+        homeUp |= (1 << i); lsSet('fly_home_up', homeUp);
+        if (curInt) refreshHomeDecor(curInt);
+        sfxBonus(); toast('🔧 ' + u.name + ' installed!', '#4d8a52'); renderBest();
+      } else { blip(160, 0.2, 'sawtooth', 0.08); toast('🪙 You need ' + (u.price - coins) + ' more', '#c04434'); }
+      renderHome();
+    }));
   }
 
   /* ── the END-OF-DAY report card ── */
@@ -1098,7 +1171,7 @@ function start(ctx, world) {
     curStory = j.story || null;
     setCarryItem();
     carrying = false; carriedLetter.visible = false;
-    jobBudget = j.budget; jobLeft = jobBudget; jobActive = true;
+    jobBudget = j.budget * (hasUp('wind') ? 1.15 : 1); jobLeft = jobBudget; jobActive = true;
     setObjective();
     if (curStory) toast('📜 ' + curStory.name, '#c8862a');
     else if (fragile) toast('🎂 Fragile — not one bump! ×2', '#c04434');
@@ -1497,10 +1570,12 @@ function start(ctx, world) {
         fxBurst(P.pos, [0xff6b6b, 0xffd166, 0xffffff], 14, 1.2);
         addShake(0.42);
         sfxHazard(); blip(392, 0.25, 'square', 0.12);   // honk
-        if (carrying && fragile && !gustLoose) {
+        if (carrying && fragile && !gustLoose && !(hasUp('satchel') && L.chance(0.6))) {
           carrying = false; carriedLetter.visible = false; setObjective();
           elSub.textContent = '💥 it broke — go back for another';
           setTimeout(() => toast('💥 The cake! Go get another…', '#c04434'), 500);
+        } else if (carrying && fragile && !gustLoose) {
+          setTimeout(() => toast('🛡 The satchel saved it!', '#4d8a52'), 400);
         }
         breakCombo('🚗 Bumped by traffic!');
         if (jobActive) jobLeft = Math.max(2, jobLeft - 4);
@@ -1583,7 +1658,7 @@ function start(ctx, world) {
       let dc = P.yaw - camYaw; dc = Math.atan2(Math.sin(dc), Math.cos(dc));
       camYaw += dc * L.dampT(dt, 2.6) * Math.max(0, Math.cos(dc));
     }
-    const maxSpd = onBike ? 8.8 : (running ? RUN : WALK);
+    const maxSpd = onBike ? 8.8 * (hasUp('bike') ? 1.15 : 1) : (running ? RUN : WALK);
     P.speed = lerp(P.speed, mag * maxSpd, L.dampT(dt, onBike ? 4.5 : ACCEL));
     fwd.set(Math.sin(P.yaw), 0, Math.cos(P.yaw));
     P.pos.x += fwd.x * P.speed * dt; P.pos.z += fwd.z * P.speed * dt;
@@ -1937,14 +2012,14 @@ function start(ctx, world) {
       const ni = rankIdx(totalDeliv);
       if (ni < CAPS.length) {
         capSel = ni; lsSet('fly_cap_sel', capSel); applyCap();
-        setTimeout(() => toast('🧢 Nueva gorra: ' + CAPS[ni][1] + ' — press C to swap', '#9fd0ff'), 2500);
+        setTimeout(() => toast('🧢 New cap: ' + CAPS[ni][1] + ' — press C to swap', '#9fd0ff'), 2500);
       }
     }
     if (score > bestScore) { bestScore = score; lsSet(LS.score, bestScore); }
     if (streak > bestStreak) { bestStreak = streak; lsSet(LS.streak, bestStreak); }
     renderBest();
 
-    const coinGain = Math.max(5, Math.round(gained / 10 * (1 + dayDiff() * 0.6)));
+    const coinGain = Math.max(5, Math.round(gained / 10 * (1 + dayDiff() * 0.6))) + (hasUp('network') ? 2 : 0);
     coins += coinGain; dayCoins += coinGain; lsSet('fly_coins', coins);
     setTimeout(sfxCoin, 180);
     dayScore += gained; dayBestCombo = Math.max(dayBestCombo, combo); dayDeliv++;
@@ -2132,6 +2207,8 @@ function start(ctx, world) {
     get inside() { return inside; }, get nearDoor() { const d = nearestDoor(); return d ? d.name : null; },
     enterShop: (name) => enterInterior(name), leaveShop: () => exitInterior(),
     enterableNames: () => ENTERABLE.map(a => a.name),
+    get homeUp() { return homeUp; }, hasUp,
+    buyUp: (id) => { const i = HOME_UPS.findIndex(u => u.id === id); if (i >= 0) { homeUp |= (1 << i); lsSet('fly_home_up', homeUp); if (curInt && curInt.kind === 'home') refreshHomeDecor(curInt); } },
     begin,
   } };
 }
