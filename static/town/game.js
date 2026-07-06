@@ -1463,9 +1463,11 @@ function start(ctx, world) {
     if (e.code === 'KeyE' && begun && !offer) doAction();
     if (e.code === 'KeyB' && onBike) { blip(1560, 0.09, 'square', 0.09); setTimeout(() => blip(1560, 0.13, 'square', 0.08), 140); }
     if (e.code === 'KeyP' && begun) {
-      const on = hud.classList.toggle('photo');
-      if (!on) toast('📷', '#3a7d99');
+      photoOn = hud.classList.toggle('photo');
+      updatePhotoUI();
+      if (!photoOn) toast('📷', '#3a7d99');
     }
+    if (e.code === 'Space' && begun && photoOn) { e.preventDefault(); takePhoto(); }
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
   });
   addEventListener('keyup', e => { keys[e.code] = false; });
@@ -1565,6 +1567,85 @@ function start(ctx, world) {
     }
   }
   refreshSeason(false);
+
+  /* ════════ TOURIST BOARD — photo quests (Sprint 48) ════════
+     The Tourist Board wants postcards of the town. Enter photo mode (P), frame a
+     requested landmark, and press Space to snap it for coins. Some shots need
+     the right season or hour. Progress persists (fly_photos bitmask). */
+  const PHOTO_DEFS = [
+    { id: 'lighthouse', name: 'the lighthouse',            addr: 'THE LIGHTHOUSE',   reward: 30 },
+    { id: 'clock',      name: 'the great clock',           addr: 'CLOCK TOWER',      reward: 25 },
+    { id: 'boat',       name: 'the fishing boat',          addr: 'THE FISHING BOAT', reward: 30 },
+    { id: 'market',     name: 'the market stalls',         addr: 'MARKET',           reward: 20 },
+    { id: 'gallery',    name: 'the gallery façade',        addr: 'GALLERY',          reward: 20 },
+    { id: 'fountain',   name: 'the plaza fountain',        pos: { x: 0, z: 12 },     reward: 20 },
+    { id: 'dusk',       name: 'the avenue at golden hour', pos: { x: 0, z: 0 },      reward: 45, cond: () => tod > 0.6,                    hint: '(needs dusk)' },
+    { id: 'snow',       name: 'the plaza under snow',      pos: { x: 0, z: 12 },     reward: 45, cond: () => SEASONS[season].part === 'snow', hint: '(needs winter)' },
+  ];
+  const PHOTO = [];
+  PHOTO_DEFS.forEach(dfn => {
+    let x, y, z;
+    if (dfn.addr) { const a = findAddr(dfn.addr); if (!a) return; x = a.pos.x; y = (a.pos.y || 2) + 1.2; z = a.pos.z; }
+    else { x = dfn.pos.x; y = 2.4; z = dfn.pos.z; }
+    PHOTO.push({ id: dfn.id, name: dfn.name, reward: dfn.reward, cond: dfn.cond, hint: dfn.hint, x, y, z });
+  });
+  let photoDone = lsGet0('fly_photos');
+  let photoOn = false;
+  function photoCount() { let n = 0; for (let i = 0; i < PHOTO.length; i++) if (photoDone & (1 << i)) n++; return n; }
+  const photoUI = document.createElement('div'); photoUI.id = 'flyPhoto';
+  photoUI.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);'
+    + 'font-family:\'Patrick Hand\',cursive;color:#fbf6e8;background:rgba(28,24,18,.72);'
+    + 'border:2px solid #fbf6e8;border-radius:12px;padding:7px 18px;font-size:18px;'
+    + 'text-shadow:1px 1px 0 rgba(0,0,0,.4);pointer-events:none;z-index:70;display:none;white-space:nowrap;';
+  document.body.appendChild(photoUI);
+  const photoFlashEl = document.createElement('div');
+  photoFlashEl.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:69;transition:opacity .06s;';
+  document.body.appendChild(photoFlashEl);
+  function nearestPhoto() {
+    let best = null, bd = 1e9;
+    for (let i = 0; i < PHOTO.length; i++) {
+      if (photoDone & (1 << i)) continue;
+      const q = PHOTO[i];
+      if (q.cond && !q.cond()) continue;                      // don't point at shots you can't take yet
+      const d = Math.hypot(q.x - P.pos.x, q.z - P.pos.z);
+      if (d < bd) { bd = d; best = q; }
+    }
+    return best;
+  }
+  function updatePhotoUI() {
+    if (!photoOn) { photoUI.style.display = 'none'; return; }
+    photoUI.style.display = 'block';
+    const done = photoCount(), tot = PHOTO.length;
+    if (done >= tot) { photoUI.textContent = '📷 Tourist Board complete — ' + done + '/' + tot + ' · Space to snap anyway'; return; }
+    const q = nearestPhoto();
+    photoUI.textContent = '📷 ' + done + '/' + tot + ' · find ' + (q ? q.name + (q.hint ? ' ' + q.hint : '') : '—') + ' · Space to snap';
+  }
+  function takePhoto() {
+    photoFlashEl.style.opacity = '0.85'; setTimeout(() => photoFlashEl.style.opacity = '0', 70);
+    blip(1200, 0.03, 'square', 0.05); setTimeout(() => blip(300, 0.05, 'sine', 0.04), 40);   // shutter click
+    let best = null, bestOff = 0.62;
+    const v = new T.Vector3();
+    for (let i = 0; i < PHOTO.length; i++) {
+      if (photoDone & (1 << i)) continue;
+      const q = PHOTO[i];
+      if (q.cond && !q.cond()) continue;
+      if (Math.hypot(q.x - P.pos.x, q.z - P.pos.z) > 75) continue;
+      v.set(q.x, q.y, q.z).project(camera);
+      if (v.z > 1) continue;                                  // behind the camera
+      const off = Math.max(Math.abs(v.x), Math.abs(v.y));
+      if (off < bestOff) { bestOff = off; best = i; }
+    }
+    if (best != null) {
+      photoDone |= (1 << best); lsSet('fly_photos', photoDone);
+      const q = PHOTO[best]; coins += q.reward; dayCoins += q.reward; lsSet('fly_coins', coins); renderBest();
+      toast('📸 ' + q.name + ' — lovely shot! +' + q.reward + ' 🪙', '#4d8a52'); sfxBonus();
+      updatePhotoUI();
+      if (photoCount() === PHOTO.length) setTimeout(() => toast('🏅 Tourist Board complete — you\'ve seen it all!', '#c8862a'), 1000);
+    } else {
+      const nearby = nearestPhoto();
+      toast(nearby ? '📷 …centre ' + nearby.name + ' in the frame' : '📷 …nothing to shoot here', '#c04434');
+    }
+  }
   function startRain() {
     raining = true; rainT = 0; rainGroup.visible = true;
     // scatter puddles on the road around wherever the player is
@@ -2061,6 +2142,7 @@ function start(ctx, world) {
     }
 
     updateDoorPrompt();
+    if (photoOn) updatePhotoUI();
 
     // discoverability: a whisper when a ride is available
     if (!inside && !ridingTram && !onBike && nearestTram()) {
@@ -2384,6 +2466,10 @@ function start(ctx, world) {
     get campState() { return { step: camp.step, branch: camp.branch, done: camp.done }; }, get inChoice() { return inChoice; },
     get season() { return SEASONS[season].name; }, get seasonN() { return seasonActiveN; },
     setSeason: (i) => { seasonOverride = ((i % 4) + 4) % 4; refreshSeason(true); applyTOD(reporting ? 1 : tod); },
+    get photoState() { return { done: photoCount(), total: PHOTO.length, on: photoOn }; },
+    photoMode: (v) => { photoOn = v == null ? !photoOn : !!v; hud.classList.toggle('photo', photoOn); updatePhotoUI(); },
+    snapPhoto: () => takePhoto(), photoReset: () => { photoDone = 0; lsSet('fly_photos', 0); },
+    photoTargets: () => PHOTO.map(q => q.name),
     campDeliver: () => advanceCampaign(camp.step), campChoose: (i) => { camp.branch = i; saveCamp(); inChoice = false; campCard.style.display = 'none'; },
     campReset: () => { camp = { step: 0, branch: null, done: false }; saveCamp(); },
     begin,
