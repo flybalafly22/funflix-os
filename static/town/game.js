@@ -57,9 +57,11 @@ function start(ctx, world) {
       const prize = 60;
       coins += prize; lsSet('fly_coins', coins); renderBest();
       toast('🏁 You beat Paco! +' + prize + ' 🪙', '#4d8a52'); sfxBonus();
+      gainRep(6, 'won the race');
     } else {
       toast('🏁 Paco got there first…', '#c04434');
       bubble(R.pos.x, R.pos.y + 2.2, R.pos.z, 'Told you so!', 2.5);
+      rivalGains(4, 'beat you in a race');
     }
     setTimeout(() => { rival.visible = false; }, 2500);
   }
@@ -980,6 +982,10 @@ function start(ctx, world) {
     reporting = true;
     beam.visible = ring.visible = objLetter.visible = false;
     const nx = nextRank(totalDeliv);
+    // while you worked, so did Paco's Express — the rival firm books its own day
+    const rivDaily = 4 + Math.round(dayDiff() * 3);
+    repRiv += rivDaily; saveRep(); repLeadWas = repYou >= repRiv;
+    const leading = repYou >= repRiv;
     repEl.innerHTML = '<div class="h">☀ DAY ' + dayNum + ' — REPORT</div><div class="r">'
       + 'Deliveries <b>' + dayDeliv + '</b><br>'
       + 'Points today <b>' + dayScore + '</b><br>'
@@ -990,6 +996,8 @@ function start(ctx, world) {
       + 'Rank <b>' + rankName(totalDeliv) + '</b><br>'
       + 'Pace <b>' + ['calm','lively','busy','frantic','legendary'][Math.min(4, Math.floor(dayDiff() * 4.9))] + '</b>'
       + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' deliveries to ' + nx[1] + '</span>' : '')
+      + '<br>🏢 You <b>' + Math.round(repYou) + '</b> vs ' + RIVAL_FIRM + ' <b>' + Math.round(repRiv) + '</b> ' + (leading ? '<span style="color:#4d8a52">▲ ahead</span>' : '<span style="color:#c04434">▼ behind</span>')
+      + '<br><span style="opacity:.7">You are ' + repTitle() + '</span>'
       + '</div><div class="go">Start day ' + (dayNum + 1) + ' ▶</div>';
     repEl.classList.add('on');
     sfxDeliver();
@@ -1165,6 +1173,36 @@ function start(ctx, world) {
   const DAY_LEN = 8;
   let dayNum = lsGet('fly_day') || 1, dayDeliv = 0, dayScore = 0, dayBestCombo = 1, dayStories = 0, dayLetters = 0;
   let coins = lsGet('fly_coins'), dayCoins = 0;
+
+  /* ── RIVAL FIRM & REPUTATION (Sprint 49) ──
+     You run a one-Fly courier service; across town, "Paco's Express" competes
+     for the same contracts. Reputation tracks the town's standing between you.
+     Deliver well and yours climbs; time out and Paco's snaps the contract. */
+  let repYou = lsGet('fly_rep_you'), repRiv = lsGet('fly_rep_riv') || 8;
+  let repLeadWas = repYou >= repRiv;
+  const RIVAL_FIRM = "Paco's Express";
+  function saveRep() { lsSet('fly_rep_you', repYou); lsSet('fly_rep_riv', repRiv); }
+  function repTitle() {
+    const lead = repYou - repRiv;
+    if (lead >= 30) return "Villa Mott's favourite courier";
+    if (lead >= 12) return 'the town’s first call';
+    if (lead >= 0) return 'neck and neck with Paco';
+    if (lead >= -12) return 'the plucky underdog';
+    return "Paco's shadow";
+  }
+  function gainRep(n, why) {
+    repYou += n; saveRep();
+    const leadNow = repYou >= repRiv;
+    if (leadNow && !repLeadWas) { toast('📈 You’ve overtaken ' + RIVAL_FIRM + '!', '#4d8a52'); coins += 40; dayCoins += 40; lsSet('fly_coins', coins); }
+    repLeadWas = leadNow;
+    renderBest();
+  }
+  function rivalGains(n, why) {
+    repRiv += n; saveRep();
+    if (why) toast('📉 ' + RIVAL_FIRM + ' ' + why, '#c04434');
+    repLeadWas = repYou >= repRiv;
+    renderBest();
+  }
   let reporting = false;
   const RANKS = [[0, 'Errand Runner'], [5, 'Messenger'], [15, 'Neighborhood Postie'], [30, 'Express Courier'], [60, 'Legend of Villa Mott']];
   function rankName(n) { let r = RANKS[0][1]; for (const [t, nm] of RANKS) if (n >= t) r = nm; return r; }
@@ -1192,7 +1230,9 @@ function start(ctx, world) {
     bestEl.innerHTML = '<span style="color:#c8862a">✦ ' + rankName(totalDeliv) + '</span><br>'
       + '<span style="color:#c8862a">🪙 ' + coins + '</span><br>'
       + 'Best score <b>' + bestScore + '</b><br>Best streak <b>x' + bestStreak + '</b>'
-      + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' more → ' + nx[1] + '</span>' : '');
+      + (nx ? '<br><span style="opacity:.65">' + (nx[0] - totalDeliv) + ' more → ' + nx[1] + '</span>' : '')
+      + '<br><span style="opacity:.85">🏢 You <b>' + Math.round(repYou) + '</b> · Paco <b>' + Math.round(repRiv) + '</b> '
+      + (repYou >= repRiv ? '<span style="color:#4d8a52">▲</span>' : '<span style="color:#c04434">▼</span>') + '</span>';
   }
   renderBest();
   if (elScoreL) elScoreL.textContent = 'score';
@@ -2109,10 +2149,11 @@ function start(ctx, world) {
       elTimerBar.style.background = low ? '#c04434' : (frac > 0.5 ? '#4d8a52' : '#c8862a');
       if (low && Math.floor(jobLeft + dt) !== Math.floor(jobLeft) && jobLeft > 0) blip(660, 0.06, 'square', 0.08);
       if (jobLeft <= 0) {
-        // ran out of time: no points, combo broken, fresh job
+        // ran out of time: no points, combo broken — and Paco's swoops in
         jobActive = false;
         breakCombo('⏱ Out of time');
         sfxHazard();
+        rivalGains(2, 'snapped the contract you dropped');
         newTask();
       }
     }
@@ -2277,6 +2318,7 @@ function start(ctx, world) {
     coins += coinGain; dayCoins += coinGain; lsSet('fly_coins', coins);
     setTimeout(sfxCoin, 180);
     dayScore += gained; dayBestCombo = Math.max(dayBestCombo, combo); dayDeliv++;
+    gainRep(1 + Math.min(3, combo - 1) + ((express || fragile) ? 1 : 0), 'delivered');
     renderBest();
     if (dayDeliv >= DAY_LEN) showReport();
     else newTask();
@@ -2466,6 +2508,8 @@ function start(ctx, world) {
     get campState() { return { step: camp.step, branch: camp.branch, done: camp.done }; }, get inChoice() { return inChoice; },
     get season() { return SEASONS[season].name; }, get seasonN() { return seasonActiveN; },
     setSeason: (i) => { seasonOverride = ((i % 4) + 4) % 4; refreshSeason(true); applyTOD(reporting ? 1 : tod); },
+    get rep() { return { you: Math.round(repYou), rival: Math.round(repRiv), title: repTitle() }; },
+    gainRep: (n) => gainRep(n), rivalGains: (n) => rivalGains(n, null),
     get photoState() { return { done: photoCount(), total: PHOTO.length, on: photoOn }; },
     photoMode: (v) => { photoOn = v == null ? !photoOn : !!v; hud.classList.toggle('photo', photoOn); updatePhotoUI(); },
     snapPhoto: () => takePhoto(), photoReset: () => { photoDone = 0; lsSet('fly_photos', 0); },
