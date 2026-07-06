@@ -103,6 +103,28 @@
     .nav-links{ gap:14px; }
     .nav-links .nav-est{ display:none; }
   }
+
+  /* scroll-aware top nav: transparent+light over the hero, blurred "paper"
+     bar once scrolled past it, so it never clashes with the light sections */
+  .site-nav{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px clamp(20px,4vw,54px);
+    color:#F6F0E6;
+    background:linear-gradient(180deg, rgba(20,12,10,0.5) 0%, rgba(20,12,10,0) 100%);
+    border-bottom:1px solid transparent;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    transition:background .45s ease, color .45s ease, padding .45s ease, border-color .45s ease;
+  }
+  .site-nav.scrolled{
+    background:rgba(241,236,225,0.82);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    color:#1B1712;
+    padding:14px clamp(20px,4vw,54px);
+    border-bottom:1px solid rgba(27,23,18,0.12);
+  }
 </style>
 </head>
 <body>
@@ -110,7 +132,7 @@
 <div style="position:relative; overflow-x:hidden;">
 
   <!-- NAV -->
-  <nav style="position:fixed; top:0; left:0; right:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,4vw,54px); mix-blend-mode:difference; color:#F1ECE1;">
+  <nav id="siteNav" class="site-nav">
     <a href="#top" style="color:inherit; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; letter-spacing:0.42em;">FUNFLIX</a>
     <div class="nav-links">
       <a href="#collection" style="color:inherit;">The Collection</a>
@@ -208,6 +230,21 @@
 </div>
 
 <script>
+  /* scroll-aware nav: transparent+light over the hero, blurred "paper" bar
+     past ~82% of the viewport height (i.e. once the hero is basically
+     scrolled by). Passive listener, class toggle only — CSS does the rest. */
+  (function () {
+    const nav = document.getElementById('siteNav');
+    if (!nav) return;
+    function onScroll() {
+      const threshold = window.innerHeight * 0.82;
+      nav.classList.toggle('scrolled', window.scrollY > threshold);
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+  })();
+
   /* hero background video — fade in once it's actually playing; if autoplay
      is blocked (some mobile browsers), kick playback on the first tap */
   (function () {
