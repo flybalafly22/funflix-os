@@ -1,3 +1,4 @@
+
 """
 Build data/analysis.json — the single source of truth the dashboard + chatbot read.
 Runs offline (needs pandas/sklearn); production only reads the JSON (no heavy deps).

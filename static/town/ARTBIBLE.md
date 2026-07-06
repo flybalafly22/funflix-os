@@ -1,4 +1,11 @@
-# THE FLY — ART DIRECTION BIBLE
+# THE FLY — ART DIRECTION BIBLE (HISTORICAL — golden-hour direction)
+
+> ⚠️ **SUPERSEDED FOR LOOK/LIGHTING by `/ART_BIBLE.md` (repo root, Sprint 0 canonical).**
+> The shipped build pivoted from this golden-hour grade to a flat painterly **teal
+> "Messenger paper"** look. Use the root `ART_BIBLE.md` as ground truth. This file is
+> retained because its palette-**cohesion rules** (§2.1 saturation ceilings, the shared
+> cream unifier, the 3:1 warm/cool wall rhythm) are still law; its golden-hour
+> lighting/fog/sky **hexes are obsolete** — see root §4 for the shipped values.
 
 > Single source of truth for the visual look of THE FLY. Hand this verbatim to
 > any specialist working on `lib.js`, `buildings.js`, `props.js`, `characters.js`,

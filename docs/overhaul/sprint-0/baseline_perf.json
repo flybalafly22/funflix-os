@@ -1,0 +1,54 @@
+{
+  "url": "http://127.0.0.1:5099/play/the-fly",
+  "ts": "2026-07-07 00:20:59",
+  "seed": 20240617,
+  "devices": {
+    "desktop": {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "dpr": 1.5,
+      "perf": {
+        "fps": 30.3,
+        "scene_draw_calls": 3619,
+        "scene_triangles": 768812,
+        "geometries": 4354,
+        "textures": 329,
+        "est_texture_mb": 65.7,
+        "pixelRatio": 1,
+        "note": "scene_draw_calls = one beauty pass; per-frame total is ~2-3x (adds shadow + ink normal passes). FPS = SwiftShader floor."
+      },
+      "batching": "[FLY] batched static geometry: 23296 meshes -> 452 merged draws",
+      "console_errors": []
+    },
+    "mobile": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dpr": 2.0,
+      "perf": {
+        "fps": 37.7,
+        "scene_draw_calls": 2265,
+        "scene_triangles": 676006,
+        "geometries": 2297,
+        "textures": 183,
+        "est_texture_mb": 65.7,
+        "pixelRatio": 1,
+        "note": "scene_draw_calls = one beauty pass; per-frame total is ~2-3x (adds shadow + ink normal passes). FPS = SwiftShader floor."
+      },
+      "batching": "[FLY] batched static geometry: 23296 meshes -> 452 merged draws",
+      "console_errors": []
+    }
+  },
+  "gltf_pipeline": {
+    "loaderReady": true,
+    "probeInScene": true,
+    "probeMeshes": 1,
+    "manifest": [
+      "crate"
+    ],
+    "console_errors": []
+  }
+}

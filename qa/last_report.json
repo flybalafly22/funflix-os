@@ -1,7 +1,7 @@
 {
-  "url": "http://127.0.0.1:5091/play/city-game",
-  "ts": "2026-06-16 07:57:05",
-  "load_seconds": 4.28,
+  "url": "https://funflix-os.onrender.com/play/city-game",
+  "ts": "2026-06-16 23:07:33",
+  "load_seconds": 5.8,
   "webgl": {
     "present": true,
     "w": 1280,
@@ -17,7 +17,7 @@
     ],
     "text_markers_found": []
   },
-  "screenshot": "/Users/balarajput/calculator_web/qa/shots/shot_1781593034.png",
+  "screenshot": "/Users/balarajput/calculator_web/qa/shots/shot_1781647663.png",
   "console_errors": [],
   "page_errors": [],
   "gates": {
