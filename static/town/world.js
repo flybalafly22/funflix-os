@@ -915,7 +915,9 @@ function build(ctx) {
     wall((T2X1 + (SX + GATE)) / 2, T2Z1, (T2X1 - (SX + GATE)) / 2, 0.4);
     wall(T2X0, (T2Z0 + T2Z1) / 2, 0.4, (T2Z1 - T2Z0) / 2 + 0.4);  // T2 west
     wall(T2X1, (T2Z0 + T2Z1) / 2, 0.4, (T2Z1 - T2Z0) / 2 + 0.4);  // T2 east
-    wall(T2BX, T2Z0, (T2X1 - T2X0) / 2 + 0.4, 0.4);               // T2 south (back)
+    // T2 south face — gapped at SX so a stair can climb to the upper Cliffs (Sprint 50)
+    wall((T2X0 + (SX - GATE)) / 2, T2Z0, ((SX - GATE) - T2X0) / 2, 0.4);
+    wall((T2X1 + (SX + GATE)) / 2, T2Z0, (T2X1 - (SX + GATE)) / 2, 0.4);
 
     // stairs: solid stone steps; each tread is also a walkable floor strip
     function stairs(x, w, z0, z1, y0, y1) {
@@ -1605,6 +1607,76 @@ function build(ctx) {
   /* ── PERF: townsfolk/dogs/pigeons don't cast shadows (hundreds of tiny meshes
      re-rendered into the shadow map every frame). Buildings/trees/cars/the Fly
      still cast — those carry the scene's shadow read. ── */
+  /* ══════ THE UPPER CLIFFS (Sprint 50) — a new clifftop district ══════
+     A third, higher terrace rises behind the mirador hill: clifftop cottages, a
+     little signal-beacon, and a sea-edge overlook, reached by a stair up from
+     the mirador (T2's south wall is gapped for it). Built here — after every
+     placement-sensitive system — so only decorative grass reshuffles; its static
+     meshes still get batched below. Deterministic layout (fixed coords/seeds). */
+  (function buildCliffs() {
+    const CX0 = -94, CX1 = -64, CZ0 = -86, CZ1 = -62, CY = 8.6;
+    const CBX = (CX0 + CX1) / 2, SX = -78, GATE = 1.9, T2Y = 5.6;
+    const rockMat = L.std({ colorHex: '#a99f86', roughness: 1 });
+    const grassMat = L.std({ colorHex: '#7a9a58', roughness: 1 });
+    const stepMat = L.std({ colorHex: '#c9c0a6', roughness: 0.92 });
+    const capMat = L.std({ colorHex: '#dcd4bc', roughness: 0.9 });
+    // cliff mass + grassy top + walkable floor + town-facing cap course
+    root.add(L.box(CX1 - CX0, CY, CZ1 - CZ0, rockMat, { x: CBX, y: CY / 2, z: (CZ0 + CZ1) / 2, receive: true }));
+    root.add(L.box(CX1 - CX0 - 0.6, 0.16, CZ1 - CZ0 - 0.6, grassMat, { x: CBX, y: CY + 0.08, z: (CZ0 + CZ1) / 2, receive: true, cast: false }));
+    floorR(CBX, (CZ0 + CZ1) / 2, (CX1 - CX0) / 2, (CZ1 - CZ0) / 2, CY + 0.16);
+    root.add(L.box(CX1 - CX0 + 0.2, 0.26, 0.5, capMat, { x: CBX, y: CY + 0.04, z: CZ1 - 0.1, cast: false }));
+    // perimeter guard rails (gapped at the stair on the north edge)
+    const wall = (x, z, hw, hd) => colB(x, z, hw, hd);
+    wall((CX0 + (SX - GATE)) / 2, CZ1, ((SX - GATE) - CX0) / 2, 0.4);
+    wall((CX1 + (SX + GATE)) / 2, CZ1, (CX1 - (SX + GATE)) / 2, 0.4);
+    wall(CX0, (CZ0 + CZ1) / 2, 0.4, (CZ1 - CZ0) / 2 + 0.4);
+    wall(CX1, (CZ0 + CZ1) / 2, 0.4, (CZ1 - CZ0) / 2 + 0.4);
+    wall(CBX, CZ0, (CX1 - CX0) / 2 + 0.4, 0.4);
+    for (let x = CX0 + 0.8; x <= CX1 - 0.8; x += 1.4) { if (Math.abs(x - SX) < GATE + 0.4) continue; root.add(L.box(0.12, 0.8, 0.12, capMat, { x, y: CY + 0.56, z: CZ1, cast: false })); }
+    for (let x = CX0 + 0.8; x <= CX1 - 0.8; x += 1.4) root.add(L.box(0.12, 0.9, 0.12, capMat, { x, y: CY + 0.6, z: CZ0, cast: false }));
+    // the connecting stair up from the mirador (T2)
+    (function () {
+      const w = 3.4, z0 = -57, z1 = -62.5, y0 = T2Y + 0.14, y1 = CY + 0.16, n = 7, dz = (z1 - z0) / n, dy = (y1 - y0) / n;
+      for (let k = 0; k < n; k++) { const zc = z0 + dz * (k + 0.5), yt = y0 + dy * (k + 1); root.add(L.box(w, yt, Math.abs(dz) + 0.06, stepMat, { x: SX, y: yt / 2, z: zc, receive: true })); floorR(SX, zc, w / 2, Math.abs(dz) / 2 + 0.06, yt); }
+      colB(SX - w / 2 - 0.22, (z0 + z1) / 2, 0.2, Math.abs(z1 - z0) / 2 + 0.3);
+      colB(SX + w / 2 + 0.22, (z0 + z1) / 2, 0.2, Math.abs(z1 - z0) / 2 + 0.3);
+    })();
+    // clifftop dwellings
+    [['THE CLIFF COTTAGE', -88, -75, '#d4c8a8', 2], ['THE STARGAZER', -70, -76, '#c7b59a', 2], ['GULLS’ REST INN', -79, -83, '#cfc3a2', 3]].forEach(([nm, hx, hz, wallHex, fl]) => {
+      const g = B.make({ w: 6.0, d: 6.2, floors: fl, archetype: 'townhouse', wall: wallHex, name: nm, signColor: '#3a5a6a', awning: null, extras: [], seed: Math.round(hx * 13 + hz * 7) });
+      g.position.set(hx, CY + 0.16, hz); root.add(g);
+      colB(hx, hz, 3.0, 3.1);
+      addresses.push({ name: nm, pos: new T.Vector3(hx, CY + 2.6, hz + 3.4), gy: CY + 0.16 });
+    });
+    // THE SIGNAL STATION — a little beacon tower
+    (function beacon() {
+      const bx = -90, bz = -80, by = CY + 0.16;
+      root.add(L.cyl(1.1, 1.4, 4.6, 14, L.MAT.wall('#e6ded0'), { x: bx, y: by + 2.3, z: bz, receive: true }));
+      [1.2, 2.8].forEach(h => root.add(L.cyl(1.16, 1.28, 0.5, 14, L.std({ colorHex: '#b5352a', roughness: 0.85 }), { x: bx, y: by + h, z: bz, cast: false })));
+      root.add(L.cyl(1.3, 1.3, 0.4, 14, capMat, { x: bx, y: by + 4.6, z: bz, cast: false }));
+      root.add(L.cyl(0.9, 0.9, 0.9, 12, L.MAT.emissive('#ffe6a0', 1.0), { x: bx, y: by + 5.1, z: bz, cast: false }));
+      root.add(L.cyl(0.5, 0.9, 0.7, 12, L.std({ colorHex: '#8a5446', roughness: 0.85 }), { x: bx, y: by + 5.85, z: bz, cast: false }));
+      colC(bx, bz, 1.4);
+      addresses.push({ name: 'THE SIGNAL STATION', pos: new T.Vector3(bx, CY + 2.6, bz + 2.0), gy: CY + 0.16 });
+    })();
+    // sea-edge overlook: bench + telescope + lamp + a viewpoint address
+    (function overlook() {
+      const mx = -72, mz = -84, my = CY + 0.16;
+      const b = P.makeBench(); b.position.set(mx, my, mz - 0.3); b.rotation.y = Math.PI; root.add(b); colC(mx, mz, 0.75);
+      root.add(L.cyl(0.05, 0.07, 1.1, 8, L.MAT.metalDark, { x: mx + 2.2, y: my + 0.55, z: mz }));
+      const scope = L.cyl(0.07, 0.1, 0.6, 8, L.std({ colorHex: '#8a7a3a', roughness: 0.4, metalness: 0.5 }), { x: mx + 2.2, y: my + 1.2, z: mz - 0.1 }); scope.rotation.x = -1.15; root.add(scope); colC(mx + 2.2, mz, 0.2);
+      const lp = P.makeLamp(); lp.position.set(mx - 3.0, my, mz + 0.4); root.add(lp); colC(mx - 3.0, mz + 0.4, 0.28);
+      addresses.push({ name: 'CLIFF’S EDGE', pos: new T.Vector3(mx, CY + 2.6, mz + 1.4), gy: CY + 0.16 });
+    })();
+    // greenery + two clifftop strollers
+    [[-92, -70, 1], [-66, -84, 0], [-84, -68, 1]].forEach(([x, z, big]) => { const tr = P.makeTree({ big: !!big, cypress: !big }); tr.position.set(x, CY + 0.16, z); root.add(tr); colC(x, z, 0.55); treePts.push([x, z]); });
+    for (let k = 0; k < 2; k++) {
+      const n = C.makeNPC(); n.position.set(CBX + L.rand(-10, 10), CY + 0.16, L.rand(CZ0 + 3, CZ1 - 4));
+      n.userData.npc = { kind: 'plaza', lane: n.position.z, cx: n.position.x, speed: L.rand(0.4, 0.8) * (L.chance(0.5) ? 1 : -1), phase: L.rand(0, TAU), state: 'walk', timer: L.rand(2, 6), wave: 0, baseY: CY + 0.16 };
+      root.add(n); npcs.push(n);
+    }
+  })();
+
   npcs.forEach(n => n.traverse(o => { o.castShadow = false; }));
   dogs.forEach(d => d.traverse(o => { o.castShadow = false; }));
   pigeons.forEach(p => p.traverse(o => { o.castShadow = false; }));
@@ -1768,7 +1840,7 @@ function build(ctx) {
   // second-avenue north row, the park (-Z) and the clock tower (+Z).
   const bounds = {
     minX: -AVX - 4, maxX: 165.4,       // east: the quay (guarded at the water)
-    minZ: -62,                               // the mirador hill behind the park
+    minZ: -92,                               // the mirador hill + the upper Cliffs behind it
     maxZ: CROSSZ1 + 6,                       // second-avenue north row / cross-street north ends
     minY: 2.2, maxY: 46,
   };
