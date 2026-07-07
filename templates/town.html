@@ -420,7 +420,7 @@ try {
     FLY.assets.init("{{ url_for('static', filename='town/assets/') }}");
     if (FLY.assets.ready && new URLSearchParams(location.search).has('gltf')) {
       FLY.assets.place('crate', { color: '#d8a877' }).then(function (obj) {
-        obj.scale.set(4, 4, 4); obj.position.set(0, 22, 42);   // floating in open air — a clear pipeline probe (not shipped art)
+        obj.scale.set(10, 10, 10); obj.rotation.set(0.4, 0.7, 0); obj.position.set(0, 70, 0);   // high above town, clear sky — a pipeline probe (not shipped art)
         root.add(obj); FLY.assets.loaded.crate = obj;
         console.log('[FLY] GLTF pipeline: loaded probe asset "crate" into scene');
       }).catch(function (e) { console.warn('[FLY] GLTF probe load failed:', e); });

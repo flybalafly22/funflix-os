@@ -34,8 +34,8 @@ os.makedirs(OUT, exist_ok=True)
 # {lx,ly,lz}=look-at. Chosen to frame real locations deterministically.
 SHOTS = [
     ("plaza",  dict(px=0,   py=34, pz=64,  lx=0,  ly=0, lz=24)),   # aerial 3/4 over the plaza + fountain
-    ("street", dict(px=-56, py=15, pz=17,  lx=6,  ly=1, lz=0)),    # down the main avenue (z=0)
-    ("shop",   dict(px=10,  py=6,  pz=34,  lx=2,  ly=2, lz=22)),   # street-level retail vignette (no walk-in interiors in this build)
+    ("street", dict(px=-90, py=30, pz=30,  lx=20, ly=0, lz=3)),    # elevated 3/4 down the main avenue (z=0)
+    ("shop",   dict(px=-98, py=8,  pz=2,   lx=-120, ly=4, lz=13)),  # 3/4 of the shopfront row (florist/bakery/clockmaker) from the avenue; no walk-in interiors in this build
 ]
 
 # device profiles
@@ -136,7 +136,8 @@ def run():
           return { loaderReady: !!(a && a.ready), probeInScene: !!loaded, probeMeshes: meshes,
                    manifest: a ? Object.keys(a.manifest) : [] };
         }""")
-        page.evaluate("(f) => { window.__QA_FREEZE = f; }", dict(px=0, py=34, pz=68, lx=0, ly=18, lz=42))
+        page.evaluate("(f) => { window.__QA_FREEZE = f; }", dict(px=26, py=76, pz=46, lx=0, ly=70, lz=0))
+        page.evaluate("() => { const h=document.getElementById('hud'); if(h) h.style.display='none'; }")
         page.wait_for_timeout(500)
         page.screenshot(path=os.path.join(OUT, "gltf_probe_desktop.png"))
         gltf["console_errors"] = gerrs

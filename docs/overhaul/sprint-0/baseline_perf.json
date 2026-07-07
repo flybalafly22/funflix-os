@@ -1,6 +1,6 @@
 {
   "url": "http://127.0.0.1:5099/play/the-fly",
-  "ts": "2026-07-07 00:22:05",
+  "ts": "2026-07-07 00:30:35",
   "seed": 20240617,
   "devices": {
     "desktop": {
@@ -10,10 +10,10 @@
       },
       "dpr": 1.5,
       "perf": {
-        "fps": 48.1,
-        "scene_draw_calls": 3620,
-        "scene_triangles": 768824,
-        "geometries": 4404,
+        "fps": 32.6,
+        "scene_draw_calls": 3621,
+        "scene_triangles": 768816,
+        "geometries": 4392,
         "textures": 329,
         "est_texture_mb": 65.7,
         "pixelRatio": 1,
@@ -29,10 +29,10 @@
       },
       "dpr": 2.0,
       "perf": {
-        "fps": 40.2,
-        "scene_draw_calls": 2265,
-        "scene_triangles": 676526,
-        "geometries": 2364,
+        "fps": 45.6,
+        "scene_draw_calls": 2254,
+        "scene_triangles": 676588,
+        "geometries": 2377,
         "textures": 183,
         "est_texture_mb": 65.7,
         "pixelRatio": 1.5,
