@@ -512,12 +512,26 @@ function build(ctx) {
   /* ── CLOCK TOWER landmark (behind the plaza, tall silhouette) ── */
   (function clockTower() {
     const tx = 0, tz = ROWZ + 22;
-    // §5.2 beacon: warm cream stone that CATCHES THE SUN (matte, lifted toward
-    // the §2.4 cream family so the shaft glows on the sun-side at golden hour).
-    const stoneA = L.std({ color: 0xeadbb6, roughness: 0.9 });   // sunlit cream stone
-    const stoneB = L.std({ color: 0xdcc8a0, roughness: 0.9 });   // shaded cream stone
-    const trim = L.std({ color: 0xc6b48c, roughness: 0.85 });
+    // §5.2 beacon + Sprint-1 hero finish: the tower was the flattest, whitest asset
+    // in frame (flat near-white fills). Now cream STONE with real plaster wash +
+    // relief (map + normal), values kept inside the ART_BIBLE §2.1 wall band (L*
+    // 58-78, not near-white) so it carries shading like everything around it.
+    const stoneA = L.MAT.wall('#d7c6a0');   // sunlit cream stone — wash + relief
+    const stoneB = L.MAT.wall('#c6b48c');   // shaded cream stone
+    const trim = L.std({ colorHex: '#b7a074', normalMap: L.plasterNormal(), normalScale: new T.Vector2(0.18, 0.18), roughness: 0.85 });
     colB(tx, tz, 3.8, 3.8);
+    // contact shadow: a soft dark ground decal grounds the tower (SAO was removed,
+    // so hero landmarks need an explicit ambient-occlusion pool at their base).
+    (function towerContactShadow() {
+      const c = L.cnv(64, 64), g = c.getContext('2d');
+      const gr = g.createRadialGradient(32, 32, 3, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(24,18,10,0.46)'); gr.addColorStop(0.6, 'rgba(24,18,10,0.24)'); gr.addColorStop(1, 'rgba(24,18,10,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+      const aoMat = new T.MeshBasicMaterial({ map: L.finishTex(c), transparent: true, depthWrite: false, fog: true });
+      L.curve(aoMat);   // bend with the tiny-planet world so it stays under the tower
+      const ao = new T.Mesh(new T.PlaneGeometry(15, 15), aoMat);
+      ao.rotation.x = -Math.PI / 2; ao.position.set(tx, 0.05, tz); ao.renderOrder = 1; root.add(ao);
+    })();
     root.add(L.box(7.5, 1.0, 7.5, stoneB, { x: tx, y: 0.5, z: tz, receive: true }));      // plinth
     root.add(L.box(6.0, 22, 6.0, stoneA, { x: tx, y: 11, z: tz }));                         // shaft
     for (let f = 1; f <= 6; f++) root.add(L.box(6.3, 0.3, 6.3, trim, { x: tx, y: 2 + f * 3, z: tz, cast: false }));  // string courses
