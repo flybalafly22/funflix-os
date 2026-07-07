@@ -1,3 +1,23 @@
+# ⚠️ WORKTREE / BRANCH ISOLATION — READ FIRST
+
+> _(Drafted by Claude from the Producer's stated rule — the `CLAUDE_worktree_note.md`
+> attachment did not arrive; replace this block with that file's exact wording if it differs.)_
+
+This checkout is the **THE FLY game-overhaul worktree**, pinned to branch **`overhaul/craft`**.
+The repo is split across two worktrees so two parallel Claude sessions never share a HEAD:
+
+| Worktree | Branch | Owner |
+|---|---|---|
+| `../calculator_web` | `main` | Funflix website rebuild (the other session) |
+| `../calculator_web-game` (**here**) | `overhaul/craft` | **THE FLY game overhaul (this session)** |
+
+**Rules — do not break:**
+- **ALL game work happens here, on `overhaul/craft`.** Never run `git checkout main` in this worktree.
+- Never commit game changes to `main`; never commit website changes here.
+- If you find this worktree on any branch other than `overhaul/craft`, stop and switch back before doing anything.
+
+---
+
 # CLAUDE.md — THE FLY
 
 > Ground-truth reference for anyone (human or agent) working on this repo.
