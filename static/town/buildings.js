@@ -257,14 +257,25 @@ function rooftop(g, w, d, topY, wallMat, opts) {
     for (let b = 0; b < 3; b++) g.add(L.cyl(r + 0.02, r + 0.02, 0.06, 12, L.MAT.metalDark, { x: tx, y: topY + 0.5 + hh * (0.2 + b * 0.3), z: tz, cast: false }));
     g.add(L.cyl(r * 0.55, r, 0.4, 12, L.MAT.metalDark, { x: tx, y: topY + 0.5 + hh + 0.18, z: tz, cast: false }));
   }
-  // AC units with grills
+  // AC units — cooler TEXTURED metal housing (was flat untextured #a6a097, which
+  // blew to a flat white cuboid under the key light: the main "programmer" tell on
+  // rooftops). Normal-mapped surface + a recessed top fan grille break the flat face.
+  const acMat = L.std({ colorHex: '#828578', normalMap: L.plasterNormal(), normalScale: new L.T.Vector2(0.16, 0.16), roughness: 0.55 });
   const acN = 1 + (L.rng() * 3 | 0);
   for (let i = 0; i < acN; i++) {
     const aw = L.rand(0.7, 1.1), ah = L.rand(0.4, 0.6), ad = L.rand(0.5, 0.8);
     const ax = L.jitter(w / 3), az = L.jitter(d / 3);
-    g.add(L.box(aw, ah, ad, L.MAT.flat('#a6a097'), { x: ax, y: topY + ah / 2 + 0.1, z: az }));
-    // grill lines
-    for (let k = 0; k < 4; k++) g.add(L.box(aw - 0.12, 0.02, 0.02, L.MAT.metalDark, { x: ax, y: topY + 0.16 + k * 0.08, z: az + ad / 2, cast: false }));
+    g.add(L.box(aw, ah, ad, acMat, { x: ax, y: topY + ah / 2 + 0.1, z: az }));
+    g.add(L.cyl(Math.min(aw, ad) * 0.34, Math.min(aw, ad) * 0.34, 0.05, 10, L.MAT.metalDark, { x: ax, y: topY + ah + 0.12, z: az, cast: false }));  // recessed top fan grille
+    for (let k = 0; k < 4; k++) g.add(L.box(aw - 0.12, 0.02, 0.02, L.MAT.metalDark, { x: ax, y: topY + 0.16 + k * 0.08, z: az + ad / 2, cast: false }));  // front louvres
+  }
+  // large flat roofs must not read as bare planes (§5.3 density): a low rooftop
+  // hatch + a couple of crates fill the void with warm, textured, non-white props.
+  if (w * d > 46) {
+    const hx = -L.jitter(w / 4), hz = L.jitter(d / 5);
+    g.add(L.box(1.3, 0.7, 1.1, L.MAT.brick('#9a8a6e'), { x: hx, y: topY + 0.45, z: hz }));            // brick hatch housing
+    g.add(L.box(1.4, 0.12, 1.2, L.MAT.wood('#6b543a'), { x: hx, y: topY + 0.86, z: hz, cast: false }));  // hatch lid
+    for (let i = 0; i < 2; i++) g.add(L.box(0.5, 0.5, 0.5, L.MAT.wood('#8a6a44'), { x: hx + 1.1 + i * 0.55, y: topY + 0.35, z: hz - 0.3 + L.jitter(0.4) }));  // crates
   }
   // vents / pipes — recorded as smoke-emitter points (world.js drifts puffs)
   if (L.chance(0.6)) {
@@ -585,7 +596,7 @@ function roofTerrace(g, w, d, topY, wallMat, trimMat) {
 
 /* ── CUPOLA / CORNER TURRET (drum + 4 lit windows + tiled pyramid cap) ─────── */
 function cupola(g, cx, cz, topY, size, wallHex, roofHex) {
-  const drumM = L.MAT.wall(mix(wallHex, '#ffffff', 0.18));
+  const drumM = L.MAT.wall(mix(wallHex, '#ffffff', 0.08));   // §2.1 keep in wall value band (was 0.18, read near-white)
   g.add(L.box(size, size * 1.15, size, drumM, { x: cx, y: topY + size * 0.575, z: cz }));
   const wy = topY + size * 0.62;
   g.add(L.box(size * 0.45, size * 0.55, 0.05, L.MAT.glassLit, { x: cx, y: wy, z: cz + size / 2 + 0.03, cast: false }));
@@ -602,7 +613,10 @@ function cupola(g, cx, cz, topY, size, wallHex, roofHex) {
 /* ── DOME (drum + hemisphere + lantern + finial) — civic landmark ─────────── */
 function domeRoof(g, w, d, topY, wallHex, trimMat) {
   const r = Math.min(w, d) * 0.34;
-  const drumM = L.MAT.wall(mix(wallHex, '#ffffff', 0.22));
+  // §2.1: keep the dome in the wall value band — a big dome lightened 0.22 toward
+  // white read as a flat white blob (the plaza's second-flattest asset). 0.10 keeps
+  // its plaster wash so it shades like the town instead of blowing out.
+  const drumM = L.MAT.wall(mix(wallHex, '#ffffff', 0.10));
   g.add(L.cyl(r * 1.05, r * 1.15, 0.9, 18, drumM, { y: topY + 0.45 }));
   g.add(L.cyl(r * 1.2, r * 1.2, 0.16, 18, trimMat, { y: topY + 0.9, cast: false }));
   const dome = L.sphere(r * 1.12, 16, drumM, { y: topY + 0.95 }); dome.scale.y = 0.82; g.add(dome);
