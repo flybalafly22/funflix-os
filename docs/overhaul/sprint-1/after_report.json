@@ -1,0 +1,54 @@
+{
+  "label": "after",
+  "ts": "2026-07-07 20:57:01",
+  "seed": 20240617,
+  "console_errors": {
+    "desktop": [],
+    "mobile": []
+  },
+  "perf": {
+    "desktop": {
+      "fps": 34.4,
+      "scene_draw_calls": 2945,
+      "scene_triangles": 742528,
+      "geometries": 5615,
+      "textures": 377,
+      "pixelRatio": 1
+    },
+    "mobile": {
+      "fps": 40,
+      "scene_draw_calls": 2174,
+      "scene_triangles": 684452,
+      "geometries": 2293,
+      "textures": 185,
+      "pixelRatio": 1
+    }
+  },
+  "hud_check": {
+    "desktop": {
+      "cardW": 121,
+      "cardBottom": 275,
+      "scrollW": 117,
+      "clientW": 117,
+      "overflowX": false,
+      "logBtnOverlapsCard": false
+    },
+    "mobile": {
+      "cardW": 121,
+      "cardBottom": 257,
+      "scrollW": 117,
+      "clientW": 117,
+      "overflowX": false,
+      "logBtnOverlapsCard": false
+    }
+  },
+  "interior_trigger": {
+    "checked": true,
+    "enterableCount": 12,
+    "shop": "PHARMACY",
+    "nearDoorDetected": "PHARMACY",
+    "insideAfterEnter": true,
+    "insideAfterExit": false,
+    "pass": true
+  }
+}
