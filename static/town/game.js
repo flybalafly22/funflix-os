@@ -240,18 +240,18 @@ function start(ctx, world) {
     #flyComboBar { margin-top:4px; height:4px; border-radius:3px; background:rgba(44,38,28,.14); overflow:hidden; }
     #flyComboBar i { display:block; height:100%; width:100%; background:#c8862a; }
     #flyBest { position:absolute; right:16px; top:156px; text-align:right; font-size:12px;
-      line-height:1.45; background:rgba(250,247,238,.9); color:#2c261c;
+      line-height:1.45; white-space:nowrap; background:rgba(250,247,238,.9); color:#2c261c;
       border:2px solid #2c261c; box-shadow:0 3px 0 rgba(44,38,28,.22);
       padding:5px 12px; border-radius:10px 12px 10px 11px; transform:rotate(.3deg); }
     #flyBest b { color:#4d8a52; }
     #flyMap { position:absolute; right:16px; bottom:16px; width:150px; height:150px;
       border-radius:12px 14px 12px 13px; background:#f2ecdc; border:2px solid #2c261c;
       box-shadow:0 3px 0 rgba(44,38,28,.22); }
-    #flyLogBtn { position:absolute; right:16px; top:224px; width:40px; height:40px;
+    #flyLogBtn { position:absolute; right:16px; top:288px; width:40px; height:40px;
       display:grid; place-items:center; font-size:20px; cursor:pointer; pointer-events:auto;
       background:rgba(250,247,238,.95); color:#2c261c; border:2px solid #2c261c;
       box-shadow:0 3px 0 rgba(44,38,28,.22); border-radius:11px 13px 11px 12px; }
-    #flyLog { position:absolute; right:64px; top:224px; min-width:240px; display:none;
+    #flyLog { position:absolute; right:64px; top:288px; min-width:240px; display:none;
       background:rgba(250,247,238,.97); color:#2c261c; border:2px solid #2c261c;
       box-shadow:0 3px 0 rgba(44,38,28,.22); border-radius:13px 11px 14px 12px;
       padding:10px 14px; transform:rotate(-.4deg); pointer-events:auto; }
@@ -300,7 +300,7 @@ function start(ctx, world) {
     #flyDlg .tx { font-size:17px; line-height:1.45; min-height:24px; }
     #flyDlg .adv { position:absolute; right:12px; bottom:4px; font-size:14px; color:#3a7d99;
       animation:flyGo 1.4s ease-in-out infinite; }
-    @media (max-width: 560px) { #flyMap { width:118px; height:118px; bottom:96px; } #flyBest{ top:138px; } }
+    @media (max-width: 560px) { #flyMap { width:118px; height:118px; bottom:96px; } #flyBest{ top:138px; } #flyLogBtn{ top:270px; } #flyLog{ top:270px; } }
     #flyBigMap { position:absolute; inset:0; z-index:21; display:none; place-items:center;
       background:rgba(44,38,28,.34); pointer-events:auto; }
     #flyBigMap.on { display:grid; }
@@ -2112,7 +2112,11 @@ function start(ctx, world) {
     // third-person follow camera — tracks the smoothed camera yaw, not the hero,
     // so quick turns read as the character turning inside the frame
     camF.set(Math.sin(camYaw), 0, Math.cos(camYaw));
-    const camDist = 5.4 + spd01 * 1.2, camH = 2.9, lead = 3.2;
+    // portrait framing (Sprint 1): a tall phone frame wasted its top third on empty
+    // sky. As the aspect goes tall, lift the eye and pitch the look down so the
+    // skyline sits higher in frame. pf≈0.54 on a 390x844 phone, 0 on desktop.
+    const pf = camera.aspect < 1 ? clamp(1 - camera.aspect, 0, 0.55) : 0;
+    const camDist = 5.4 + spd01 * 1.2, camH = 2.9 + pf * 1.5, lead = 3.2;
     const desired = camPos.set(P.pos.x - camF.x * camDist, P.pos.y + camH, P.pos.z - camF.z * camDist);
     // line-of-sight: if a big solid sits between courier and camera, pull the camera in
     let tC = 1;
@@ -2134,7 +2138,7 @@ function start(ctx, world) {
       camera.position.x += (Math.random() - 0.5) * sm * 2.2;
       camera.position.y += (Math.random() - 0.5) * sm * 2.2;
     }
-    camera.lookAt(P.pos.x + camF.x * lead, P.pos.y + 1.3, P.pos.z + camF.z * lead);
+    camera.lookAt(P.pos.x + camF.x * lead, P.pos.y + 1.3 - pf * 2.4, P.pos.z + camF.z * lead);
     const wantFov = baseFov + (running ? spd01 * 4 : 0);
     if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov = lerp(camera.fov, wantFov, L.dampT(dt, 3)); camera.updateProjectionMatrix(); }
 
