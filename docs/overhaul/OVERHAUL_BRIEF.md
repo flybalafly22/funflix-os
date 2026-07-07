@@ -46,9 +46,16 @@ studio would. Do not pretend otherwise. The **realistic** route to a modern look
 5. **Sample-based audio + designed UI + authored writing** replacing oscillator blips, flat CSS
    boxes, and stock quip arrays.
 
-**Vertical slice first.** Pick ONE hero area (the plaza + one adjoining street + one shop interior)
-and bring it to *final* quality across every discipline before propagating patterns town-wide. This
-prevents the current failure mode: broad shallow variety instead of deep considered craft.
+**Vertical slice first.** Pick ONE hero area (the plaza + one adjoining street + one hero storefront
+exterior) and bring it to *final* quality across every discipline before propagating patterns
+town-wide. This prevents the current failure mode: broad shallow variety instead of deep considered
+craft.
+
+> **SCOPE — walk-in shop interiors are OUT OF SCOPE for this overhaul** (Producer decision,
+> 2026-07-07). The current build is an exterior town (shops are storefronts, no enterable rooms);
+> adding interiors would be a net-new *system*, and this overhaul is craft, not new systems. The hero
+> slice and town-wide propagation are **exterior-only** — storefronts, awnings, signage, window
+> dressing seen from the street, not rooms. Interiors are deferred to a separate future decision.
 
 ---
 
@@ -121,24 +128,31 @@ Do not start the next sprint until the current gate is green.
   proportion rules, reference board).
 - Environment Agent stands up the GLTF asset-loading + batching pipeline and a headless-Blender
   export path.
-- QA Agent captures a **baseline**: screenshots (fixed camera + seed) of plaza, one street, one shop
-  interior, plus perf numbers (fps, draw calls, tris, texture MB) on desktop and simulated mobile.
+- QA Agent captures a **baseline**: screenshots (fixed camera + seed) of plaza, one street, one hero
+  storefront exterior, plus perf numbers (fps, draw calls, tris, texture MB) on desktop and simulated
+  mobile. **NOTE:** SwiftShader/headless fps is a *relative regression signal only* — anchor the
+  60/30 budget with real-device fps (Producer supplies).
 - **Gate:** Bible approved; pipeline loads at least one real GLTF asset in-game with no perf
-  regression; baseline evidence committed.
+  regression; baseline evidence committed. **[Sprint 0 COMPLETE — gate accepted 2026-07-07.]**
 
-### Sprint 1 — Vertical slice: the Hero Block
-- All relevant agents bring the plaza + one adjoining street + one shop interior to **final quality**:
-  authored buildings/props/foliage, upgraded shader/post, one fully rigged hero + a few rigged NPCs,
-  sample audio in that zone, redesigned HUD, and a couple of hand-written vignettes.
+### Sprint 1 — Vertical slice: the Hero Block (exterior-only)
+- All relevant agents bring the plaza + one adjoining street + one hero **storefront exterior** to
+  **final quality**: authored buildings/props/foliage, upgraded shader/post, one fully rigged hero + a
+  few rigged NPCs, sample audio in that zone, redesigned HUD, and a couple of hand-written vignettes.
+  Storefront craft = awnings, signage, window dressing, stoop/street furniture seen from the street —
+  **no walk-in interior** (out of scope, see §2).
 - **Gate:** Side-by-side before/after clearly reads as "modern indie" for that zone; perf within
   budget; loop still works end-to-end; art-bible conformance signed off.
 
-### Sprint 2 — Environments town-wide
-- Propagate the hero-block art patterns across all districts (town, Cliffs), all 7 shop interiors,
-  and season retints. Replace remaining primitive geometry. Interiors must stop being four-walls-and-a-
-  counter — furnish with real composed vignettes.
-- **Gate:** No primitive-box props remain in shipped areas; interiors pass a "does this look
+### Sprint 2 — Environments town-wide (exterior-only)
+- Propagate the hero-block art patterns across all districts (town, Cliffs), **all storefront
+  exteriors** (~21 shop addresses), and season retints. Replace remaining primitive geometry.
+  Storefronts must stop being a plain wall + a sign — dress them with awnings, window displays,
+  signage and street-side vignettes.
+- **Gate:** No primitive-box props remain in shipped areas; storefronts pass a "does this look
   deliberately dressed?" review; perf budget held with more assets on screen (verify batching/LOD).
+- **DEFERRED (out of scope):** walk-in shop interiors (originally "7 interiors"). Interiors are a
+  net-new system, not craft — deferred to a separate future decision.
 
 ### Sprint 3 — Characters & animation
 - Full NPC + hero migration to rigged animation; per-persona motion variation; carry/cycle/sit/chat
@@ -175,7 +189,8 @@ Do not start the next sprint until the current gate is green.
   materials must hold up without it.
 - **Do not** keep the shared sine-wave walk rig applied uniformly to every character.
 - **Do not** reuse the same `poseNPC` pattern with only a name/color swapped and call it variety.
-- **Do not** leave shop interiors as four walls + a counter + a few themed props.
+- **Do not** leave a storefront as a plain wall + a sign; dress it (awning, window display, signage,
+  street-side props). (Walk-in interiors are out of scope — see §2.)
 - **Do not** ship oscillator/Web-Audio blips as final SFX or a generative pentatonic loop as final
   music.
 - **Do not** style UI as flat colored `div` boxes in a single handwriting font with no iconography.
