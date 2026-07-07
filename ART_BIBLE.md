@@ -20,6 +20,9 @@
 
 ## 0. ONE-LINE BRIEF
 
+> **NORTH STAR LOCKED (Producer, 2026-07-07): flat painterly TEAL "Messenger paper."**
+> Not golden-hour. All craft work grades to the teal rig in §4. Do not reopen this.
+
 A toy-sized seaside town drawn on warm paper under a flat teal sky, curving gently
 away like a tiny planet, outlined in confident ink, where every surface is a
 hand-picked flat color and the courier's red scarf is the one thing that sings.
