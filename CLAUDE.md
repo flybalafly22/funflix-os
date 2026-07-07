@@ -1,20 +1,33 @@
-# ⚠️ WORKTREE / BRANCH ISOLATION — READ FIRST
+# CLAUDE.md — Game Overhaul Worktree (READ FIRST)
 
-> _(Drafted by Claude from the Producer's stated rule — the `CLAUDE_worktree_note.md`
-> attachment did not arrive; replace this block with that file's exact wording if it differs.)_
+> **This folder is a dedicated `git worktree` for THE FLY craft overhaul.**
+> It is pinned to the branch **`overhaul/craft`** and must stay there.
 
-This checkout is the **THE FLY game-overhaul worktree**, pinned to branch **`overhaul/craft`**.
-The repo is split across two worktrees so two parallel Claude sessions never share a HEAD:
+## Branch rule — non-negotiable
 
-| Worktree | Branch | Owner |
-|---|---|---|
-| `../calculator_web` | `main` | Funflix website rebuild (the other session) |
-| `../calculator_web-game` (**here**) | `overhaul/craft` | **THE FLY game overhaul (this session)** |
+- **Work ONLY on `overhaul/craft` in this worktree.** Never run `git checkout main`,
+  `git switch`, or check out any other branch here.
+- A **separate** working directory (`../calculator_web`) has another Claude session
+  actively rebuilding the Funflix **website** on `main`. That is expected and is not a
+  rogue process — it's the user, running both halves of the product in parallel.
+- The two worktrees share one repo and one history but have **independent checkouts**.
+  Switching branches in this folder is what used to drag the game work onto `main`
+  mid-sprint. Do not do it.
+- If you ever find this worktree is not on `overhaul/craft`: **stop, do not commit,
+  and tell the user.** Do not "fix" it by switching branches or moving pointers.
 
-**Rules — do not break:**
-- **ALL game work happens here, on `overhaul/craft`.** Never run `git checkout main` in this worktree.
-- Never commit game changes to `main`; never commit website changes here.
-- If you find this worktree on any branch other than `overhaul/craft`, stop and switch back before doing anything.
+## Same product, one repo — this is correct
+
+THE FLY is embedded inside the Funflix website; game and site are one product in one
+repo. Do **not** propose splitting the game into its own repo. When the overhaul is
+ready to ship, it merges `overhaul/craft → main` as a single deliberate merge — the
+user decides when.
+
+## Everything else
+
+The full plan, sprint gates, art bible reference, and guardrails live in
+`docs/overhaul/OVERHAUL_BRIEF.md` and the repo-root `CLAUDE.md`. This note only adds the
+worktree/branch isolation rule on top of those.
 
 ---
 
