@@ -3,382 +3,271 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FUNFLIX — Maison</title>
+<title>FUNFLIX — the channels</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Unbounded:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
-  *{ box-sizing:border-box; }
-  html{ scroll-behavior:smooth; }
-  body{ margin:0; background:#F1ECE1; color:#1B1712; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
-  a{ color:#B23A22; text-decoration:none; }
-  a:hover{ color:#8C2C18; }
-  ::selection{ background:#1B1712; color:#F1ECE1; }
-  @keyframes marquee{ to{ transform:translateX(-50%); } }
-  @keyframes bar{ 0%,100%{ transform:scaleY(.22); } 50%{ transform:scaleY(1); } }
-  @keyframes rainmove{ to{ background-position:0 240px; } }
-  @keyframes flydot{ 0%{ left:2%; } 100%{ left:96%; } }
-  @keyframes rise{ from{ opacity:0; transform:translateY(22px); } to{ opacity:1; transform:none; } }
-  @keyframes floaty{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-9px); } }
-  @keyframes gh{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(6px); } }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; overflow-x: hidden; }
+  @keyframes ffx-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @keyframes ffx-rise{from{opacity:0;transform:translateY(60px) rotate(2deg)}to{opacity:1;transform:translateY(0) rotate(0)}}
+  @keyframes ffx-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  @keyframes ffx-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+  @keyframes ffx-pulse{0%,100%{opacity:.35}50%{opacity:.9}}
+  @keyframes ffx-bob{0%,100%{transform:rotate(-3deg) translateY(0)}50%{transform:rotate(3deg) translateY(-10px)}}
+  @keyframes ffx-wiggle{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+  @keyframes ffx-letter{0%{opacity:0;transform:translateY(90px) scale(.6) rotate(8deg)}60%{opacity:1;transform:translateY(-14px) scale(1.08) rotate(-2deg)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+  @keyframes ffx-bgshift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes ffx-vscroll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+  @keyframes ffx-flyby{0%{transform:translate(-60px,30px) rotate(8deg)}50%{transform:translate(110px,-16px) rotate(-6deg)}100%{transform:translate(280px,20px) rotate(8deg)}}
+  @keyframes ffx-rainfall{from{background-position:0 0}to{background-position:-30px 220px}}
+  @keyframes ffx-heartbeat{0%,100%{transform:scale(1)}12%{transform:scale(1.25)}24%{transform:scale(1)}36%{transform:scale(1.18)}48%{transform:scale(1)}}
+  @keyframes ffx-sunrise{0%,100%{transform:translateY(26px)}50%{transform:translateY(-6px)}}
+  @keyframes ffx-hahaha{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.35) rotate(4deg)}}
+  @keyframes ffx-neon{0%,100%{opacity:1}45%{opacity:1}50%{opacity:.25}55%{opacity:1}70%{opacity:.5}75%{opacity:1}}
+  @keyframes ffx-popspin{0%,100%{transform:rotate(-10deg) scale(1)}50%{transform:rotate(10deg) scale(1.2)}}
+  a { color: inherit; text-decoration: none; }
+  .btn { transition: transform .15s, box-shadow .15s; }
+  .btn:hover { transform: translate(4px,4px); box-shadow: 2px 2px 0 #101733 !important; }
+  .navbtn:hover { background: #3a6eff !important; }
+  .navbtn2:hover { background: #fff !important; }
+  .channel-card { display: block; }
+  .channel-card:hover { transform: rotate(0deg) translateY(-10px) scale(1.04) !important; }
+  .channel-cta:hover { background: #101733 !important; }
+  .vault-cta:hover { transform: translate(3px,3px); box-shadow: 2px 2px 0 #3a6eff !important; }
 
-  /* work-index row states (hover / active) */
-  .work-row{ display:grid; grid-template-columns:auto 1fr auto; gap:clamp(12px,2vw,24px); align-items:baseline;
-    width:100%; text-align:left; background:transparent; border:0; border-top:1px solid rgba(27,23,18,0.16);
-    padding:clamp(16px,2.2vw,26px) 4px; cursor:pointer; font:inherit; color:#6B6152; opacity:0.66;
-    transition:all .38s cubic-bezier(.2,.7,.2,1); }
-  .work-row.active{ color:#1B1712; opacity:1; padding-left:14px; }
-  .work-num{ font-family:'Space Mono',monospace; font-size:12px; letter-spacing:0.12em; color:#A79C8C; padding-top:6px; }
-  .work-row.active .work-num{ color:#B23A22; }
-  .work-name{ display:block; font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(24px,2.8vw,38px); line-height:1; letter-spacing:-0.01em; }
-  .work-tag{ display:block; font-family:'Space Grotesk',sans-serif; font-weight:300; font-size:13px; margin-top:0; color:#9A9082;
-    max-height:0; opacity:0; overflow:hidden; transition:all .38s ease; }
-  .work-row.active .work-tag{ margin-top:6px; max-height:40px; opacity:1; color:#6B6152; }
-  .work-arrow{ color:#B23A22; font-size:20px; opacity:0; transform:translateX(-10px); transition:all .38s ease; align-self:center; }
-  .work-row.active .work-arrow{ opacity:1; transform:translateX(0); }
-  .work-row:last-child{ border-bottom:1px solid rgba(27,23,18,0.16); }
-
-  .cta-btn{ display:inline-flex; align-items:center; gap:14px; font-family:'Space Grotesk',sans-serif; font-weight:500;
-    font-size:15px; color:#1B1712; background:#F6F0E6; padding:16px 26px; border-radius:100px; white-space:nowrap;
-    transition:transform .3s, background .3s; }
-  .cta-btn:hover{ transform:translateY(-3px); background:#F0C79B; color:#1B1712; }
-
-  .stage-cta{ display:inline-flex; align-items:center; gap:12px; font-family:'Space Grotesk',sans-serif; font-weight:500;
-    font-size:14px; color:#211A15; background:#F6F0E6; padding:13px 22px; border-radius:100px; transition:transform .25s, background .25s; }
-  .stage-cta:hover{ transform:translateY(-2px); background:#F0C79B; color:#211A15; }
-
-  /* motifs (one per work, code-drawn, no assets) */
-  .motif{ position:absolute; inset:0; overflow:hidden; z-index:1; }
-  .motif-compute{ padding:9%; display:grid; grid-template-columns:repeat(4,1fr); gap:3px; background:#EFE7D8; }
-  .motif-compute span{ display:grid; place-items:center; font-family:'Space Mono',monospace; font-size:clamp(16px,2.4vw,30px); color:#211A15; background:rgba(33,26,21,0.05); border-radius:3px; }
-  .motif-compute span.eq{ color:#F6F0E6; background:#B23A22; }
-
-  .motif-synth{ background:#0f0f10; }
-  .motif-synth .bg{ position:absolute; inset:0; background:radial-gradient(120% 90% at 30% 20%, #3a4a63 0%, #202a3a 42%, #0c0f15 100%); }
-  .motif-synth .desk{ position:absolute; left:12%; right:12%; bottom:0; height:46%; background:linear-gradient(180deg,#241a12,#0c0805); border-radius:6px 6px 0 0; }
-  .motif-synth .screen{ position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); width:34%; height:26%;
-    background:linear-gradient(180deg,#7fe3b0,#2f9e6a); border-radius:4px; box-shadow:0 0 50px 8px rgba(95,197,154,0.45); border:3px solid #14100c; }
-  .motif-synth .stand{ position:absolute; left:50%; top:66%; transform:translateX(-50%); width:6%; height:8%; background:#14100c; }
-  .motif-synth .cap{ position:absolute; left:0; right:0; text-align:center; font-family:Impact,'Arial Narrow',sans-serif; font-weight:400; color:#fff;
-    font-size:clamp(18px,3.4vw,42px); line-height:1; letter-spacing:0.01em; text-transform:uppercase; -webkit-text-stroke:clamp(1px,0.35vw,2.5px) #000; padding:0 5%; z-index:2; }
-
-  .motif-press{ background:#EFE7D8; padding:8%; }
-  .motif-press .head{ font-family:'Instrument Serif',serif; font-size:clamp(22px,3.6vw,46px); color:#211A15; border-bottom:2px solid #211A15; padding-bottom:8px; margin-bottom:12px; letter-spacing:0.02em; }
-  .motif-press .cols{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; height:62%; }
-  .motif-press .col{ display:flex; flex-direction:column; gap:6px; }
-  .motif-press .ln{ height:3px; width:100%; background:rgba(33,26,21,0.28); }
-  .motif-press .ln.hd{ width:70%; background:#B23A22; }
-
-  .motif-noir{ background:linear-gradient(180deg,#10151c,#1c2733); }
-  .motif-noir .rain{ position:absolute; inset:0; background:repeating-linear-gradient(105deg, rgba(200,220,255,0.16) 0 1px, transparent 1px 9px);
-    background-size:auto 240px; animation:rainmove .5s linear infinite; }
-  .motif-noir .streetlamp{ position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(0,0,0,0.32) 0 5px, transparent 5px 22px); }
-  .motif-noir .moon{ position:absolute; left:50%; top:34%; transform:translate(-50%,-50%); width:clamp(40px,9vw,90px); height:clamp(40px,9vw,90px);
-    border-radius:50%; background:radial-gradient(circle at 40% 35%, #F0C79B, #B98A5E 60%, transparent 72%); filter:blur(1px); }
-
-  .motif-vista{ display:flex; flex-direction:column; }
-  .motif-vista .band{ width:100%; }
-  .motif-vista .sun{ position:absolute; left:50%; top:30%; transform:translate(-50%,-50%); width:clamp(44px,10vw,100px); height:clamp(44px,10vw,100px);
-    border-radius:50%; background:#FCEBC6; box-shadow:0 0 60px 20px rgba(252,235,198,0.6); animation:floaty 5s ease-in-out infinite; }
-  .motif-vista .rooftops{ position:absolute; left:0; right:0; bottom:0; height:34%; background:repeating-linear-gradient(90deg, rgba(20,12,10,0.35) 0 2px, transparent 2px 46px); }
-
-  .motif-study{ background:#12211C; display:flex; align-items:center; justify-content:center; gap:2.4%; padding:0 8%; }
-  .motif-study .bar{ flex:1; height:46%; background:#5BC59A; transform-origin:center; }
-  .motif-study .bar.acc{ background:#B23A22; }
-
-  .motif-fly{ background:#EAE0CC; }
-  .motif-fly .dots{ position:absolute; top:52%; left:0; right:0; display:flex; justify-content:space-between; padding:0 6%; }
-  .motif-fly .dots span{ width:6px; height:6px; border-radius:50%; background:rgba(33,26,21,0.35); }
-  .motif-fly .courier{ position:absolute; top:52%; width:22px; height:22px; margin-top:-11px; border-radius:50%; background:#B23A22;
-    box-shadow:0 0 0 6px rgba(178,58,34,0.18); animation:flydot 3s ease-in-out infinite alternate; }
-  .motif-fly .grid{ position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(33,26,21,0.05) 0 1px, transparent 1px 34px),
-    repeating-linear-gradient(90deg, rgba(33,26,21,0.05) 0 1px, transparent 1px 34px); }
-
-  .vault-input{ width:100%; background:transparent; border:0; border-bottom:1px solid rgba(241,236,225,0.3); color:#F1ECE1;
-    font-family:'Instrument Serif',serif; font-size:clamp(34px,5vw,58px); padding:0 0 12px; outline:none; letter-spacing:0.08em; }
-  .vault-input:focus{ border-bottom-color:#F1ECE1; }
-
-  .nav-links{ display:flex; gap:clamp(16px,3vw,40px); align-items:center; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; }
-  @media (max-width:560px){
-    .nav-links{ gap:14px; }
-    .nav-links .nav-est{ display:none; }
-  }
-
-  /* scroll-aware top nav: transparent+light over the hero, blurred "paper"
-     bar once scrolled past it, so it never clashes with the light sections */
-  .site-nav{
-    position:fixed; top:0; left:0; right:0; z-index:50;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:22px clamp(20px,4vw,54px);
-    color:#F6F0E6;
-    background:linear-gradient(180deg, rgba(20,12,10,0.5) 0%, rgba(20,12,10,0) 100%);
-    border-bottom:1px solid transparent;
-    backdrop-filter:none;
-    -webkit-backdrop-filter:none;
-    transition:background .45s ease, color .45s ease, padding .45s ease, border-color .45s ease;
-  }
-  .site-nav.scrolled{
-    background:rgba(241,236,225,0.82);
-    backdrop-filter:blur(14px);
-    -webkit-backdrop-filter:blur(14px);
-    color:#1B1712;
-    padding:14px clamp(20px,4vw,54px);
-    border-bottom:1px solid rgba(27,23,18,0.12);
+  @media (max-width: 900px) {
+    .ffx-wordmark { font-size: clamp(52px, 16vw, 190px) !important; }
+    .ffx-outline-wordmark { font-size: clamp(56px, 20vw, 210px) !important; }
+    .channels-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .vault-row { flex-wrap: wrap !important; }
   }
 </style>
 </head>
 <body>
+<div style="position:relative;display:flex;flex-direction:column;color:#101733;overflow:hidden;font-family:'Space Grotesk',sans-serif;background:linear-gradient(120deg,#dfe7ff,#c9f5ec,#cdd9ff,#dfe7ff);background-size:300% 300%;animation:ffx-bgshift 14s ease-in-out infinite">
 
-<div style="position:relative; overflow-x:hidden;">
-
-  <!-- NAV -->
-  <nav id="siteNav" class="site-nav">
-    <a href="#top" style="color:inherit; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; letter-spacing:0.42em;">FUNFLIX</a>
-    <div class="nav-links">
-      <a href="#collection" style="color:inherit;">The Collection</a>
-      <a href="#vault" style="color:inherit;">The Vault</a>
-      <span class="nav-est" style="opacity:.55;">Est. MMXXVI</span>
+  <!-- top marquee -->
+  <div style="background:#3a6eff;color:#fff;overflow:hidden;padding:8px 0">
+    <div style="display:flex;width:max-content;animation:ffx-marquee 10s linear infinite;font:700 13px 'JetBrains Mono',monospace;letter-spacing:.12em">
+      <div style="display:flex;gap:26px;padding-right:26px;white-space:nowrap"><span>★ NOW SCREENING: SEVEN INSTRUMENTS</span><span>★ ZERO DOWNLOADS</span><span>★ 100% CODE</span><span>★ THE VAULT IS OPEN</span></div>
+      <div style="display:flex;gap:26px;padding-right:26px;white-space:nowrap"><span>★ NOW SCREENING: SEVEN INSTRUMENTS</span><span>★ ZERO DOWNLOADS</span><span>★ 100% CODE</span><span>★ THE VAULT IS OPEN</span></div>
     </div>
-  </nav>
+  </div>
+
+  <!-- nav -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 36px">
+    <div style="font:900 20px 'Unbounded',sans-serif;letter-spacing:-.02em">FUNFLIX<span style="display:inline-block;color:#3a6eff;animation:ffx-popspin 3s ease-in-out infinite">★</span></div>
+    <div style="display:flex;gap:10px">
+      <a href="#channels" class="navbtn" style="font:700 13px 'Space Grotesk',sans-serif;padding:11px 20px;border-radius:999px;background:#101733;color:#dfe7ff;box-shadow:4px 4px 0 rgba(16,23,51,.25);cursor:pointer;transition:background .15s">the collection</a>
+      <a href="#vault" class="navbtn2" style="font:700 13px 'Space Grotesk',sans-serif;padding:11px 20px;border-radius:999px;border:2.5px solid #101733;background:rgba(255,255,255,.5);cursor:pointer;transition:background .15s">the vault 🔒</a>
+    </div>
+  </div>
 
   <!-- HERO -->
-  <header id="top" style="position:relative; min-height:100vh; display:flex; align-items:flex-end; padding:clamp(24px,5vw,60px); padding-bottom:clamp(40px,6vw,72px); overflow:hidden; background:#2A1712;">
-    <div style="position:absolute; inset:0; background:radial-gradient(120% 90% at 78% 18%, #E7B98F 0%, #C97A4E 34%, #6E3B2E 68%, #2A1712 100%); z-index:0;"></div>
-    <video id="heroVid" muted loop playsinline preload="auto" autoplay
-      style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; opacity:0; transition:opacity 1.2s ease; mix-blend-mode:normal;"
-      src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4"></video>
-    <div style="position:absolute; inset:0; background:radial-gradient(120% 90% at 78% 18%, rgba(231,185,143,0.42) 0%, rgba(201,122,78,0.5) 34%, rgba(110,59,46,0.62) 68%, rgba(42,23,18,0.78) 100%); z-index:2; pointer-events:none;"></div>
-    <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(20,12,10,0.28) 0%, rgba(20,12,10,0) 30%, rgba(20,12,10,0) 62%, rgba(20,12,10,0.66) 100%); z-index:3;"></div>
+  <div style="position:relative;padding:56px 36px 30px;text-align:center">
+    <div style="position:absolute;top:26px;left:78px;padding:12px 20px;border-radius:999px;background:#3a6eff;color:#fff;font:700 14px 'Space Grotesk',sans-serif;transform:rotate(-9deg);animation:ffx-bob 3.6s ease-in-out infinite;box-shadow:5px 5px 0 #101733">no assets ✨</div>
+    <div style="position:absolute;top:110px;right:70px;padding:12px 20px;border-radius:999px;background:#7fe3d4;color:#101733;font:700 14px 'Space Grotesk',sans-serif;transform:rotate(7deg);animation:ffx-bob 4.4s .5s ease-in-out infinite;box-shadow:5px 5px 0 #101733">100% Fun</div>
+    <div style="position:absolute;bottom:170px;left:52px;padding:12px 20px;border-radius:999px;background:#fff;border:2.5px solid #101733;font:700 14px 'Space Grotesk',sans-serif;transform:rotate(5deg);animation:ffx-bob 5s 1s ease-in-out infinite;box-shadow:5px 5px 0 #101733">lit by hand 🔥</div>
+    <div style="position:absolute;top:210px;right:150px;font-size:40px;animation:ffx-wiggle 2s ease-in-out infinite">✦</div>
+    <div style="position:absolute;bottom:120px;right:60px;font-size:30px;color:#3a6eff;animation:ffx-spin 8s linear infinite;display:inline-block">⏳</div>
 
-    <div style="position:relative; z-index:4; width:100%; max-width:1500px; margin:0 auto; color:#F6F0E6;">
-      <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; opacity:0.82; margin-bottom:clamp(20px,4vw,40px); animation:rise .8s .1s both;">Seven instruments &middot; Cut entirely from code</div>
-      <h1 style="font-family:'Instrument Serif',serif; font-weight:400; line-height:0.92; letter-spacing:-0.01em; margin:0; font-size:clamp(52px,10.5vw,168px); text-wrap:balance; animation:rise .9s .2s both;">Made by <em style="font-style:italic; color:#F0C79B;">you,</em><br>made for <em style="font-style:italic; color:#F0C79B;">you.</em></h1>
-      <div style="display:flex; flex-wrap:wrap; gap:clamp(20px,4vw,52px); align-items:flex-end; justify-content:space-between; margin-top:clamp(26px,4vw,44px); animation:rise 1s .35s both;">
-        <p style="font-family:'Space Grotesk',sans-serif; font-weight:300; font-size:clamp(15px,1.5vw,19px); line-height:1.5; max-width:44ch; margin:0; opacity:0.92;">A calculator of uncommon precision, an atelier of jokes, a tireless newsroom, two playable worlds and a study that answers back. No assets, no weight, nothing borrowed.</p>
-        <a href="#collection" class="cta-btn" id="ctaBtn">Enter the Collection <span style="font-size:18px;">&rarr;</span></a>
-      </div>
+    <!-- per-letter wordmark -->
+    <div class="ffx-wordmark" style="display:flex;justify-content:center;flex-wrap:wrap;gap:2px;font:900 190px/1 'Unbounded',sans-serif;letter-spacing:-.05em">
+      <span style="display:inline-block;animation:ffx-letter .8s .05s cubic-bezier(.2,.9,.3,1.2) both">F</span>
+      <span style="display:inline-block;color:#3a6eff;animation:ffx-letter .8s .13s cubic-bezier(.2,.9,.3,1.2) both">U</span>
+      <span style="display:inline-block;animation:ffx-letter .8s .21s cubic-bezier(.2,.9,.3,1.2) both">N</span>
+      <span style="display:inline-block;color:transparent;-webkit-text-stroke:4px #101733;animation:ffx-letter .8s .29s cubic-bezier(.2,.9,.3,1.2) both">F</span>
+      <span style="display:inline-block;animation:ffx-letter .8s .37s cubic-bezier(.2,.9,.3,1.2) both">L</span>
+      <span style="display:inline-block;color:#3a6eff;animation:ffx-letter .8s .45s cubic-bezier(.2,.9,.3,1.2) both">I</span>
+      <span style="display:inline-block;animation:ffx-letter .8s .53s cubic-bezier(.2,.9,.3,1.2) both">X</span>
     </div>
+    <div style="margin-top:18px;font:900 30px 'Unbounded',sans-serif;letter-spacing:.02em;animation:ffx-rise .9s .7s both">MADE BY <span style="color:#3a6eff">YOU</span> · MADE FOR <span style="color:transparent;-webkit-text-stroke:2px #101733">YOU</span></div>
+    <div style="margin:22px auto 0;max-width:560px;font:500 18px/1.55 'Space Grotesk',sans-serif;color:#2b3557;animation:ffx-rise .9s .85s both">Seven playable instruments cut entirely from code. Calculators, jokes, newsrooms, whole cities, zero downloads and all vibes.</div>
+    <div style="display:inline-flex;gap:14px;margin-top:32px;flex-wrap:wrap;justify-content:center;animation:ffx-rise .9s 1s both">
+      <a href="#channels" class="btn" style="font:700 17px 'Space Grotesk',sans-serif;padding:19px 42px;border-radius:999px;background:#3a6eff;color:#fff;box-shadow:7px 7px 0 #101733;cursor:pointer">▶ watch the channels</a>
+      <a href="#channels" class="btn" style="font:700 17px 'Space Grotesk',sans-serif;padding:19px 42px;border-radius:999px;background:#fff;border:2.5px solid #101733;box-shadow:7px 7px 0 #101733;cursor:pointer">dive in →</a>
+    </div>
+  </div>
 
-    <div style="position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:4; color:#F6F0E6; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.3em; opacity:0.6; animation:gh 2.4s ease-in-out infinite;">SCROLL</div>
-  </header>
+  <!-- tilted marquee 1 -->
+  <div style="margin-top:26px;background:#101733;color:#dfe7ff;overflow:hidden;padding:13px 0;transform:rotate(-1.4deg) scale(1.03)">
+    <div style="display:flex;width:max-content;animation:ffx-marquee 12s linear infinite;font:700 22px 'Unbounded',sans-serif">
+      <div style="display:flex;gap:30px;padding-right:30px;white-space:nowrap"><span>COMPUTE</span><span style="color:#7fe3d4">✦</span><span>SYNTHESIS</span><span style="color:#3a6eff">★</span><span>THE PRESS</span><span style="color:#7fe3d4">✦</span><span>FLYUSERFLY</span><span style="color:#3a6eff">★</span><span>COSTA VISTA</span><span style="color:#7fe3d4">✦</span><span>THE STUDY</span><span style="color:#3a6eff">★</span><span>THE FLY</span><span style="color:#7fe3d4">✦</span></div>
+      <div style="display:flex;gap:30px;padding-right:30px;white-space:nowrap"><span>COMPUTE</span><span style="color:#7fe3d4">✦</span><span>SYNTHESIS</span><span style="color:#3a6eff">★</span><span>THE PRESS</span><span style="color:#7fe3d4">✦</span><span>FLYUSERFLY</span><span style="color:#3a6eff">★</span><span>COSTA VISTA</span><span style="color:#7fe3d4">✦</span><span>THE STUDY</span><span style="color:#3a6eff">★</span><span>THE FLY</span><span style="color:#7fe3d4">✦</span></div>
+    </div>
+  </div>
 
-  <!-- COLLECTION -->
-  <section id="collection" style="position:relative; background:#F1ECE1; padding:clamp(56px,8vw,120px) clamp(20px,4vw,54px);">
-    <div style="max-width:1500px; margin:0 auto;">
-      <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:16px; border-bottom:1px solid rgba(27,23,18,0.18); padding-bottom:22px; margin-bottom:clamp(28px,4vw,54px);">
-        <h2 style="font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(34px,5vw,72px); margin:0; letter-spacing:-0.01em;">The Collection</h2>
-        <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:#7A7062;">Seven works &middot; Hover to preview</span>
+  <!-- CHANNEL WALL -->
+  <div id="channels" style="padding:56px 36px 8px;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:14px;scroll-margin-top:20px">
+    <div style="font:900 52px 'Unbounded',sans-serif;letter-spacing:-.03em">THE CHANNELS <span style="display:inline-block;color:#e0245e;font-size:20px;vertical-align:middle;background:#fff;border:2.5px solid #101733;border-radius:999px;padding:6px 14px;animation:ffx-pulse 1.6s infinite">● LIVE</span></div>
+    <div style="font:700 13px 'JetBrains Mono',monospace;color:#2b3557">7 SIGNALS · ALWAYS ON</div>
+  </div>
+  <div class="channels-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:22px 36px 10px">
+
+    <!-- Channel 1: Compute -->
+    <a href="/calculator" class="channel-card" style="border:3px solid #101733;border-radius:20px;background:#fff;overflow:hidden;box-shadow:6px 7px 0 #101733;transform:rotate(-2deg);transition:transform .25s">
+      <div style="position:relative;height:150px;overflow:hidden;background:#101733">
+        <div style="position:absolute;inset:0;display:flex;justify-content:center;gap:14px;font:700 44px 'JetBrains Mono',monospace;color:#7fe3d4;padding-top:40px">
+          <div style="display:flex;flex-direction:column;animation:ffx-vscroll 3s linear infinite"><span>7</span><span>3</span><span>9</span><span>1</span><span>7</span><span>3</span><span>9</span><span>1</span></div>
+          <div style="display:flex;flex-direction:column;animation:ffx-vscroll 2.2s linear infinite"><span>2</span><span>8</span><span>4</span><span>0</span><span>2</span><span>8</span><span>4</span><span>0</span></div>
+          <div style="display:flex;flex-direction:column;animation:ffx-vscroll 3.8s linear infinite"><span>5</span><span>6</span><span>1</span><span>3</span><span>5</span><span>6</span><span>1</span><span>3</span></div>
+          <div style="display:flex;flex-direction:column;animation:ffx-vscroll 2.6s linear infinite"><span>=</span><span>+</span><span>÷</span><span>×</span><span>=</span><span>+</span><span>÷</span><span>×</span></div>
+        </div>
+        <div style="position:absolute;top:10px;left:10px;font:700 10px 'JetBrains Mono',monospace;background:#101733;color:#fff;border-radius:999px;padding:4px 10px">CH 01</div>
+        <div style="position:absolute;top:10px;right:10px;font:700 10px 'JetBrains Mono',monospace;background:#e0245e;color:#fff;border-radius:999px;padding:4px 10px;animation:ffx-pulse 1.6s infinite">● REC</div>
       </div>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;border-top:3px solid #101733">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 19px 'Unbounded',sans-serif">Compute</span><span style="font:700 11px 'JetBrains Mono',monospace;color:#2b3557">Nº I</span></div>
+        <div style="font:500 12.5px/1.45 'Space Grotesk',sans-serif;color:#2b3557;min-height:38px">A scientific instrument of uncommon precision.</div>
+        <div class="channel-cta" style="font:700 13px 'Space Grotesk',sans-serif;padding:9px 0;text-align:center;border-radius:999px;background:#3a6eff;color:#fff;cursor:pointer;transition:background .15s">open →</div>
+      </div>
+    </a>
 
-      <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:clamp(28px,4vw,64px); align-items:start;">
+    <!-- Channel 2: Synthesis -->
+    <a href="/meme" class="channel-card" style="border:3px solid #101733;border-radius:20px;background:#fff;overflow:hidden;box-shadow:6px 7px 0 #101733;transform:rotate(1.5deg);transition:transform .25s">
+      <div style="position:relative;height:150px;overflow:hidden;background:#fff6c9">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px">
+          <span style="font:900 40px 'Unbounded',sans-serif;color:#3a6eff;display:inline-block;animation:ffx-hahaha 1.4s ease-in-out infinite">HA</span>
+          <span style="font:900 52px 'Unbounded',sans-serif;color:#101733;display:inline-block;animation:ffx-hahaha 1.4s .3s ease-in-out infinite">HA</span>
+          <span style="font:900 40px 'Unbounded',sans-serif;color:#e0245e;display:inline-block;animation:ffx-hahaha 1.4s .6s ease-in-out infinite">HA</span>
+        </div>
+        <div style="position:absolute;top:10px;left:10px;font:700 10px 'JetBrains Mono',monospace;background:#101733;color:#fff;border-radius:999px;padding:4px 10px">CH 02</div>
+        <div style="position:absolute;top:10px;right:10px;font:700 10px 'JetBrains Mono',monospace;background:#e0245e;color:#fff;border-radius:999px;padding:4px 10px;animation:ffx-pulse 1.6s infinite">● REC</div>
+      </div>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;border-top:3px solid #101733">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 19px 'Unbounded',sans-serif">Synthesis</span><span style="font:700 11px 'JetBrains Mono',monospace;color:#2b3557">Nº II</span></div>
+        <div style="font:500 12.5px/1.45 'Space Grotesk',sans-serif;color:#2b3557;min-height:38px">An atelier for the manufacture of jokes.</div>
+        <div class="channel-cta" style="font:700 13px 'Space Grotesk',sans-serif;padding:9px 0;text-align:center;border-radius:999px;background:#3a6eff;color:#fff;cursor:pointer;transition:background .15s">open →</div>
+      </div>
+    </a>
 
-        <!-- INDEX -->
-        <div id="workIndex" style="min-width:0;"></div>
+    <!-- Channel 3: The Press -->
+    <a href="/journalist" class="channel-card" style="border:3px solid #101733;border-radius:20px;background:#fff;overflow:hidden;box-shadow:6px 7px 0 #101733;transform:rotate(-1deg);transition:transform .25s">
+      <div style="position:relative;height:150px;overflow:hidden;background:#f2ede1">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:12px">
+          <div style="overflow:hidden"><div style="display:flex;width:max-content;animation:ffx-marquee 6s linear infinite;font:700 16px 'JetBrains Mono',monospace;color:#101733;white-space:nowrap"><span style="padding-right:24px">BREAKING: MACHINE FILES 400TH STORY TODAY ···</span><span style="padding-right:24px">BREAKING: MACHINE FILES 400TH STORY TODAY ···</span></div></div>
+          <div style="overflow:hidden"><div style="display:flex;width:max-content;animation:ffx-marquee 4.5s linear infinite reverse;font:700 22px 'Unbounded',sans-serif;color:#3a6eff;white-space:nowrap"><span style="padding-right:24px">EXTRA! EXTRA! EXTRA! </span><span style="padding-right:24px">EXTRA! EXTRA! EXTRA! </span></div></div>
+          <div style="overflow:hidden"><div style="display:flex;width:max-content;animation:ffx-marquee 7s linear infinite;font:700 14px 'JetBrains Mono',monospace;color:#2b3557;white-space:nowrap"><span style="padding-right:24px">ONE TIRELESS REPORTER · ZERO COFFEE BREAKS · </span><span style="padding-right:24px">ONE TIRELESS REPORTER · ZERO COFFEE BREAKS · </span></div></div>
+        </div>
+        <div style="position:absolute;top:10px;left:10px;font:700 10px 'JetBrains Mono',monospace;background:#101733;color:#fff;border-radius:999px;padding:4px 10px">CH 03</div>
+        <div style="position:absolute;top:10px;right:10px;font:700 10px 'JetBrains Mono',monospace;background:#e0245e;color:#fff;border-radius:999px;padding:4px 10px;animation:ffx-pulse 1.6s infinite">● REC</div>
+      </div>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;border-top:3px solid #101733">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 19px 'Unbounded',sans-serif">The Press</span><span style="font:700 11px 'JetBrains Mono',monospace;color:#2b3557">Nº III</span></div>
+        <div style="font:500 12.5px/1.45 'Space Grotesk',sans-serif;color:#2b3557;min-height:38px">A newsroom staffed by one tireless machine.</div>
+        <div class="channel-cta" style="font:700 13px 'Space Grotesk',sans-serif;padding:9px 0;text-align:center;border-radius:999px;background:#3a6eff;color:#fff;cursor:pointer;transition:background .15s">open →</div>
+      </div>
+    </a>
 
-        <!-- STAGE -->
-        <div style="position:sticky; top:24px; min-width:0;">
-          <div style="position:relative; aspect-ratio:4/3.15; width:100%; border-radius:6px; overflow:hidden; background:#211A15; box-shadow:0 40px 80px -40px rgba(27,23,18,0.55);">
-            <div id="motifHost"></div>
-            <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(20,14,11,0) 38%, rgba(20,14,11,0.5) 74%, rgba(20,14,11,0.88) 100%); z-index:3;"></div>
-            <div style="position:absolute; left:0; right:0; bottom:0; z-index:4; padding:clamp(20px,3vw,38px); color:#F6F0E6;">
-              <div id="stageKicker" style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:#F0C79B; margin-bottom:10px;"></div>
-              <h3 id="stageName" style="font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(30px,4.4vw,62px); line-height:0.98; margin:0 0 14px;"></h3>
-              <p id="stageDesc" style="font-family:'Space Grotesk',sans-serif; font-weight:300; font-size:clamp(14px,1.3vw,17px); line-height:1.5; max-width:46ch; margin:0 0 22px; opacity:0.9;"></p>
-              <a id="stageCta" href="#" class="stage-cta"></a>
-            </div>
+    <!-- Channel 4: Flyuserfly -->
+    <a href="/game" class="channel-card" style="border:3px solid #101733;border-radius:20px;background:#fff;overflow:hidden;box-shadow:6px 7px 0 #101733;transform:rotate(2deg);transition:transform .25s">
+      <div style="position:relative;height:150px;overflow:hidden;background:#0a0f1e">
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(170deg,transparent 0 8px,rgba(160,200,255,.28) 8px 9px);animation:ffx-rainfall 1.1s linear infinite"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 30px 'Unbounded',sans-serif;color:#66e0ff;text-shadow:0 0 18px rgba(102,224,255,.9);animation:ffx-neon 3.4s infinite">CASE Nº 3</div>
+        <div style="position:absolute;top:10px;left:10px;font:700 10px 'JetBrains Mono',monospace;background:#101733;color:#fff;border-radius:999px;padding:4px 10px">CH 04</div>
+        <div style="position:absolute;top:10px;right:10px;font:700 10px 'JetBrains Mono',monospace;background:#e0245e;color:#fff;border-radius:999px;padding:4px 10px;animation:ffx-pulse 1.6s infinite">● REC</div>
+      </div>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;border-top:3px solid #101733">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 19px 'Unbounded',sans-serif">Flyuserfly</span><span style="font:700 11px 'JetBrains Mono',monospace;color:#2b3557">Nº IV</span></div>
+        <div style="font:500 12.5px/1.45 'Space Grotesk',sans-serif;color:#2b3557;min-height:38px">A noir in three case files — rain included.</div>
+        <div class="channel-cta" style="font:700 13px 'Space Grotesk',sans-serif;padding:9px 0;text-align:center;border-radius:999px;background:#3a6eff;color:#fff;cursor:pointer;transition:background .15s">play →</div>
+      </div>
+    </a>
+
+    <!-- Channel 5: Costa Vista -->
+    <a href="/play/city-game" class="channel-card" style="border:3px solid #101733;border-radius:20px;background:#fff;overflow:hidden;box-shadow:6px 7px 0 #101733;transform:rotate(-1.5deg);transition:transform .25s">
+      <div style="position:relative;height:150px;overflow:hidden;background:linear-gradient(#ffb37a,#ff8f9e)">
+        <div style="position:absolute;left:50%;top:34px;width:64px;height:64px;margin-left:-32px;border-radius:50%;background:#ffd7a1;box-shadow:0 0 40px 14px rgba(255,190,120,.65);animation:ffx-sunrise 5s ease-in-out infinite"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:44px;background:#2b3557"></div>
+        <div style="position:absolute;bottom:30px;left:24px;width:26px;height:52px;background:#38436b"></div>
+        <div style="position:absolute;bottom:30px;left:62px;width:20px;height:36px;background:#38436b"></div>
+        <div style="position:absolute;bottom:30px;right:40px;width:30px;height:60px;background:#38436b"></div>
+        <div style="position:absolute;bottom:30px;right:86px;width:18px;height:30px;background:#38436b"></div>
+        <div style="position:absolute;top:10px;left:10px;font:700 10px 'JetBrains Mono',monospace;background:#101733;color:#fff;border-radius:999px;padding:4px 10px">CH 05</div>
+        <div style="position:absolute;top:10px;right:10px;font:700 10px 'JetBrains Mono',monospace;background:#e0245e;color:#fff;border-radius:999px;padding:4px 10px;animation:ffx-pulse 1.6s infinite">● REC</div>
+      </div>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;border-top:3px solid #101733">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 19px 'Unbounded',sans-serif">Costa Vista</span><span style="font:700 11px 'JetBrains Mono',monospace;color:#2b3557">Nº V</span></div>
+        <div style="font:500 12.5px/1.45 'Space Grotesk',sans-serif;color:#2b3557;min-height:38px">An open world, kept permanently at golden hour.</div>
+        <div class="channel-cta" style="font:700 13px 'Space Grotesk',sans-serif;padding:9px 0;text-align:center;border-radius:999px;background:#3a6eff;color:#fff;cursor:pointer;transition:background .15s">play →</div>
+      </div>
+    </a>
+
+    <!-- Channel 6: The Study -->
+    <a href="/study" class="channel-card" style="border:3px solid #101733;border-radius:20px;background:#fff;overflow:hidden;box-shadow:6px 7px 0 #101733;transform:rotate(1deg);transition:transform .25s">
+      <div style="position:relative;height:150px;overflow:hidden;background:#e8f4ff">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:18px">
+          <span style="font-size:52px;display:inline-block;animation:ffx-heartbeat 1.6s infinite">🫀</span>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="width:110px;height:10px;border-radius:99px;background:#3a6eff;animation:ffx-pulse 1.6s infinite"></div>
+            <div style="width:80px;height:10px;border-radius:99px;background:#7fe3d4;animation:ffx-pulse 1.6s .4s infinite"></div>
+            <div style="width:95px;height:10px;border-radius:99px;background:#101733;animation:ffx-pulse 1.6s .8s infinite"></div>
           </div>
         </div>
-
+        <div style="position:absolute;top:10px;left:10px;font:700 10px 'JetBrains Mono',monospace;background:#101733;color:#fff;border-radius:999px;padding:4px 10px">CH 06</div>
+        <div style="position:absolute;top:10px;right:10px;font:700 10px 'JetBrains Mono',monospace;background:#e0245e;color:#fff;border-radius:999px;padding:4px 10px;animation:ffx-pulse 1.6s infinite">● REC</div>
       </div>
-    </div>
-  </section>
-
-  <!-- MARQUEE -->
-  <section style="background:#F1ECE1; padding:clamp(20px,3vw,44px) 0; border-top:1px solid rgba(27,23,18,0.18); border-bottom:1px solid rgba(27,23,18,0.18); overflow:hidden;">
-    <div style="display:flex; width:max-content; animation:marquee 26s linear infinite; will-change:transform;">
-      <span style="font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(38px,7vw,110px); white-space:nowrap; padding-right:0.4em; color:#1B1712;">No assets &mdash; no weight &mdash; nothing borrowed &mdash; No assets &mdash; no weight &mdash; nothing borrowed &mdash;&nbsp;</span>
-      <span style="font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(38px,7vw,110px); white-space:nowrap; padding-right:0.4em; color:#1B1712;">No assets &mdash; no weight &mdash; nothing borrowed &mdash; No assets &mdash; no weight &mdash; nothing borrowed &mdash;&nbsp;</span>
-    </div>
-  </section>
-
-  <!-- VAULT -->
-  <section id="vault" style="background:#1B1712; color:#F1ECE1; padding:clamp(56px,9vw,130px) clamp(20px,4vw,54px);">
-    <div style="max-width:1500px; margin:0 auto; display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr); gap:clamp(32px,5vw,80px); align-items:end;">
-      <div>
-        <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; color:#B98A5E; margin-bottom:24px;">Private Entrance</div>
-        <h2 style="font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(40px,7vw,104px); line-height:0.94; margin:0 0 18px;">The Vault</h2>
-        <p style="font-family:'Space Grotesk',sans-serif; font-weight:300; font-size:clamp(15px,1.4vw,18px); line-height:1.55; max-width:40ch; margin:0; color:rgba(241,236,225,0.72);">Enter a member number to be admitted. The house keeps its finest instruments for the Connoisseur class.</p>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;border-top:3px solid #101733">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 19px 'Unbounded',sans-serif">The Study</span><span style="font:700 11px 'JetBrains Mono',monospace;color:#2b3557">Nº VI</span></div>
+        <div style="font:500 12.5px/1.45 'Space Grotesk',sans-serif;color:#2b3557;min-height:38px">A bio-analytics dossier, read aloud by a machine.</div>
+        <div class="channel-cta" style="font:700 13px 'Space Grotesk',sans-serif;padding:9px 0;text-align:center;border-radius:999px;background:#3a6eff;color:#fff;cursor:pointer;transition:background .15s">open →</div>
       </div>
-      <div style="border:1px solid rgba(241,236,225,0.16); border-radius:6px; padding:clamp(22px,3vw,34px);">
-        <label style="display:block; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:rgba(241,236,225,0.5); margin-bottom:12px;">Member Number</label>
-        <input id="vaultInput" class="vault-input" placeholder="0001" maxlength="4" inputmode="numeric">
-        <div id="vaultDisplay" style="font-family:'Space Grotesk',sans-serif; font-size:13px; color:#B98A5E; margin-top:16px; min-height:20px;">Awaiting credentials&hellip;</div>
-        <a href="#collection" style="display:flex; align-items:center; justify-content:space-between; margin-top:26px; color:#1B1712; background:#F1ECE1; padding:15px 22px; border-radius:100px; font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:14px;">Proceed to the Collection <span style="font-size:18px;">&rarr;</span></a>
+    </a>
+
+    <!-- Channel 7: The Fly -->
+    <a href="/play/the-fly" class="channel-card" style="border:3px solid #101733;border-radius:20px;background:#fff;overflow:hidden;box-shadow:6px 7px 0 #101733;transform:rotate(-2deg);transition:transform .25s">
+      <div style="position:relative;height:150px;overflow:hidden;background:#bfe0ff">
+        <div style="position:absolute;top:34px;left:0;font-size:40px;animation:ffx-flyby 4s ease-in-out infinite">✈️</div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:#7fe3d4"></div>
+        <div style="position:absolute;bottom:28px;left:30px;width:28px;height:40px;background:#fff;border:3px solid #101733"></div>
+        <div style="position:absolute;bottom:28px;left:80px;width:34px;height:52px;background:#cdd9ff;border:3px solid #101733"></div>
+        <div style="position:absolute;bottom:28px;right:46px;width:30px;height:44px;background:#fff;border:3px solid #101733"></div>
+        <div style="position:absolute;top:10px;left:10px;font:700 10px 'JetBrains Mono',monospace;background:#101733;color:#fff;border-radius:999px;padding:4px 10px">CH 07</div>
+        <div style="position:absolute;top:10px;right:10px;font:700 10px 'JetBrains Mono',monospace;background:#e0245e;color:#fff;border-radius:999px;padding:4px 10px;animation:ffx-pulse 1.6s infinite">● REC</div>
       </div>
-    </div>
-  </section>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;border-top:3px solid #101733">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 19px 'Unbounded',sans-serif">The Fly</span><span style="font:700 11px 'JetBrains Mono',monospace;color:#2b3557">Nº VII</span></div>
+        <div style="font:500 12.5px/1.45 'Space Grotesk',sans-serif;color:#2b3557;min-height:38px">Fly a courier through a hand-built town, one letter at a time.</div>
+        <div class="channel-cta" style="font:700 13px 'Space Grotesk',sans-serif;padding:9px 0;text-align:center;border-radius:999px;background:#3a6eff;color:#fff;cursor:pointer;transition:background .15s">play →</div>
+      </div>
+    </a>
 
-  <!-- FOOTER -->
-  <footer style="background:#F1ECE1; padding:clamp(30px,4vw,54px) clamp(20px,4vw,54px);">
-    <div style="max-width:1500px; margin:0 auto; display:flex; flex-wrap:wrap; gap:18px; align-items:center; justify-content:space-between;">
-      <span style="font-family:'Space Grotesk',sans-serif; font-weight:600; letter-spacing:0.42em; font-size:14px;">FUNFLIX</span>
-      <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#7A7062; text-align:center;">Set in Instrument Serif, Space Grotesk &amp; Space Mono. Lit by hand.</span>
-      <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#7A7062;">Est. MMXXVI</span>
+    <!-- Channel 8: Static / coming soon -->
+    <div style="border:3px dashed #101733;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:280px;background:rgba(255,255,255,.4)">
+      <span style="font-size:36px;display:inline-block;animation:ffx-popspin 2.6s ease-in-out infinite">✦</span>
+      <span style="font:700 15px 'Unbounded',sans-serif">CH 8 — STATIC</span>
+      <span style="font:600 12px 'JetBrains Mono',monospace;color:#2b3557">next instrument loading…</span>
     </div>
-  </footer>
+  </div>
 
+  <!-- tilted marquee 2 -->
+  <div style="margin-top:44px;background:#3a6eff;color:#fff;overflow:hidden;padding:13px 0;transform:rotate(1.2deg) scale(1.03)">
+    <div style="display:flex;width:max-content;animation:ffx-marquee 13s linear infinite reverse;font:700 20px 'Unbounded',sans-serif">
+      <div style="display:flex;gap:30px;padding-right:30px;white-space:nowrap"><span>ZERO DOWNLOADS</span><span>✦</span><span>ALL VIBES</span><span>★</span><span>NO ASSETS</span><span>✦</span><span>NO WEIGHT</span><span>★</span><span>NOTHING BORROWED</span><span>✦</span></div>
+      <div style="display:flex;gap:30px;padding-right:30px;white-space:nowrap"><span>ZERO DOWNLOADS</span><span>✦</span><span>ALL VIBES</span><span>★</span><span>NO ASSETS</span><span>✦</span><span>NO WEIGHT</span><span>★</span><span>NOTHING BORROWED</span><span>✦</span></div>
+    </div>
+  </div>
+
+  <!-- vault + footer -->
+  <div id="vault" class="vault-row" style="display:flex;align-items:center;justify-content:space-between;gap:30px;padding:52px 36px;scroll-margin-top:20px">
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:520px">
+      <div style="font:900 44px 'Unbounded',sans-serif;letter-spacing:-.03em">THE VAULT <span style="display:inline-block;animation:ffx-wiggle 2.2s ease-in-out infinite">🔒</span></div>
+      <div style="font:500 16px/1.55 'Space Grotesk',sans-serif;color:#2b3557">Private entrance. Member Nº 0001, connoisseur class. Bring nothing — everything inside was made from scratch.</div>
+      <a href="#channels" class="vault-cta" style="align-self:flex-start;font:700 15px 'Space Grotesk',sans-serif;padding:15px 32px;border-radius:999px;background:#101733;color:#fff;box-shadow:6px 6px 0 #3a6eff;cursor:pointer;transition:transform .15s, box-shadow .15s">proceed →</a>
+    </div>
+    <div style="width:280px;height:200px;border:3px solid #101733;border-radius:20px;background:#101733;display:flex;align-items:center;justify-content:center;box-shadow:7px 8px 0 #3a6eff;transform:rotate(2deg);animation:ffx-float 6s ease-in-out infinite;flex-shrink:0">
+      <span style="font:900 110px 'Unbounded',sans-serif;color:#7fe3d4;text-shadow:0 0 30px rgba(127,227,212,.6);animation:ffx-pulse 3s infinite">F</span>
+    </div>
+  </div>
+  <div style="overflow:hidden;line-height:.8;padding-bottom:6px">
+    <div class="ffx-outline-wordmark" style="font:900 210px 'Unbounded',sans-serif;letter-spacing:-.05em;text-align:center;color:transparent;-webkit-text-stroke:3px #101733;white-space:nowrap;opacity:.9">FUNFLIX</div>
+  </div>
+  <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:24px;padding:18px 36px 26px;font:700 12px 'Space Grotesk',sans-serif;color:#2b3557;border-top:3px solid #101733;background:rgba(255,255,255,.4)">
+    <span>lit by hand</span><span>·</span><span>zero downloads</span><span>·</span><span>set in Unbounded &amp; Space Grotesk</span><span>·</span><span>est. MMXXVI</span>
+  </div>
 </div>
-
-<script>
-  /* scroll-aware nav: transparent+light over the hero, blurred "paper" bar
-     past ~82% of the viewport height (i.e. once the hero is basically
-     scrolled by). Passive listener, class toggle only — CSS does the rest. */
-  (function () {
-    const nav = document.getElementById('siteNav');
-    if (!nav) return;
-    function onScroll() {
-      const threshold = window.innerHeight * 0.82;
-      nav.classList.toggle('scrolled', window.scrollY > threshold);
-    }
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-  })();
-
-  /* hero background video — fade in once it's actually playing; if autoplay
-     is blocked (some mobile browsers), kick playback on the first tap */
-  (function () {
-    const vid = document.getElementById('heroVid');
-    if (!vid) return;
-    let alive = false;
-    vid.addEventListener('canplay', () => {
-      alive = true;
-      vid.style.opacity = '1';
-      vid.play().catch(() => {
-        const kick = () => { vid.play().catch(() => {}); document.removeEventListener('pointerdown', kick); };
-        document.addEventListener('pointerdown', kick);
-      });
-    });
-    vid.addEventListener('error', () => { vid.style.display = 'none'; });
-    setTimeout(() => { if (!alive) vid.style.display = 'none'; }, 6000);
-  })();
-
-  const WORKS = [
-    { numeral:'I',   name:'Compute',    tagline:'A scientific instrument of uncommon precision.', href:'/calculator', cta:'Open', key:'compute',
-      desc:'A calculator of uncommon precision — scientific to the last decimal, and quietly beautiful about it.' },
-    { numeral:'II',  name:'Synthesis',  tagline:'An atelier for the manufacture of jokes.', href:'/meme', cta:'Open', key:'synth',
-      desc:'An atelier for the manufacture of jokes. Feed it a subject; it returns a punchline, assembled on the spot.' },
-    { numeral:'III', name:'The Press',  tagline:'A newsroom staffed by one tireless machine.', href:'/journalist', cta:'Open', key:'press',
-      desc:'A newsroom staffed by one tireless machine — headlines, columns and copy, filed on demand.' },
-    { numeral:'IV',  name:'Flyuserfly', tagline:'A noir in three case files — rain included.', href:'/game', cta:'Play', key:'noir',
-      desc:'A noir in three case files. Rain included. Solve what the machine has hidden across the city.' },
-    { numeral:'V',   name:'Costa Vista',tagline:'An open world, kept permanently at golden hour.', href:'/play/city-game', cta:'Play', key:'vista',
-      desc:'An open world kept permanently at golden hour. Wander a town that never stops glowing.' },
-    { numeral:'VI',  name:'The Study',  tagline:'A bio-analytics dossier, read aloud by a machine.', href:'/study', cta:'Open', key:'study',
-      desc:'A bio-analytics dossier, read aloud by a machine. Ask it about a body; it answers back.' },
-    { numeral:'VII', name:'The Fly',    tagline:'Fly a courier through a hand-built town.', href:'/play/the-fly', cta:'Play', key:'fly',
-      desc:'Fly a courier through a hand-built town, one letter at a time. The whole map is made of code.' },
-  ];
-
-  const MOTIF_HTML = {
-    compute: () => {
-      const chars = ['7','8','9','÷','4','5','6','×','1','2','3','−','0','.','=','+'];
-      return '<div class="motif motif-compute">' + chars.map(c =>
-        '<span' + (c === '=' ? ' class="eq"' : '') + '>' + c + '</span>').join('') + '</div>';
-    },
-    synth: () => '<div class="motif motif-synth"><div class="bg"></div><div class="desk"></div><div class="screen"></div><div class="stand"></div>' +
-      '<div class="cap" style="top:6%">ME AFTER ONE LINE</div><div class="cap" style="bottom:6%">OF CODE COMPILES</div></div>',
-    press: () => {
-      let cols = '';
-      for (let c = 0; c < 4; c++) {
-        let rows = '';
-        for (let r = 0; r < 11; r++) rows += '<div class="ln' + (r % 4 === 0 ? ' hd' : '') + '" style="width:' + (r % 4 === 0 ? '70%' : '100%') + '"></div>';
-        cols += '<div class="col">' + rows + '</div>';
-      }
-      return '<div class="motif motif-press"><div class="head">THE PRESS</div><div class="cols">' + cols + '</div></div>';
-    },
-    noir: () => '<div class="motif motif-noir"><div class="rain"></div><div class="streetlamp"></div><div class="moon"></div></div>',
-    vista: () => {
-      const bands = [['#F6D9A6','12%'],['#F0B884','14%'],['#DE8E63','16%'],['#B5633F','18%'],['#6E3B2E','40%']];
-      const bandHtml = bands.map(b => '<div class="band" style="height:' + b[1] + ';background:' + b[0] + '"></div>').join('');
-      return '<div class="motif motif-vista">' + bandHtml + '<div class="sun"></div><div class="rooftops"></div></div>';
-    },
-    study: () => {
-      let bars = '';
-      for (let i = 0; i < 26; i++) bars += '<div class="bar' + (i % 6 === 0 ? ' acc' : '') + '" style="animation:bar ' + (1 + (i % 5) * 0.18) + 's ease-in-out ' + (i * 0.05) + 's infinite"></div>';
-      return '<div class="motif motif-study">' + bars + '</div>';
-    },
-    fly: () => {
-      let dots = '';
-      for (let i = 0; i < 22; i++) dots += '<span></span>';
-      return '<div class="motif motif-fly"><div class="dots">' + dots + '</div><div class="courier"></div><div class="grid"></div></div>';
-    },
-  };
-
-  const indexEl = document.getElementById('workIndex');
-  const motifHost = document.getElementById('motifHost');
-  const stageKicker = document.getElementById('stageKicker');
-  const stageName = document.getElementById('stageName');
-  const stageDesc = document.getElementById('stageDesc');
-  const stageCta = document.getElementById('stageCta');
-
-  let active = 0;
-
-  function renderIndex() {
-    indexEl.innerHTML = WORKS.map((w, i) => (
-      '<button class="work-row' + (i === active ? ' active' : '') + '" data-i="' + i + '">' +
-        '<span class="work-num">' + String(i + 1).padStart(2, '0') + '</span>' +
-        '<span style="min-width:0;">' +
-          '<span class="work-name">' + w.name + '</span>' +
-          '<span class="work-tag">' + w.tagline + '</span>' +
-        '</span>' +
-        '<span class="work-arrow">&rarr;</span>' +
-      '</button>'
-    )).join('');
-    indexEl.querySelectorAll('.work-row').forEach(btn => {
-      const go = () => setActive(+btn.dataset.i);
-      btn.addEventListener('mouseenter', go);
-      btn.addEventListener('focus', go);
-      btn.addEventListener('click', go);
-    });
-  }
-
-  function renderStage() {
-    const w = WORKS[active];
-    motifHost.innerHTML = MOTIF_HTML[w.key]();
-    stageKicker.textContent = 'No. ' + w.numeral + ' — ' + w.cta;
-    stageName.textContent = w.name;
-    stageDesc.textContent = w.desc;
-    stageCta.href = w.href;
-    stageCta.target = w.href.startsWith('/') ? '_self' : '_blank';
-    stageCta.innerHTML = w.cta + ' the instrument <span>&rarr;</span>';
-  }
-
-  function setActive(i) {
-    if (i === active) return;
-    active = i;
-    indexEl.querySelectorAll('.work-row').forEach((btn, idx) => btn.classList.toggle('active', idx === active));
-    renderStage();
-  }
-
-  renderIndex();
-  renderStage();
-
-  document.getElementById('ctaBtn').addEventListener('click', e => {
-    e.preventDefault();
-    document.getElementById('collection').scrollIntoView({ behavior: 'smooth' });
-  });
-
-  /* the vault — cosmetic member display, no real gating */
-  const vaultInput = document.getElementById('vaultInput');
-  const vaultDisplay = document.getElementById('vaultDisplay');
-  vaultInput.addEventListener('input', () => {
-    const v = vaultInput.value.replace(/[^0-9]/g, '').slice(0, 4);
-    vaultInput.value = v;
-    vaultDisplay.textContent = v
-      ? 'Member No. ' + v.padStart(4, '0') + ' — Connoisseur class · Admitted'
-      : 'Awaiting credentials…';
-  });
-</script>
 </body>
 </html>
