@@ -516,8 +516,14 @@ function build(ctx) {
     // in frame (flat near-white fills). Now cream STONE with real plaster wash +
     // relief (map + normal), values kept inside the ART_BIBLE §2.1 wall band (L*
     // 58-78, not near-white) so it carries shading like everything around it.
-    const stoneA = L.MAT.wall('#d7c6a0');   // sunlit cream stone — wash + relief
-    const stoneB = L.MAT.wall('#c6b48c');   // shaded cream stone
+    // Sprint-1 second-pass: the tower's huge single-surface shaft tiled the
+    // standard plasterTex's fixed repeat[2,3] over far more physical area
+    // than a small dome face does, diluting the wash even with the same
+    // material. wallHero raises blob density/contrast/repeat so the shaft
+    // reads with wash strength comparable to the domes around it (measured;
+    // see docs/overhaul/sprint-1/tower-second-pass.md).
+    const stoneA = L.MAT.wallHero('#d7c6a0');   // sunlit cream stone — wash + relief
+    const stoneB = L.MAT.wallHero('#c6b48c');   // shaded cream stone
     const trim = L.std({ colorHex: '#b7a074', normalMap: L.plasterNormal(), normalScale: new T.Vector2(0.18, 0.18), roughness: 0.85 });
     colB(tx, tz, 3.8, 3.8);
     // contact shadow: a soft dark ground decal grounds the tower (SAO was removed,
@@ -553,7 +559,11 @@ function build(ctx) {
     // belfry + spire
     root.add(L.box(6.6, 0.5, 6.6, trim, { x: tx, y: 22.3, z: tz, cast: false }));
     root.add(L.box(5.2, 3.0, 5.2, stoneB, { x: tx, y: 24, z: tz }));                          // belfry openings level
-    [[-1.4, 0], [1.4, 0], [0, -1.4], [0, 1.4]].forEach(([dx, dz]) => root.add(L.box(dx === 0 ? 1.6 : 0.2, 2.0, dz === 0 ? 1.6 : 0.2, L.MAT.glassLit, { x: tx + dx * 1.9, y: 24, z: tz + dz * 1.9, cast: false })));
+    // Sprint-1 second pass: was a flat L.MAT.glassLit box (single emissive
+    // color, zero detail) that blew out to a blank white rectangle under the
+    // toon/tonemap pipeline. glassLitFramed bakes a tinted glazing gradient +
+    // cross-mullion frame + sill shadow onto the window face.
+    [[-1.4, 0], [1.4, 0], [0, -1.4], [0, 1.4]].forEach(([dx, dz]) => root.add(L.box(dx === 0 ? 1.6 : 0.2, 2.0, dz === 0 ? 1.6 : 0.2, L.MAT.glassLitFramed, { x: tx + dx * 1.9, y: 24, z: tz + dz * 1.9, cast: false })));
     const spire = new T.Mesh(new T.ConeGeometry(4.4, 6.0, 4), L.std({ color: 0x6f7d68, roughness: 0.85 })); spire.position.set(tx, 28.5, tz); spire.rotation.y = Math.PI / 4; spire.castShadow = true; root.add(spire);  // §5.1 civic slate-green roof
     // §5.2 finial beacon: warm-gold glow (hero) + a faint halo sphere so it
     // reads as a beacon from down the avenue. Kept low-intensity per §4.10.

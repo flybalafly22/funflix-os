@@ -1,6 +1,6 @@
 {
   "label": "after",
-  "ts": "2026-07-07 20:57:01",
+  "ts": "2026-07-08 08:28:10",
   "seed": 20240617,
   "console_errors": {
     "desktop": [],
@@ -8,20 +8,20 @@
   },
   "perf": {
     "desktop": {
-      "fps": 34.4,
-      "scene_draw_calls": 2945,
-      "scene_triangles": 742528,
-      "geometries": 5615,
+      "fps": 36.7,
+      "scene_draw_calls": 2943,
+      "scene_triangles": 745822,
+      "geometries": 5603,
       "textures": 377,
       "pixelRatio": 1
     },
     "mobile": {
-      "fps": 40,
-      "scene_draw_calls": 2174,
-      "scene_triangles": 684452,
-      "geometries": 2293,
-      "textures": 185,
-      "pixelRatio": 1
+      "fps": 47.8,
+      "scene_draw_calls": 2175,
+      "scene_triangles": 687368,
+      "geometries": 2297,
+      "textures": 186,
+      "pixelRatio": 1.5
     }
   },
   "hud_check": {

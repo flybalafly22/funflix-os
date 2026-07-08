@@ -189,6 +189,92 @@ function plasterTex(hex) {
   });
 }
 
+/* — hero plaster (Sprint-1 second pass): the standard plasterTex's blob count/
+   alpha/repeat are tuned for normal building faces. On a huge single-surface
+   hero landmark (the clock tower shaft) the same fixed repeat[2,3] tiles the
+   same 40-blob pattern over far more physical area than a small dome face
+   gets, so the wash visibly dilutes even though the material is "the same".
+   This variant raises blob density + contrast + tiling repeat so a big flat
+   hero surface reads with wash strength comparable to a small curved one,
+   while keeping mean luminance in the ART_BIBLE §2.1 wall band (blobs are
+   still balanced white/black around the base hex, so the mean is unchanged —
+   only the local variance goes up). */
+function heroPlasterTex(hex) {
+  return cached('heroPlaster' + hex, () => {
+    const w = 256, h = 256, c = cnv(w, h), g = c.getContext('2d');
+    g.fillStyle = hex; g.fillRect(0, 0, w, h);
+    // three-octave mottling (broad + mid + fine) — measured against the raw
+    // plasterTex output: this needs to land materially above plain's ~7.4
+    // luminance std to survive mip-blur at hero viewing distance and still
+    // read denser than plain in the final render.
+    for (let i = 0; i < 40; i++) {
+      g.globalAlpha = rand(0.08, 0.22); g.fillStyle = chance(0.5) ? '#ffffff' : '#000000';
+      const r = rand(28, 74); g.beginPath(); g.arc(rand(0, w), rand(0, h), r, 0, TAU); g.fill();
+    }
+    for (let i = 0; i < 70; i++) {
+      g.globalAlpha = rand(0.06, 0.16); g.fillStyle = chance(0.5) ? '#ffffff' : '#000000';
+      const r = rand(12, 32); g.beginPath(); g.arc(rand(0, w), rand(0, h), r, 0, TAU); g.fill();
+    }
+    for (let i = 0; i < 90; i++) {
+      g.globalAlpha = rand(0.04, 0.1); g.fillStyle = chance(0.5) ? '#ffffff' : '#000000';
+      const r = rand(4, 14); g.beginPath(); g.arc(rand(0, w), rand(0, h), r, 0, TAU); g.fill();
+    }
+    g.globalAlpha = 1; grain(g, w, h, 3400, 0.07);
+    for (let i = 0; i < 5; i++) { g.fillStyle = `rgba(0,0,0,${rand(0.03, 0.09)})`; const x = rand(0, w); g.fillRect(x, 0, rand(2, 7), rand(50, h)); }
+    // repeated alpha-blob compositing biases the mean darker than the base
+    // hex (black/white blobs don't cancel symmetrically under alpha-over).
+    // Measure the drift and shift every pixel back by a flat delta — a flat
+    // additive shift changes mean without touching std, so this corrects
+    // tone (keeps the ART_BIBLE §2.1 wall-value band) while banking 100% of
+    // the added contrast.
+    const id = g.getImageData(0, 0, w, h);
+    const px = id.data;
+    let sum = 0;
+    for (let i = 0; i < px.length; i += 4) sum += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+    const curLum = sum / (w * h);
+    const baseC = document.createElement('canvas').getContext('2d');
+    baseC.fillStyle = hex; baseC.fillRect(0, 0, 1, 1);
+    const b = baseC.getImageData(0, 0, 1, 1).data;
+    const targetLum = (0.2126 * b[0] + 0.7152 * b[1] + 0.0722 * b[2]) - 6; // match plain plasterTex's own ~6pt streak/grain drift
+    const delta = targetLum - curLum;
+    for (let i = 0; i < px.length; i += 4) {
+      px[i] = Math.min(255, Math.max(0, px[i] + delta));
+      px[i + 1] = Math.min(255, Math.max(0, px[i + 1] + delta));
+      px[i + 2] = Math.min(255, Math.max(0, px[i + 2] + delta));
+    }
+    g.putImageData(id, 0, 0);
+    return finishTex(c, { repeat: [3, 4], aniso: 8 });
+  });
+}
+
+/* — belfry glazing (Sprint-1 second pass): the belfry windows were flat
+   L.MAT.glassLit boxes — a single emissive color with zero surface detail,
+   which blows out to a flat near-white rectangle under the toon/tonemap
+   pipeline. This bakes a real window face: a vertical gradient tint (glass
+   reads darker/cooler at the top, warmer near the sill where the beacon
+   glow catches it), a dark cross-mullion frame, and a soft sill shadow. */
+function belfryGlazingTex() {
+  return cached('belfryGlazing', () => {
+    const w = 128, h = 128, c = cnv(w, h), g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#e8b662'); grad.addColorStop(0.55, '#ffd97a'); grad.addColorStop(1, '#fff0c2');
+    g.fillStyle = grad; g.fillRect(0, 0, w, h);
+    // subtle pane-to-pane value noise so the glazing itself isn't a flat fill
+    for (let i = 0; i < 24; i++) { g.globalAlpha = rand(0.03, 0.08); g.fillStyle = chance(0.5) ? '#ffffff' : '#3a2a10'; const r = rand(6, 18); g.beginPath(); g.arc(rand(0, w), rand(0, h), r, 0, TAU); g.fill(); }
+    g.globalAlpha = 1;
+    // sill shadow (soft dark band along the bottom)
+    const sill = g.createLinearGradient(0, h * 0.78, 0, h);
+    sill.addColorStop(0, 'rgba(40,26,10,0)'); sill.addColorStop(1, 'rgba(40,26,10,0.35)');
+    g.fillStyle = sill; g.fillRect(0, h * 0.78, w, h * 0.22);
+    // dark cross-mullion frame lines
+    g.strokeStyle = '#2a2620'; g.lineWidth = 6;
+    g.beginPath(); g.moveTo(w / 2, 4); g.lineTo(w / 2, h - 4); g.stroke();
+    g.beginPath(); g.moveTo(4, h / 2); g.lineTo(w - 4, h / 2); g.stroke();
+    g.lineWidth = 5; g.strokeRect(3, 3, w - 6, h - 6);
+    return finishTex(c, { aniso: 4 });
+  });
+}
+
 /* — brick — */
 function brickTex(hex, mortar = '#d8cdbb') {
   return cached('brick' + hex + mortar, () => {
@@ -471,6 +557,7 @@ function std(opts) {
 
 const MAT = {
   wall:     hex => std({ map: plasterTex(hex), normalMap: plasterNormal(), normalScale: new T.Vector2(0.28, 0.28), roughness: 0.92 }),
+  wallHero: hex => std({ map: heroPlasterTex(hex), normalMap: plasterNormal(), normalScale: new T.Vector2(0.34, 0.34), roughness: 0.92 }),
   wallFlat: hex => std({ color: parseInt(hex.replace('#', '0x')), normalMap: plasterNormal(), normalScale: new T.Vector2(0.24, 0.24), roughness: 0.92 }),
   brick:    hex => std({ map: brickTex(hex), normalMap: brickNormal(), normalScale: new T.Vector2(0.55, 0.55), roughness: 0.95 }),
   wood:     hex => std({ map: woodTex(hex), roughness: 0.85 }),
@@ -478,6 +565,7 @@ const MAT = {
   glass:        std({ color: 0x18283a, roughness: 0.06, metalness: 0.92, envMapIntensity: 1.6 }),
   glassTint:    std({ color: 0x28503a, roughness: 0.08, metalness: 0.9, envMapIntensity: 1.3 }),
   glassLit:     std({ color: 0xffe8a0, emissive: 0xffd060, emissiveIntensity: 1.1, roughness: 0.25 }),
+  glassLitFramed: std({ map: belfryGlazingTex(), color: 0xffffff, emissive: 0xffb85a, emissiveIntensity: 0.45, roughness: 0.3 }),
   glassFrame:   std({ color: 0x2a2926, roughness: 0.85 }),
   metalDark:    std({ color: 0x252830, roughness: 0.5, metalness: 0.7 }),
   metalLight:   std({ color: 0xb6bac2, roughness: 0.3, metalness: 0.7, envMapIntensity: 1.4 }),
@@ -530,7 +618,7 @@ window.FLY.lib = {
   clamp, lerp, smooth, dampT,
   setSeed, rng, rand, randInt, pick, chance, jitter, shuffle,
   cnv, finishTex, grain, shadeHex,
-  plasterTex, brickTex, woodTex, awningTex, roadTex, sidewalkTex, dirtTex, signTex, neonTex, posterTex, graffitiTex,
+  plasterTex, heroPlasterTex, belfryGlazingTex, brickTex, woodTex, awningTex, roadTex, sidewalkTex, dirtTex, signTex, neonTex, posterTex, graffitiTex,
   plasterNormal, brickNormal, roadNormal, sidewalkNormal, dirtNormal,
   PAL, MAT, std,
   box, cyl, sphere, instanced, decal, compose,
