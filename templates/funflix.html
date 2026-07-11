@@ -3,540 +3,909 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Funflix — seven instruments, one place</title>
+<title>FUNFLIX — Seven apps. One place.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/os.css">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
+  :root{
+    --paper:#FAFAF8; --ink:#111110; --ink2:#6B6B66; --ink3:#98988F; --ink4:#86867F;
+    --acc:#BDF23F; --accD:#0C8A4C; --accH:#D3FF66;
+    --sans:'Geist',system-ui,sans-serif; --mono:'Geist Mono',monospace; --serif:'Instrument Serif',serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  @keyframes ffx-pulse{0%,100%{opacity:.35}50%{opacity:.9}}
+  @keyframes ffx-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  @keyframes ffx-rainfall{from{background-position:0 0}to{background-position:-30px 220px}}
+  @keyframes ffx-sunrise{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  @keyframes ffx-heartbeat{0%,100%{transform:scale(1)}12%{transform:scale(1.2)}24%{transform:scale(1)}36%{transform:scale(1.14)}48%{transform:scale(1)}}
+  @keyframes ffx-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  @keyframes ffx-in5{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-  /* ══════════ cinematic intro ══════════ */
-  #intro {
-    position: relative;
-    height: 100vh; min-height: 560px;
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
-    background: var(--paper);
-  }
-  #intro canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .intro-stage {
-    position: relative; z-index: 2;
-    display: flex; flex-direction: column; align-items: center;
-    text-align: center; gap: 26px;
-    opacity: 0; transform: translateY(10px);
-    transition: opacity .5s ease, transform .5s ease;
-  }
-  .intro-stage.on { opacity: 1; transform: none; }
-  .mark {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 76px; height: 76px; border-radius: 22px;
-    background: var(--acc);
-    box-shadow: 0 18px 40px rgba(12,138,76,0.22);
-    animation: markBounce 900ms cubic-bezier(.34,1.56,.64,1) both;
-  }
-  @keyframes markBounce { 0%{ transform: scale(.2) translateY(-40px); opacity:0 } 60%{ transform: scale(1.12) translateY(4px); opacity:1 } 100%{ transform: scale(1) translateY(0) } }
-  .mark svg { width: 40px; height: 40px; }
+  #introTrack{height:2000px}
+  #introCanvas{position:sticky;top:0;display:block;width:100%;height:100vh;min-height:640px}
 
-  .wordmark-wrap { display: flex; gap: 2px; }
-  .wordmark-wrap span {
-    font-family: var(--serif); font-weight: 400; font-style: italic;
-    font-size: clamp(56px, 11vw, 128px); line-height: 1;
-    color: var(--black);
-    display: inline-block;
-    opacity: 0; transform: translateY(30px);
-    animation: letterIn .6s cubic-bezier(.22,1,.36,1) forwards;
-  }
-  @keyframes letterIn { to { opacity: 1; transform: translateY(0); } }
+  nav.ffx-nav{position:sticky;top:0;z-index:60;display:flex;justify-content:space-between;align-items:center;
+    padding:15px 72px;background:rgba(250,250,248,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border-bottom:1px solid rgba(0,0,0,.06)}
+  .ffx-nav-links{display:flex;align-items:center;gap:30px}
+  .ffx-nav-links a.link{font:500 13.5px var(--sans);color:var(--ink2);cursor:pointer;transition:color .2s}
+  .ffx-nav-links a.link:hover{color:var(--ink)}
+  .ffx-cta{font:600 13.5px var(--sans);padding:10px 22px;border-radius:999px;background:var(--ink);color:#fff;
+    cursor:pointer;box-shadow:0 8px 24px rgba(17,17,16,.18);transition:background .2s,transform .2s;display:inline-block}
+  .ffx-cta:hover{background:#000;transform:translateY(-1px)}
+  .ffx-cta.big{font-size:15px;padding:15px 34px;box-shadow:0 14px 34px rgba(17,17,16,.22)}
+  .ffx-cta.big:hover{transform:translateY(-2px)}
+  .ffx-ghost{font:600 15px var(--sans);padding:15px 34px;border-radius:999px;border:1px solid rgba(0,0,0,.14);
+    background:#fff;color:var(--ink);cursor:pointer;transition:border-color .2s,transform .2s;display:inline-block}
+  .ffx-ghost:hover{border-color:rgba(0,0,0,.32);transform:translateY(-2px)}
 
-  .hook {
-    font-family: var(--sans); font-size: 15px; font-weight: 450;
-    color: var(--gray); letter-spacing: 0.01em;
-    opacity: 0; animation: fadeRise .7s ease-out 1.3s forwards;
-  }
-  .scroll-cue {
-    position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-    font-family: var(--sans); font-size: 10px; font-weight: 600;
-    letter-spacing: 0.24em; text-transform: uppercase; color: var(--gray-2);
-    opacity: 0; animation: fadeRise .7s ease-out 1.6s forwards;
-    z-index: 2;
-  }
-  .scroll-cue i {
-    width: 1px; height: 26px; background: var(--rule-2);
-    position: relative; overflow: hidden;
-  }
-  .scroll-cue i::after {
-    content: ''; position: absolute; top: -100%; left: 0; width: 100%; height: 100%;
-    background: var(--black);
-    animation: cueDrop 1.6s ease-in-out infinite;
-  }
-  @keyframes cueDrop { 0%{ top: -100% } 60%{ top: 100% } 100%{ top: 100% } }
+  .ffx-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:72px 72px 0}
+  .ffx-pill{display:flex;align-items:center;gap:9px;padding:8px 16px;border-radius:999px;border:1px solid rgba(0,0,0,.1);
+    background:#fff;box-shadow:0 6px 18px rgba(17,17,16,.05);animation:ffx-in5 .7s both}
+  .ffx-dot{width:7px;height:7px;border-radius:50%;background:var(--accD);animation:ffx-pulse 2s infinite}
+  .ffx-h1{font:600 80px/1.02 var(--sans);letter-spacing:-.045em;animation:ffx-in5 .7s both}
+  .ffx-h1 .w{animation-delay:.08s}
+  .ffx-h1 .w2{animation-delay:.16s}
+  .ffx-sub{margin-top:22px;max-width:600px;font:400 17px/1.65 var(--sans);color:var(--ink2);animation:ffx-in5 .7s .24s both}
+  .ffx-cta-row{display:flex;gap:12px;margin-top:30px;animation:ffx-in5 .7s .32s both}
+  .ffx-mono-note{margin-top:20px;font:500 11px var(--mono);letter-spacing:.2em;color:var(--ink3);animation:ffx-in5 .7s .4s both}
 
-  .float-card {
-    position: absolute; width: 150px; height: 108px;
-    border: 1px solid var(--rule-2); border-radius: 18px;
-    background: #fff; opacity: 0.55;
-    box-shadow: 0 20px 44px rgba(0,0,0,0.06);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--gray-2);
-    will-change: transform, opacity;
-  }
+  .mock-wrap{position:relative;width:min(1010px,92vw);margin:58px auto 46px;animation:ffx-in5 .9s .5s both}
+  .mock-glow{position:absolute;width:340px;height:320px;border-radius:50%;filter:blur(46px)}
+  .mock-window{position:relative;width:min(880px,100%);margin:0 auto;background:#fff;border:1px solid rgba(0,0,0,.07);
+    border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(17,17,16,.14)}
+  .mock-bar{display:flex;align-items:center;padding:11px 16px;background:#F6F6F4;border-bottom:1px solid rgba(0,0,0,.06)}
+  .mock-dots{display:flex;gap:6px}
+  .mock-dots span{width:9px;height:9px;border-radius:50%;background:#E2E2DE;display:block}
+  .mock-url{margin:0 auto;font:500 11px var(--mono);color:var(--ink2);background:#fff;border:1px solid rgba(0,0,0,.07);
+    border-radius:999px;padding:4px 18px}
+  .mock-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 22px 22px}
+  .mtile{border:1px solid rgba(0,0,0,.07);border-radius:10px;overflow:hidden;background:#fff}
+  .mtile .scene{position:relative;height:62px}
+  .mtile .cap{padding:8px 10px;display:flex;justify-content:space-between;align-items:baseline}
+  .mtile .cap b{font:600 11.5px var(--sans)}
+  .mtile .cap span{font:500 8.5px var(--mono);letter-spacing:.1em;color:var(--ink3)}
+  .mtile.free{border-radius:10px;background:var(--ink);display:flex;flex-direction:column;justify-content:center;
+    gap:5px;padding:0 14px}
+  .chip{position:absolute;background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:12px;
+    box-shadow:0 22px 54px rgba(17,17,16,.14);text-align:left}
+  .chip-load{left:16px;bottom:-24px;padding:13px 16px}
+  .chip-calc{right:10px;top:-16px;width:172px;overflow:hidden}
 
-  /* card-assembly section: cards fly from float-card positions into a grid as user scrolls */
-  #assembly { position: relative; height: 180vh; }
-  #assembly .pin { position: sticky; top: 0; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-  .headline-band {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
-    font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 72px); letter-spacing: -0.02em;
-    color: var(--black); padding: 0 24px;
-    opacity: 0; transition: opacity .3s ease;
-  }
-  .headline-band.on { opacity: 1; }
-  .asm-grid {
-    position: relative; z-index: 2;
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
-    width: min(1040px, 92vw);
-    opacity: 0; transition: opacity .4s ease;
-  }
-  .asm-grid.on { opacity: 1; }
-  .asm-card {
-    border: 1px solid var(--rule-2); border-radius: 18px; background: #fff;
-    aspect-ratio: 4/3;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--gray);
-    box-shadow: 0 24px 60px rgba(0,0,0,0.06);
-    transform: translateY(60px) rotate(var(--r,0deg)) scale(.9);
-    opacity: 0;
-    transition: transform .1s linear;
-  }
+  .trust{display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;padding:26px 72px;
+    border-top:1px solid rgba(0,0,0,.06);border-bottom:1px solid rgba(0,0,0,.06);background:#fff}
+  .trust span{font:500 13.5px var(--mono);color:var(--ink4)}
+  .trust .lead{font:500 10px var(--mono);letter-spacing:.24em;color:var(--ink3)}
 
-  @media (prefers-reduced-motion: reduce) {
-    .mark, .wordmark-wrap span, .hook, .scroll-cue { animation: none !important; opacity: 1 !important; transform: none !important; }
-  }
-  @media (max-width: 720px) {
-    .float-card { display: none; }
-    .asm-grid { grid-template-columns: repeat(2, 1fr); }
-  }
+  section.pad{padding:84px 72px 96px}
+  .eyebrow{font:500 11px var(--mono);letter-spacing:.3em;color:var(--accD)}
+  .h2{font:600 46px var(--sans);letter-spacing:-.035em;margin-top:14px}
+  [data-rv]{opacity:0;transform:translateY(20px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
+  [data-rv].on{opacity:1;transform:none}
 
-  /* ══════════ hero ══════════ */
-  .hero {
-    max-width: 900px; margin: 0 auto; padding: 40px 28px 20px;
-    text-align: center;
-  }
-  .hero-over {
-    font-family: var(--sans); font-size: 11px; font-weight: 600;
-    letter-spacing: 0.28em; text-transform: uppercase; color: var(--gray-2);
-    margin-bottom: 18px;
-  }
-  .hero-title {
-    font-family: var(--serif); font-weight: 400;
-    font-size: clamp(42px, 7vw, 78px); line-height: 0.98; letter-spacing: -0.02em;
-    color: var(--black);
-  }
-  .hero-title em { font-style: italic; color: var(--accD); }
-  .hero-sub {
-    margin: 22px auto 0; max-width: 560px;
-    font-family: var(--sans); font-size: 17px; line-height: 1.6; color: var(--gray);
-  }
-  .hero-cta { display: flex; gap: 12px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
-  .hero-cta a { text-decoration: none; }
-  .hero-cta .primary {
-    background: var(--black); color: #fff; border-radius: 999px;
-    font-family: var(--sans); font-size: 14px; font-weight: 500;
-    padding: 15px 30px; display: inline-block;
-    transition: transform .2s ease, background .2s;
-  }
-  .hero-cta .primary:hover { transform: scale(1.03); background: var(--accD); }
-  .hero-cta .ghost {
-    border: 1px solid var(--rule-2); border-radius: 999px; color: var(--gray);
-    font-family: var(--sans); font-size: 14px; font-weight: 500;
-    padding: 15px 30px; display: inline-block; transition: all .2s;
-  }
-  .hero-cta .ghost:hover { border-color: var(--black); color: var(--black); }
+  .apps-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px}
+  .apps-status{display:flex;align-items:center;gap:8px;font:500 11px var(--mono);letter-spacing:.14em;color:var(--ink3)}
+  .apps-layout{display:grid;grid-template-columns:1fr 500px;gap:56px;align-items:start;margin-top:38px}
+  @media (max-width:980px){.apps-layout{grid-template-columns:1fr}}
+  .apps-list{border-top:1px solid rgba(0,0,0,.09)}
+  .app-row{display:grid;grid-template-columns:52px 96px 1fr 26px;gap:16px;align-items:center;padding:21px 10px;
+    border-bottom:1px solid rgba(0,0,0,.07);cursor:pointer;transition:background .3s;text-decoration:none;color:inherit}
+  .app-row .num{font:500 12px var(--mono);color:var(--ink3);transition:color .3s}
+  .app-row.active .num{color:var(--accD)}
+  .app-row.active{background:rgba(12,138,76,.045)}
+  .app-row .cat{justify-self:start;font:500 9.5px var(--mono);letter-spacing:.16em;color:var(--ink2);
+    border:1px solid rgba(0,0,0,.12);border-radius:999px;padding:4px 11px;background:#fff}
+  .app-row .name{font:600 21px var(--sans);letter-spacing:-.02em}
+  .app-row .role{font:400 12.5px var(--sans);color:var(--ink2);margin-top:4px}
+  .app-row .arrow{font:500 17px var(--sans);color:var(--accD);opacity:0;transition:opacity .3s}
+  .app-row.active .arrow{opacity:1}
+  .preview{position:sticky;top:78px}
+  @media (max-width:980px){.preview{position:static}}
+  .preview-win{border:1px solid rgba(0,0,0,.08);border-radius:14px;background:#fff;overflow:hidden;
+    box-shadow:0 30px 80px rgba(17,17,16,.13)}
+  .preview-bar{display:flex;align-items:center;gap:5px;padding:10px 14px;background:#F6F6F4;border-bottom:1px solid rgba(0,0,0,.06)}
+  .preview-bar .url{margin-left:6px;font:500 10.5px var(--mono);color:var(--ink2)}
+  .preview-bar .live{margin-left:auto;display:flex;align-items:center;gap:6px;font:500 9.5px var(--mono);
+    letter-spacing:.16em;color:var(--accD)}
+  .preview-stage{position:relative;height:348px;background:#FDFDFB}
+  .pv-scene{position:absolute;inset:0;pointer-events:none;transition:opacity .4s;opacity:0}
+  .pv-scene.on{opacity:1}
+  .pv-caption{position:absolute;bottom:14px;left:16px;font:500 10px var(--mono);letter-spacing:.16em;color:var(--ink3)}
+  .preview-note{margin-top:12px;font:400 12px var(--sans);color:var(--ink3);text-align:right}
 
-  /* ══════════ reveal-on-scroll ══════════ */
-  [data-rv] { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1); }
-  [data-rv].on { opacity: 1; transform: none; }
-  @media (prefers-reduced-motion: reduce) { [data-rv] { opacity: 1 !important; transform: none !important; transition: none !important; } }
+  .hood{padding:88px 72px 96px;background:#fff;border-top:1px solid rgba(0,0,0,.06)}
+  .hood-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+  @media (max-width:900px){.hood-grid{grid-template-columns:1fr}}
+  .hood-card{transition:box-shadow .3s;border:1px solid rgba(0,0,0,.07);border-radius:16px;background:#fff;
+    overflow:hidden;box-shadow:0 18px 50px rgba(17,17,16,.07);cursor:default}
+  .hood-card:hover{box-shadow:0 30px 70px rgba(17,17,16,.14)}
+  .hood-card .head{position:relative;height:172px;overflow:hidden}
+  .hood-card .body{padding:20px 22px 22px}
+  .hood-card .body h3{font:600 19px var(--sans);letter-spacing:-.02em}
+  .hood-card .body p{margin-top:7px;font:400 13.5px/1.55 var(--sans);color:var(--ink2)}
+  .tags{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap}
+  .tag{font:500 9px var(--mono);letter-spacing:.12em;color:var(--ink2);border:1px solid rgba(0,0,0,.11);
+    border-radius:999px;padding:4px 10px}
+  .tag.acc{color:var(--accD);border-color:rgba(12,138,76,.3)}
 
-  /* ══════════ app rows ══════════ */
-  .apps-section { max-width: 1160px; margin: 96px auto 0; padding: 0 28px; }
-  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
-  .section-title { font-family: var(--serif); font-weight: 400; font-size: clamp(30px, 4vw, 44px); letter-spacing: -0.02em; color: var(--black); }
-  .section-count { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: var(--gray-2); text-transform: uppercase; }
+  .tryit{display:grid;grid-template-columns:1fr 380px;gap:72px;align-items:center;padding:92px 72px;
+    border-top:1px solid rgba(0,0,0,.06)}
+  @media (max-width:900px){.tryit{grid-template-columns:1fr}}
+  .tryit h2{margin-top:16px;font:600 42px/1.1 var(--sans);letter-spacing:-.03em}
+  .tryit p{margin-top:18px;max-width:440px;font:400 16px/1.65 var(--sans);color:var(--ink2)}
+  .tryit .link{margin-top:24px;font:600 14.5px var(--sans);color:var(--accD);cursor:pointer;display:inline-block}
+  .calc{border:1px solid rgba(0,0,0,.08);border-radius:16px;background:#fff;padding:18px;box-shadow:0 30px 80px rgba(17,17,16,.12)}
+  .calc-sub{height:18px;font:500 13px var(--mono);color:var(--ink3);text-align:right;overflow:hidden}
+  .calc-main{margin-top:2px;font:500 40px var(--mono);color:var(--ink);text-align:right;overflow:hidden;white-space:nowrap}
+  .calc-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+  .calc-keys button{height:56px;border-radius:10px;font:500 17px var(--sans);cursor:pointer;user-select:none;
+    transition:transform .12s,box-shadow .2s;border:1px solid rgba(0,0,0,.09);background:#fff;color:var(--ink)}
+  .calc-keys button:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(17,17,16,.1)}
+  .calc-keys button.fn{background:#F5F5F3;color:var(--ink2)}
+  .calc-keys button.op{background:#EFF7EA;color:var(--accD)}
+  .calc-keys button.eq{background:var(--ink);color:#fff;border-color:var(--ink)}
 
-  .app-rows-wrap { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
-  @media (max-width: 980px) { .app-rows-wrap { grid-template-columns: 1fr; } }
+  .cost{padding:96px 72px;border-top:1px solid rgba(0,0,0,.06);background:#fff;text-align:center}
+  .cost-lead{font:400 42px var(--serif);letter-spacing:-.03em;color:var(--ink2)}
+  .cost-zero{margin-top:4px;font:700 clamp(90px,18vw,180px)/1 var(--sans);letter-spacing:-.06em;color:var(--accD)}
+  .cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:720px;margin:44px auto 0;text-align:left}
+  @media (max-width:640px){.cost-grid{grid-template-columns:1fr}}
+  .cost-card{border-radius:14px;padding:22px 24px}
+  .cost-card.grey{background:#F6F6F4;border:1px solid rgba(0,0,0,.06)}
+  .cost-card.dark{background:var(--ink);box-shadow:0 26px 60px rgba(17,17,16,.24)}
+  .cost-card .lab{font:500 10px var(--mono);letter-spacing:.2em;color:var(--ink3)}
+  .cost-card.dark .lab{color:var(--acc)}
+  .cost-card ul{list-style:none;display:flex;flex-direction:column;gap:10px;margin-top:14px;font:400 14px var(--sans);color:var(--ink2)}
+  .cost-card.dark ul{color:#E8E8E4}
+  .cost-card li{display:flex;gap:10px;align-items:baseline}
+  .cost-card.grey li span.mark{color:var(--ink3)}
+  .cost-card.dark li span.mark{color:var(--acc)}
+  .cost-note{margin:28px auto 0;max-width:460px;font:400 15px/1.7 var(--sans);color:var(--ink2)}
 
-  .app-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 20px;
-    padding: 26px 4px; border-top: 1px solid var(--rule);
-    text-decoration: none; color: inherit; cursor: pointer;
-  }
-  .app-rows-wrap .app-list .app-row:last-child { border-bottom: 1px solid var(--rule); }
-  .app-row-left { display: flex; align-items: baseline; gap: 18px; }
-  .app-no { font-family: var(--mono); font-size: 12px; color: var(--gray-2); width: 28px; }
-  .app-name { font-family: var(--serif); font-size: 26px; color: var(--black); transition: color .2s; }
-  .app-desc { font-family: var(--sans); font-size: 13px; color: var(--gray); display: none; }
-  @media (min-width: 640px) { .app-desc { display: block; } }
-  .app-arrow { font-family: var(--sans); font-size: 13px; color: var(--gray-2); transition: transform .2s, color .2s; }
-  .app-row:hover .app-name { color: var(--accD); }
-  .app-row:hover .app-arrow { transform: translateX(4px); color: var(--black); }
-  .app-row.active .app-name { color: var(--accD); }
+  .foot{padding:88px 72px 0;border-top:1px solid rgba(0,0,0,.06);text-align:center}
+  .foot h2{font:600 52px var(--sans);letter-spacing:-.04em}
+  .foot-links{display:flex;justify-content:center;gap:24px;margin-top:44px;font:500 11px var(--mono);
+    letter-spacing:.12em;color:var(--ink2);flex-wrap:wrap}
+  .foot-links a:hover{color:var(--ink)}
+  .foot-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:52px;
+    padding:18px 0 22px;border-top:1px solid rgba(0,0,0,.06);font:500 10.5px var(--mono);letter-spacing:.14em;color:var(--ink3)}
 
-  .preview-panel {
-    position: sticky; top: 100px;
-    border: 1px solid var(--rule-2); border-radius: 24px;
-    background: #fff; overflow: hidden;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.06);
+  @media (prefers-reduced-motion:reduce){
+    .ffx-pill,.ffx-h1,.ffx-sub,.ffx-cta-row,.ffx-mono-note,.mock-wrap,[data-rv]{animation:none!important;opacity:1!important;transform:none!important}
   }
-  @media (max-width: 980px) { .preview-panel { position: static; } }
-  .preview-art {
-    height: 220px; display: flex; align-items: center; justify-content: center;
-    font-family: var(--serif); font-style: italic; font-size: 20px; color: #fff;
-    background: var(--black); transition: background .4s ease;
-    position: relative; overflow: hidden;
+  @media (max-width:900px){
+    nav.ffx-nav,section.pad,.hood,.tryit,.cost,.foot{padding-left:24px;padding-right:24px}
+    .ffx-h1{font-size:44px}
+    .cost-zero{font-size:22vw}
   }
-  .preview-art .rec {
-    position: absolute; top: 14px; right: 14px;
-    font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
-    background: rgba(255,255,255,0.14); color: #fff; border-radius: 999px;
-    padding: 4px 10px; display: flex; align-items: center; gap: 5px;
-  }
-  .preview-art .rec::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--acc); animation: ffx-pulse 1.6s infinite; }
-  @keyframes ffx-pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
-  .preview-body { padding: 22px 24px 26px; }
-  .preview-body .pv-no { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; color: var(--gray-2); text-transform: uppercase; }
-  .preview-body h3 { margin-top: 8px; font-family: var(--serif); font-weight: 400; font-size: 24px; color: var(--black); }
-  .preview-body p { margin-top: 8px; font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--gray); min-height: 40px; }
-  .preview-body a.enter {
-    margin-top: 16px; display: inline-flex; align-items: center; gap: 6px;
-    font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--black);
-    text-decoration: none; border-bottom: 1px solid var(--black); padding-bottom: 2px;
-  }
-
-  /* ══════════ live calculator demo ══════════ */
-  .demo-section { max-width: 700px; margin: 120px auto 0; padding: 0 28px; text-align: center; }
-  .demo-inst {
-    margin-top: 32px; text-align: left;
-    background: #fff; border: 1px solid var(--rule-2); border-radius: 28px;
-    padding: 12px; box-shadow: 0 24px 70px rgba(0,0,0,0.05);
-  }
-  .demo-inner { border: 1px solid var(--rule); border-radius: 18px; padding: 24px; }
-  .demo-readout { border-bottom: 1px solid var(--rule-2); padding-bottom: 14px; margin-bottom: 14px; text-align: right; }
-  .demo-expr { font-family: var(--mono); font-size: 12px; color: var(--gray-2); min-height: 16px; }
-  .demo-val { font-family: var(--serif); font-size: 40px; color: var(--black); letter-spacing: -0.01em; }
-  .demo-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .demo-pad button {
-    font-family: var(--sans); font-size: 16px; font-weight: 500;
-    padding: 15px 0; border-radius: 12px; border: 1px solid var(--rule-2);
-    background: var(--wash); color: var(--black); transition: background .15s, transform .1s;
-  }
-  .demo-pad button:hover { background: var(--rule); }
-  .demo-pad button:active { transform: scale(0.96); }
-  .demo-pad button.op { background: var(--black); color: #fff; border-color: var(--black); }
-  .demo-pad button.op:hover { background: var(--accD); border-color: var(--accD); }
-  .demo-pad button.eq { background: var(--acc); color: var(--black); border-color: var(--acc); grid-row: span 2; }
-  .demo-pad button.eq:hover { background: var(--accH); }
-  .demo-link { display: block; margin-top: 18px; font-family: var(--sans); font-size: 13px; color: var(--gray); }
-  .demo-link a { color: var(--black); border-bottom: 1px solid var(--rule-2); }
-
-  /* ══════════ access / closing CTA ══════════ */
-  .access-section {
-    margin: 130px auto 0; padding: 70px 28px;
-    background: var(--black); color: #fff;
-  }
-  .access-inner { max-width: 760px; margin: 0 auto; text-align: center; }
-  .access-inner h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(32px, 5vw, 54px); letter-spacing: -0.02em; }
-  .access-inner h2 em { font-style: italic; color: var(--acc); }
-  .access-inner p { margin-top: 16px; font-family: var(--sans); font-size: 15px; color: rgba(255,255,255,0.6); }
-  .access-cta {
-    margin-top: 28px; display: inline-flex; align-items: center; gap: 8px;
-    background: var(--acc); color: var(--black); border-radius: 999px;
-    font-family: var(--sans); font-size: 14px; font-weight: 600;
-    padding: 15px 30px; text-decoration: none; transition: transform .2s, background .2s;
-  }
-  .access-cta:hover { transform: scale(1.03); background: var(--accH); }
 </style>
 </head>
 <body>
-<div class="page-wrap">
 
-  <!-- ══════════ cinematic intro ══════════ -->
-  <section id="intro">
-    <canvas id="introCanvas"></canvas>
-    <div class="intro-stage" id="introStage">
-      <div class="mark">
-        <svg viewBox="0 0 40 40" fill="none">
-          <circle cx="13" cy="17" r="2.4" fill="#111110"/>
-          <path d="M24 15 C24 15 28 17 28 19.5" stroke="#111110" stroke-width="2.4" stroke-linecap="round"/>
-          <path d="M12 26 C16 30 24 30 28 25" stroke="#111110" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-        </svg>
-      </div>
-      <div class="wordmark-wrap" id="wordmark"></div>
-      <div class="hook">Seven instruments. One place.</div>
-    </div>
-    <div class="scroll-cue"><span>Scroll</span><i></i></div>
-  </section>
-
-  <!-- ══════════ scroll-driven card assembly ══════════ -->
-  <section id="assembly">
-    <div class="pin">
-      <div class="headline-band" id="bandOne">Seven apps. One place.</div>
-      <div class="headline-band" id="bandTwo">Until now.</div>
-      <div class="asm-grid" id="asmGrid"></div>
-    </div>
-  </section>
-
-  <!-- ══════════ hero ══════════ -->
-  <section class="hero" data-rv>
-    <div class="hero-over">Funflix &middot; MMXXVI</div>
-    <h1 class="hero-title">Finally, something<br><em>to play.</em></h1>
-    <p class="hero-sub">Seven small instruments, cut entirely from code — a calculator, a newsroom, an image atelier, a noir, two open worlds, a bio-analytics dossier. Zero downloads, no assets, all vibes.</p>
-    <div class="hero-cta">
-      <a href="#channels" class="primary">Enter the collection</a>
-      <a href="#demo" class="ghost">Try the calculator →</a>
-    </div>
-  </section>
-
-  <!-- ══════════ app rows ══════════ -->
-  <section class="apps-section" id="channels" data-rv>
-    <div class="section-head">
-      <div class="section-title">The collection</div>
-      <div class="section-count">7 signals &middot; always on</div>
-    </div>
-    <div class="app-rows-wrap">
-      <div class="app-list" id="appList"></div>
-      <div class="preview-panel" id="previewPanel">
-        <div class="preview-art" id="pvArt"><span class="rec">rec</span><span id="pvArtLabel"></span></div>
-        <div class="preview-body">
-          <div class="pv-no" id="pvNo"></div>
-          <h3 id="pvName"></h3>
-          <p id="pvDesc"></p>
-          <a class="enter" id="pvEnter" href="#">Enter →</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════ live calculator demo ══════════ -->
-  <section class="demo-section" id="demo" data-rv>
-    <div class="hero-over">No. I &middot; Compute</div>
-    <div class="section-title" style="font-size:clamp(28px,4vw,40px)">Try it, right here.</div>
-    <div class="demo-inst">
-      <div class="demo-inner">
-        <div class="demo-readout">
-          <div class="demo-expr" id="dExpr">&nbsp;</div>
-          <div class="demo-val" id="dVal">0</div>
-        </div>
-        <div class="demo-pad" id="dPad"></div>
-      </div>
-    </div>
-    <span class="demo-link">Want the full instrument? <a href="/calculator" data-nav>Open Compute →</a></span>
-  </section>
-
-  <!-- ══════════ access / closing ══════════ -->
-  <section class="access-section" data-rv>
-    <div class="access-inner">
-      <h2>Member <em>Nº 0001.</em></h2>
-      <p>Private entrance, connoisseur class. Follow along as new instruments get made — right now, live, in public.</p>
-      <a class="access-cta" href="https://x.com" target="_blank" rel="noopener noreferrer">Follow on X →</a>
-    </div>
-  </section>
-
+<!-- SCROLL-CANVAS INTRO -->
+<div id="introTrack">
+  <canvas id="introCanvas"></canvas>
 </div>
-<script src="/static/os.js"></script>
+
+<nav class="ffx-nav">
+  <svg width="73" height="15" viewBox="0 0 486 100" style="display:block"><path fill="#111110" d="M0 0 L24 0 L24 100 L0 100 Z M0 0 L60 0 L60 24 L0 24 Z M0 38 L50 38 L50 58 L0 58 Z"></path><path fill="var(--accD)" transform="translate(74)" d="M0 0 L26 0 L26 55 Q26 74 33 74 Q40 74 40 55 L40 0 L66 0 L66 55 Q66 100 33 100 Q0 100 0 55 Z"></path><path fill="#111110" transform="translate(152)" d="M0 0 L26 0 L44 52 L44 0 L70 0 L70 100 L44 100 L26 48 L26 100 L0 100 Z"></path><g transform="translate(234)" fill="none" stroke="#111110" stroke-width="6"><rect x="3" y="3" width="18" height="94"></rect><rect x="3" y="3" width="54" height="18"></rect><rect x="3" y="40" width="44" height="14"></rect></g><path fill="#111110" transform="translate(308)" d="M0 0 L26 0 L56 76 L56 100 L0 100 Z"></path><rect x="376" width="26" height="100" fill="var(--accD)"></rect><path fill="#111110" transform="translate(414)" d="M0 0 L26 0 L72 100 L46 100 Z M46 0 L72 0 L26 100 L0 100 Z"></path></svg>
+  <div class="ffx-nav-links">
+    <a class="link" href="#apps" id="navApps">Apps</a>
+    <a class="link" href="#cost">Cost</a>
+    <a class="link" href="#about">About</a>
+    <span class="ffx-cta">Open FUNFLIX</span>
+  </div>
+</nav>
+
+<div class="ffx-hero">
+  <div class="ffx-pill"><span class="ffx-dot"></span><span style="font:500 11px var(--mono);letter-spacing:.16em;color:var(--ink2)">ALL SEVEN APPS ONLINE</span></div>
+  <h1 class="ffx-h1"><span class="w">Finally, something</span><br><span class="w2">to <span id="heroWord" style="color:var(--accD)">play</span>.</span></h1>
+  <p class="ffx-sub">Seven original web apps &mdash; a scientific calculator, a joke-writing studio, an automated newsroom, and four playable worlds. One tab, nothing to install, <b style="color:var(--accD)">$0</b>.</p>
+  <div class="ffx-cta-row">
+    <span class="ffx-cta big">Open FUNFLIX</span>
+    <a class="ffx-ghost" href="#apps">Browse the apps &rarr;</a>
+  </div>
+  <div class="ffx-mono-note">NO ACCOUNT &middot; NO INSTALL &middot; NO ADS</div>
+
+  <div class="mock-wrap">
+    <div class="mock-glow" style="left:-20px;top:40px;background:radial-gradient(circle,rgba(189,242,63,.4),transparent 68%)"></div>
+    <div class="mock-glow" style="right:-30px;top:10px;background:radial-gradient(circle,rgba(59,130,246,.2),transparent 68%)"></div>
+    <div class="mock-window">
+      <div class="mock-bar"><span class="mock-dots"><span></span><span></span><span></span></span><span class="mock-url">funflix.app</span><span style="width:39px"></span></div>
+      <div class="mock-grid" id="mockGrid"></div>
+    </div>
+    <div class="chip chip-load">
+      <div style="font:500 9.5px var(--mono);letter-spacing:.16em;color:var(--ink3)">AVG LOAD TIME</div>
+      <div style="margin-top:3px;font:600 21px var(--sans);letter-spacing:-.02em">0.4s</div>
+      <div style="margin-top:6px;width:104px;height:4px;border-radius:99px;background:rgba(0,0,0,.07)"><div style="width:26px;height:4px;border-radius:99px;background:var(--accD)"></div></div>
+    </div>
+    <div class="chip chip-calc">
+      <div style="display:flex;align-items:center;gap:5px;padding:7px 10px;background:#F6F6F4;border-bottom:1px solid rgba(0,0,0,.05)">
+        <span style="width:7px;height:7px;border-radius:50%;background:#E2E2DE"></span><span style="width:7px;height:7px;border-radius:50%;background:#E2E2DE"></span>
+        <span style="margin-left:4px;font:500 8.5px var(--mono);color:var(--ink3)">compute</span>
+      </div>
+      <div style="padding:10px 12px 12px;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+        <div id="chipExpr" style="font:500 10px var(--mono);color:var(--ink3)"></div>
+        <div id="chipRes" style="font:500 17px var(--mono);color:var(--accD)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="trust">
+  <span class="lead">BUILT FROM SCRATCH WITH</span>
+  <span style="font:600 14.5px var(--sans);color:var(--ink4)">TypeScript</span>
+  <span>WebGL</span>
+  <span style="font:600 14.5px var(--sans);color:var(--ink4)">Canvas</span>
+  <span style="font:600 14.5px var(--sans);color:var(--ink4)">Web Audio</span>
+  <span>PWA</span>
+</div>
+
+<section class="pad" id="apps">
+  <div class="eyebrow" data-rv>THE APPS</div>
+  <div class="apps-head" data-rv data-delay="90">
+    <div class="h2" style="margin-top:0">Seven apps, all live.</div>
+    <div class="apps-status"><span class="ffx-dot" style="background:var(--accD)"></span><span id="localClock">LOCAL 00:00:00</span>&nbsp;&middot; ALL SYSTEMS NORMAL</div>
+  </div>
+  <div class="apps-layout">
+    <div class="apps-list" data-rv data-delay="150" id="appsList"></div>
+    <div class="preview" data-rv data-delay="220">
+      <div class="preview-win">
+        <div class="preview-bar">
+          <span style="width:8px;height:8px;border-radius:50%;background:#E2E2DE;display:block"></span>
+          <span style="width:8px;height:8px;border-radius:50%;background:#E2E2DE;display:block"></span>
+          <span style="width:8px;height:8px;border-radius:50%;background:#E2E2DE;display:block"></span>
+          <span class="url" id="pvUrl">funflix.app/compute</span>
+          <span class="live"><span class="ffx-dot" style="background:var(--accD)"></span>LIVE</span>
+        </div>
+        <div class="preview-stage" id="pvStage"></div>
+      </div>
+      <div class="preview-note">Live render &mdash; real code running on this page, not screenshots or video.</div>
+    </div>
+  </div>
+</section>
+
+<div class="hood">
+  <div class="eyebrow" data-rv>UNDER THE HOOD</div>
+  <div class="h2" data-rv data-delay="90">Built like products, not toys.</div>
+  <div class="hood-grid">
+    <div class="hood-card" data-rv data-delay="140">
+      <div class="head" style="background:linear-gradient(#141B2E 0%,#4A3D52 42%,#B0684E 68%,#E5A063 84%,#0B0B0B 84.5%)">
+        <div style="position:absolute;left:50%;top:72px;width:38px;height:38px;margin-left:-19px;border-radius:50%;background:#F5CE96;box-shadow:0 0 40px 14px rgba(245,190,120,.45);animation:ffx-sunrise 6s ease-in-out infinite"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:30px;background:#0B0B0B"></div>
+        <div style="position:absolute;bottom:22px;left:36px;width:20px;height:36px;background:#101010"></div>
+        <div style="position:absolute;bottom:22px;right:52px;width:24px;height:44px;background:#101010"></div>
+      </div>
+      <div class="body">
+        <h3>Costa Vista</h3>
+        <p>One directional light, tuned to 18:42 and never moved. A whole city rendered at golden hour, forever.</p>
+        <div class="tags"><span class="tag">WEBGL</span><span class="tag">60 FPS</span><span class="tag acc">0 ASSETS</span></div>
+      </div>
+    </div>
+    <div class="hood-card" data-rv data-delay="240">
+      <div class="head" style="background:#FDFDFB;border-bottom:1px solid rgba(0,0,0,.05);padding:20px 24px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:600 11px var(--sans);letter-spacing:.22em">THE PRESS</span><span id="hoodClock" style="font:500 10px var(--mono);color:var(--accD)"></span></div>
+        <div style="height:1px;background:rgba(0,0,0,.08);margin:12px 0"></div>
+        <div id="hoodHead" style="font:500 13.5px/1.4 var(--sans);color:var(--ink)"></div>
+        <div style="margin-top:3px;font:500 8.5px var(--mono);letter-spacing:.14em;color:var(--accD)">JUST NOW</div>
+      </div>
+      <div class="body">
+        <h3>The Press</h3>
+        <p>A newsroom that files stories around the clock. The clock above is real &mdash; so are the deadlines.</p>
+        <div class="tags"><span class="tag">AUTOMATION</span><span class="tag acc">LIVE 24/7</span></div>
+      </div>
+    </div>
+    <div class="hood-card" data-rv data-delay="340">
+      <div class="head" style="background:#FBFDF8">
+        <div style="position:absolute;left:50%;top:50%;width:180px;height:180px;margin:-90px 0 0 -90px;border-radius:50%;border:1px solid rgba(12,138,76,.26)"></div>
+        <div style="position:absolute;left:50%;top:50%;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:1px solid rgba(12,138,76,.2)"></div>
+        <div style="position:absolute;left:50%;top:50%;width:180px;height:180px;margin:-90px 0 0 -90px;border-radius:50%;background:conic-gradient(from 0deg,rgba(12,138,76,.22),transparent 25%);animation:ffx-spin 3.6s linear infinite"></div>
+      </div>
+      <div class="body">
+        <h3>The Fly</h3>
+        <p>A courier flight game over a town built by hand &mdash; every rooftop placed one at a time.</p>
+        <div class="tags"><span class="tag">CANVAS</span><span class="tag">PHYSICS</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tryit" id="tryit">
+  <div data-rv>
+    <div class="eyebrow">TRY ONE NOW</div>
+    <h2>Don't take our word for it.</h2>
+    <p>This is Compute &mdash; the actual app, embedded on this page. Press the keys. It calculates. Every FUNFLIX app loads this fast, with nothing to install.</p>
+    <a class="link" href="/calculator" data-nav>Open the full app &rarr;</a>
+  </div>
+  <div class="calc" data-rv data-delay="150">
+    <div class="calc-sub" id="calcSub">&nbsp;</div>
+    <div class="calc-main" id="calcMain">0</div>
+    <div class="calc-keys" id="calcKeys"></div>
+  </div>
+</div>
+
+<div class="cost" id="cost">
+  <div class="cost-lead" data-rv>and it costs&hellip;</div>
+  <div class="cost-zero" data-rv data-delay="140">$0</div>
+  <div class="cost-grid" data-rv data-delay="240">
+    <div class="cost-card grey">
+      <div class="lab">A TYPICAL APP</div>
+      <ul>
+        <li><span class="mark">&times;</span><span>4.2 GB download</span></li>
+        <li><span class="mark">&times;</span><span>Account required</span></li>
+        <li><span class="mark">&times;</span><span>$9.99 / month</span></li>
+        <li><span class="mark">&times;</span><span>Ads between sessions</span></li>
+      </ul>
+    </div>
+    <div class="cost-card dark">
+      <div class="lab">FUNFLIX</div>
+      <ul>
+        <li><span class="mark">&check;</span><span>0 MB &mdash; runs in the tab</span></li>
+        <li><span class="mark">&check;</span><span>No account</span></li>
+        <li><span class="mark">&check;</span><span>$0, forever</span></li>
+        <li><span class="mark">&check;</span><span>No ads, ever</span></li>
+      </ul>
+    </div>
+  </div>
+  <p class="cost-note" data-rv data-delay="320">No catch. We build these because we like building them.</p>
+</div>
+
+<div class="foot" id="about">
+  <h2 data-rv>Start with any app.</h2>
+  <span class="ffx-cta big" data-rv data-delay="120" style="margin-top:28px;display:inline-block">Open FUNFLIX</span>
+  <div class="foot-links" id="footLinks"></div>
+  <div class="foot-bar">
+    <span>&copy; MMXXVI FUNFLIX</span><span>TEAM@FUNFLIX.APP</span><span>INSTAGRAM &middot; X</span><span>100% ORIGINAL SOFTWARE</span>
+  </div>
+</div>
+
 <script>
 (() => {
-  const MODULES = [
-    { no: 'I',   name: 'Compute',     desc: 'A scientific instrument of uncommon precision.', path: '/calculator', bg: '#111110' },
-    { no: 'II',  name: 'Synthesis',   desc: 'An atelier for the manufacture of jokes.', path: '/meme', bg: '#2b2b26' },
-    { no: 'III', name: 'The Press',   desc: 'A newsroom staffed by one tireless machine.', path: '/journalist', bg: '#1c2a22' },
-    { no: 'IV',  name: 'Flyuserfly',  desc: 'A noir in three case files — rain included.', path: '/game', bg: '#0a0f1e' },
-    { no: 'V',   name: 'Costa Vista', desc: 'An open world, kept permanently at golden hour.', path: '/play/city-game', bg: '#3a2a1e' },
-    { no: 'VI',  name: 'The Study',   desc: 'A bio-analytics dossier, read aloud by a machine.', path: '/study', bg: '#14202c' },
-    { no: 'VII', name: 'The Fly',     desc: 'Fly a courier through a hand-built town, one letter at a time.', path: '/play/the-fly', bg: '#16281f' },
+  const APPS = [
+    { name:'Compute',    cat:'TOOL',   role:'Scientific calculator · Percentages · Powers · Full history', href:'/calculator', slug:'compute', bg:'#0D0D0C', ac:'#BDF23F' },
+    { name:'Synthesis',  cat:'STUDIO', role:'Joke-writing studio · Setups · Punchlines · Drafts', href:'/meme', slug:'synthesis', bg:'#130920', ac:'#C084FC' },
+    { name:'The Press',  cat:'NEWS',   role:'Automated newsroom · Fresh headlines, around the clock', href:'/journalist', slug:'press', bg:'#06141F', ac:'#67E8F9' },
+    { name:'Flyuserfly', cat:'GAME',   role:'Noir mystery in three chapters · Interactive fiction', href:'/game', slug:'flyuserfly', bg:'#081510', ac:'#4ADE80' },
+    { name:'Costa Vista',cat:'WORLD',  role:'Open city at permanent golden hour · Free roam', href:'/play/city-game', slug:'costa-vista', bg:'#1C1005', ac:'#FCD34D' },
+    { name:'The Study',  cat:'DATA',   role:'Personal health dashboard · Live metrics · Trends', href:'/study', slug:'study', bg:'#040E1A', ac:'#38BDF8' },
+    { name:'The Fly',    cat:'GAME',   role:'Courier flight game · Deliveries over a hand-built town', href:'/play/the-fly', slug:'fly', bg:'#130700', ac:'#FB923C' },
+  ];
+  const WORDS = ['play', 'read', 'fly', 'build', 'solve'];
+  const HEADLINES = [
+    'Compute logs its one-millionth calculation',
+    'Golden hour holds for a 214th consecutive day in Costa Vista',
+    'Courier 07 clears the harbor route in record time',
+    'Synthesis publishes forty new punchlines before lunch',
+    'The Study confirms: eight hours of sleep still works'
+  ];
+  const EQS = [['√2,209','47'], ['128 × 46','5,888'], ['9! ÷ 6!','504'], ['2¹⁰','1,024'], ['sin 90°','1']];
+  const JOKES = [
+    ['My calculator has trust issues.', 'It keeps double-checking my figures.'],
+    ['I wrote a headline about the newsroom.', 'It filed a correction.'],
+    ['Why does the courier love golden hour?', 'Every delivery looks well-lit.']
   ];
 
-  /* ── wordmark letter reveal ── */
-  const word = 'funflix';
-  const wm = document.getElementById('wordmark');
-  wm.innerHTML = word.split('').map((ch, i) =>
-    `<span style="animation-delay:${(0.15 + i * 0.07).toFixed(2)}s${ch === 'i' ? ';color:var(--accD)' : ''}">${ch}</span>`).join('');
+  let eqI = 0, headI = 0, jokeI = 0, wordI = 0;
+  function eq() { return EQS[eqI % EQS.length]; }
 
-  requestAnimationFrame(() => document.getElementById('introStage').classList.add('on'));
+  /* ---------- clock ---------- */
+  function tickClock() {
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const t = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    const lc = document.getElementById('localClock'); if (lc) lc.textContent = 'LOCAL ' + t;
+    const hc = document.getElementById('hoodClock'); if (hc) hc.textContent = t;
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
 
-  /* ── dim floating cards behind the wordmark ── */
-  const intro = document.getElementById('intro');
-  const floatLabels = ['I','II','III','IV','V'];
-  const floats = floatLabels.map(l => {
-    const d = document.createElement('div');
-    d.className = 'float-card';
-    d.textContent = 'Nº ' + l;
-    intro.appendChild(d);
-    return d;
+  /* ---------- rotating hero word ---------- */
+  setInterval(() => {
+    const el = document.getElementById('heroWord');
+    if (!el) return;
+    el.style.transition = 'opacity .22s';
+    el.style.opacity = '0';
+    setTimeout(() => { wordI++; el.textContent = WORDS[wordI % WORDS.length]; el.style.opacity = '1'; }, 220);
+  }, 2600);
+
+  /* ---------- rotating equation (hero chip) ---------- */
+  function paintChip() {
+    const e = eq();
+    const a = document.getElementById('chipExpr'), b = document.getElementById('chipRes');
+    if (a) a.textContent = e[0];
+    if (b) b.textContent = '= ' + e[1];
+  }
+  paintChip();
+  setInterval(() => { eqI++; paintChip(); }, 2600);
+
+  /* ---------- rotating headline (hood card) ---------- */
+  function paintHood() {
+    const h = document.getElementById('hoodHead');
+    if (h) h.textContent = HEADLINES[headI % HEADLINES.length];
+  }
+  paintHood();
+  setInterval(() => { headI++; paintHood(); }, 3400);
+  setInterval(() => { jokeI++; }, 4600);
+
+  /* ---------- mini scene HTML builders (reused for mock grid + preview) ---------- */
+  function sceneCompute() {
+    const e = eq();
+    return '<div style="position:absolute;inset:0;background:#111110">' +
+      '<div style="position:absolute;right:10px;bottom:8px;font:500 13px var(--mono);color:var(--acc)">= ' + e[1] + '</div>' +
+      '<div style="position:absolute;left:10px;top:8px;font:500 8px var(--mono);color:rgba(255,255,255,.4)">' + e[0] + '</div></div>';
+  }
+  function sceneSynthesis() {
+    return '<div style="position:absolute;inset:0;background:#FDFDFB;padding:10px 12px">' +
+      '<div style="height:8px;border-radius:4px;background:rgba(0,0,0,.08);width:82%"></div>' +
+      '<div style="height:8px;border-radius:4px;background:rgba(0,0,0,.08);width:60%;margin-top:6px"></div>' +
+      '<div style="height:8px;border-radius:4px;background:rgba(12,138,76,.4);width:70%;margin-top:6px"></div></div>';
+  }
+  function scenePress() {
+    return '<div style="position:absolute;inset:0;background:#fff;padding:9px 12px;border-bottom:1px solid rgba(0,0,0,.04)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:600 8px var(--sans);letter-spacing:.2em">THE PRESS</span><span class="miniclock" style="font:500 7.5px var(--mono);color:var(--accD)"></span></div>' +
+      '<div style="height:7px;border-radius:4px;background:rgba(0,0,0,.1);width:90%;margin-top:8px"></div>' +
+      '<div style="height:7px;border-radius:4px;background:rgba(0,0,0,.06);width:72%;margin-top:5px"></div></div>';
+  }
+  function sceneFly() {
+    return '<div style="position:absolute;inset:0;background:#0B0D12;overflow:hidden">' +
+      '<div style="position:absolute;inset:0;background:repeating-linear-gradient(170deg,transparent 0 7px,rgba(150,170,210,.14) 7px 8px);animation:ffx-rainfall 1.2s linear infinite"></div>' +
+      '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 11px var(--sans);color:#fff">The Harbor Job</div></div>';
+  }
+  function sceneCosta() {
+    return '<div style="position:absolute;inset:0;background:linear-gradient(#141B2E 0%,#4A3D52 45%,#B0684E 72%,#E5A063 88%,#0B0B0B 88.5%);overflow:hidden">' +
+      '<div style="position:absolute;left:50%;top:26px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:#F5CE96;box-shadow:0 0 18px 6px rgba(245,190,120,.5)"></div></div>';
+  }
+  function sceneStudy() {
+    return '<div style="position:absolute;inset:0;background:#fff;display:flex;align-items:center;gap:10px;padding:0 12px">' +
+      '<div style="width:26px;height:26px;border-radius:50%;border:2px solid rgba(12,138,76,.6);animation:ffx-heartbeat 1.6s infinite"></div>' +
+      '<div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:6px;border-radius:4px;background:rgba(12,138,76,.5);width:80%"></div><div style="height:6px;border-radius:4px;background:rgba(0,0,0,.14);width:55%"></div></div></div>';
+  }
+  function sceneTheFly() {
+    return '<div style="position:absolute;inset:0;background:#FBFDF8;overflow:hidden">' +
+      '<div style="position:absolute;left:50%;top:50%;width:70px;height:70px;margin:-35px 0 0 -35px;border-radius:50%;border:1px solid rgba(12,138,76,.28)"></div>' +
+      '<div style="position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;border:1px solid rgba(12,138,76,.2)"></div>' +
+      '<div style="position:absolute;left:50%;top:50%;width:70px;height:70px;margin:-35px 0 0 -35px;border-radius:50%;background:conic-gradient(from 0deg,rgba(12,138,76,.24),transparent 26%);animation:ffx-spin 3.6s linear infinite"></div>' +
+      '<div style="position:absolute;left:60%;top:34%;width:5px;height:5px;border-radius:50%;background:var(--accD)"></div></div>';
+  }
+  const SCENES = [sceneCompute, sceneSynthesis, scenePress, sceneFly, sceneCosta, sceneStudy, sceneTheFly];
+
+  /* ---------- build hero mockup grid ---------- */
+  const mockGrid = document.getElementById('mockGrid');
+  APPS.forEach((a, i) => {
+    const t = document.createElement('div');
+    t.className = 'mtile';
+    t.innerHTML = '<div class="scene">' + SCENES[i]() + '</div><div class="cap"><b>' + a.name + '</b><span>' + a.cat + '</span></div>';
+    mockGrid.appendChild(t);
   });
-  function placeFloats() {
-    const w = intro.clientWidth, h = intro.clientHeight;
-    const spots = [
-      [0.10, 0.22], [0.86, 0.16], [0.06, 0.72], [0.90, 0.68], [0.5, 0.88],
-    ];
-    floats.forEach((f, i) => {
-      const [px, py] = spots[i % spots.length];
-      f.style.left = (px * w - 75) + 'px';
-      f.style.top = (py * h - 54) + 'px';
+  const freeTile = document.createElement('div');
+  freeTile.className = 'mtile free';
+  freeTile.innerHTML = '<div style="font:500 8.5px var(--mono);letter-spacing:.16em;color:var(--acc)">EVERYTHING FREE</div><div style="font:600 12.5px var(--sans);color:#fff">No account. No install.</div>';
+  mockGrid.appendChild(freeTile);
+
+  /* ---------- apps list + preview panel ---------- */
+  const appsList = document.getElementById('appsList');
+  const pvStage = document.getElementById('pvStage');
+  const pvUrl = document.getElementById('pvUrl');
+  const rows = [];
+  const pvScenes = [];
+  APPS.forEach((a, i) => {
+    const row = document.createElement('a');
+    row.className = 'app-row';
+    row.href = a.href;
+    row.setAttribute('data-nav', '');
+    row.innerHTML = '<span class="num">0' + (i + 1) + '</span>' +
+      '<span class="cat">' + a.cat + '</span>' +
+      '<span><span class="name">' + a.name + '</span><div class="role">' + a.role + '</div></span>' +
+      '<span class="arrow">&rarr;</span>';
+    row.addEventListener('mouseenter', () => setActive(i, true));
+    appsList.appendChild(row);
+    rows.push(row);
+
+    const sc = document.createElement('div');
+    sc.className = 'pv-scene';
+    sc.innerHTML = SCENES[i]() + '<div class="pv-caption">' + a.cat + ' &middot; ' + a.name.toUpperCase() + '</div>';
+    pvStage.appendChild(sc);
+    pvScenes.push(sc);
+  });
+
+  let active = 0, hoverTime = 0;
+  function setActive(i, fromHover) {
+    active = i;
+    if (fromHover) hoverTime = Date.now();
+    rows.forEach((r, j) => r.classList.toggle('active', j === i));
+    pvScenes.forEach((s, j) => s.classList.toggle('on', j === i));
+    pvUrl.textContent = 'funflix.app/' + APPS[i].slug;
+  }
+  setActive(0, false);
+  setInterval(() => {
+    if (Date.now() - hoverTime < 7000) return;
+    setActive((active + 1) % APPS.length, false);
+  }, 5000);
+
+  document.getElementById('navApps').addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById('apps').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  /* ---------- footer app links ---------- */
+  const footLinks = document.getElementById('footLinks');
+  APPS.forEach(a => {
+    const link = document.createElement('a');
+    link.href = a.href;
+    link.setAttribute('data-nav', '');
+    link.textContent = a.name.toUpperCase();
+    footLinks.appendChild(link);
+  });
+
+  /* ---------- reveal on scroll ---------- */
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      const d = parseFloat(el.getAttribute('data-delay') || '0');
+      setTimeout(() => el.classList.add('on'), d);
+      io.unobserve(el);
     });
-  }
-  placeFloats();
-  window.addEventListener('resize', placeFloats);
-  floats.forEach((f, i) => {
-    f.animate(
-      [{ transform: 'translateY(0) rotate(-2deg)' }, { transform: `translateY(${-14 - i * 2}px) rotate(2deg)` }, { transform: 'translateY(0) rotate(-2deg)' }],
-      { duration: 4200 + i * 400, iterations: Infinity, easing: 'ease-in-out' }
-    );
-  });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('[data-rv]').forEach(el => io.observe(el));
 
-  /* ── grain texture on intro canvas ── */
-  const cvs = document.getElementById('introCanvas');
-  const ctx = cvs.getContext('2d');
-  function paintGrain() {
-    const w = cvs.width = intro.clientWidth;
-    const h = cvs.height = intro.clientHeight;
-    const img = ctx.createImageData(w, h);
-    for (let i = 0; i < img.data.length; i += 4) {
-      const v = 245 + Math.random() * 10;
-      img.data[i] = img.data[i+1] = img.data[i+2] = v;
-      img.data[i+3] = Math.random() < 0.5 ? 6 : 0;
+  /* ---------- live calculator ---------- */
+  const KEYS = [
+    ['C','fn'], ['±','fn'], ['%','fn'], ['÷','op'],
+    ['7',''], ['8',''], ['9',''], ['×','op'],
+    ['4',''], ['5',''], ['6',''], ['−','op'],
+    ['1',''], ['2',''], ['3',''], ['+','op'],
+    ['0',''], ['.',''], ['⌫','fn'], ['=','eq']
+  ];
+  const calcMainEl = document.getElementById('calcMain');
+  const calcSubEl = document.getElementById('calcSub');
+  const calcKeys = document.getElementById('calcKeys');
+  const c = { a: null, op: null, fresh: true };
+  let main = '0', sub = '';
+  function fmt(n) {
+    if (!isFinite(n)) return 'Error';
+    const r = Math.round(n * 1e9) / 1e9;
+    return r.toLocaleString('en-US', { maximumFractionDigits: 9 });
+  }
+  function val() { return parseFloat(String(main).replace(/,/g, '')) || 0; }
+  function apply(a, op, b) { return op === '+' ? a + b : op === '−' ? a - b : op === '×' ? a * b : a / b; }
+  function press(l) {
+    if (l >= '0' && l <= '9') {
+      main = (c.fresh || main === '0') ? l : (main.replace(/,/g, '').length < 12 ? main + l : main);
+      c.fresh = false;
+    } else if (l === '.') {
+      if (c.fresh) { main = '0.'; c.fresh = false; } else if (!main.includes('.')) { main += '.'; }
+    } else if (l === 'C') {
+      c.a = null; c.op = null; c.fresh = true; main = '0'; sub = '';
+    } else if (l === '⌫') {
+      if (!c.fresh) { main = main.length > 1 ? main.slice(0, -1) : '0'; if (main === '0' || main === '-') { main = '0'; c.fresh = true; } }
+    } else if (l === '±') {
+      if (main !== '0') main = main.startsWith('-') ? main.slice(1) : '-' + main;
+    } else if (l === '%') {
+      main = fmt(val() / 100); c.fresh = true;
+    } else if (l === '=') {
+      if (c.op != null && c.a != null) {
+        const b = val();
+        sub = fmt(c.a) + ' ' + c.op + ' ' + fmt(b) + ' =';
+        main = fmt(apply(c.a, c.op, b));
+        c.a = null; c.op = null; c.fresh = true;
+      }
+    } else {
+      if (c.op != null && c.a != null && !c.fresh) { c.a = apply(c.a, c.op, val()); main = fmt(c.a); }
+      else { c.a = val(); }
+      c.op = l; sub = fmt(c.a) + ' ' + l; c.fresh = true;
     }
-    ctx.putImageData(img, 0, 0);
+    calcMainEl.textContent = main;
+    calcSubEl.textContent = sub || ' ';
   }
-  paintGrain();
-  window.addEventListener('resize', paintGrain);
-
-  /* ── scroll-driven card assembly ── */
-  const asmSection = document.getElementById('assembly');
-  const bandOne = document.getElementById('bandOne');
-  const bandTwo = document.getElementById('bandTwo');
-  const asmGrid = document.getElementById('asmGrid');
-  const asmCards = MODULES.map((m, i) => {
-    const c = document.createElement('div');
-    c.className = 'asm-card';
-    c.style.setProperty('--r', (i % 2 === 0 ? -3 : 3) + 'deg');
-    c.textContent = m.name;
-    asmGrid.appendChild(c);
-    return c;
+  KEYS.forEach(([label, kind]) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    if (kind) b.className = kind;
+    b.addEventListener('click', () => press(label));
+    calcKeys.appendChild(b);
   });
+
+  /* ================= SCROLL-CANVAS CINEMATIC INTRO ================= */
+  const canvas = document.getElementById('introCanvas');
+  const track = document.getElementById('introTrack');
+  const ctx = canvas.getContext('2d');
+  const startTime = performance.now();
+  const accCol = '#BDF23F';
+  let cw = 0, ch = 0, grainTile = null, scCards = null;
+
+  function resize() {
+    const pr = Math.min(window.devicePixelRatio || 1, 2);
+    cw = canvas.clientWidth || window.innerWidth;
+    ch = canvas.clientHeight || window.innerHeight;
+    canvas.width = cw * pr;
+    canvas.height = ch * pr;
+    ctx.setTransform(pr, 0, 0, pr, 0, 0);
+    grainTile = null;
+    scCards = null;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function getGrain() {
+    if (grainTile && grainTile._w === cw) return grainTile;
+    const tmp = document.createElement('canvas');
+    tmp.width = cw; tmp.height = ch;
+    const tctx = tmp.getContext('2d');
+    const img = tctx.createImageData(cw, ch);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.random() * 255;
+      d[i] = v; d[i + 1] = v; d[i + 2] = v;
+      d[i + 3] = Math.random() * 22 + 4;
+    }
+    tctx.putImageData(img, 0, 0);
+    tmp._w = cw;
+    grainTile = tmp;
+    return tmp;
+  }
+
+  function rRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function lighten(hex, amt) {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return 'rgb(' + Math.min(255, Math.round(r + 255 * amt)) + ',' + Math.min(255, Math.round(g + 255 * amt)) + ',' + Math.min(255, Math.round(b + 255 * amt)) + ')';
+  }
+
+  function getScrollCards() {
+    if (scCards && scCards._cw === cw) return scCards;
+    const cx = cw / 2, cy = ch / 2 + 40;
+    const CW = 190, CH = 130, gap = 20;
+    const row1y = cy - 80, row2y = cy + 74;
+    const r1w = 4 * CW + 3 * gap, r2w = 3 * CW + 2 * gap;
+    const r1x = cx - r1w / 2 + CW / 2, r2x = cx - r2w / 2 + CW / 2;
+    const gx = [r1x, r1x + (CW + gap), r1x + 2 * (CW + gap), r1x + 3 * (CW + gap), r2x, r2x + (CW + gap), r2x + 2 * (CW + gap)];
+    const gy = [row1y, row1y, row1y, row1y, row2y, row2y, row2y];
+    const scatter = [
+      { dx: -0.40, dy: -0.26, rot: -24, sc: 0.82, delay: 0.00 },
+      { dx: 0.38, dy: -0.29, rot: 17, sc: 0.88, delay: 0.04 },
+      { dx: -0.44, dy: 0.30, rot: -9, sc: 0.96, delay: 0.02 },
+      { dx: -0.52, dy: 0.02, rot: 31, sc: 0.73, delay: 0.06 },
+      { dx: 0.47, dy: 0.13, rot: -23, sc: 0.91, delay: 0.03 },
+      { dx: 0.24, dy: -0.44, rot: 13, sc: 0.79, delay: 0.05 },
+      { dx: 0.36, dy: 0.40, rot: -17, sc: 0.86, delay: 0.01 },
+    ];
+    const apps = APPS.map(a => ({ name: a.name, cat: a.cat, bg: a.bg, ac: a.ac }));
+    const cards = apps.map((a, i) => Object.assign({}, a, {
+      cw: CW, ch: CH,
+      gx: gx[i], gy: gy[i],
+      sx: cx + scatter[i].dx * cw,
+      sy: cy + scatter[i].dy * ch,
+      sRot: scatter[i].rot, sSc: scatter[i].sc, delay: scatter[i].delay,
+    }));
+    cards._cw = cw;
+    scCards = cards;
+    return cards;
+  }
+
+  function drawCard(c, x, y, rot, sc) {
+    const CW = c.cw, CH = c.ch, rr = 10;
+    const r = rot * Math.PI / 180;
+    const hex = c.ac;
+    const ri = parseInt(hex.slice(1, 3), 16), gi = parseInt(hex.slice(3, 5), 16), bi = parseInt(hex.slice(5, 7), 16);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(r);
+    ctx.scale(sc, sc);
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur = 40 + Math.abs(rot) * 0.5;
+    ctx.shadowOffsetX = Math.sin(r) * 28 + 5;
+    ctx.shadowOffsetY = Math.cos(r) * 22 + 8;
+    rRect(-CW / 2, -CH / 2, CW, CH, rr);
+    const bg = ctx.createLinearGradient(0, -CH / 2, 0, CH / 2);
+    bg.addColorStop(0, lighten(c.bg, 0.11));
+    bg.addColorStop(1, c.bg);
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.save();
+    rRect(-CW / 2, -CH / 2, CW, CH, rr);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,0.055)';
+    ctx.fillRect(-CW / 2, -CH / 2, CW, 22);
+    [['rgba(255,95,87,.9)', -CW / 2 + 13], ['rgba(255,189,46,.9)', -CW / 2 + 25], ['rgba(40,200,65,.9)', -CW / 2 + 37]].forEach(([col, lx]) => {
+      ctx.beginPath(); ctx.arc(lx, -CH / 2 + 11, 4, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+    });
+    ctx.beginPath();
+    const ux = -CW / 2 + 50, uy = -CH / 2 + 5, uw = CW - 100, uh = 13;
+    ctx.moveTo(ux + uh / 2, uy); ctx.lineTo(ux + uw - uh / 2, uy); ctx.arc(ux + uw - uh / 2, uy + uh / 2, uh / 2, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(ux + uh / 2, uy + uh); ctx.arc(ux + uh / 2, uy + uh / 2, uh / 2, Math.PI / 2, -Math.PI / 2);
+    ctx.fillStyle = 'rgba(255,255,255,.09)'; ctx.fill();
+    const ag = ctx.createLinearGradient(0, -CH / 2 + 22, 0, CH / 2);
+    ag.addColorStop(0, 'rgba(' + ri + ',' + gi + ',' + bi + ',0.05)'); ag.addColorStop(1, 'rgba(' + ri + ',' + gi + ',' + bi + ',0.14)');
+    ctx.fillStyle = ag; ctx.fillRect(-CW / 2, -CH / 2 + 22, CW, CH - 22);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = "600 12.5px 'Geist',sans-serif";
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(c.name, -CW / 2 + 12, -CH / 2 + 30);
+    ctx.fillStyle = c.ac; ctx.font = "500 7.5px 'Geist Mono',monospace";
+    ctx.textBaseline = 'bottom'; ctx.fillText(c.cat, -CW / 2 + 12, CH / 2 - 10);
+    ctx.beginPath(); ctx.arc(CW / 2 - 16, -CH / 2 + 36, 5, 0, Math.PI * 2); ctx.fillStyle = c.ac; ctx.fill();
+    const dg = ctx.createRadialGradient(CW / 2 - 16, -CH / 2 + 36, 2, CW / 2 - 16, -CH / 2 + 36, 12);
+    dg.addColorStop(0, 'rgba(' + ri + ',' + gi + ',' + bi + ',0.45)'); dg.addColorStop(1, 'rgba(' + ri + ',' + gi + ',' + bi + ',0)');
+    ctx.beginPath(); ctx.arc(CW / 2 - 16, -CH / 2 + 36, 12, 0, Math.PI * 2); ctx.fillStyle = dg; ctx.fill();
+    ctx.fillStyle = 'rgba(' + ri + ',' + gi + ',' + bi + ',0.18)'; ctx.fillRect(-CW / 2, CH / 2 - 20, CW, 20);
+    const rimA = Math.min(0.42, Math.abs(rot) / 42 * 0.42);
+    if (rimA > 0.01) {
+      const rg = ctx.createLinearGradient(-CW / 2, 0, CW / 2, 0);
+      rg.addColorStop(0, 'rgba(255,255,255,' + rimA + ')'); rg.addColorStop(0.09, 'rgba(255,255,255,0.01)');
+      rg.addColorStop(0.91, 'rgba(255,255,255,0.01)'); rg.addColorStop(1, 'rgba(255,255,255,' + (rimA * 0.55) + ')');
+      rRect(-CW / 2, -CH / 2, CW, CH, rr); ctx.strokeStyle = rg; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    ctx.restore();
+    ctx.restore();
+  }
+
+  const F_SEGS = [['M',0,0],['L',24,0],['L',24,100],['L',0,100],['Z'],['M',0,0],['L',60,0],['L',60,24],['L',0,24],['Z'],['M',0,38],['L',50,38],['L',50,58],['L',0,58],['Z']];
+  const GLYPHS = [
+    { x: 0,   acc: false, segs: F_SEGS },
+    { x: 74,  acc: true,  segs: [['M',0,0],['L',26,0],['L',26,55],['Q',26,74,33,74],['Q',40,74,40,55],['L',40,0],['L',66,0],['L',66,55],['Q',66,100,33,100],['Q',0,100,0,55],['Z']] },
+    { x: 152, acc: false, segs: [['M',0,0],['L',26,0],['L',44,52],['L',44,0],['L',70,0],['L',70,100],['L',44,100],['L',26,48],['L',26,100],['L',0,100],['Z']] },
+    { x: 234, acc: false, outline: true, segs: F_SEGS },
+    { x: 308, acc: false, segs: [['M',0,0],['L',26,0],['L',26,76],['L',56,76],['L',56,100],['L',0,100],['Z']] },
+    { x: 376, acc: true,  segs: [['M',0,0],['L',26,0],['L',26,100],['L',0,100],['Z']] },
+    { x: 414, acc: false, segs: [['M',0,0],['L',26,0],['L',72,100],['L',46,100],['Z'],['M',46,0],['L',72,0],['L',26,100],['L',0,100],['Z']] }
+  ];
+
+  function drawScrollText(p, bgA, elapsed) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    const scrollFade = p < 0.04 ? 1 : Math.max(0, 1 - (p - 0.04) / 0.10);
+    if (scrollFade > 0.01) {
+      const wS = Math.min(1.06, cw / 560);
+      const wX = cw / 2 - 243 * wS, wY = ch * 0.38 - 50 * wS - 24;
+      const t0 = 0.55, per = 0.09;
+      for (let i = 0; i < GLYPHS.length; i++) {
+        const g = GLYPHS[i];
+        const lt = Math.max(0, Math.min(1, (elapsed - t0 - i * per) / 0.45));
+        if (lt <= 0) continue;
+        const ease = 1 - Math.pow(1 - lt, 3);
+        ctx.save();
+        ctx.translate(wX + g.x * wS, wY + (1 - ease) * 34);
+        ctx.scale(wS, wS);
+        ctx.globalAlpha = bgA * ease * scrollFade;
+        ctx.beginPath();
+        g.segs.forEach(seg => {
+          if (seg[0] === 'M') ctx.moveTo(seg[1], seg[2]);
+          else if (seg[0] === 'L') ctx.lineTo(seg[1], seg[2]);
+          else if (seg[0] === 'Q') ctx.quadraticCurveTo(seg[1], seg[2], seg[3], seg[4]);
+          else ctx.closePath();
+        });
+        const col = g.acc ? accCol : '#FFFFFF';
+        if (g.outline) { ctx.strokeStyle = col; ctx.lineWidth = 6; ctx.stroke(); }
+        else { ctx.fillStyle = col; ctx.fill(); }
+        ctx.restore();
+      }
+      const hookT = Math.max(0, Math.min(1, (elapsed - 1.7) / 0.6));
+      if (hookT > 0) {
+        const he = 1 - Math.pow(1 - hookT, 3);
+        ctx.globalAlpha = bgA * he * scrollFade;
+        ctx.font = "400 30px 'Instrument Serif',serif";
+        ctx.fillStyle = 'rgba(255,255,255,0.62)';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Endless internet. And still nothing to do?', cw / 2, ch * 0.38 + 58 + (1 - he) * 16);
+      }
+      const cueT = Math.max(0, Math.min(1, (elapsed - 2.5) / 0.5));
+      if (cueT > 0) {
+        const pulse = 0.55 + 0.45 * Math.sin(elapsed * 2.4);
+        ctx.globalAlpha = bgA * cueT * pulse * scrollFade;
+        ctx.font = "500 11px 'Geist Mono',monospace";
+        ctx.fillStyle = accCol;
+        ctx.textBaseline = 'top';
+        ctx.fillText('S C R O L L', cw / 2, ch * 0.86);
+        const chevY = ch * 0.86 + 26 + Math.sin(elapsed * 2.4) * 3;
+        ctx.strokeStyle = accCol;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cw / 2 - 7, chevY);
+        ctx.lineTo(cw / 2, chevY + 6);
+        ctx.lineTo(cw / 2 + 7, chevY);
+        ctx.stroke();
+      }
+    }
+    const l1a = p < 0.16 ? 0 : p < 0.28 ? (p - 0.16) / 0.12 : p < 0.52 ? 1 : p < 0.64 ? 1 - (p - 0.52) / 0.12 : 0;
+    if (l1a > 0.01) {
+      ctx.globalAlpha = bgA * l1a;
+      ctx.font = "600 " + Math.min(46, cw * 0.05) + "px 'Geist',sans-serif";
+      ctx.fillStyle = '#FFFFFF';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Seven apps. One place.', cw / 2, ch * 0.075);
+    }
+    const l3a = p < 0.70 ? 0 : p < 0.80 ? (p - 0.70) / 0.10 : 1;
+    if (l3a > 0.01) {
+      ctx.globalAlpha = bgA * l3a;
+      ctx.font = "700 " + Math.min(68, cw * 0.07) + "px 'Geist',sans-serif";
+      ctx.fillStyle = '#FFFFFF';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Until now.', cw / 2, ch * 0.045);
+      ctx.font = "500 11px 'Geist Mono',monospace";
+      ctx.fillStyle = accCol;
+      ctx.fillText('FUNFLIX  ·  SEVEN APPS  ·  $0  ·  KEEP SCROLLING', cw / 2, ch * 0.045 + 92);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
 
   function spring(t) {
-    return 1 - Math.pow(1 - t, 3) * Math.cos(t * 6);
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    const s = Math.sin((t * 4.2 - 1.1) * Math.PI / 2);
+    return t < 0.68 ? t * t * (3 - 2 * t) : 1 + (1 - t) * s * 0.38;
   }
 
-  function onScroll() {
-    const rect = asmSection.getBoundingClientRect();
-    const total = asmSection.offsetHeight - window.innerHeight;
-    const progress = Math.min(1, Math.max(0, -rect.top / Math.max(1, total)));
-
-    if (progress < 0.35) {
-      bandOne.classList.add('on'); bandTwo.classList.remove('on'); asmGrid.classList.remove('on');
-    } else if (progress < 0.6) {
-      bandOne.classList.remove('on'); bandTwo.classList.add('on'); asmGrid.classList.remove('on');
-    } else {
-      bandOne.classList.remove('on'); bandTwo.classList.remove('on'); asmGrid.classList.add('on');
-      const local = Math.min(1, (progress - 0.6) / 0.4);
-      asmCards.forEach((c, i) => {
-        const delay = i * 0.06;
-        const t = Math.min(1, Math.max(0, (local - delay) / (1 - delay)));
-        const e = spring(t);
-        c.style.opacity = t <= 0 ? 0 : Math.min(1, t * 2);
-        c.style.transform = `translateY(${(1 - e) * 60}px) rotate(${(1 - t) * (i % 2 === 0 ? -8 : 8)}deg) scale(${0.9 + e * 0.1})`;
+  const trackHeight = 2000;
+  function frame() {
+    const elapsed = (performance.now() - startTime) / 1000;
+    const scrollTop = Math.max(0, -canvas.getBoundingClientRect().top);
+    const p = Math.min(1, Math.max(0, scrollTop / (trackHeight - ch)));
+    const bgA = p < 0.82 ? 1 : Math.max(0, 1 - (p - 0.82) / 0.18);
+    ctx.clearRect(0, 0, cw, ch);
+    if (bgA >= 0.01) {
+      ctx.fillStyle = '#080807';
+      ctx.globalAlpha = bgA;
+      ctx.fillRect(0, 0, cw, ch);
+      const grain = getGrain();
+      ctx.globalAlpha = bgA * 0.38;
+      ctx.drawImage(grain, 0, 0);
+      ctx.globalAlpha = 1;
+      const cards = getScrollCards();
+      const cardP = Math.min(1, p / 0.78);
+      const dimA = Math.max(0.14, Math.min(1, p / 0.14));
+      const sorted = cards.slice().sort((a, b) => Math.abs(a.sRot) - Math.abs(b.sRot));
+      sorted.forEach((card, i) => {
+        const t = spring(Math.max(0, Math.min(1, (cardP - card.delay) / (1 - card.delay + 0.001))));
+        const idle = 1 - t;
+        const fx = Math.sin(elapsed * 0.5 + i * 1.7) * 9 * idle;
+        const fy = Math.cos(elapsed * 0.4 + i * 2.3) * 12 * idle;
+        const x = card.sx + (card.gx - card.sx) * t + fx;
+        const y = card.sy + (card.gy - card.sy) * t + fy;
+        const rot = card.sRot * (1 - t) + Math.sin(elapsed * 0.35 + i * 2.1) * 1.6 * idle;
+        const sc = card.sSc + (1 - card.sSc) * t;
+        ctx.save();
+        ctx.globalAlpha = dimA + (1 - dimA) * t;
+        drawCard(card, x, y, rot, sc);
+        ctx.restore();
       });
+      drawScrollText(p, bgA, elapsed);
     }
+    if (bgA > 0.001 || p < 1) requestAnimationFrame(frame);
+    else requestAnimationFrame(frame);
   }
-  document.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  requestAnimationFrame(frame);
 
-  /* ── reveal on scroll ── */
-  const rv = document.querySelectorAll('[data-rv]');
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('on'); });
-  }, { threshold: 0.12 });
-  rv.forEach(el => io.observe(el));
-
-  /* ── app rows + hover-synced preview panel ── */
-  const appList = document.getElementById('appList');
-  const pvArt = document.getElementById('pvArt');
-  const pvArtLabel = document.getElementById('pvArtLabel');
-  const pvNo = document.getElementById('pvNo');
-  const pvName = document.getElementById('pvName');
-  const pvDesc = document.getElementById('pvDesc');
-  const pvEnter = document.getElementById('pvEnter');
-  const rows = [];
-  let activePath = null;
-
-  function showModule(m) {
-    pvArt.style.background = m.bg;
-    pvArtLabel.textContent = '';
-    pvNo.textContent = 'Nº ' + m.no;
-    pvName.textContent = m.name;
-    pvDesc.textContent = m.desc;
-    pvEnter.setAttribute('href', m.path);
-    activePath = m.path;
-    rows.forEach(r => r.classList.toggle('active', r.dataset.path === m.path));
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    track.style.display = 'none';
   }
 
-  MODULES.forEach(m => {
-    const a = document.createElement('a');
-    a.className = 'app-row';
-    a.href = m.path;
-    a.dataset.path = m.path;
-    a.setAttribute('data-nav', '');
-    a.innerHTML = `<div class="app-row-left"><span class="app-no">${m.no}</span><span class="app-name">${m.name}</span><span class="app-desc">${m.desc}</span></div><span class="app-arrow">→</span>`;
-    a.addEventListener('mouseenter', () => showModule(m));
-    appList.appendChild(a);
-    rows.push(a);
-  });
-
-  let rotate = setInterval(() => {
-    const idx = MODULES.findIndex(m => m.path === activePath);
-    const next = MODULES[(idx + 1) % MODULES.length];
-    showModule(next);
-  }, 5000);
-  document.getElementById('previewPanel').addEventListener('mouseenter', () => clearInterval(rotate));
-  showModule(MODULES[0]);
-
-  /* ── live calculator demo (mirrors /calculator's arithmetic, hits /calculate) ── */
-  const dPad = document.getElementById('dPad');
-  const dExpr = document.getElementById('dExpr');
-  const dVal = document.getElementById('dVal');
-  const KEYS = ['7','8','9','/', '4','5','6','*', '1','2','3','-', '0','.','=','+'];
-  let expr = '';
-  KEYS.forEach(k => {
-    const b = document.createElement('button');
-    b.textContent = k === '/' ? '÷' : k === '*' ? '×' : k;
-    if (['+','-','*','/'].includes(k)) b.className = 'op';
-    if (k === '=') b.className = 'eq';
-    b.addEventListener('click', () => press(k));
-    dPad.appendChild(b);
-  });
-  async function press(k) {
-    if (k === '=') {
-      if (!expr) return;
-      dExpr.textContent = expr + ' =';
-      try {
-        const r = await fetch('/calculate', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ expression: expr }),
-        });
-        const data = await r.json();
-        dVal.textContent = data.error ? '—' : data.result;
-      } catch { dVal.textContent = '—'; }
-      expr = '';
-      return;
+  /* ---------- soft page-transition nav (matches os.js convention) ---------- */
+  document.addEventListener('click', e => {
+    const a = e.target.closest('[data-nav]');
+    if (a && a.href) {
+      e.preventDefault();
+      document.body.style.transition = 'opacity .2s';
+      document.body.style.opacity = '0';
+      setTimeout(() => { location.href = a.getAttribute('href'); }, 200);
     }
-    expr += k;
-    dExpr.textContent = expr;
-    dVal.textContent = expr;
-  }
+  });
 })();
 </script>
 </body>
