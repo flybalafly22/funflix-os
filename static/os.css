@@ -16,6 +16,11 @@
   --serif: 'Instrument Serif', serif;
   --sans:  'Inter', sans-serif;
 
+  /* ── accent trio (volt) — used for CTAs, marks, live/rec states ── */
+  --acc:   #BDF23F;
+  --accD:  #0C8A4C;
+  --accH:  #D3FF66;
+
   /* ── legacy tokens (the games' interiors depend on these) ── */
   --void:        #030308;
   --panel:       rgba(255,255,255,0.018);
