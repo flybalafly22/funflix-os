@@ -541,17 +541,34 @@
     footLinks.appendChild(link);
   });
 
-  /* ---------- reveal on scroll ---------- */
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (!e.isIntersecting) return;
-      const el = e.target;
-      const d = parseFloat(el.getAttribute('data-delay') || '0');
-      setTimeout(() => el.classList.add('on'), d);
-      io.unobserve(el);
-    });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('[data-rv]').forEach(el => io.observe(el));
+  /* ---------- reveal on scroll ----------
+     Driven by a per-frame rAF loop instead of IntersectionObserver, which
+     silently drops elements that cross the viewport between sample frames
+     (fast scrolls / anchor jumps / programmatic scrollTo). Checking every
+     frame guarantees each element reveals at any scroll speed. */
+  const revealEls = Array.from(document.querySelectorAll('[data-rv]'))
+    .map(el => ({ el, done: false, pending: false }));
+
+  function revealFrame() {
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    let remaining = 0;
+    for (const item of revealEls) {
+      if (item.done) continue;
+      remaining++;
+      if (item.pending) continue;
+      const top = item.el.getBoundingClientRect().top;
+      if (top < vh * 0.9) {
+        item.pending = true;
+        const d = parseFloat(item.el.getAttribute('data-delay') || '0');
+        setTimeout(() => {
+          item.el.classList.add('on');
+          item.done = true;
+        }, d);
+      }
+    }
+    if (remaining > 0) requestAnimationFrame(revealFrame);
+  }
+  requestAnimationFrame(revealFrame);
 
   /* ---------- live calculator ---------- */
   const KEYS = [
