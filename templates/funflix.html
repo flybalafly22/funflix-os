@@ -32,15 +32,20 @@
   @keyframes ffx-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
   @keyframes ffx-in5{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-  /* track = canvas height + 1260 so the sticky canvas outlives the fade even on
-     short-landscape viewports where the canvas min-height (640px) exceeds 100vh */
-  #introTrack{height:calc(max(100vh,640px) + 1260px)}
+  /* track = canvas height + 1160 so the canvas stays sticky through the whole
+     fade (p=1.0 at 1160px of scroll) and unsticks the moment it ends — content
+     starts entering the viewport exactly as the dark layer finishes, no dead
+     runway. max(100vh,640px) keeps this true on short-landscape viewports. */
+  #introTrack{height:calc(max(100vh,640px) + 1160px)}
   #introCanvas{position:sticky;top:0;display:block;width:100%;height:100vh;min-height:640px}
 
   /* content clamps to 1360px on ultrawide while keeping 72px gutters below that */
   nav.ffx-nav{position:sticky;top:0;z-index:60;display:flex;justify-content:space-between;align-items:center;
     padding:15px max(72px,calc((100vw - 1360px)/2));background:rgba(250,250,248,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
     border-bottom:1px solid rgba(0,0,0,.06)}
+  /* reading-progress hairline: lives in the nav's bottom border, brand green */
+  #scrollBar{position:absolute;left:0;bottom:-1px;height:2px;width:100%;background:var(--accD);
+    transform:scaleX(0);transform-origin:0 50%;opacity:.85;pointer-events:none}
   .ffx-nav-links{display:flex;align-items:center;gap:22px}
   .ffx-nav-links a.link{font:500 13.5px var(--sans);color:var(--ink2);cursor:pointer;transition:color .2s;padding:11px 6px}
   .ffx-nav-links a.link:hover{color:var(--ink)}
@@ -65,11 +70,12 @@
   .ffx-cta-row{display:flex;gap:12px;margin-top:30px;animation:ffx-in5 .7s .32s both}
   .ffx-mono-note{margin-top:20px;font:500 11px var(--mono);letter-spacing:.2em;color:var(--ink3);animation:ffx-in5 .7s .4s both}
 
-  .mock-wrap{position:relative;width:min(1010px,92vw);margin:58px auto 64px;animation:ffx-in5 .9s .5s both}
+  .mock-wrap{position:relative;width:min(1010px,92vw);margin:58px auto 64px;animation:ffx-in5 .9s .5s both;perspective:1200px}
   .mock-glow{position:absolute;width:340px;height:320px;border-radius:50%;filter:blur(46px);pointer-events:none}
   @media (max-width:640px){.mock-glow{display:none}}  /* overflows 390px viewports + blur is costly on phones */
   .mock-window{position:relative;width:min(880px,100%);margin:0 auto;background:#fff;border:1px solid rgba(0,0,0,.07);
-    border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(17,17,16,.14)}
+    border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(17,17,16,.14);
+    transition:transform .35s cubic-bezier(.22,1,.36,1);transform-style:preserve-3d;will-change:transform}
   .mock-bar{display:flex;align-items:center;padding:11px 16px;background:#F6F6F4;border-bottom:1px solid rgba(0,0,0,.06)}
   .mock-dots{display:flex;gap:6px}
   .mock-dots span{width:9px;height:9px;border-radius:50%;background:#E2E2DE;display:block}
@@ -135,6 +141,8 @@
   .pv-caption{position:absolute;bottom:14px;left:16px;font:500 10px var(--mono);letter-spacing:.16em;color:var(--ink3)}
   .preview-note{margin-top:12px;font:400 12px var(--sans);color:var(--ink3);text-align:right}
 
+  /* below-fold sections skip layout/paint until near the viewport */
+  .hood,.tryit,.cost,.foot{content-visibility:auto;contain-intrinsic-size:auto 620px}
   .hood{padding:88px max(72px,calc((100vw - 1360px)/2)) 96px;background:#fff;border-top:1px solid rgba(0,0,0,.06)}
   .hood-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
   @media (max-width:900px){.hood-grid{grid-template-columns:1fr}}
@@ -153,7 +161,7 @@
   .tryit{display:grid;grid-template-columns:1fr 380px;gap:72px;align-items:center;padding:92px max(72px,calc((100vw - 1360px)/2));
     border-top:1px solid rgba(0,0,0,.06)}
   @media (max-width:900px){.tryit{grid-template-columns:1fr}.calc{max-width:420px;width:100%;margin:0 auto}}
-  .tryit h2{margin-top:16px;font:600 42px/1.1 var(--sans);letter-spacing:-.03em}
+  .tryit h2{margin-top:16px;font:600 clamp(30px,4.4vw,42px)/1.1 var(--sans);letter-spacing:-.03em}
   .tryit p{margin-top:18px;max-width:440px;font:400 16px/1.65 var(--sans);color:var(--ink2)}
   .tryit .link{margin-top:24px;font:600 14.5px var(--sans);color:var(--accD);cursor:pointer;display:inline-block}
   .calc{border:1px solid rgba(0,0,0,.08);border-radius:16px;background:#fff;padding:18px;box-shadow:0 30px 80px rgba(17,17,16,.12)}
@@ -168,7 +176,7 @@
   .calc-keys button.eq{background:var(--ink);color:#fff;border-color:var(--ink)}
 
   .cost{padding:96px max(72px,calc((100vw - 1360px)/2));border-top:1px solid rgba(0,0,0,.06);background:#fff;text-align:center}
-  .cost-lead{font:400 42px var(--serif);letter-spacing:-.03em;color:var(--ink2)}
+  .cost-lead{font:400 clamp(30px,4.6vw,42px) var(--serif);letter-spacing:-.03em;color:var(--ink2)}
   .cost-zero{margin-top:4px;font:700 clamp(90px,18vw,180px)/1 var(--sans);letter-spacing:-.06em;color:var(--accD)}
   .cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:720px;margin:44px auto 0;text-align:left}
   @media (max-width:640px){.cost-grid{grid-template-columns:1fr}}
@@ -259,8 +267,10 @@
     <button type="button" class="kbd" id="palHint" title="Quick launch" aria-label="Open quick launch (Command K)">&#8984;K</button>
     <a class="ffx-cta" href="#apps">Open FUNFLIX</a>
   </div>
+  <div id="scrollBar" aria-hidden="true"></div>
 </nav>
 
+<main>
 <div class="ffx-hero">
   <div class="ffx-pill"><span class="ffx-dot"></span><span style="font:500 11px var(--mono);letter-spacing:.16em;color:var(--ink2)">ALL SEVEN APPS ONLINE</span></div>
   <h1 class="ffx-h1"><span class="w">Finally, something</span><br><span class="w2">to <span id="heroWord" style="color:var(--accD)">play</span>.</span></h1>
@@ -386,7 +396,7 @@
   </div>
   <div class="calc" data-rv data-delay="150">
     <div class="calc-sub" id="calcSub">&nbsp;</div>
-    <div class="calc-main" id="calcMain">0</div>
+    <div class="calc-main" id="calcMain" role="status" aria-live="polite">0</div>
     <div class="calc-keys" id="calcKeys"></div>
   </div>
 </div>
@@ -416,15 +426,16 @@
   </div>
   <p class="cost-note" data-rv data-delay="320">No catch. We build these because we like building them.</p>
 </div>
+</main>
 
-<div class="foot" id="about">
+<footer class="foot" id="about">
   <h2 data-rv>Start with any app.</h2>
   <a class="ffx-cta big" href="#apps" data-rv data-delay="120" style="margin-top:28px;display:inline-block">Open FUNFLIX</a>
   <div class="foot-links" id="footLinks"></div>
   <div class="foot-bar">
     <span>&copy; MMXXVI FUNFLIX</span><a href="mailto:team@funflix.app">TEAM@FUNFLIX.APP</a><span>SEVEN APPS &middot; ONE PLACE</span><span>100% ORIGINAL SOFTWARE</span>
   </div>
-</div>
+</footer>
 
 <!-- ⌘K quick launch -->
 <div id="pal" role="dialog" aria-modal="true" aria-label="Quick launch">
@@ -551,7 +562,7 @@
           '<div style="height:9px;border-radius:5px;background:rgba(255,255,255,.05);width:76%"></div></div>' +
         '<div class="js-eq-expr" style="position:absolute;right:26px;top:96px;font:500 15px var(--mono);color:rgba(255,255,255,.44)">' + e[0] + '</div>' +
         '<div class="js-eq-res" style="position:absolute;right:24px;top:122px;font:500 40px var(--mono);color:var(--acc)">= ' + e[1] + '</div>' +
-        '<div style="position:absolute;left:24px;right:24px;bottom:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
+        '<div style="position:absolute;left:24px;right:24px;bottom:44px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
           Array.from({length:8},()=>'<div style="height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1)"></div>').join('') + '</div></div>';
     }
     return '<div style="position:absolute;inset:0;background:#111110">' +
@@ -777,6 +788,7 @@
         const b = val();
         sub = fmt(c.a) + ' ' + c.op + ' ' + fmt(b) + ' =';
         main = fmt(apply(c.a, c.op, b));
+        if (main === '42') sub = 'the answer. ✦';   // a small wink for travellers
         c.a = null; c.op = null; c.fresh = true;
       }
     } else {
@@ -1132,7 +1144,7 @@
     startIntro();
     // click anywhere on the intro to skip straight to the hero
     canvas.addEventListener('click', () => {
-      if (window.scrollY < 1260) window.scrollTo({ top: 1300, behavior: 'smooth' });
+      if (window.scrollY < 1160) window.scrollTo({ top: 1200, behavior: 'smooth' });
     });
   }
 
@@ -1213,6 +1225,17 @@
     else if (e.key === 'Tab') { e.preventDefault(); }   // keep focus inside the dialog
   }, true);
 
+  /* ---------- reading-progress hairline (rAF-throttled) ---------- */
+  const scrollBar = document.getElementById('scrollBar');
+  let sbTick = false;
+  function sbUpdate() {
+    sbTick = false;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    scrollBar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, window.scrollY / max) : 0) + ')';
+  }
+  window.addEventListener('scroll', () => { if (!sbTick) { sbTick = true; requestAnimationFrame(sbUpdate); } }, { passive: true });
+  sbUpdate();
+
   /* ---------- magnetic CTAs (fine pointers only) ---------- */
   if (!REDUCED && window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
     document.querySelectorAll('.ffx-cta.big,.ffx-ghost').forEach(el => {
@@ -1224,6 +1247,19 @@
       });
       el.addEventListener('mouseleave', () => { el.style.transform = ''; });
     });
+
+    /* subtle 3D tilt on the hero browser window (≤2.2deg, springs back) */
+    const mockWin = document.querySelector('.mock-window');
+    const mockWrap = document.querySelector('.mock-wrap');
+    if (mockWin && mockWrap) {
+      mockWrap.addEventListener('mousemove', e => {
+        const r = mockWin.getBoundingClientRect();
+        const dx = (e.clientX - r.left) / r.width - 0.5;
+        const dy = (e.clientY - r.top) / r.height - 0.5;
+        mockWin.style.transform = 'rotateY(' + (dx * 2.2) + 'deg) rotateX(' + (-dy * 2.2) + 'deg)';
+      });
+      mockWrap.addEventListener('mouseleave', () => { mockWin.style.transform = ''; });
+    }
   }
 })();
 </script>
