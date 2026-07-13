@@ -4,12 +4,18 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>FUNFLIX — Seven apps. One place.</title>
+<meta name="description" content="Seven original web apps — a scientific calculator, a joke-writing studio, an automated newsroom, and four playable worlds. One tab, nothing to install, $0."/>
+<meta name="theme-color" content="#FAFAF8"/>
+<meta property="og:title" content="FUNFLIX — Seven apps. One place."/>
+<meta property="og:description" content="Seven original web apps in one tab. No account, no install, no ads. $0."/>
+<meta property="og:type" content="website"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23111110'/%3E%3Cpath fill='%23BDF23F' d='M28 22h44v14H42v14h26v14H42v14H28z'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#FAFAF8; --ink:#111110; --ink2:#6B6B66; --ink3:#98988F; --ink4:#86867F;
+    --paper:#FAFAF8; --ink:#111110; --ink2:#63635E; --ink3:#82827A; --ink4:#75756E;
     --acc:#BDF23F; --accD:#0C8A4C; --accH:#D3FF66;
     --sans:'Geist',system-ui,sans-serif; --mono:'Geist Mono',monospace; --serif:'Instrument Serif',serif;
   }
@@ -17,6 +23,7 @@
   html{scroll-behavior:smooth}
   body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow-x:hidden}
   a{color:inherit;text-decoration:none}
+  a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accD);outline-offset:3px;border-radius:6px}
   @keyframes ffx-pulse{0%,100%{opacity:.35}50%{opacity:.9}}
   @keyframes ffx-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
   @keyframes ffx-rainfall{from{background-position:0 0}to{background-position:-30px 220px}}
@@ -25,7 +32,9 @@
   @keyframes ffx-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
   @keyframes ffx-in5{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-  #introTrack{height:calc(100vh + 1260px)}
+  /* track = canvas height + 1260 so the sticky canvas outlives the fade even on
+     short-landscape viewports where the canvas min-height (640px) exceeds 100vh */
+  #introTrack{height:calc(max(100vh,640px) + 1260px)}
   #introCanvas{position:sticky;top:0;display:block;width:100%;height:100vh;min-height:640px}
 
   nav.ffx-nav{position:sticky;top:0;z-index:60;display:flex;justify-content:space-between;align-items:center;
@@ -47,7 +56,8 @@
   .ffx-pill{display:flex;align-items:center;gap:9px;padding:8px 16px;border-radius:999px;border:1px solid rgba(0,0,0,.1);
     background:#fff;box-shadow:0 6px 18px rgba(17,17,16,.05);animation:ffx-in5 .7s both}
   .ffx-dot{width:7px;height:7px;border-radius:50%;background:var(--accD);animation:ffx-pulse 2s infinite}
-  .ffx-h1{font:600 80px/1.02 var(--sans);letter-spacing:-.045em;animation:ffx-in5 .7s both}
+  .ffx-h1{font:600 clamp(42px,7.4vw,80px)/1.02 var(--sans);letter-spacing:-.045em;animation:ffx-in5 .7s both}
+  #heroWord{display:inline-block;white-space:nowrap;transition:opacity .22s,width .3s cubic-bezier(.22,1,.36,1)}
   .ffx-h1 .w{animation-delay:.08s}
   .ffx-h1 .w2{animation-delay:.16s}
   .ffx-sub{margin-top:22px;max-width:600px;font:400 17px/1.65 var(--sans);color:var(--ink2);animation:ffx-in5 .7s .24s both}
@@ -55,7 +65,8 @@
   .ffx-mono-note{margin-top:20px;font:500 11px var(--mono);letter-spacing:.2em;color:var(--ink3);animation:ffx-in5 .7s .4s both}
 
   .mock-wrap{position:relative;width:min(1010px,92vw);margin:58px auto 46px;animation:ffx-in5 .9s .5s both}
-  .mock-glow{position:absolute;width:340px;height:320px;border-radius:50%;filter:blur(46px)}
+  .mock-glow{position:absolute;width:340px;height:320px;border-radius:50%;filter:blur(46px);pointer-events:none}
+  @media (max-width:640px){.mock-glow{display:none}}  /* overflows 390px viewports + blur is costly on phones */
   .mock-window{position:relative;width:min(880px,100%);margin:0 auto;background:#fff;border:1px solid rgba(0,0,0,.07);
     border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(17,17,16,.14)}
   .mock-bar{display:flex;align-items:center;padding:11px 16px;background:#F6F6F4;border-bottom:1px solid rgba(0,0,0,.06)}
@@ -83,7 +94,7 @@
 
   section.pad{padding:84px 72px 96px}
   .eyebrow{font:500 11px var(--mono);letter-spacing:.3em;color:var(--accD)}
-  .h2{font:600 46px var(--sans);letter-spacing:-.035em;margin-top:14px}
+  .h2{font:600 clamp(30px,4.6vw,46px) var(--sans);letter-spacing:-.035em;margin-top:14px}
   [data-rv]{opacity:0;transform:translateY(20px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
   [data-rv].on{opacity:1;transform:none}
 
@@ -174,30 +185,70 @@
   .foot-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:52px;
     padding:18px 0 22px;border-top:1px solid rgba(0,0,0,.06);font:500 10.5px var(--mono);letter-spacing:.14em;color:var(--ink3)}
 
+  /* ---------- command palette (⌘K) ---------- */
+  .kbd{font:500 10px var(--mono);color:var(--ink3);border:1px solid rgba(0,0,0,.14);border-radius:6px;
+    padding:3px 7px;background:#fff;cursor:pointer;transition:color .2s,border-color .2s;user-select:none}
+  .kbd:hover{color:var(--ink);border-color:rgba(0,0,0,.3)}
+  #pal{position:fixed;inset:0;z-index:100;display:none;align-items:flex-start;justify-content:center;
+    padding:14vh 20px 20px;background:rgba(17,17,16,.32);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #pal.open{display:flex}
+  .pal-panel{width:min(560px,100%);background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;
+    box-shadow:0 40px 120px rgba(17,17,16,.3);overflow:hidden;animation:ffx-in5 .18s both}
+  .pal-head{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid rgba(0,0,0,.07)}
+  .pal-head input{flex:1;border:0;outline:0;font:500 15px var(--sans);color:var(--ink);background:transparent}
+  .pal-head input::placeholder{color:var(--ink3)}
+  .pal-list{max-height:min(420px,55vh);overflow-y:auto;padding:8px}
+  .pal-row{display:flex;align-items:center;gap:14px;padding:11px 12px;border-radius:10px;cursor:pointer}
+  .pal-row .pc{font:500 9px var(--mono);letter-spacing:.14em;color:var(--ink2);border:1px solid rgba(0,0,0,.12);
+    border-radius:999px;padding:3px 9px;background:#fff;min-width:64px;text-align:center}
+  .pal-row b{font:600 14.5px var(--sans);letter-spacing:-.01em}
+  .pal-row span.pr{font:400 12px var(--sans);color:var(--ink3);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pal-row .go{font:500 13px var(--sans);color:var(--accD);opacity:0}
+  .pal-row.sel{background:rgba(12,138,76,.07)}
+  .pal-row.sel .go{opacity:1}
+  .pal-foot{display:flex;gap:16px;padding:10px 18px;border-top:1px solid rgba(0,0,0,.07);
+    font:500 9.5px var(--mono);letter-spacing:.12em;color:var(--ink3)}
+
   @media (prefers-reduced-motion:reduce){
-    .ffx-pill,.ffx-h1,.ffx-sub,.ffx-cta-row,.ffx-mono-note,.mock-wrap,[data-rv]{animation:none!important;opacity:1!important;transform:none!important}
+    html{scroll-behavior:auto}
+    .ffx-pill,.ffx-h1,.ffx-sub,.ffx-cta-row,.ffx-mono-note,.mock-wrap,[data-rv],.pal-panel{animation:none!important;opacity:1!important;transform:none!important}
+    .ffx-dot{animation:none!important}
   }
   @media (max-width:900px){
     nav.ffx-nav,section.pad,.hood,.tryit,.cost,.foot{padding-left:24px;padding-right:24px}
-    .ffx-h1{font-size:44px}
+    .trust{padding-left:24px;padding-right:24px;gap:20px}
+    nav.ffx-nav{padding-top:12px;padding-bottom:12px}
+    .ffx-hero{padding-left:24px;padding-right:24px}
     .cost-zero{font-size:22vw}
+    .tryit{gap:40px}
+  }
+  @media (max-width:640px){
+    .app-row{grid-template-columns:34px 1fr 22px;gap:10px}
+    .app-row .cat{display:none}
+    .app-row .name{font-size:18px}
+    .ffx-nav-links{gap:18px}
+    .ffx-nav-links a.link:not(:first-child){display:none}
+    .ffx-cta-row{flex-direction:column;width:100%;max-width:320px}
+    .ffx-cta-row .ffx-cta.big,.ffx-cta-row .ffx-ghost{text-align:center}
   }
 </style>
 </head>
 <body>
 
+<noscript><style>#introTrack{display:none}</style></noscript>
 <!-- SCROLL-CANVAS INTRO -->
 <div id="introTrack">
-  <canvas id="introCanvas"></canvas>
+  <canvas id="introCanvas" aria-hidden="true"></canvas>
 </div>
 
-<nav class="ffx-nav">
-  <svg width="73" height="15" viewBox="0 0 486 100" style="display:block"><path fill="#111110" d="M0 0 L24 0 L24 100 L0 100 Z M0 0 L60 0 L60 24 L0 24 Z M0 38 L50 38 L50 58 L0 58 Z"></path><path fill="var(--accD)" transform="translate(74)" d="M0 0 L26 0 L26 55 Q26 74 33 74 Q40 74 40 55 L40 0 L66 0 L66 55 Q66 100 33 100 Q0 100 0 55 Z"></path><path fill="#111110" transform="translate(152)" d="M0 0 L26 0 L44 52 L44 0 L70 0 L70 100 L44 100 L26 48 L26 100 L0 100 Z"></path><g transform="translate(234)" fill="none" stroke="#111110" stroke-width="6"><rect x="3" y="3" width="18" height="94"></rect><rect x="3" y="3" width="54" height="18"></rect><rect x="3" y="40" width="44" height="14"></rect></g><path fill="#111110" transform="translate(308)" d="M0 0 L26 0 L56 76 L56 100 L0 100 Z"></path><rect x="376" width="26" height="100" fill="var(--accD)"></rect><path fill="#111110" transform="translate(414)" d="M0 0 L26 0 L72 100 L46 100 Z M46 0 L72 0 L26 100 L0 100 Z"></path></svg>
+<nav class="ffx-nav" aria-label="Main">
+  <a href="/" aria-label="FUNFLIX home" style="display:block"><svg width="73" height="15" viewBox="0 0 486 100" style="display:block" role="img" aria-label="FUNFLIX"><path fill="#111110" d="M0 0 L24 0 L24 100 L0 100 Z M0 0 L60 0 L60 24 L0 24 Z M0 38 L50 38 L50 58 L0 58 Z"></path><path fill="var(--accD)" transform="translate(74)" d="M0 0 L26 0 L26 55 Q26 74 33 74 Q40 74 40 55 L40 0 L66 0 L66 55 Q66 100 33 100 Q0 100 0 55 Z"></path><path fill="#111110" transform="translate(152)" d="M0 0 L26 0 L44 52 L44 0 L70 0 L70 100 L44 100 L26 48 L26 100 L0 100 Z"></path><g transform="translate(234)" fill="none" stroke="#111110" stroke-width="6"><rect x="3" y="3" width="18" height="94"></rect><rect x="3" y="3" width="54" height="18"></rect><rect x="3" y="40" width="44" height="14"></rect></g><path fill="#111110" transform="translate(308)" d="M0 0 L26 0 L56 76 L56 100 L0 100 Z"></path><rect x="376" width="26" height="100" fill="var(--accD)"></rect><path fill="#111110" transform="translate(414)" d="M0 0 L26 0 L72 100 L46 100 Z M46 0 L72 0 L26 100 L0 100 Z"></path></svg></a>
   <div class="ffx-nav-links">
     <a class="link" href="#apps" id="navApps">Apps</a>
     <a class="link" href="#cost">Cost</a>
     <a class="link" href="#about">About</a>
-    <span class="ffx-cta">Open FUNFLIX</span>
+    <span class="kbd" id="palHint" title="Quick launch" aria-label="Open quick launch">&#8984;K</span>
+    <a class="ffx-cta" href="#apps">Open FUNFLIX</a>
   </div>
 </nav>
 
@@ -206,7 +257,7 @@
   <h1 class="ffx-h1"><span class="w">Finally, something</span><br><span class="w2">to <span id="heroWord" style="color:var(--accD)">play</span>.</span></h1>
   <p class="ffx-sub">Seven original web apps &mdash; a scientific calculator, a joke-writing studio, an automated newsroom, and four playable worlds. One tab, nothing to install, <b style="color:var(--accD)">$0</b>.</p>
   <div class="ffx-cta-row">
-    <span class="ffx-cta big">Open FUNFLIX</span>
+    <a class="ffx-cta big" href="#apps">Open FUNFLIX</a>
     <a class="ffx-ghost" href="#apps">Browse the apps &rarr;</a>
   </div>
   <div class="ffx-mono-note">NO ACCOUNT &middot; NO INSTALL &middot; NO ADS</div>
@@ -356,10 +407,23 @@
 
 <div class="foot" id="about">
   <h2 data-rv>Start with any app.</h2>
-  <span class="ffx-cta big" data-rv data-delay="120" style="margin-top:28px;display:inline-block">Open FUNFLIX</span>
+  <a class="ffx-cta big" href="#apps" data-rv data-delay="120" style="margin-top:28px;display:inline-block">Open FUNFLIX</a>
   <div class="foot-links" id="footLinks"></div>
   <div class="foot-bar">
     <span>&copy; MMXXVI FUNFLIX</span><span>TEAM@FUNFLIX.APP</span><span>INSTAGRAM &middot; X</span><span>100% ORIGINAL SOFTWARE</span>
+  </div>
+</div>
+
+<!-- ⌘K quick launch -->
+<div id="pal" role="dialog" aria-modal="true" aria-label="Quick launch">
+  <div class="pal-panel">
+    <div class="pal-head">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#82827A" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="palInput" type="text" placeholder="Jump to an app…" autocomplete="off" spellcheck="false"/>
+      <span class="kbd" style="cursor:default">ESC</span>
+    </div>
+    <div class="pal-list" id="palList"></div>
+    <div class="pal-foot"><span>&uarr;&darr; NAVIGATE</span><span>&crarr; OPEN</span><span>ESC CLOSE</span></div>
   </div>
 </div>
 
@@ -393,50 +457,78 @@
   function eq() { return EQS[eqI % EQS.length]; }
 
   /* ---------- clock ---------- */
+  const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   function tickClock() {
     const d = new Date();
     const p = n => String(n).padStart(2, '0');
     const t = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
     const lc = document.getElementById('localClock'); if (lc) lc.textContent = 'LOCAL ' + t;
     const hc = document.getElementById('hoodClock'); if (hc) hc.textContent = t;
+    document.querySelectorAll('.miniclock').forEach(el => { el.textContent = t; });
   }
   tickClock();
   setInterval(tickClock, 1000);
 
-  /* ---------- rotating hero word ---------- */
-  setInterval(() => {
-    const el = document.getElementById('heroWord');
-    if (!el) return;
-    el.style.transition = 'opacity .22s';
-    el.style.opacity = '0';
-    setTimeout(() => { wordI++; el.textContent = WORDS[wordI % WORDS.length]; el.style.opacity = '1'; }, 220);
-  }, 2600);
+  /* ---------- rotating hero word (width-animated: no line jitter) ---------- */
+  const heroWordEl = document.getElementById('heroWord');
+  function setHeroWord(w) {
+    if (!heroWordEl) return;
+    heroWordEl.style.opacity = '0';
+    setTimeout(() => {
+      heroWordEl.textContent = w;
+      // measure the new word to animate width smoothly instead of snapping the line
+      const m = document.createElement('span');
+      m.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
+      m.style.font = getComputedStyle(heroWordEl).font;
+      m.style.letterSpacing = getComputedStyle(heroWordEl).letterSpacing;
+      m.textContent = w;
+      document.body.appendChild(m);
+      heroWordEl.style.width = m.getBoundingClientRect().width + 'px';
+      m.remove();
+      heroWordEl.style.opacity = '1';
+    }, 220);
+  }
+  if (heroWordEl && !REDUCED) {
+    // lock the initial width once fonts have loaded so the first swap animates
+    window.addEventListener('load', () => {
+      heroWordEl.style.width = heroWordEl.getBoundingClientRect().width + 'px';
+    });
+    setInterval(() => { wordI++; setHeroWord(WORDS[wordI % WORDS.length]); }, 2600);
+  }
 
-  /* ---------- rotating equation (hero chip) ---------- */
+  /* ---------- rotating equation (hero chip + every live compute scene) ---------- */
   function paintChip() {
     const e = eq();
     const a = document.getElementById('chipExpr'), b = document.getElementById('chipRes');
     if (a) a.textContent = e[0];
     if (b) b.textContent = '= ' + e[1];
+    document.querySelectorAll('.js-eq-expr').forEach(el => { el.textContent = e[0]; });
+    document.querySelectorAll('.js-eq-res').forEach(el => { el.textContent = '= ' + e[1]; });
   }
   paintChip();
   setInterval(() => { eqI++; paintChip(); }, 2600);
 
-  /* ---------- rotating headline (hood card) ---------- */
+  /* ---------- rotating headline (hood card) + joke (synthesis scene) ---------- */
   function paintHood() {
     const h = document.getElementById('hoodHead');
     if (h) h.textContent = HEADLINES[headI % HEADLINES.length];
   }
   paintHood();
   setInterval(() => { headI++; paintHood(); }, 3400);
-  setInterval(() => { jokeI++; }, 4600);
+  function paintJoke() {
+    const j = JOKES[jokeI % JOKES.length];
+    document.querySelectorAll('.js-joke-setup').forEach(el => { el.textContent = j[0]; });
+    document.querySelectorAll('.js-joke-punch').forEach(el => { el.textContent = j[1]; });
+  }
+  setInterval(() => { jokeI++; paintJoke(); }, 4600);
 
   /* ---------- mini scene HTML builders (reused for mock grid + preview) ---------- */
   function sceneCompute() {
     const e = eq();
     return '<div style="position:absolute;inset:0;background:#111110">' +
-      '<div style="position:absolute;right:10px;bottom:8px;font:500 13px var(--mono);color:var(--acc)">= ' + e[1] + '</div>' +
-      '<div style="position:absolute;left:10px;top:8px;font:500 8px var(--mono);color:rgba(255,255,255,.4)">' + e[0] + '</div></div>';
+      '<div class="js-eq-res" style="position:absolute;right:10px;bottom:8px;font:500 13px var(--mono);color:var(--acc)">= ' + e[1] + '</div>' +
+      '<div class="js-eq-expr" style="position:absolute;left:10px;top:8px;font:500 8px var(--mono);color:rgba(255,255,255,.4)">' + e[0] + '</div></div>';
   }
   function sceneSynthesis() {
     return '<div style="position:absolute;inset:0;background:#FDFDFB;padding:10px 12px">' +
@@ -508,9 +600,17 @@
     const sc = document.createElement('div');
     sc.className = 'pv-scene';
     sc.innerHTML = SCENES[i]() + '<div class="pv-caption">' + a.cat + ' &middot; ' + a.name.toUpperCase() + '</div>';
+    // preview-only living content: the Synthesis panel shows a real rotating joke
+    if (a.slug === 'synthesis') {
+      sc.innerHTML += '<div style="position:absolute;left:24px;right:24px;top:44%;transform:translateY(-50%);text-align:left">' +
+        '<div class="js-joke-setup" style="font:400 21px/1.35 var(--serif);color:var(--ink)"></div>' +
+        '<div class="js-joke-punch" style="margin-top:10px;font:400 15px/1.4 var(--sans);color:var(--accD)"></div></div>';
+    }
     pvStage.appendChild(sc);
     pvScenes.push(sc);
   });
+  paintJoke();
+  tickClock();   // populate .miniclock in the freshly-built scenes immediately
 
   let active = 0, hoverTime = 0;
   function setActive(i, fromHover) {
@@ -521,7 +621,15 @@
     pvUrl.textContent = 'funflix.app/' + APPS[i].slug;
   }
   setActive(0, false);
+  // auto-rotate the preview — but only while the apps section is actually on screen
+  let appsVisible = true;
+  if ('IntersectionObserver' in window) {
+    appsVisible = false;
+    new IntersectionObserver(es => { appsVisible = es[0].isIntersecting; }, { threshold: 0.15 })
+      .observe(document.getElementById('apps'));
+  }
   setInterval(() => {
+    if (!appsVisible || document.hidden) return;
     if (Date.now() - hoverTime < 7000) return;
     setActive((active + 1) % APPS.length, false);
   }, 5000);
@@ -622,9 +730,26 @@
   KEYS.forEach(([label, kind]) => {
     const b = document.createElement('button');
     b.textContent = label;
+    b.type = 'button';
     if (kind) b.className = kind;
+    if (label === '⌫') b.setAttribute('aria-label', 'Backspace');
+    if (label === '±') b.setAttribute('aria-label', 'Toggle sign');
     b.addEventListener('click', () => press(label));
     calcKeys.appendChild(b);
+  });
+  // full keyboard support for the embedded calc (page has no other text inputs)
+  const KEYMAP = { '*': '×', 'x': '×', '/': '÷', '-': '−', '+': '+', '%': '%', '.': '.', '=': '=', 'Enter': '=', 'Backspace': '⌫', 'Escape': 'C', 'c': 'C' };
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.getElementById('pal').classList.contains('open')) return;
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    const l = (e.key >= '0' && e.key <= '9') ? e.key : KEYMAP[e.key];
+    if (!l) return;
+    // only hijack keys once the calc has scrolled into view
+    const r = calcKeys.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) return;
+    e.preventDefault();
+    press(l);
   });
 
   /* ================= SCROLL-CANVAS CINEMATIC INTRO ================= */
@@ -635,25 +760,33 @@
   const accCol = '#BDF23F';
   let cw = 0, ch = 0, grainTile = null, scCards = null;
 
-  function resize() {
+  let lastW = 0, lastH = 0;
+  function resize(force) {
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
+    // ignore iOS toolbar show/hide (small height-only changes mid-scroll)
+    if (!force && w === lastW && Math.abs(h - lastH) < 140) return;
+    lastW = w; lastH = h;
     const pr = Math.min(window.devicePixelRatio || 1, 2);
-    cw = canvas.clientWidth || window.innerWidth;
-    ch = canvas.clientHeight || window.innerHeight;
+    cw = w; ch = h;
     canvas.width = cw * pr;
     canvas.height = ch * pr;
     ctx.setTransform(pr, 0, 0, pr, 0, 0);
-    grainTile = null;
     scCards = null;
   }
-  window.addEventListener('resize', resize);
-  resize();
+  window.addEventListener('resize', () => resize(false));
+  resize(true);
 
+  // film grain as a small repeating tile + pattern — built once, O(1) per frame,
+  // never rebuilt on resize (the old full-viewport ImageData re-generated on every
+  // iOS scroll-resize and janked the intro)
   function getGrain() {
-    if (grainTile && grainTile._w === cw) return grainTile;
+    if (grainTile) return grainTile;
+    const S = 280;
     const tmp = document.createElement('canvas');
-    tmp.width = cw; tmp.height = ch;
+    tmp.width = S; tmp.height = S;
     const tctx = tmp.getContext('2d');
-    const img = tctx.createImageData(cw, ch);
+    const img = tctx.createImageData(S, S);
     const d = img.data;
     for (let i = 0; i < d.length; i += 4) {
       const v = Math.random() * 255;
@@ -661,9 +794,8 @@
       d[i + 3] = Math.random() * 22 + 4;
     }
     tctx.putImageData(img, 0, 0);
-    tmp._w = cw;
-    grainTile = tmp;
-    return tmp;
+    grainTile = ctx.createPattern(tmp, 'repeat');
+    return grainTile;
   }
 
   function rRect(x, y, w, h, r) {
@@ -688,8 +820,11 @@
   function getScrollCards() {
     if (scCards && scCards._cw === cw) return scCards;
     const cx = cw / 2, cy = ch / 2 + 40;
-    const CW = 190, CH = 130, gap = 20;
-    const row1y = cy - 80, row2y = cy + 74;
+    // scale the whole 4+3 grid to the viewport so it never overflows phones
+    // (base grid width = 4*190 + 3*20 = 820)
+    const gs = Math.min(1, (cw - 32) / 860);
+    const CW = 190 * gs, CH = 130 * gs, gap = 20 * gs;
+    const row1y = cy - 80 * gs, row2y = cy + 74 * gs;
     const r1w = 4 * CW + 3 * gap, r2w = 3 * CW + 2 * gap;
     const r1x = cx - r1w / 2 + CW / 2, r2x = cx - r2w / 2 + CW / 2;
     const gx = [r1x, r1x + (CW + gap), r1x + 2 * (CW + gap), r1x + 3 * (CW + gap), r2x, r2x + (CW + gap), r2x + 2 * (CW + gap)];
@@ -705,7 +840,7 @@
     ];
     const apps = APPS.map(a => ({ name: a.name, cat: a.cat, bg: a.bg, ac: a.ac }));
     const cards = apps.map((a, i) => Object.assign({}, a, {
-      cw: CW, ch: CH,
+      cw: CW, ch: CH, gs,
       gx: gx[i], gy: gy[i],
       sx: cx + scatter[i].dx * cw,
       sy: cy + scatter[i].dy * ch,
@@ -717,14 +852,17 @@
   }
 
   function drawCard(c, x, y, rot, sc) {
-    const CW = c.cw, CH = c.ch, rr = 10;
+    // draw at base 190x130 and scale the context by the grid scale (gs) so every
+    // internal fixed value (dots, url bar, fonts) stays proportionate on phones
+    const gs = c.gs || 1;
+    const CW = c.cw / gs, CH = c.ch / gs, rr = 10;
     const r = rot * Math.PI / 180;
     const hex = c.ac;
     const ri = parseInt(hex.slice(1, 3), 16), gi = parseInt(hex.slice(3, 5), 16), bi = parseInt(hex.slice(5, 7), 16);
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(r);
-    ctx.scale(sc, sc);
+    ctx.scale(sc * gs, sc * gs);
     ctx.shadowColor = 'rgba(0,0,0,0.85)';
     ctx.shadowBlur = 40 + Math.abs(rot) * 0.5;
     ctx.shadowOffsetX = Math.sin(r) * 28 + 5;
@@ -816,7 +954,7 @@
       if (hookT > 0) {
         const he = 1 - Math.pow(1 - hookT, 3);
         ctx.globalAlpha = bgA * he * scrollFade;
-        ctx.font = "400 30px 'Instrument Serif',serif";
+        ctx.font = "400 " + Math.min(30, cw * 0.05) + "px 'Instrument Serif',serif";
         ctx.fillStyle = 'rgba(255,255,255,0.62)';
         ctx.textBaseline = 'top';
         ctx.fillText('Endless internet. And still nothing to do?', cw / 2, ch * 0.38 + 58 + (1 - he) * 16);
@@ -883,9 +1021,9 @@
       ctx.fillStyle = '#080807';
       ctx.globalAlpha = bgA;
       ctx.fillRect(0, 0, cw, ch);
-      const grain = getGrain();
       ctx.globalAlpha = bgA * 0.38;
-      ctx.drawImage(grain, 0, 0);
+      ctx.fillStyle = getGrain();
+      ctx.fillRect(0, 0, cw, ch);
       ctx.globalAlpha = 1;
       const cards = getScrollCards();
       const cardP = Math.min(1, p / 0.78);
@@ -907,13 +1045,29 @@
       });
       drawScrollText(p, bgA, elapsed);
     }
-    if (bgA > 0.001 || p < 1) requestAnimationFrame(frame);
-    else requestAnimationFrame(frame);
+    // idle when the intro is spent: stop the rAF loop, resume only if the user
+    // scrolls back up into the intro's range (saves battery/GPU after the fold)
+    if (p >= 1 && bgA <= 0.001) { introRunning = false; return; }
+    requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  let introRunning = false;
+  function startIntro() {
+    if (introRunning || track.style.display === 'none') return;
+    introRunning = true;
+    requestAnimationFrame(frame);
+  }
+  window.addEventListener('scroll', () => {
+    if (!introRunning && window.scrollY < 1400) startIntro();
+  }, { passive: true });
 
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (REDUCED) {
     track.style.display = 'none';
+  } else {
+    startIntro();
+    // click anywhere on the intro to skip straight to the hero
+    canvas.addEventListener('click', () => {
+      if (window.scrollY < 1260) window.scrollTo({ top: 1300, behavior: 'smooth' });
+    });
   }
 
   /* ---------- soft page-transition nav (matches os.js convention) ---------- */
@@ -926,6 +1080,80 @@
       setTimeout(() => { location.href = a.getAttribute('href'); }, 200);
     }
   });
+  // bfcache: restore visibility when navigating Back into a faded-out page
+  window.addEventListener('pageshow', e => {
+    if (e.persisted) { document.body.style.transition = 'none'; document.body.style.opacity = '1'; }
+  });
+
+  /* ---------- ⌘K quick-launch palette ---------- */
+  const pal = document.getElementById('pal');
+  const palInput = document.getElementById('palInput');
+  const palList = document.getElementById('palList');
+  let palSel = 0, palItems = [];
+  function palRender() {
+    const q = palInput.value.trim().toLowerCase();
+    palItems = APPS.filter(a => !q || (a.name + ' ' + a.cat + ' ' + a.role).toLowerCase().includes(q));
+    palSel = Math.min(palSel, Math.max(0, palItems.length - 1));
+    palList.innerHTML = '';
+    palItems.forEach((a, i) => {
+      const row = document.createElement('div');
+      row.className = 'pal-row' + (i === palSel ? ' sel' : '');
+      row.innerHTML = '<span class="pc">' + a.cat + '</span><b>' + a.name + '</b>' +
+        '<span class="pr">' + a.role.split('·')[0].trim() + '</span><span class="go">&crarr;</span>';
+      row.addEventListener('mouseenter', () => { palSel = i; palRender(); });
+      row.addEventListener('click', () => palGo(a));
+      palList.appendChild(row);
+    });
+    if (!palItems.length) palList.innerHTML = '<div style="padding:18px;font:400 13px var(--sans);color:var(--ink3);text-align:center">No app matches &ldquo;' + palInput.value + '&rdquo;</div>';
+  }
+  function palGo(a) {
+    palClose();
+    document.body.style.transition = 'opacity .2s';
+    document.body.style.opacity = '0';
+    setTimeout(() => { location.href = a.href; }, 200);
+  }
+  let palPrevFocus = null;
+  function palOpen() {
+    palPrevFocus = document.activeElement;
+    pal.classList.add('open');
+    palInput.value = ''; palSel = 0; palRender();
+    palInput.focus();
+  }
+  function palClose() {
+    pal.classList.remove('open');
+    if (palPrevFocus && palPrevFocus.focus) palPrevFocus.focus();
+  }
+  document.getElementById('palHint').addEventListener('click', palOpen);
+  pal.addEventListener('mousedown', e => { if (e.target === pal) palClose(); });
+  palInput.addEventListener('input', () => { palSel = 0; palRender(); });
+  document.addEventListener('keydown', e => {
+    const open = pal.classList.contains('open');
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); open ? palClose() : palOpen(); return; }
+    if (!open && e.key === '/' && !(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+      const cr = calcKeys.getBoundingClientRect();          // calc gets '/' (divide) while it's on screen
+      if (cr.bottom < 0 || cr.top > window.innerHeight) { e.preventDefault(); palOpen(); }
+      return;
+    }
+    if (!open) return;
+    if (e.key === 'Escape') { e.preventDefault(); palClose(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); palSel = (palSel + 1) % Math.max(1, palItems.length); palRender(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = (palSel - 1 + palItems.length) % Math.max(1, palItems.length); palRender(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (palItems[palSel]) palGo(palItems[palSel]); }
+    else if (e.key === 'Tab') { e.preventDefault(); }   // keep focus inside the dialog
+  }, true);
+
+  /* ---------- magnetic CTAs (fine pointers only) ---------- */
+  if (!REDUCED && window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+    document.querySelectorAll('.ffx-cta.big,.ffx-ghost').forEach(el => {
+      el.addEventListener('mousemove', e => {
+        const r = el.getBoundingClientRect();
+        const dx = (e.clientX - r.left - r.width / 2) / r.width;
+        const dy = (e.clientY - r.top - r.height / 2) / r.height;
+        el.style.transform = 'translate(' + (dx * 6) + 'px,' + (dy * 4 - 2) + 'px)';
+      });
+      el.addEventListener('mouseleave', () => { el.style.transform = ''; });
+    });
+  }
 })();
 </script>
 </body>
