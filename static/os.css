@@ -1,20 +1,24 @@
 /* ════════════════════════════════════════════════════════
-   FUNFLIX — light editorial design system
-   white paper · Instrument Serif · Inter · #6F6F6F
+   FUNFLIX — design system (matches the homepage)
+   paper #FAFAF8 · ink #111110 · Geist / Geist Mono · Instrument Serif accents
+   acid-green trio for marks, CTAs and live states
    ════════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   /* ── the system ── */
-  --paper:   #ffffff;
-  --black:   #000000;
-  --gray:    #6F6F6F;
-  --gray-2:  #9b9b9b;
-  --rule:    #ececec;
-  --rule-2:  #dcdcdc;
-  --wash:    #f6f6f4;
+  --paper:   #FAFAF8;
+  --black:   #111110;
+  --gray:    #63635E;
+  --gray-2:  #6D6D66;
+  --rule:    #ECECEA;
+  --rule-2:  #DDDDD8;
+  --wash:    #F6F6F4;
   --serif: 'Instrument Serif', serif;
-  --sans:  'Inter', sans-serif;
+  --sans:  'Geist', 'Inter', system-ui, sans-serif;
+  --monoX: 'Geist Mono', monospace;   /* brand mono for chrome (legacy --mono stays JetBrains for the games) */
 
   /* ── accent trio (volt) — used for CTAs, marks, live/rec states ── */
   --acc:   #BDF23F;
@@ -54,6 +58,8 @@ body {
   background: var(--paper);
   color: var(--black);
   font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -62,10 +68,15 @@ body {
 }
 body.fade-out { opacity: 0; }
 
-::selection { background: rgba(0,0,0,0.9); color: #fff; }
-::-webkit-scrollbar { width: 4px; height: 4px; }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accD); outline-offset: 3px; border-radius: 6px;
+}
+::selection { background: var(--acc); color: var(--black); }
+html { scrollbar-width: thin; scrollbar-color: rgba(17,17,16,0.35) transparent; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d2d2d2; border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(17,17,16,0.28); border-radius: 99px; border: 2px solid var(--paper); }
+::-webkit-scrollbar-thumb:hover { background: rgba(17,17,16,0.5); }
 
 /* ── the frame: top bar ── */
 .hud {
@@ -84,15 +95,12 @@ body.fade-out { opacity: 0; }
 @media (max-width: 640px) { .hud-inner { padding: 16px 20px; } }
 
 .hud-logo {
-  font-family: var(--serif);
-  font-size: 30px; font-weight: 400;
-  letter-spacing: -0.02em;
+  display: block; line-height: 0;
   color: var(--black); text-decoration: none;
-  line-height: 1;
   transition: opacity 0.2s;
 }
 .hud-logo:hover { opacity: 0.7; }
-.hud-logo sup { font-size: 11px; color: var(--black); }
+.hud-logo svg { display: block; }
 
 .hud-links { display: none; align-items: center; gap: 28px; }
 @media (min-width: 920px) { .hud-links { display: flex; } }
@@ -111,12 +119,13 @@ body.fade-out { opacity: 0; }
 .hud-cta {
   background: var(--black); color: #fff;
   border: none; border-radius: 999px;
-  font-family: var(--sans); font-size: 14px; font-weight: 500;
-  padding: 10px 24px;
+  font-family: var(--sans); font-size: 13.5px; font-weight: 600;
+  padding: 10px 22px;
+  box-shadow: 0 8px 24px rgba(17,17,16,0.18);
   transition: transform 0.2s ease, background 0.2s;
 }
-.hud-cta:hover { transform: scale(1.03); }
-.hud-cta:active { transform: scale(0.97); }
+.hud-cta:hover { background: #000; transform: translateY(-1px); }
+.hud-cta:active { transform: translateY(0) scale(0.97); }
 
 .hud-burger {
   display: flex; align-items: center; justify-content: center;
