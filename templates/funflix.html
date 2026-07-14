@@ -1124,7 +1124,7 @@
       ctx.textBaseline = 'top';
       ctx.fillText('Seven apps. One place.', cw / 2, ch * 0.075);
     }
-    const outFadeT = p < 0.82 ? 1 : Math.max(0, 1 - (p - 0.82) / 0.10);   // matches the card layer's early exit
+    const outFadeT = p < 0.82 ? 1 : Math.max(0, 1 - (p - 0.82) / 0.08);   // headline gone by p=0.90, before the veil moves
     const l3a = (p < 0.70 ? 0 : p < 0.80 ? (p - 0.70) / 0.10 : 1) * outFadeT;
     if (l3a > 0.01) {
       ctx.globalAlpha = bgA * l3a;
@@ -1155,7 +1155,12 @@
     // calc(100vh + 1260px) tall so the sticky canvas stays put until AFTER the bg
     // is gone — the hero is never revealed while the dark layer is still up.
     const p = Math.min(1, Math.max(0, window.scrollY / 1160));
-    const bgA = p < 0.82 ? 1 : Math.max(0, 1 - (p - 0.82) / 0.18);
+    // three separated beats — they can NEVER overlap:
+    //   p ≤ 0.78  cards assemble on full dark
+    //   p 0.80→0.88  cards (and headline by 0.90) exit while the veil is STILL
+    //                fully opaque — the hero cannot be seen, so no collision
+    //   p 0.90→1.0  the now-empty veil lifts off the already-arrived hero
+    const bgA = p < 0.90 ? 1 : Math.max(0, 1 - (p - 0.90) / 0.10);
     ctx.clearRect(0, 0, cw, ch);
     if (bgA >= 0.01) {
       ctx.fillStyle = '#080807';
@@ -1168,23 +1173,23 @@
       const cards = getScrollCards();
       const cardP = Math.min(1, p / 0.78);
       const dimA = Math.max(0.14, Math.min(1, p / 0.14));
-      const outFade = p < 0.82 ? 1 : Math.max(0, 1 - (p - 0.82) / 0.10);   // content layer exits by p≈0.92
+      const outFade = p < 0.80 ? 1 : Math.max(0, 1 - (p - 0.80) / 0.08);   // cards fully gone by p=0.88, BEFORE the veil moves at 0.90
       const sorted = cards.slice().sort((a, b) => Math.abs(a.sRot) - Math.abs(b.sRot));
       sorted.forEach((card, i) => {
         const t = spring(Math.max(0, Math.min(1, (cardP - card.delay) / (1 - card.delay + 0.001))));
         const idle = 1 - t;
         const fx = Math.sin(elapsed * 0.5 + i * 1.7) * 9 * idle;
         const fy = Math.cos(elapsed * 0.4 + i * 2.3) * 12 * idle;
+        const exitK = 1 - outFade;   // 0 while assembled, →1 as the card leaves
         const x = card.sx + (card.gx - card.sx) * t + fx;
-        const y = card.sy + (card.gy - card.sy) * t + fy;
+        const y = card.sy + (card.gy - card.sy) * t + fy - exitK * 26;   // drift up as they go
         const rot = card.sRot * (1 - t) + Math.sin(elapsed * 0.35 + i * 2.1) * 1.6 * idle;
-        const sc = card.sSc + (1 - card.sSc) * t;
+        const sc = (card.sSc + (1 - card.sSc) * t) * (1 - exitK * 0.05);
         ctx.save();
-        // cards (and headline, in drawScrollText) fade out FASTER than the dark
-        // veil: by p≈0.92 only the plain veil remains, lifting cleanly off the
-        // hero — no card shapes ghosting through the headline mid-dissolve
+        // the exit happens on a FULLY OPAQUE veil (outFade hits 0 before bgA
+        // starts moving), so card shapes can never ghost over the hero
         ctx.globalAlpha = (dimA + (1 - dimA) * t) * outFade;
-        drawCard(card, x, y, rot, sc);
+        if (ctx.globalAlpha > 0.005) drawCard(card, x, y, rot, sc);
         ctx.restore();
       });
       drawScrollText(p, bgA, elapsed);
