@@ -1124,7 +1124,8 @@
       ctx.textBaseline = 'top';
       ctx.fillText('Seven apps. One place.', cw / 2, ch * 0.075);
     }
-    const l3a = p < 0.70 ? 0 : p < 0.80 ? (p - 0.70) / 0.10 : 1;
+    const outFadeT = p < 0.82 ? 1 : Math.max(0, 1 - (p - 0.82) / 0.10);   // matches the card layer's early exit
+    const l3a = (p < 0.70 ? 0 : p < 0.80 ? (p - 0.70) / 0.10 : 1) * outFadeT;
     if (l3a > 0.01) {
       ctx.globalAlpha = bgA * l3a;
       ctx.font = "700 " + Math.min(68, cw * 0.07) + "px 'Geist',sans-serif";
@@ -1167,6 +1168,7 @@
       const cards = getScrollCards();
       const cardP = Math.min(1, p / 0.78);
       const dimA = Math.max(0.14, Math.min(1, p / 0.14));
+      const outFade = p < 0.82 ? 1 : Math.max(0, 1 - (p - 0.82) / 0.10);   // content layer exits by p≈0.92
       const sorted = cards.slice().sort((a, b) => Math.abs(a.sRot) - Math.abs(b.sRot));
       sorted.forEach((card, i) => {
         const t = spring(Math.max(0, Math.min(1, (cardP - card.delay) / (1 - card.delay + 0.001))));
@@ -1178,7 +1180,10 @@
         const rot = card.sRot * (1 - t) + Math.sin(elapsed * 0.35 + i * 2.1) * 1.6 * idle;
         const sc = card.sSc + (1 - card.sSc) * t;
         ctx.save();
-        ctx.globalAlpha = dimA + (1 - dimA) * t;
+        // cards (and headline, in drawScrollText) fade out FASTER than the dark
+        // veil: by p≈0.92 only the plain veil remains, lifting cleanly off the
+        // hero — no card shapes ghosting through the headline mid-dissolve
+        ctx.globalAlpha = (dimA + (1 - dimA) * t) * outFade;
         drawCard(card, x, y, rot, sc);
         ctx.restore();
       });
