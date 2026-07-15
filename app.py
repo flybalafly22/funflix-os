@@ -1,8 +1,10 @@
 import math
 import os
 import ssl
+import threading
 import time
 from datetime import date
+from queue import Empty, Queue
 import urllib.request
 import json as json_mod
 import certifi
@@ -315,9 +317,15 @@ def trainer_api():
         else:
             time.sleep(1.5 * (2 ** attempt))
 
-    def generate():
+    # The model can be silent for tens of seconds before its first byte
+    # (thinking + queueing under load), and the retry backoffs add more silence.
+    # Proxies kill silent responses with an HTML error page. So the model chain
+    # runs in a worker thread feeding a queue, while the response generator
+    # emits a whitespace keepalive — legal around JSON, invisible after the
+    # client's trim — whenever 10 s pass with no real data.
+    def run_model_chain(q):
+        sent_text = False
         for attempt in range(MAX_ATTEMPTS):
-            emitted = False
             finish = ""
             try:
                 client = genai.Client(api_key=GEMINI_API_KEY)
@@ -328,8 +336,8 @@ def trainer_api():
                 )
                 for chunk in response:
                     if chunk.text:
-                        emitted = True
-                        yield chunk.text
+                        sent_text = True
+                        q.put(("text", chunk.text))
                     try:
                         fr = chunk.candidates[0].finish_reason
                         if fr:
@@ -340,38 +348,57 @@ def trainer_api():
                 # Stream finished without raising. Report anything other than a
                 # clean completion (an ERROR: marker after any partial JSON is
                 # what the client surfaces to the user).
-                if not emitted:
+                if not sent_text:
                     if "SAFETY" in finish or "RECITATION" in finish or "BLOCK" in finish:
-                        yield ("\nERROR: A content filter blocked the plan. This usually comes from "
-                               "sensitive wording in the health or extra-info box — rephrase it plainly and try again.")
+                        q.put(("end", "\nERROR: A content filter blocked the plan. This usually comes from "
+                                      "sensitive wording in the health or extra-info box — rephrase it plainly and try again."))
                     elif "MAX_TOKEN" in finish:
-                        yield ("\nERROR: The plan ran out of length before it finished. Please try again; "
-                               "if it keeps happening, shorten the extra-info box.")
+                        q.put(("end", "\nERROR: The plan ran out of length before it finished. Please try again; "
+                                      "if it keeps happening, shorten the extra-info box."))
                     elif attempt < MAX_ATTEMPTS - 1:
                         backoff(attempt)
                         continue  # empty with no clear reason — treat as a blip and retry
                     else:
-                        yield ("\nERROR: The Trainer returned no content. Please try again in a moment.")
+                        q.put(("end", "\nERROR: The Trainer returned no content. Please try again in a moment."))
                 elif finish and "STOP" not in finish and "FINISH_REASON_UNSPECIFIED" not in finish:
-                    yield (f"\nERROR: The plan was cut off before it finished ({finish}). "
-                           f"Please try again; if it repeats, shorten the extra-info box.")
+                    q.put(("end", f"\nERROR: The plan was cut off before it finished ({finish}). "
+                                  f"Please try again; if it repeats, shorten the extra-info box."))
+                else:
+                    q.put(("end", None))
                 return
             except Exception as exc:
                 err = str(exc)
                 low = err.lower()
                 if "api_key" in low or "api key" in low or "401" in low:
-                    yield "\nERROR: Invalid GEMINI_API_KEY on the server."
+                    q.put(("end", "\nERROR: Invalid GEMINI_API_KEY on the server."))
                     return
                 transient = any(m in low for m in TRANSIENT)
                 # Only safe to retry if we have not sent any bytes for this request.
-                if transient and not emitted and attempt < MAX_ATTEMPTS - 1:
+                if transient and not sent_text and attempt < MAX_ATTEMPTS - 1:
                     backoff(attempt)
                     continue
                 if transient:
-                    yield ("\nERROR: Gemini is temporarily overloaded (high demand on Google's side, "
-                           "not your account or key) — even the backup model. Please try again in a minute or two.")
+                    q.put(("end", "\nERROR: Gemini is temporarily overloaded (high demand on Google's side, "
+                                  "not your account or key) — even the backup model. Please try again in a minute or two."))
                     return
-                yield f"\nERROR: {err}"
+                q.put(("end", f"\nERROR: {err}"))
+                return
+        q.put(("end", None))  # unreachable, but the reader must never block forever
+
+    def generate():
+        q = Queue()
+        threading.Thread(target=run_model_chain, args=(q,), daemon=True).start()
+        while True:
+            try:
+                kind, val = q.get(timeout=10)
+            except Empty:
+                yield " "  # keepalive
+                continue
+            if kind == "text":
+                yield val
+            else:
+                if val:
+                    yield val
                 return
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
