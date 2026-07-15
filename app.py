@@ -281,14 +281,18 @@ def trainer_api():
     # 30 s that proxies tolerate for a silent response; streaming keeps bytes
     # flowing (same pattern as the journalist/analyst endpoints). The client
     # accumulates the text and parses the JSON at the end.
+    #
+    # The plan is a large structured object, so give the model generous output
+    # room AND enough thinking budget to run its arithmetic self-check — a tight
+    # budget can leave it emitting an empty or truncated (unparseable) object.
     config_kwargs = dict(
         system_instruction=TRAINER_SYSTEM,
         temperature=0.5,
         response_mime_type="application/json",
+        max_output_tokens=32768,
     )
     try:
-        # bound "thinking" latency; without a budget a complex intake can add minutes
-        config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=2048)
+        config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=8192)
     except AttributeError:
         pass
 
@@ -300,9 +304,34 @@ def trainer_api():
                 contents=user_content,
                 config=types.GenerateContentConfig(**config_kwargs),
             )
+            emitted = False
+            finish = ""
             for chunk in response:
                 if chunk.text:
+                    emitted = True
                     yield chunk.text
+                try:
+                    fr = chunk.candidates[0].finish_reason
+                    if fr:
+                        finish = str(fr)
+                except (AttributeError, IndexError, TypeError):
+                    pass
+            # If nothing came back, or generation stopped for anything other than
+            # a normal completion, tell the client exactly why (an ERROR: marker
+            # after any partial JSON is what the client surfaces to the user).
+            if not emitted:
+                if "SAFETY" in finish or "RECITATION" in finish or "BLOCK" in finish:
+                    yield ("\nERROR: A content filter blocked the plan. This usually comes from "
+                           "sensitive wording in the health or extra-info box — rephrase it plainly and try again.")
+                elif "MAX_TOKEN" in finish:
+                    yield ("\nERROR: The plan ran out of length before it finished. Please try again; "
+                           "if it keeps happening, shorten the extra-info box.")
+                else:
+                    yield (f"\nERROR: The Trainer returned no content"
+                           f"{' (' + finish + ')' if finish else ''}. Please try again in a moment.")
+            elif finish and "STOP" not in finish and "FINISH_REASON_UNSPECIFIED" not in finish:
+                yield (f"\nERROR: The plan was cut off before it finished ({finish}). "
+                       f"Please try again; if it repeats, shorten the extra-info box.")
         except Exception as exc:
             err = str(exc)
             if "API_KEY" in err or "api key" in err.lower() or "401" in err:

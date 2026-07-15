@@ -363,7 +363,7 @@
         try { data = JSON.parse(text); }
         catch (e) {
           fail(r.ok
-            ? 'The Trainer sent back something unreadable. Please try again — this is usually a one-off.'
+            ? 'The Trainer’s reply came through incomplete (not an account or key issue). Please press “Build my program” again — it usually goes through on a second try.'
             : 'The server took too long or hiccuped (status ' + r.status + '). Please try again in a moment.');
           return;
         }
