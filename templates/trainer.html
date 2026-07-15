@@ -269,7 +269,7 @@
     <div class="thinking" id="thinking">
       <div class="th-ring"></div>
       <div class="th-line" id="thLine">Reading your intake…</div>
-      <div class="th-sub">Evidence-based · No guesswork · Numbers on everything</div>
+      <div class="th-sub">A complete program takes a minute or two — every number is computed for you.</div>
     </div>
 
     <!-- ── FOLLOW-UP ── -->
@@ -345,11 +345,29 @@
     try {
       const body = { intake: intake() };
       if (followupAnswers) body.followup_answers = followupAnswers;
-      if (new URLSearchParams(location.search).has('demo')) body.demo = 1;
+      const demoParam = new URLSearchParams(location.search).get('demo');
+      if (demoParam !== null) body.demo = demoParam === 'stream' ? 'stream' : 1;
       const r = await fetch('/api/trainer', { method: 'POST',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const data = await r.json();
-      if (!r.ok || data.error) { fail(data.error || ('Server error (' + r.status + ')')); return; }
+      const ct = r.headers.get('content-type') || '';
+      let data;
+      if (ct.indexOf('application/json') !== -1) {
+        data = await r.json();
+        if (!r.ok || data.error) { fail(data.error || ('Server error (' + r.status + ')')); return; }
+      } else {
+        // the real plan arrives as streamed JSON text (kept flowing to survive proxies)
+        let text = await r.text();
+        const em = text.match(/(?:^|\n)ERROR: ([\s\S]+)$/);
+        if (em) { fail(em[1].trim()); return; }
+        text = text.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        try { data = JSON.parse(text); }
+        catch (e) {
+          fail(r.ok
+            ? 'The Trainer sent back something unreadable. Please try again — this is usually a one-off.'
+            : 'The server took too long or hiccuped (status ' + r.status + '). Please try again in a moment.');
+          return;
+        }
+      }
       if (data.type === 'questions' && Array.isArray(data.questions) && data.questions.length) {
         pendingQuestions = data.questions.slice(0, 4).map(q =>
           typeof q === 'string' ? { question: q } : q);

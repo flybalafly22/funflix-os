@@ -241,10 +241,18 @@ def trainer():
 def trainer_api():
     payload = request.json or {}
 
-    # keyless demo: lets the document view + PDF be exercised without an API key
+    # keyless demo: lets the document view + PDF be exercised without an API key.
+    # demo=stream exercises the streamed text path the real API uses.
     if payload.get("demo"):
         if TRAINER_DEMO is None:
             return jsonify({"error": "Demo plan is unavailable on the server."}), 500
+        if payload["demo"] == "stream":
+            demo_text = json_mod.dumps(TRAINER_DEMO)
+
+            def demo_gen():
+                for i in range(0, len(demo_text), 2048):
+                    yield demo_text[i:i + 2048]
+            return Response(stream_with_context(demo_gen()), mimetype="text/plain")
         return jsonify(TRAINER_DEMO)
 
     intake = payload.get("intake") or {}
@@ -269,26 +277,40 @@ def trainer_api():
             lines.append(f"- Q: {str(qa.get('q','')).strip()}\n  A: {str(qa.get('a','')).strip()}")
     user_content = "\n".join(lines)
 
+    # Stream the JSON out as it is generated. A full plan takes well over the
+    # 30 s that proxies tolerate for a silent response; streaming keeps bytes
+    # flowing (same pattern as the journalist/analyst endpoints). The client
+    # accumulates the text and parses the JSON at the end.
+    config_kwargs = dict(
+        system_instruction=TRAINER_SYSTEM,
+        temperature=0.5,
+        response_mime_type="application/json",
+    )
     try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=user_content,
-            config=types.GenerateContentConfig(
-                system_instruction=TRAINER_SYSTEM,
-                temperature=0.5,
-                response_mime_type="application/json",
-            ),
-        )
-        data = json_mod.loads(response.text)
-        if not isinstance(data, dict) or data.get("type") not in ("questions", "plan"):
-            return jsonify({"error": "The Trainer returned an unexpected format. Please try again."}), 502
-        return jsonify(data)
-    except Exception as exc:
-        err = str(exc)
-        if "API_KEY" in err or "api key" in err.lower() or "401" in err:
-            return jsonify({"error": "Invalid GEMINI_API_KEY. Check your key and restart the server."}), 500
-        return jsonify({"error": err}), 500
+        # bound "thinking" latency; without a budget a complex intake can add minutes
+        config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=2048)
+    except AttributeError:
+        pass
+
+    def generate():
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            response = client.models.generate_content_stream(
+                model="gemini-2.5-flash",
+                contents=user_content,
+                config=types.GenerateContentConfig(**config_kwargs),
+            )
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as exc:
+            err = str(exc)
+            if "API_KEY" in err or "api key" in err.lower() or "401" in err:
+                yield "\nERROR: Invalid GEMINI_API_KEY on the server."
+            else:
+                yield f"\nERROR: {err}"
+
+    return Response(stream_with_context(generate()), mimetype="text/plain")
 
 
 @app.route("/calculate", methods=["POST"])
