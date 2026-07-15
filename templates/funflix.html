@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>FUNFLIX — Seven apps. One place.</title>
-<meta name="description" content="Seven original web apps — a scientific calculator, a joke-writing studio, an automated newsroom, and four playable worlds. One tab, nothing to install, $0."/>
+<title>FUNFLIX — Eight apps. One place.</title>
+<meta name="description" content="Eight original web apps — a scientific calculator, a joke-writing studio, an automated newsroom, a personal training studio, and four playable worlds. One tab, nothing to install, $0."/>
 <meta name="theme-color" content="#FAFAF8"/>
-<meta property="og:title" content="FUNFLIX — Seven apps. One place."/>
-<meta property="og:description" content="Seven original web apps in one tab. No account, no install, no ads. $0."/>
+<meta property="og:title" content="FUNFLIX — Eight apps. One place."/>
+<meta property="og:description" content="Eight original web apps in one tab. No account, no install, no ads. $0."/>
 <meta property="og:type" content="website"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23111110'/%3E%3Cpath fill='%23BDF23F' d='M28 22h44v14H42v14h26v14H42v14H28z'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -327,9 +327,9 @@
 <main>
 <div class="ffx-hero">
   <div id="heroGlow" aria-hidden="true"></div>
-  <div class="ffx-pill"><span class="ffx-dot"></span><span style="font:500 11px var(--mono);letter-spacing:.16em;color:var(--ink2)">ALL SEVEN APPS ONLINE</span></div>
+  <div class="ffx-pill"><span class="ffx-dot"></span><span style="font:500 11px var(--mono);letter-spacing:.16em;color:var(--ink2)">ALL EIGHT APPS ONLINE</span></div>
   <h1 class="ffx-h1"><span class="w">Finally, something</span><br><span class="w2">to <span id="heroWord" style="color:var(--accD)">play</span>.</span></h1>
-  <p class="ffx-sub">Seven original web apps &mdash; a scientific calculator, a joke-writing studio, an automated newsroom, and four playable worlds. One tab, nothing to install, <b style="color:var(--accD)">$0</b>.</p>
+  <p class="ffx-sub">Eight original web apps &mdash; a scientific calculator, a joke-writing studio, an automated newsroom, a personal training studio, and four playable worlds. One tab, nothing to install, <b style="color:var(--accD)">$0</b>.</p>
   <div class="ffx-cta-row">
     <a class="ffx-cta big" href="#apps">Open FUNFLIX</a>
     <a class="ffx-ghost" href="#apps">Browse the apps &rarr;</a>
@@ -373,7 +373,7 @@
 <section class="pad" id="apps">
   <div class="eyebrow" data-rv>THE APPS</div>
   <div class="apps-head" data-rv data-delay="90">
-    <div class="h2" style="margin-top:0">Seven apps, all live.</div>
+    <div class="h2" style="margin-top:0">Eight apps, all live.</div>
     <div class="apps-status"><span class="ffx-dot" style="background:var(--accD)"></span><span id="localClock">LOCAL 00:00:00</span>&nbsp;&middot; ALL SYSTEMS NORMAL</div>
   </div>
   <div class="apps-layout">
@@ -491,7 +491,7 @@
   <a class="ffx-cta big" href="#apps" data-rv data-delay="120" style="margin-top:28px;display:inline-block">Open FUNFLIX</a>
   <div class="foot-links" id="footLinks"></div>
   <div class="foot-bar">
-    <span>&copy; MMXXVI FUNFLIX</span><a href="mailto:team@funflix.app">TEAM@FUNFLIX.APP</a><span>SEVEN APPS &middot; ONE PLACE</span><span>100% ORIGINAL SOFTWARE</span>
+    <span>&copy; MMXXVI FUNFLIX</span><a href="mailto:team@funflix.app">TEAM@FUNFLIX.APP</a><span>EIGHT APPS &middot; ONE PLACE</span><span>100% ORIGINAL SOFTWARE</span>
   </div>
 </footer>
 
@@ -522,14 +522,16 @@
     { name:'Costa Vista',cat:'WORLD',  role:'Open city at permanent golden hour · Free roam', href:'/play/city-game', slug:'costa-vista', bg:'#1C1005', ac:'#FCD34D' },
     { name:'The Study',  cat:'DATA',   role:'Personal health dashboard · Live metrics · Trends', href:'/study', slug:'study', bg:'#040E1A', ac:'#38BDF8' },
     { name:'The Fly',    cat:'GAME',   role:'Courier flight game · Deliveries over a hand-built town', href:'/play/the-fly', slug:'fly', bg:'#130700', ac:'#FB923C' },
+    { name:'The Trainer',cat:'COACH',  role:'Personal training studio · Evidence-based programs · PDF plans', href:'/trainer', slug:'trainer', bg:'#150A10', ac:'#FB7185' },
   ];
-  const WORDS = ['play', 'read', 'fly', 'build', 'solve'];
+  const WORDS = ['play', 'read', 'fly', 'build', 'solve', 'train'];
   const HEADLINES = [
     'Compute logs its one-millionth calculation',
     'Golden hour holds for a 214th consecutive day in Costa Vista',
     'Courier 07 clears the harbor route in record time',
     'Synthesis publishes forty new punchlines before lunch',
-    'The Study confirms: eight hours of sleep still works'
+    'The Study confirms: eight hours of sleep still works',
+    'The Trainer ships its first thousand programs — every set numbered'
   ];
   const EQS = [['√2,209','47'], ['128 × 46','5,888'], ['9! ÷ 6!','504'], ['2¹⁰','1,024'], ['sin 90°','1']];
   const JOKES = [
@@ -696,7 +698,23 @@
       '<div style="position:absolute;left:60%;top:34%;width:' + dot + 'px;height:' + dot + 'px;border-radius:50%;background:var(--accD)"></div>' +
       (big ? '<div style="position:absolute;left:24px;bottom:16px;font:500 9.5px var(--mono);letter-spacing:.2em;color:var(--ink3)">COURIER 07 — INBOUND</div>' : '') + '</div>';
   }
-  const SCENES = [sceneCompute, sceneSynthesis, scenePress, sceneFly, sceneCosta, sceneStudy, sceneTheFly];
+  function sceneTrainer(big) {
+    if (big) {
+      return '<div style="position:absolute;inset:0;background:#fff;padding:24px 26px">' +
+        '<div style="font:500 9px var(--mono);letter-spacing:.2em;color:var(--ink3)">WEEK 1 — UPPER A</div>' +
+        '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px">' +
+          [['Bench press','4 × 6–8'],['Row','4 × 8–10'],['Incline DB press','3 × 10–12'],['Lat pulldown','3 × 10–12']].map(function(r){ return (
+            '<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(0,0,0,.06);padding-bottom:8px">' +
+            '<span style="font:600 13.5px var(--sans);color:var(--ink)">' + r[0] + '</span>' +
+            '<span style="font:500 11px var(--mono);color:#B0455A">' + r[1] + '</span></div>'); }).join('') + '</div>' +
+        '<div style="position:absolute;right:26px;bottom:40px;font:500 10px var(--mono);letter-spacing:.14em;color:var(--accD)">REST 2–3 MIN · RIR 1–2</div></div>';
+    }
+    return '<div style="position:absolute;inset:0;background:#fff;padding:9px 12px">' +
+      '<div style="display:flex;justify-content:space-between"><span style="font:600 8px var(--sans);letter-spacing:.14em">UPPER A</span><span style="font:500 7.5px var(--mono);color:#B0455A">4 × 6–8</span></div>' +
+      '<div style="height:7px;border-radius:4px;background:rgba(0,0,0,.1);width:84%;margin-top:8px"></div>' +
+      '<div style="height:7px;border-radius:4px;background:rgba(176,69,90,.35);width:64%;margin-top:5px"></div></div>';
+  }
+  const SCENES = [sceneCompute, sceneSynthesis, scenePress, sceneFly, sceneCosta, sceneStudy, sceneTheFly, sceneTrainer];
 
   /* ---------- build hero mockup grid ---------- */
   const mockGrid = document.getElementById('mockGrid');
@@ -706,10 +724,6 @@
     t.innerHTML = '<div class="scene">' + SCENES[i]() + '</div><div class="cap"><b>' + a.name + '</b><span>' + a.cat + '</span></div>';
     mockGrid.appendChild(t);
   });
-  const freeTile = document.createElement('div');
-  freeTile.className = 'mtile free';
-  freeTile.innerHTML = '<div style="font:500 8.5px var(--mono);letter-spacing:.16em;color:var(--acc)">EVERYTHING FREE</div><div style="font:600 12.5px var(--sans);color:#fff">No account. No install.</div>';
-  mockGrid.appendChild(freeTile);
 
   /* ---------- apps list + preview panel ---------- */
   const appsList = document.getElementById('appsList');
@@ -962,10 +976,10 @@
     const gs = Math.min(1.25, (cw - 32) / 860);
     const CW = 190 * gs, CH = 130 * gs, gap = 20 * gs;
     const row1y = cy - 80 * gs, row2y = cy + 74 * gs;
-    const r1w = 4 * CW + 3 * gap, r2w = 3 * CW + 2 * gap;
+    const r1w = 4 * CW + 3 * gap, r2w = 4 * CW + 3 * gap;
     const r1x = cx - r1w / 2 + CW / 2, r2x = cx - r2w / 2 + CW / 2;
-    const gx = [r1x, r1x + (CW + gap), r1x + 2 * (CW + gap), r1x + 3 * (CW + gap), r2x, r2x + (CW + gap), r2x + 2 * (CW + gap)];
-    const gy = [row1y, row1y, row1y, row1y, row2y, row2y, row2y];
+    const gx = [r1x, r1x + (CW + gap), r1x + 2 * (CW + gap), r1x + 3 * (CW + gap), r2x, r2x + (CW + gap), r2x + 2 * (CW + gap), r2x + 3 * (CW + gap)];
+    const gy = [row1y, row1y, row1y, row1y, row2y, row2y, row2y, row2y];
     const scatter = [
       { dx: -0.40, dy: -0.26, rot: -24, sc: 0.82, delay: 0.00 },
       { dx: 0.38, dy: -0.29, rot: 17, sc: 0.88, delay: 0.04 },
@@ -974,6 +988,7 @@
       { dx: 0.47, dy: 0.13, rot: -23, sc: 0.91, delay: 0.03 },
       { dx: 0.24, dy: -0.44, rot: 13, sc: 0.79, delay: 0.05 },
       { dx: 0.36, dy: 0.40, rot: -17, sc: 0.86, delay: 0.01 },
+      { dx: -0.24, dy: -0.42, rot: 21, sc: 0.84, delay: 0.035 },
     ];
     const apps = APPS.map(a => ({ name: a.name, cat: a.cat, bg: a.bg, ac: a.ac }));
     const cards = apps.map((a, i) => Object.assign({}, a, {
@@ -1122,7 +1137,7 @@
       ctx.font = "600 " + Math.min(46, cw * 0.05) + "px 'Geist',sans-serif";
       ctx.fillStyle = '#FFFFFF';
       ctx.textBaseline = 'top';
-      ctx.fillText('Seven apps. One place.', cw / 2, ch * 0.075);
+      ctx.fillText('Eight apps. One place.', cw / 2, ch * 0.075);
     }
     const outFadeT = p < 0.82 ? 1 : Math.max(0, 1 - (p - 0.82) / 0.08);   // headline gone by p=0.90, before the veil moves
     const l3a = (p < 0.70 ? 0 : p < 0.80 ? (p - 0.70) / 0.10 : 1) * outFadeT;
@@ -1134,7 +1149,7 @@
       ctx.fillText('Until now.', cw / 2, ch * 0.045);
       ctx.font = "500 11px 'Geist Mono',monospace";
       ctx.fillStyle = accCol;
-      ctx.fillText('FUNFLIX  ·  SEVEN APPS  ·  $0  ·  KEEP SCROLLING', cw / 2, ch * 0.045 + 92);
+      ctx.fillText('FUNFLIX  ·  EIGHT APPS  ·  $0  ·  KEEP SCROLLING', cw / 2, ch * 0.045 + 92);
     }
     ctx.globalAlpha = 1;
     ctx.restore();
@@ -1341,7 +1356,7 @@
 
   /* ---------- the Dock — desktop quick launch with proximity magnification ---------- */
   const dock = document.getElementById('dock');
-  const GLYPHS_DOCK = ['=', 'S', 'P', 'F', 'V', 'T', '↗'];
+  const GLYPHS_DOCK = ['=', 'S', 'P', 'F', 'V', 'T', '↗', '+'];
   APPS.forEach((a, i) => {
     const el = document.createElement('a');
     el.className = 'dock-app';
@@ -1397,7 +1412,7 @@
   /* ---------- a note for the curious ---------- */
   try {
     console.log('%cFUNFLIX', 'font:700 22px sans-serif;background:#111110;color:#BDF23F;padding:6px 16px;border-radius:8px',
-      '— seven apps, one place. psst: press ⌘K. and try making the calculator say 42.');
+      '— eight apps, one place. psst: press ⌘K. and try making the calculator say 42.');
   } catch (e) {}
 })();
 </script>

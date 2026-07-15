@@ -1,6 +1,7 @@
 import math
 import os
 import ssl
+from datetime import date
 import urllib.request
 import json as json_mod
 import certifi
@@ -212,6 +213,82 @@ def analyst_api():
                 yield f"ERROR: {err}"
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
+
+
+# ════════ The Trainer — evidence-based training + nutrition plans ════════
+_TRAINER_DEMO_PATH = os.path.join(os.path.dirname(__file__), "data", "trainer_demo.json")
+try:
+    with open(_TRAINER_DEMO_PATH) as _f:
+        TRAINER_DEMO = json_mod.load(_f)
+except FileNotFoundError:
+    TRAINER_DEMO = None
+
+TRAINER_SYSTEM = ""  # populated below (see data/trainer_system.txt)
+_TRAINER_SYS_PATH = os.path.join(os.path.dirname(__file__), "data", "trainer_system.txt")
+try:
+    with open(_TRAINER_SYS_PATH) as _f:
+        TRAINER_SYSTEM = _f.read()
+except FileNotFoundError:
+    TRAINER_SYSTEM = ""
+
+
+@app.route("/trainer")
+def trainer():
+    return render_template("trainer.html")
+
+
+@app.route("/api/trainer", methods=["POST"])
+def trainer_api():
+    payload = request.json or {}
+
+    # keyless demo: lets the document view + PDF be exercised without an API key
+    if payload.get("demo"):
+        if TRAINER_DEMO is None:
+            return jsonify({"error": "Demo plan is unavailable on the server."}), 500
+        return jsonify(TRAINER_DEMO)
+
+    intake = payload.get("intake") or {}
+    if not str(intake.get("name", "")).strip() or not str(intake.get("goal", "")).strip():
+        return jsonify({"error": "Please fill in at least your name and goal."}), 400
+
+    if not GEMINI_API_KEY:
+        return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
+    if not TRAINER_SYSTEM:
+        return jsonify({"error": "Trainer knowledge base missing on server."}), 500
+
+    lines = ["INTAKE FORM:"]
+    for k, v in intake.items():
+        v = str(v).strip()
+        if v:
+            lines.append(f"- {k}: {v}")
+    lines.append(f"- current_date: {date.today().isoformat()}")
+    followups = payload.get("followup_answers") or []
+    if followups:
+        lines.append("\nFOLLOW-UP ANSWERS (you asked, the client answered — do NOT ask again; produce the plan):")
+        for qa in followups[:8]:
+            lines.append(f"- Q: {str(qa.get('q','')).strip()}\n  A: {str(qa.get('a','')).strip()}")
+    user_content = "\n".join(lines)
+
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_content,
+            config=types.GenerateContentConfig(
+                system_instruction=TRAINER_SYSTEM,
+                temperature=0.5,
+                response_mime_type="application/json",
+            ),
+        )
+        data = json_mod.loads(response.text)
+        if not isinstance(data, dict) or data.get("type") not in ("questions", "plan"):
+            return jsonify({"error": "The Trainer returned an unexpected format. Please try again."}), 502
+        return jsonify(data)
+    except Exception as exc:
+        err = str(exc)
+        if "API_KEY" in err or "api key" in err.lower() or "401" in err:
+            return jsonify({"error": "Invalid GEMINI_API_KEY. Check your key and restart the server."}), 500
+        return jsonify({"error": err}), 500
 
 
 @app.route("/calculate", methods=["POST"])

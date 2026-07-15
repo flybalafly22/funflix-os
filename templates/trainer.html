@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Trainer — FUNFLIX</title>
+  <meta name="description" content="The Trainer — an evidence-based personal training studio. Answer one intake form, receive a complete workout + nutrition program as a PDF."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/os.css">
+  <style>
+    .stage { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 64px 24px 96px; }
+    .mod-head { text-align: center; margin-bottom: 44px; }
+    .mod-over { font-family: var(--monoX); font-size: 11px; font-weight: 500; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--accD); margin-bottom: 16px; }
+    .mod-title { font-family: var(--serif); font-weight: 400; font-size: clamp(44px, 6vw, 68px);
+      letter-spacing: -0.02em; line-height: 0.95; color: var(--black); }
+    .mod-sub { margin-top: 12px; font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--gray); }
+
+    /* ── intake ── */
+    .intake { width: min(880px, 100%); background: #fff; border: 1px solid var(--rule-2);
+      border-radius: 28px; padding: 12px; box-shadow: 0 24px 70px rgba(17,17,16,0.05); }
+    .intake-inner { border: 1px solid var(--rule); border-radius: 18px; padding: 34px 36px 38px; }
+    @media (max-width: 640px) { .intake-inner { padding: 24px 20px 28px; } }
+    .sec { font-family: var(--monoX); font-size: 10px; font-weight: 500; letter-spacing: 0.24em;
+      color: var(--gray-2); text-transform: uppercase; display: flex; align-items: center; gap: 10px;
+      margin: 30px 0 18px; }
+    .sec::after { content:''; flex: 1; height: 1px; background: var(--rule); }
+    .sec:first-child { margin-top: 0; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 28px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px 28px; }
+    @media (max-width: 640px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+    .field { min-width: 0; }
+    textarea.os-input { resize: vertical; min-height: 56px; font-size: 16px; line-height: 1.5; }
+    .hintline { margin-top: 7px; font-family: var(--sans); font-size: 11.5px; color: var(--gray-2); }
+    #dietOtherWrap { display: none; }
+    #dietOtherWrap.show { display: block; }
+
+    .go-row { margin-top: 36px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .go-note { font-family: var(--sans); font-size: 12px; color: var(--gray-2); max-width: 380px; line-height: 1.5; }
+    #buildBtn { width: auto; padding: 15px 34px; }
+
+    /* ── thinking state ── */
+    .thinking { display: none; width: min(620px,100%); text-align: center; padding: 70px 20px; }
+    .thinking.show { display: block; }
+    .th-ring { width: 54px; height: 54px; margin: 0 auto 22px; border-radius: 50%;
+      border: 2px solid var(--rule-2); border-top-color: var(--accD); animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .th-line { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--gray); min-height: 28px; }
+    .th-sub { margin-top: 10px; font-family: var(--monoX); font-size: 10px; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--gray-2); }
+
+    /* ── follow-up questions ── */
+    .followup { display: none; width: min(720px,100%); }
+    .followup.show { display: block; }
+    .fu-card { background: #fff; border: 1px solid var(--rule-2); border-radius: 24px;
+      padding: 34px 36px; box-shadow: 0 24px 70px rgba(17,17,16,0.05); }
+    .fu-lead { font-family: var(--serif); font-size: 24px; color: var(--black); }
+    .fu-lead em { color: var(--accD); }
+    .fu-q { margin-top: 26px; }
+    .fu-q .q { font-family: var(--sans); font-size: 14.5px; font-weight: 600; color: var(--black); margin-bottom: 6px; }
+    .fu-q .why { font-family: var(--sans); font-size: 12px; line-height: 1.6; color: var(--gray-2); margin-bottom: 10px; }
+    .fu-note { margin-top: 22px; font-family: var(--sans); font-size: 12px; color: var(--gray-2); }
+
+    /* ── error ── */
+    .err { display: none; width: min(620px,100%); margin-top: 18px; padding: 14px 18px; border-radius: 14px;
+      border: 1px solid rgba(200,60,50,.3); background: rgba(200,60,50,.05);
+      font-family: var(--sans); font-size: 13.5px; color: #A03428; }
+    .err.show { display: block; }
+
+    /* ═══════════ the plan document ═══════════ */
+    .plan-wrap { display: none; width: min(880px, 100%); }
+    .plan-wrap.show { display: block; }
+    .plan-actions { display: flex; gap: 12px; align-items: center; justify-content: flex-end;
+      flex-wrap: wrap; margin-bottom: 22px; }
+    .pa-note { margin-right: auto; font-family: var(--sans); font-size: 12px; color: var(--gray-2); }
+    .btn-dl { background: var(--black); color: #fff; border: none; border-radius: 999px;
+      font-family: var(--sans); font-size: 14px; font-weight: 600; padding: 13px 28px;
+      box-shadow: 0 8px 24px rgba(17,17,16,0.18); transition: transform .2s, background .2s; cursor: pointer; }
+    .btn-dl:hover { background: #000; transform: translateY(-1px); }
+    .btn-again { background: transparent; border: 1px solid var(--rule-2); border-radius: 999px;
+      color: var(--gray); font-family: var(--sans); font-size: 13px; font-weight: 500;
+      padding: 12px 22px; cursor: pointer; transition: all .2s; }
+    .btn-again:hover { border-color: var(--black); color: var(--black); }
+
+    #planDoc { background: #fff; border: 1px solid var(--rule-2); border-radius: 24px;
+      padding: 58px 62px 66px; box-shadow: 0 30px 90px rgba(17,17,16,0.07); }
+    @media (max-width: 700px) { #planDoc { padding: 30px 22px 40px; } }
+    .pd-brand { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .pd-brand .bm { font-family: var(--monoX); font-size: 10px; letter-spacing: .24em; color: var(--gray-2); }
+    .pd-title { font-family: var(--serif); font-size: clamp(34px, 5vw, 52px); line-height: 1.02;
+      letter-spacing: -0.02em; margin-top: 18px; }
+    .pd-for { margin-top: 10px; font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--gray); }
+    .pd-meta { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 22px; padding: 16px 0;
+      border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+    .pd-meta div { font-family: var(--sans); font-size: 12.5px; color: var(--gray); }
+    .pd-meta b { display: block; font-family: var(--monoX); font-size: 9.5px; font-weight: 500;
+      letter-spacing: .2em; color: var(--gray-2); text-transform: uppercase; margin-bottom: 4px; }
+    .pd-meta span { color: var(--black); font-weight: 600; }
+
+    .pd-h { display: flex; align-items: baseline; gap: 12px; margin: 44px 0 14px; }
+    .pd-h .n { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
+    .pd-h .t { font-family: var(--serif); font-size: 27px; letter-spacing: -0.01em; }
+    .pd-p { font-family: var(--sans); font-size: 14.5px; line-height: 1.75; color: #2A2A26; margin: 10px 0; }
+    .pd-p + .pd-p { margin-top: 8px; }
+    .pd-pull { font-family: var(--serif); font-style: italic; font-size: 19px; line-height: 1.5;
+      color: var(--black); margin: 14px 0 10px; }
+    .pd-lab { font-family: var(--monoX); font-size: 10px; font-weight: 500; letter-spacing: .2em;
+      text-transform: uppercase; color: var(--accD); margin: 22px 0 4px; }
+    ol.pd-list { margin: 8px 0 12px; padding-left: 22px; }
+    ol.pd-list li { font-family: var(--sans); font-size: 13.5px; line-height: 1.7; color: #2A2A26;
+      margin: 7px 0; padding-left: 4px; }
+
+    .day { border: 1px solid var(--rule); border-radius: 16px; margin: 18px 0; overflow: hidden;
+      break-inside: avoid; }
+    .day-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+      padding: 14px 20px; background: var(--wash); border-bottom: 1px solid var(--rule); }
+    .day-head .dn { font-family: var(--sans); font-weight: 700; font-size: 15px; }
+    .day-head .df { font-family: var(--monoX); font-size: 10px; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--accD); }
+    .day-note { padding: 12px 20px; font-family: var(--sans); font-size: 12.5px; line-height: 1.65;
+      color: var(--gray); border-bottom: 1px solid var(--rule); }
+    .day-note b { color: var(--black); font-weight: 600; }
+    .day-foot { padding: 11px 20px; font-family: var(--sans); font-size: 12px; line-height: 1.6;
+      color: var(--gray-2); border-top: 1px solid var(--rule); background: var(--wash); }
+    table.ex { width: 100%; border-collapse: collapse; }
+    table.ex th { font-family: var(--monoX); font-size: 9px; font-weight: 500; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--gray-2); text-align: left; padding: 12px 14px 8px;
+      border-bottom: 1px solid var(--rule); }
+    table.ex td { font-family: var(--sans); font-size: 13px; color: #2A2A26; padding: 11px 14px;
+      border-bottom: 1px solid var(--rule); vertical-align: top; }
+    table.ex tr:last-child td { border-bottom: none; }
+    table.ex td:first-child { font-weight: 600; color: var(--black); }
+    table.ex .sub { display: block; margin-top: 3px; font-size: 11.5px; color: var(--gray-2); font-weight: 400; }
+    @media (max-width: 640px) { table.ex .hide-m { display: none; } }
+
+    .meal { display: grid; grid-template-columns: 92px 1fr auto; gap: 14px; padding: 13px 4px;
+      border-bottom: 1px solid var(--rule); align-items: baseline; }
+    .meal:last-child { border-bottom: none; }
+    .meal .mt { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
+    .meal .mn { font-family: var(--sans); font-size: 13.5px; color: #2A2A26; }
+    .meal .mn b { color: var(--black); }
+    .meal .mm { font-family: var(--monoX); font-size: 10.5px; color: var(--gray-2); white-space: nowrap; }
+    @media (max-width: 560px) { .meal { grid-template-columns: 70px 1fr; } .meal .mm { grid-column: 2; } }
+
+    .supp { border-left: 2px solid var(--acc); padding: 4px 0 4px 16px; margin: 14px 0; break-inside: avoid; }
+    .supp .sn { font-family: var(--sans); font-weight: 700; font-size: 14px; }
+    .supp .sn span { font-family: var(--monoX); font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--accD); margin-left: 10px; }
+    .supp .sd { margin-top: 4px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #2A2A26; }
+    .supp .sc { margin-top: 3px; font-family: var(--sans); font-size: 12px; line-height: 1.6;
+      color: var(--gray-2); font-style: italic; }
+    .meal-tot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 4px 2px;
+      font-family: var(--monoX); font-size: 11px; color: var(--black);
+      border-top: 2px solid var(--rule-2); }
+
+    .path { border: 1px solid var(--rule); border-radius: 14px; padding: 16px 20px; margin: 12px 0; break-inside: avoid; }
+    .path .pn { font-family: var(--sans); font-weight: 700; font-size: 14px; }
+    .path .pw { font-family: var(--monoX); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--accD); margin-left: 8px; }
+    .path .pd2 { margin-top: 6px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #2A2A26; }
+
+    .safety { margin-top: 40px; border: 1px solid rgba(200,140,40,.35); background: rgba(200,140,40,.05);
+      border-radius: 16px; padding: 20px 24px; break-inside: avoid; }
+    .safety .sh { font-family: var(--monoX); font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+      color: #8A6420; margin-bottom: 8px; }
+    .safety p { font-family: var(--sans); font-size: 12.5px; line-height: 1.7; color: #5A4A28; margin: 6px 0; }
+
+    /* ═══════════ print = the PDF ═══════════ */
+    @media print {
+      @page { margin: 14mm 12mm; }
+      body { background: #fff !important; }
+      .hud, .statusbar, .palette, .mod-head, .intake, .thinking, .followup, .err, .plan-actions { display: none !important; }
+      .stage { padding: 0; }
+      .plan-wrap { width: 100%; }
+      #planDoc { border: none; box-shadow: none; border-radius: 0; padding: 0; }
+      .day, .supp, .path, .safety { break-inside: avoid; }
+      .pd-h { break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="stage">
+    <div class="mod-head fade-rise">
+      <div class="mod-over">Instrument No. VIII</div>
+      <h1 class="mod-title">The Trainer</h1>
+      <p class="mod-sub">an evidence-based training &amp; nutrition studio</p>
+    </div>
+
+    <!-- ── INTAKE ── -->
+    <form class="intake fade-rise-d1" id="intakeForm" autocomplete="off">
+      <div class="intake-inner">
+        <div class="sec">The client</div>
+        <div class="grid3">
+          <div class="field"><label class="os-label" for="fName">Name</label>
+            <input class="os-input" id="fName" placeholder="Your name" required></div>
+          <div class="field"><label class="os-label" for="fSex">Gender assigned at birth</label>
+            <div class="os-select-wrap"><select class="os-select" id="fSex"><option>Male</option><option>Female</option></select></div></div>
+          <div class="field"><label class="os-label" for="fDob">Date of birth</label>
+            <input class="os-input" id="fDob" type="date" required></div>
+          <div class="field"><label class="os-label" for="fHeight">Height</label>
+            <input class="os-input" id="fHeight" placeholder="e.g. 178 cm" required></div>
+          <div class="field"><label class="os-label" for="fWeight">Weight</label>
+            <input class="os-input" id="fWeight" placeholder="e.g. 82 kg" required></div>
+          <div class="field"><label class="os-label" for="fExp">Training experience</label>
+            <div class="os-select-wrap"><select class="os-select" id="fExp">
+              <option>Beginner (&lt;1 year)</option><option>Intermediate (1–3 years)</option><option>Advanced (3+ years)</option></select></div></div>
+        </div>
+
+        <div class="sec">The goal</div>
+        <div class="grid2">
+          <div class="field"><label class="os-label" for="fGoal">Primary goal</label>
+            <div class="os-select-wrap"><select class="os-select" id="fGoal">
+              <option>Muscle gain</option><option>Fat loss</option><option>Strength</option>
+              <option>Body recomposition</option><option>General fitness</option></select></div></div>
+          <div class="field"><label class="os-label" for="fGoalNote">Anything specific about the goal?</label>
+            <input class="os-input" id="fGoalNote" placeholder="e.g. bigger arms, first pull-up, wedding in June"></div>
+        </div>
+
+        <div class="sec">Availability</div>
+        <div class="grid3">
+          <div class="field"><label class="os-label" for="fDays">Days per week</label>
+            <div class="os-select-wrap"><select class="os-select" id="fDays">
+              <option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div></div>
+          <div class="field"><label class="os-label" for="fHours">Hours per session</label>
+            <div class="os-select-wrap"><select class="os-select" id="fHours">
+              <option>45 minutes</option><option selected>1 hour</option><option>1.5 hours</option><option>2 hours</option></select></div></div>
+          <div class="field"><label class="os-label" for="fTimings">Gym timings</label>
+            <input class="os-input" id="fTimings" placeholder="e.g. 7–8:30 pm"></div>
+        </div>
+
+        <div class="sec">Health</div>
+        <div class="grid2">
+          <div class="field"><label class="os-label" for="fHealth">Any health issues?</label>
+            <textarea class="os-input" id="fHealth" placeholder="e.g. mild knee pain, asthma — or 'none'"></textarea>
+            <div class="hintline">Anything medical stays a suggestion, not advice — the plan will say so too.</div></div>
+          <div class="field"><label class="os-label" for="fAllergy">Any allergies?</label>
+            <textarea class="os-input" id="fAllergy" placeholder="e.g. lactose, peanuts — or 'none'"></textarea></div>
+        </div>
+
+        <div class="sec">Fuel</div>
+        <div class="grid3">
+          <div class="field"><label class="os-label" for="fDiet">Diet preference</label>
+            <div class="os-select-wrap"><select class="os-select" id="fDiet">
+              <option>Non-veg</option><option>Veg</option><option>Other</option></select></div></div>
+          <div class="field" id="dietOtherWrap"><label class="os-label" for="fDietOther">Describe “other”</label>
+            <input class="os-input" id="fDietOther" placeholder="e.g. eggetarian, pescatarian, halal"></div>
+          <div class="field"><label class="os-label" for="fMeals">Meals per day</label>
+            <div class="os-select-wrap"><select class="os-select" id="fMeals">
+              <option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div></div>
+          <div class="field"><label class="os-label" for="fSteps">Average steps per day</label>
+            <input class="os-input" id="fSteps" type="number" min="0" step="500" placeholder="e.g. 6000"></div>
+        </div>
+
+        <div class="sec">Anything else</div>
+        <div class="field"><label class="os-label" for="fExtra">Extra information that could shape the plan</label>
+          <textarea class="os-input" id="fExtra" placeholder="e.g. home dumbbells only on weekends, night-shift work, past sports, exercises you hate…"></textarea></div>
+
+        <div class="go-row">
+          <button type="submit" class="os-btn-primary" id="buildBtn">Build my program</button>
+          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Nothing is stored — the plan lives in your browser and your PDF.</div>
+        </div>
+      </div>
+    </form>
+
+    <!-- ── THINKING ── -->
+    <div class="thinking" id="thinking">
+      <div class="th-ring"></div>
+      <div class="th-line" id="thLine">Reading your intake…</div>
+      <div class="th-sub">Evidence-based · No guesswork · Numbers on everything</div>
+    </div>
+
+    <!-- ── FOLLOW-UP ── -->
+    <div class="followup" id="followup">
+      <div class="fu-card">
+        <div class="fu-lead">Before I write your program, <em>a couple of specifics</em>:</div>
+        <div id="fuList"></div>
+        <div class="go-row"><button class="os-btn-primary" id="fuBtn" style="width:auto;padding:14px 30px">Continue</button></div>
+      </div>
+    </div>
+
+    <div class="err" id="errBox"></div>
+
+    <!-- ── THE PLAN ── -->
+    <div class="plan-wrap" id="planWrap">
+      <div class="plan-actions">
+        <div class="pa-note">Your program is ready. “Download PDF” uses your browser’s print dialog — choose “Save as PDF”.</div>
+        <button class="btn-again" id="againBtn">Start over</button>
+        <button class="btn-dl" id="dlBtn">Download PDF</button>
+      </div>
+      <article id="planDoc" aria-label="Your training program"></article>
+    </div>
+  </div>
+</div>
+
+<script src="/static/os.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const form = $('intakeForm'), thinking = $('thinking'), followup = $('followup'),
+        planWrap = $('planWrap'), errBox = $('errBox');
+
+  $('fDiet').addEventListener('change', () => {
+    $('dietOtherWrap').classList.toggle('show', $('fDiet').value === 'Other');
+  });
+
+  const TH_LINES = ['Reading your intake…','Choosing your split…','Setting volumes and rest…',
+    'Timing meals around your sessions…','Grading the supplement evidence…','Writing the why…'];
+  let thTimer = null;
+  function setState(s) {
+    form.style.display = s === 'form' ? '' : 'none';
+    thinking.classList.toggle('show', s === 'thinking');
+    followup.classList.toggle('show', s === 'followup');
+    planWrap.classList.toggle('show', s === 'plan');
+    errBox.classList.remove('show');
+    clearInterval(thTimer);
+    if (s === 'thinking') {
+      let i = 0; $('thLine').textContent = TH_LINES[0];
+      thTimer = setInterval(() => { i = (i + 1) % TH_LINES.length; $('thLine').textContent = TH_LINES[i]; }, 2400);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function fail(msg) { setState('form'); errBox.textContent = msg; errBox.classList.add('show'); }
+
+  function intake() {
+    return {
+      name: $('fName').value, 'gender assigned at birth': $('fSex').value,
+      'date of birth': $('fDob').value, height: $('fHeight').value, weight: $('fWeight').value,
+      'training experience': $('fExp').value,
+      goal: $('fGoal').value + ($('fGoalNote').value ? ' — ' + $('fGoalNote').value : ''),
+      'days per week': $('fDays').value, 'hours per session': $('fHours').value,
+      'gym timings': $('fTimings').value, 'health issues': $('fHealth').value,
+      allergies: $('fAllergy').value,
+      'diet preference': $('fDiet').value === 'Other' ? 'Other — ' + $('fDietOther').value : $('fDiet').value,
+      'average steps per day': $('fSteps').value, 'meals per day': $('fMeals').value,
+      'extra info': $('fExtra').value,
+    };
+  }
+
+  let pendingQuestions = [];
+  async function submit(followupAnswers) {
+    setState('thinking');
+    try {
+      const body = { intake: intake() };
+      if (followupAnswers) body.followup_answers = followupAnswers;
+      if (new URLSearchParams(location.search).has('demo')) body.demo = 1;
+      const r = await fetch('/api/trainer', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await r.json();
+      if (!r.ok || data.error) { fail(data.error || ('Server error (' + r.status + ')')); return; }
+      if (data.type === 'questions' && Array.isArray(data.questions) && data.questions.length) {
+        pendingQuestions = data.questions.slice(0, 4).map(q =>
+          typeof q === 'string' ? { question: q } : q);
+        if (data.greeting) document.querySelector('.fu-lead').textContent = data.greeting;
+        $('fuList').innerHTML = pendingQuestions.map((q, i) =>
+          '<div class="fu-q"><div class="q">' + esc(q.question) + '</div>' +
+          (q.why_it_matters ? '<div class="why">Why it matters — ' + esc(q.why_it_matters) + '</div>' : '') +
+          '<input class="os-input" id="fuA' + i + '" placeholder="' + esc(q.answer_format || 'Your answer') + '"></div>').join('') +
+          (data.note ? '<div class="fu-note">' + esc(data.note) + '</div>' : '');
+        setState('followup');
+      } else if (data.type === 'plan') {
+        renderPlan(data);
+        setState('plan');
+      } else { fail('The Trainer returned an unexpected reply. Please try again.'); }
+    } catch (e) { fail('Could not reach The Trainer: ' + e.message); }
+  }
+
+  form.addEventListener('submit', e => { e.preventDefault(); submit(null); });
+  $('fuBtn').addEventListener('click', () => {
+    submit(pendingQuestions.map((q, i) => ({ q: q.question, a: $('fuA' + i).value })));
+  });
+  $('againBtn').addEventListener('click', () => setState('form'));
+  $('dlBtn').addEventListener('click', () => window.print());
+
+  function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
+
+  /* ── plan renderer ── */
+  let secN = 0;
+  function H(t) { secN++; return '<div class="pd-h"><span class="n">' + String(secN).padStart(2, '0') + '</span><span class="t">' + esc(t) + '</span></div>'; }
+  function P(t) { return t ? '<p class="pd-p">' + esc(t) + '</p>' : ''; }
+  function PS(v) { return (Array.isArray(v) ? v : v ? [v] : []).map(P).join(''); }
+
+  function LAB(t) { return '<div class="pd-lab">' + esc(t) + '</div>'; }
+  function OL(items) {
+    items = (items || []).filter(Boolean);
+    return items.length ? '<ol class="pd-list">' + items.map(x => '<li>' + esc(x) + '</li>').join('') + '</ol>' : '';
+  }
+  function META(pairs) {
+    pairs = pairs.filter(m => m[1] != null && m[1] !== '');
+    return pairs.length ? '<div class="pd-meta">' + pairs.map(m =>
+      '<div><b>' + esc(m[0]) + '</b><span>' + esc(m[1]) + '</span></div>').join('') + '</div>' : '';
+  }
+  function fmtRest(s) {
+    if (s == null || s === '') return '';
+    const n = Number(s);
+    if (!isFinite(n)) return esc(s);
+    return n >= 120 ? (Math.round(n / 30) * 0.5) + ' min' : n + ' s';
+  }
+
+  function renderPlan(d) {
+    secN = 0;
+    const ps = d.profile_summary || {};
+    const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    let h = '';
+    h += '<div class="pd-brand"><span class="bm">FUNFLIX · THE TRAINER</span><span class="bm">' + esc(today) + '</span></div>';
+    h += '<div class="pd-title">' + esc(ps.goal || 'Your Training Program') + '</div>';
+    h += '<div class="pd-for">prepared for ' + esc(ps.name || intake().name || 'you') +
+      (ps.experience_level ? ' · ' + esc(ps.experience_level) : '') + '</div>';
+    h += META([
+      ['Age', ps.age_years != null ? ps.age_years + ' yrs' : ''],
+      ['Height', ps.height_cm != null ? ps.height_cm + ' cm' : ''],
+      ['Weight', ps.weight_kg != null ? ps.weight_kg + ' kg' : ''],
+      ['BMI', ps.bmi],
+      ['BMR', ps.bmr_kcal != null ? ps.bmr_kcal + ' kcal' : ''],
+      ['TDEE', ps.tdee_kcal != null ? ps.tdee_kcal + ' kcal' : ''],
+      ['Daily target', ps.calorie_target_kcal != null ? ps.calorie_target_kcal + ' kcal' : ''],
+    ]);
+
+    h += H('The Numbers, Shown');
+    h += P(ps.bmr_equation);
+    h += P(ps.activity_factor_note);
+    h += P(ps.calorie_adjustment_note);
+    h += P(ps.bmi_note);
+    if (Array.isArray(ps.assumptions) && ps.assumptions.length) {
+      h += LAB('Assumptions made'); h += OL(ps.assumptions);
+    }
+
+    const ws = d.weekly_split || {};
+    h += H(ws.split_name || 'The Week');
+    h += P(ws.frequency_rationale);
+    (Array.isArray(ws.days) ? ws.days : []).forEach(dy => {
+      h += '<div class="meal"><span class="mt">' + esc(dy.day || '') + '</span><span class="mn"><b>' + esc(dy.focus || '') + '</b></span></div>';
+    });
+    h += P(ws.scheduling_note);
+
+    if (Array.isArray(d.workout_days) && d.workout_days.length) {
+      h += H('The Sessions');
+      d.workout_days.forEach(day => {
+        h += '<div class="day"><div class="day-head"><span class="dn">' + esc(day.day_label || '') + '</span>' +
+          (day.estimated_duration_minutes ? '<span class="df">~' + esc(day.estimated_duration_minutes) + ' min</span>' : '') + '</div>';
+        if (day.warmup) h += '<div class="day-note"><b>Warm-up</b> — ' + esc(day.warmup) + '</div>';
+        h += '<table class="ex"><thead><tr><th>Exercise</th><th>Sets × Reps</th><th>Rest</th><th class="hide-m">Effort</th></tr></thead><tbody>';
+        (day.exercises || []).forEach(ex => {
+          let subs = '';
+          if (ex.tempo_or_notes) subs += '<span class="sub">' + esc(ex.tempo_or_notes) + '</span>';
+          if (ex.substitution) subs += '<span class="sub">Substitute: ' + esc(ex.substitution) + '</span>';
+          h += '<tr><td>' + esc(ex.name) + subs + '</td>' +
+            '<td>' + esc(ex.sets) + ' × ' + esc(ex.rep_range || ex.reps || '') + '</td>' +
+            '<td>' + fmtRest(ex.rest_seconds != null ? ex.rest_seconds : ex.rest) + '</td>' +
+            '<td class="hide-m">' + esc(ex.rpe_or_rir || ex.effort || '') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+        if (day.session_notes) h += '<div class="day-foot">' + esc(day.session_notes) + '</div>';
+        h += '</div>';
+      });
+    }
+
+    const po = d.progressive_overload;
+    if (po) {
+      h += H('Progressive Overload');
+      h += P(po.method);
+      h += OL(po.protocol);
+      if (po.load_increments) { h += LAB('Load increments'); h += P(po.load_increments); }
+      if (po.deload) { h += LAB('Deload weeks'); h += P(po.deload); }
+      if (po.tracking) { h += LAB('Tracking'); h += P(po.tracking); }
+    }
+
+    const qq = d.quality_vs_quantity;
+    if (qq) {
+      h += H('Quality over Quantity');
+      if (qq.stance) h += '<div class="pd-pull">' + esc(qq.stance) + '</div>';
+      h += P(qq.why);
+      h += OL(qq.practical_rules);
+    }
+
+    const ra = d.rationale;
+    if (ra) {
+      h += H('Why This Program — the reasoning');
+      if (ra.goal_fit) { h += LAB('Fit to your goal'); h += P(ra.goal_fit); }
+      if (ra.exercise_selection) { h += LAB('Exercise selection'); h += P(ra.exercise_selection); }
+      if (ra.ordering) { h += LAB('Ordering'); h += P(ra.ordering); }
+      if (ra.volume_analysis) { h += LAB('Weekly volume audit'); h += P(ra.volume_analysis); }
+    }
+
+    const cs = d.cardio_and_steps;
+    if (cs) {
+      h += H('Cardio & Steps');
+      h += META([
+        ['Current average', cs.current_average_steps != null ? cs.current_average_steps + ' steps' : ''],
+        ['Daily target', cs.daily_step_target != null ? cs.daily_step_target + ' steps' : ''],
+      ]);
+      h += P(cs.step_rationale);
+      (cs.cardio_sessions || []).forEach(c => {
+        h += '<div class="path"><span class="pn">' + esc(c.type || '') + '</span>' +
+          (c.duration_minutes ? '<span class="pw">' + esc(c.duration_minutes) + ' min</span>' : '') +
+          '<div class="pd2">' + esc(c.intensity || '') + (c.placement ? ' — ' + esc(c.placement) : '') + '</div></div>';
+      });
+      h += P(cs.interference_note);
+    }
+
+    const dp = d.diet_plan;
+    if (dp) {
+      h += H('The Diet');
+      h += META([
+        ['Calories', dp.calorie_target_kcal != null ? dp.calorie_target_kcal + ' kcal' : ''],
+        ['Protein', dp.protein_g != null ? dp.protein_g + ' g' : ''],
+        ['Carbs', dp.carbs_g != null ? dp.carbs_g + ' g' : ''],
+        ['Fat', dp.fat_g != null ? dp.fat_g + ' g' : ''],
+      ]);
+      h += P(dp.macro_rationale);
+      if (Array.isArray(dp.meal_schedule) && dp.meal_schedule.length) {
+        h += LAB('Meal schedule — timed around your sessions');
+        dp.meal_schedule.forEach(m => {
+          h += '<div class="meal"><span class="mt">' + esc(m.time || '') + '</span>' +
+            '<span class="mn"><b>' + esc(m.meal || '') + '</b>' + (m.timing_note ? ' — ' + esc(m.timing_note) : '') + '</span>' +
+            '<span class="mm">' + (m.target_kcal != null ? esc(m.target_kcal) + ' kcal · ' : '') +
+            (m.target_protein_g != null ? esc(m.target_protein_g) + ' g P' : '') + '</span></div>';
+        });
+      }
+      if (Array.isArray(dp.sample_day) && dp.sample_day.length) {
+        h += LAB('A full sample day');
+        dp.sample_day.forEach(m => {
+          h += '<div class="meal"><span class="mt">' + esc(m.time || '') + '</span>' +
+            '<span class="mn"><b>' + esc(m.meal || '') + '</b> — ' + (m.foods || []).map(esc).join('; ') + '</span>' +
+            '<span class="mm">' + (m.approx_calories != null ? esc(m.approx_calories) + ' kcal · ' : '') +
+            (m.approx_protein_g != null ? esc(m.approx_protein_g) + ' g P' : '') + '</span></div>';
+        });
+        const tot = dp.sample_day_totals;
+        if (tot) {
+          h += '<div class="meal-tot"><span>DAY TOTAL</span><span>' +
+            (tot.approx_calories != null ? esc(tot.approx_calories) + ' kcal · ' : '') +
+            (tot.approx_protein_g != null ? esc(tot.approx_protein_g) + ' g protein' : '') + '</span></div>';
+          h += P(tot.note);
+        }
+      }
+      if (dp.pre_post_workout) { h += LAB('Around your workout'); h += P(dp.pre_post_workout); }
+      h += P(dp.hydration);
+      h += P(dp.diet_preference_note);
+      h += P(dp.allergy_note);
+    }
+
+    if (Array.isArray(d.supplements) && d.supplements.length) {
+      h += H('Supplements — evidence-graded');
+      d.supplements.forEach(s => {
+        h += '<div class="supp"><div class="sn">' + esc(s.name) + '<span>' + esc(s.evidence_level || s.evidence || '') + '</span></div>' +
+          '<div class="sd">' + esc([s.dose, s.timing].filter(Boolean).join(' · ')) + '</div>' +
+          '<div class="sd">' + esc(s.reason || s.why || '') + '</div>' +
+          (s.caveat ? '<div class="sc">' + esc(s.caveat) + '</div>' : '') + '</div>';
+      });
+      if (d.supplements_excluded_note) { h += LAB('Deliberately excluded'); h += P(d.supplements_excluded_note); }
+    }
+
+    const dur = d.duration_and_paths;
+    if (dur) {
+      h += H('How Long, and What Comes Next');
+      if (dur.plan_duration_months) h += '<div class="pd-pull">Run this program for ' + esc(dur.plan_duration_months) + ' months.</div>';
+      h += P(dur.duration_rationale);
+      if (dur.review_points) { h += LAB('Review checkpoints'); h += P(dur.review_points); }
+      const paths = dur.next_paths || dur.paths || [];
+      if (paths.length) h += LAB('Your next paths');
+      paths.forEach(pth => {
+        h += '<div class="path"><span class="pn">' + esc(pth.name) + '</span>' +
+          '<div class="pd2"><b>When to choose it:</b> ' + esc(pth.when_to_choose || pth.when || '') + '</div>' +
+          '<div class="pd2"><b>What changes:</b> ' + esc(pth.what_changes || pth.changes || '') + '</div></div>';
+      });
+    }
+
+    const safe = d.safety_notes;
+    if (safe) {
+      let body = '';
+      if (Array.isArray(safe) || typeof safe === 'string') {
+        body = (Array.isArray(safe) ? safe : [safe]).map(s => '<p>' + esc(s) + '</p>').join('');
+      } else {
+        body += (safe.flagged_issues || []).map(s => '<p>' + esc(s) + '</p>').join('');
+        body += (safe.exercise_modifications || []).map(s => '<p>' + esc(s) + '</p>').join('');
+        if (safe.medical_disclaimer) body += '<p><em>' + esc(safe.medical_disclaimer) + '</em></p>';
+      }
+      h += '<div class="safety"><div class="sh">Read this — safety &amp; scope</div>' + body + '</div>';
+    }
+    $('planDoc').innerHTML = h;
+    document.title = 'Training Program — ' + (ps.name || 'The Trainer') + ' — FUNFLIX';
+  }
+})();
+</script>
+</body>
+</html>

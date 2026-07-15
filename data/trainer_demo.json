@@ -1,0 +1,533 @@
+{
+ "type": "plan",
+ "profile_summary": {
+  "name": "Rohan",
+  "age_years": 24,
+  "gender_assigned_at_birth": "male",
+  "height_cm": 178,
+  "weight_kg": 82,
+  "bmi": 25.9,
+  "bmi_note": "Slightly above the 25.0 cutoff of the normal range. For someone who lifts, BMI overstates fatness; judge progress by waist measurement, the 7-day scale average, and photos rather than BMI.",
+  "goal": "Muscle gain (lean bulk)",
+  "experience_level": "Intermediate (about 1 to 3 years of consistent training)",
+  "days_per_week": 4,
+  "session_length_hours": 1.5,
+  "gym_time": "Evening, assumed 18:30 to 20:00",
+  "average_daily_steps": 6000,
+  "bmr_kcal": 1818,
+  "bmr_equation": "Mifflin-St Jeor (male): 10 x 82 kg + 6.25 x 178 cm - 5 x 24 years + 5 = 1818 kcal",
+  "activity_factor": 1.5,
+  "activity_factor_note": "Base 1.4 for 5000 to 7500 daily steps, plus 0.025 per weekly training day (4 days adds 0.10), giving 1.5.",
+  "tdee_kcal": 2730,
+  "calorie_target_kcal": 3000,
+  "calorie_adjustment_note": "Plus 270 kcal, about a 10 percent surplus, sized for an intermediate to gain roughly 0.5 to 0.75 kg of scale weight per month with minimal fat. Correction rule: if the 7-day average rises faster than 0.25 kg per week after week 3, remove 100 to 150 kcal of carbs; if it is flat for 2 weeks, add 100 to 150 kcal.",
+  "assumptions": [
+   "Evening gym interpreted as an 18:30 to 20:00 session; shift the meal clock times if your actual slot differs",
+   "Intermediate taken as about 1 to 3 years of consistent, progressive training",
+   "A standard commercial gym is assumed (barbells, dumbbells, cables, machines); every exercise lists a substitution in case a piece is missing",
+   "Bedtime assumed around 23:00 to 23:30 for the caffeine guidance"
+  ]
+ },
+ "weekly_split": {
+  "split_name": "4-day Upper/Lower",
+  "frequency_rationale": "With 4 days available, upper/lower is the evidence default: every major muscle is trained twice per week, which meta-analysis (Schoenfeld et al. 2016) favors over once-weekly training at matched volume, and each 90-minute session comfortably fits 19 to 23 hard sets with full, evidence-based rest periods.",
+  "scheduling_note": "Days are movable. Keep at least one day between the two upper sessions and between the two lower sessions, for example Monday, Tuesday, Thursday, Friday as written, or Sunday, Monday, Wednesday, Friday.",
+  "days": [
+   {
+    "day": "Monday",
+    "focus": "Upper A (horizontal press and pull emphasis)"
+   },
+   {
+    "day": "Tuesday",
+    "focus": "Lower A (squat emphasis)"
+   },
+   {
+    "day": "Wednesday",
+    "focus": "Rest, plus optional 25 minute zone 2 cardio and the daily step target"
+   },
+   {
+    "day": "Thursday",
+    "focus": "Upper B (vertical press and pull emphasis)"
+   },
+   {
+    "day": "Friday",
+    "focus": "Lower B (hinge emphasis)"
+   },
+   {
+    "day": "Saturday",
+    "focus": "Rest, plus optional 25 minute zone 2 cardio and the daily step target"
+   },
+   {
+    "day": "Sunday",
+    "focus": "Full rest"
+   }
+  ]
+ },
+ "workout_days": [
+  {
+   "day_label": "Day 1 - Upper A (Monday)",
+   "estimated_duration_minutes": 85,
+   "warmup": "8 to 10 minutes: 5 minutes easy rowing or incline walking, band pull-aparts 2 x 15, push-ups 2 x 10, then ramp into bench press with bar x 10, 40 percent x 8, 60 percent x 5, 80 percent x 3.",
+   "exercises": [
+    {
+     "name": "Barbell bench press",
+     "sets": 4,
+     "rep_range": "5-8",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "2 second lowering, brief pause on the chest, no bounce, full lockout.",
+     "substitution": "Dumbbell bench press or machine chest press"
+    },
+    {
+     "name": "Chest-supported row",
+     "sets": 4,
+     "rep_range": "8-10",
+     "rest_seconds": 150,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Squeeze the shoulder blades, 1 second hold at the chest, 2 second lowering.",
+     "substitution": "One-arm dumbbell row or seal row"
+    },
+    {
+     "name": "Seated dumbbell shoulder press",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Forearms vertical, slight natural arch only, control the descent.",
+     "substitution": "Machine shoulder press"
+    },
+    {
+     "name": "Lat pulldown",
+     "sets": 3,
+     "rep_range": "10-12",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Medium grip, pull to the upper chest, no torso swing.",
+     "substitution": "Assisted pull-up or single-arm cable pulldown"
+    },
+    {
+     "name": "Cable fly",
+     "sets": 3,
+     "rep_range": "12-15",
+     "rest_seconds": 75,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Slight elbow bend, deep stretch at the back, do not turn it into a press.",
+     "substitution": "Pec deck or flat dumbbell fly"
+    },
+    {
+     "name": "Cable triceps pressdown",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Elbows pinned to the sides, full extension. Superset with incline curls to stay inside 90 minutes.",
+     "substitution": "Overhead dumbbell triceps extension"
+    },
+    {
+     "name": "Incline dumbbell curl",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Full stretch at the bottom, no swinging. Supersetted with the pressdowns.",
+     "substitution": "Standing dumbbell or EZ-bar curl"
+    }
+   ],
+   "session_notes": "23 working sets. With the arm superset this fits in about 80 to 85 minutes including warm-up."
+  },
+  {
+   "day_label": "Day 2 - Lower A (Tuesday)",
+   "estimated_duration_minutes": 80,
+   "warmup": "10 to 12 minutes: 5 minutes on the bike, leg swings 2 x 10 per side, bodyweight squats 2 x 12, then ramp into back squat with bar x 10, 40 percent x 8, 60 percent x 5, 80 percent x 3.",
+   "exercises": [
+    {
+     "name": "Barbell back squat",
+     "sets": 4,
+     "rep_range": "5-8",
+     "rest_seconds": 210,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Big brace before each rep, descend under control to just below parallel or as deep as a neutral spine allows.",
+     "substitution": "Hack squat or goblet squat if no rack is available"
+    },
+    {
+     "name": "Romanian deadlift",
+     "sets": 3,
+     "rep_range": "8-10",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 2 (RPE 8)",
+     "tempo_or_notes": "Push the hips back, bar close to the legs, stop where the hamstring stretch peaks with a flat back.",
+     "substitution": "45-degree back extension holding a plate"
+    },
+    {
+     "name": "Leg press",
+     "sets": 3,
+     "rep_range": "10-12",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Feet mid-platform, do not let the lower back peel off the pad at the bottom.",
+     "substitution": "Hack squat or dumbbell split squat"
+    },
+    {
+     "name": "Seated leg curl",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 75,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Full range every rep; the seated version loads the hamstrings at longer muscle length, which slightly favors growth.",
+     "substitution": "Lying leg curl or Nordic curl negatives"
+    },
+    {
+     "name": "Standing calf raise",
+     "sets": 4,
+     "rep_range": "8-12",
+     "rest_seconds": 75,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "2 second pause in the stretched bottom position, full rise onto the toes, no bouncing.",
+     "substitution": "Calf raise on the leg press"
+    },
+    {
+     "name": "Cable crunch",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Flex the spine deliberately; do not just pull with the arms.",
+     "substitution": "Weighted decline crunch, or 3 x 45 second plank"
+    }
+   ],
+   "session_notes": "20 working sets, about 75 to 80 minutes including warm-up."
+  },
+  {
+   "day_label": "Day 3 - Upper B (Thursday)",
+   "estimated_duration_minutes": 85,
+   "warmup": "8 to 10 minutes: 5 minutes easy rowing, band pull-aparts 2 x 15, scapular pull-ups 2 x 5, then ramp into the overhead press with bar x 10, 50 percent x 6, 75 percent x 3.",
+   "exercises": [
+    {
+     "name": "Standing barbell overhead press",
+     "sets": 4,
+     "rep_range": "5-8",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Squeeze the glutes, avoid excessive lean-back, bar path close to the face.",
+     "substitution": "Seated dumbbell shoulder press"
+    },
+    {
+     "name": "Pull-up",
+     "sets": 4,
+     "rep_range": "6-10",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Full hang to chin over the bar. Use assistance to stay in range; add weight once 4 x 10 at bodyweight is achieved.",
+     "substitution": "Lat pulldown"
+    },
+    {
+     "name": "Incline dumbbell press",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Bench at 30 to 45 degrees, dumbbells finish over the mid-chest, 2 second lowering.",
+     "substitution": "Incline machine press or Smith machine incline press"
+    },
+    {
+     "name": "Seated cable row",
+     "sets": 3,
+     "rep_range": "10-12",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Neutral grip, drive the elbows back, control the return without letting the stack slam.",
+     "substitution": "Chest-supported machine row"
+    },
+    {
+     "name": "Dumbbell lateral raise",
+     "sets": 3,
+     "rep_range": "12-20",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Lead with the elbows, stop at shoulder height, no swinging from the hips.",
+     "substitution": "Cable lateral raise"
+    },
+    {
+     "name": "Overhead cable triceps extension",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Overhead work trains the long head at a stretch. Superset with hammer curls to stay inside 90 minutes.",
+     "substitution": "EZ-bar skull crusher"
+    },
+    {
+     "name": "Hammer curl",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Neutral grip hits the brachialis and forearms. Supersetted with the extensions.",
+     "substitution": "Cable rope hammer curl"
+    }
+   ],
+   "session_notes": "23 working sets. With the arm superset this fits in about 80 to 85 minutes including warm-up."
+  },
+  {
+   "day_label": "Day 4 - Lower B (Friday)",
+   "estimated_duration_minutes": 80,
+   "warmup": "10 to 12 minutes: 5 minutes on the bike, hip hinges with a dowel 2 x 10, glute bridges 2 x 12, then ramp into the deadlift with 40 percent x 5, 60 percent x 3, 80 percent x 2.",
+   "exercises": [
+    {
+     "name": "Conventional deadlift",
+     "sets": 3,
+     "rep_range": "4-6",
+     "rest_seconds": 270,
+     "rpe_or_rir": "RIR 2 minimum (RPE 8 cap)",
+     "tempo_or_notes": "Reset every rep, flat back, push the floor away. Never grind deadlifts in this program; the RIR 2 floor is a hard rule.",
+     "substitution": "Trap bar deadlift, which is often easier to keep neutral"
+    },
+    {
+     "name": "Hack squat",
+     "sets": 3,
+     "rep_range": "8-10",
+     "rest_seconds": 150,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "2 second descent, full depth that the machine and your knees allow.",
+     "substitution": "Front squat or leg press"
+    },
+    {
+     "name": "Bulgarian split squat",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
+     "tempo_or_notes": "Sets are per leg; rest 90 seconds after each leg. Slight forward lean loads the glute, upright torso loads the quad more.",
+     "substitution": "Walking lunge or reverse lunge"
+    },
+    {
+     "name": "Lying leg curl",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 75,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Control the lowering; do not let the hips pop up off the pad.",
+     "substitution": "Seated leg curl"
+    },
+    {
+     "name": "Seated calf raise",
+     "sets": 4,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Targets the soleus; 2 second pause at the bottom stretch.",
+     "substitution": "Standing calf raise with a slow tempo"
+    },
+    {
+     "name": "Hanging leg raise",
+     "sets": 3,
+     "rep_range": "8-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1 (RPE 9-10)",
+     "tempo_or_notes": "Control the swing; bend the knees to make it easier if needed.",
+     "substitution": "Captains chair knee raise or reverse crunch"
+    }
+   ],
+   "session_notes": "19 working sets, about 75 to 80 minutes including warm-up. Heaviest recovery cost of the week; Saturday and Sunday off support it."
+  }
+ ],
+ "progressive_overload": {
+  "method": "Double progression on every exercise, plus planned deload weeks",
+  "protocol": [
+   "Every exercise has a rep range, for example bench press 4 sets of 5 to 8. Keep the same weight until you complete the top of the range on all sets at the prescribed RIR.",
+   "When you do, add load next session. Reps will drop back toward the bottom of the range; build them up again and repeat.",
+   "Log every session: exercise, load, reps per set, RIR. The logbook, not the mirror, is the week-to-week scoreboard.",
+   "Stall rule: if neither load nor reps improve on a lift for 2 consecutive sessions while sleep and food are in order, reduce that lift by 10 percent and rebuild over 2 to 3 weeks."
+  ],
+  "load_increments": "Upper-body barbell lifts add 2.5 kg, lower-body barbell lifts and machines add 5 kg, dumbbells take the smallest jump available (usually 2 kg per hand). If a jump feels too big, stay at the weight and add reps beyond the top of the range for one extra session.",
+  "deload": "Every 6th week (weeks 6 and 12 of this plan) cut all working sets in half and reduce loads 15 to 20 percent for that week. Deloads dissipate accumulated fatigue so the next block starts fresh; skipping them is the most common cause of stalled lifts and cranky joints around weeks 8 to 12.",
+  "tracking": "Weigh in daily under the same conditions and use the 7-day average. Take a waist measurement at the navel and front and side photos every 2 weeks. Review the trend against the 0.5 to 0.75 kg per month target."
+ },
+ "quality_vs_quantity": {
+  "stance": "Technique and honest proximity to failure beat extra sets, every time.",
+  "why": "The growth stimulus lives in hard sets taken close to failure, roughly 0 to 3 reps in reserve. Sets stopped 5 or more reps short, or moved with momentum and partial range, are junk volume: they add fatigue and gym time without adding stimulus. Research shows similar hypertrophy across wide rep ranges when sets are near failure, so the quality of each set is the variable that matters most. This plan deliberately sits mid-band on volume, about 10 to 16 hard sets per muscle per week, so that every set can be performed at target effort and fully recovered from.",
+  "practical_rules": [
+   "After each set, name your RIR honestly; if the answer is 4 or more, the set did not count as written, so add load or reps",
+   "Full range of motion on every rep; a deep set of 8 beats a shallow set of 12",
+   "Do not add sets until load and rep progression at the current volume has genuinely stalled per the stall rule",
+   "Film one top set of squat, bench, deadlift and overhead press each week and compare against reputable technique references",
+   "Rest the full prescribed time on compounds; cutting a 3 minute rest to 90 seconds costs reps on the next set and stimulus with them",
+   "Leave the gym having beaten the logbook, not just feeling tired"
+  ]
+ },
+ "rationale": {
+  "exercise_selection": "Every weekly movement pattern is covered twice: horizontal press (bench, cable fly) and pull (chest-supported row, seated cable row), vertical press (overhead press, incline press) and pull (pull-up, lat pulldown), squat (back squat, hack squat, leg press), hinge (deadlift, Romanian deadlift), and single-leg work (Bulgarian split squat), with targeted isolation for delts, arms, calves and abs. Choices favor a high stimulus-to-fatigue ratio: the chest-supported row removes the lower-back limiter of a bent-over row, and seated leg curls load the hamstrings at long muscle length. Barbell compounds anchor each day because they load the most muscle per set and progress in the smallest reliable increments.",
+  "ordering": "Compounds come first while you are fresh, because performance on them drives the double-progression engine; isolation comes last since it tolerates fatigue with little penalty. Arm work is supersetted at the end of upper days purely to fit the 90-minute budget without cutting rest on the lifts that matter.",
+  "volume_analysis": "Weekly hard sets per muscle: chest 10 direct (bench 4, fly 3, incline press 3), back 14 (rows 7, vertical pulls 7), delts 10 direct plus heavy indirect pressing, quads 13 (squat 4, leg press 3, hack squat 3, split squat 3), hamstrings 9 direct (RDL 3, leg curls 6) plus deadlifts, glutes about 10 indirect through squat, hinge and lunge patterns, biceps 6 direct plus about 14 pulling sets, triceps 6 direct plus about 14 pressing sets, calves 8, abs 6. All muscles sit inside the 10 to 16 set intermediate band once indirect work is counted, matching the dose-response evidence (Schoenfeld et al. 2017).",
+  "goal_fit": "For muscle gain on 4 days at 90 minutes, the upper/lower split delivers 2x weekly frequency per muscle, 19 to 23 sets per session inside the time budget with full rest periods, and rep ranges of 5 to 20 biased toward the hypertrophy-efficient middle. Nothing here chases fatigue for its own sake; the surplus, the logbook, and near-failure sets do the work."
+ },
+ "cardio_and_steps": {
+  "current_average_steps": 6000,
+  "daily_step_target": 7500,
+  "step_rationale": "A rise of 1500 steps, about 15 minutes of extra walking, supports cardiovascular health and appetite regulation and keeps the 1.5 activity factor honest, without eating into recovery during a gaining phase.",
+  "cardio_sessions": [
+   {
+    "type": "Zone 2 steady state (bike, brisk incline walk, or rower)",
+    "duration_minutes": 25,
+    "intensity": "Conversational pace, roughly 60 to 70 percent of max heart rate; you can speak full sentences",
+    "placement": "1 to 2 times per week on Wednesday and/or Saturday (rest days), or at least 6 hours away from a lifting session"
+   }
+  ],
+  "interference_note": "At this dose cardio will not blunt muscle gain; the interference effect only becomes meaningful with high-volume endurance training. Keep cardio off leg days where possible and treat it as health maintenance, not a fat-loss tool, during this phase."
+ },
+ "diet_plan": {
+  "calorie_target_kcal": 3000,
+  "protein_g": 165,
+  "carbs_g": 405,
+  "fat_g": 80,
+  "macro_rationale": "Protein 165 g is 2.0 g per kg, inside the 1.6 to 2.2 g per kg range supported by the Morton et al. 2018 meta-analysis, which found benefits plateau near 1.6 g per kg on average with an upper confidence limit near 2.2; the upper half costs nothing and covers day-to-day variability. Fat 80 g is about 1.0 g per kg, enough for hormonal health. Carbs 405 g fill the remaining calories and fuel 4 heavy sessions per week. Arithmetic check: 165 x 4 + 405 x 4 + 80 x 9 = 3000 kcal.",
+  "meal_schedule": [
+   {
+    "meal": "Meal 1 - Breakfast",
+    "time": "09:00",
+    "target_kcal": 1000,
+    "target_protein_g": 50,
+    "timing_note": "First feeding of the day; no special timing requirement beyond hitting its protein target."
+   },
+   {
+    "meal": "Meal 2 - Lunch, pre-workout",
+    "time": "15:30",
+    "target_kcal": 950,
+    "target_protein_g": 50,
+    "timing_note": "2.5 to 3 hours before the 18:30 session, carrying about 100 g of carbs so glycogen is topped up for training."
+   },
+   {
+    "meal": "Meal 3 - Post-workout dinner",
+    "time": "20:30",
+    "target_kcal": 1050,
+    "target_protein_g": 65,
+    "timing_note": "Starts with a whey shake immediately after training, dinner within 60 minutes. Because a pre-workout meal was eaten, the post-workout window is generous; a 30 minute delay changes nothing."
+   }
+  ],
+  "sample_day": [
+   {
+    "meal": "Meal 1 - Breakfast",
+    "time": "09:00",
+    "foods": [
+     "4 whole eggs scrambled in 5 g butter",
+     "100 g dry oats cooked with 250 ml whole milk",
+     "20 g peanut butter stirred into the oats",
+     "1 medium banana"
+    ],
+    "approx_protein_g": 51,
+    "approx_calories": 1030
+   },
+   {
+    "meal": "Meal 2 - Lunch, pre-workout",
+    "time": "15:30",
+    "foods": [
+     "150 g cooked chicken breast (about 200 g raw)",
+     "350 g cooked white rice",
+     "Mixed vegetables sauteed in 10 g oil",
+     "1 apple or orange"
+    ],
+    "approx_protein_g": 50,
+    "approx_calories": 935
+   },
+   {
+    "meal": "Meal 3 - Post-workout dinner",
+    "time": "20:30",
+    "foods": [
+     "30 g whey protein in water immediately after training, around 20:05",
+     "150 g grilled fish or chicken breast",
+     "300 g cooked rice or 400 g boiled potatoes",
+     "Large salad with 10 g olive oil dressing",
+     "200 ml milk"
+    ],
+    "approx_protein_g": 70,
+    "approx_calories": 1000
+   }
+  ],
+  "sample_day_totals": {
+   "approx_calories": 2965,
+   "approx_protein_g": 171,
+   "note": "Within about 1 percent of the 3000 kcal target and above the 165 g protein floor. Swap foods freely at equal protein and calories; the daily totals are the contract, the menu is a template."
+  },
+  "pre_post_workout": "Pre: the 15:30 meal supplies roughly 100 g carbs and 50 g protein about 3 hours out, which is the evidence-based priority. If hungry before training, add a banana or 250 ml milk at 17:45. Post: 30 g whey immediately after the session, full dinner within an hour. During a 90 minute session, water is sufficient; no intra-workout carbs are needed.",
+  "hydration": "3.0 to 3.5 liters per day, about 35 to 40 ml per kg, including 500 to 750 ml sipped across the training session. Practical check: urine should be pale straw colored by midday; darker means drink more.",
+  "diet_preference_note": "Non-vegetarian plan built on eggs, chicken, fish, dairy and whey. Rotate protein sources freely at equal protein; red meat 1 to 2 times per week is a fine swap for the fish or chicken.",
+  "allergy_note": "No allergies reported, so no exclusions were made. If any food here causes a reaction, stop eating it and see a physician; that is outside a trainer's scope. Swap it out at equal protein and calories in the meantime."
+ },
+ "supplements": [
+  {
+   "name": "Creatine monohydrate",
+   "dose": "3 to 5 g daily",
+   "timing": "Any consistent time of day; with a meal is convenient. No loading phase or cycling needed.",
+   "evidence_level": "strong",
+   "reason": "The most-studied ergogenic supplement in existence; reliably adds a few percent to high-effort set performance and supports lean mass gain over a block (ISSN position stand). Expect a normal 0.5 to 1 kg water-weight uptick in the first 2 weeks.",
+   "caveat": "If you have kidney disease or take medication affecting the kidneys, get physician sign-off first. This is a suggestion, not medical advice."
+  },
+  {
+   "name": "Whey protein",
+   "dose": "20 to 40 g per serving, typically 1 serving per day on this plan",
+   "timing": "Immediately post-workout as written in Meal 3, or whenever a meal falls short of its protein target",
+   "evidence_level": "strong",
+   "reason": "Food first: whey is convenient food, not magic. Its job here is closing the gap to 165 g daily protein on a 3-meal schedule without forcing enormous portions.",
+   "caveat": "Choose a third-party tested brand. If dairy causes digestive trouble, switch to a whey isolate or a soy or pea-rice blend at the same dose."
+  },
+  {
+   "name": "Caffeine",
+   "dose": "100 to 150 mg maximum on this schedule (general performance dosing is 3 to 6 mg per kg, but that is too much this late in the day)",
+   "timing": "30 to 45 minutes before training, around 17:45 to 18:00, and never after 18:00",
+   "evidence_level": "moderate",
+   "reason": "Reliable acute boost to training performance and perceived effort. The dose is deliberately capped because your session ends around 20:00 and caffeine's half-life is about 5 hours; sleep builds more muscle than any pre-workout.",
+   "caveat": "Skip it entirely if sleep quality drops, if you are caffeine sensitive, or if you have heart rhythm issues, anxiety, or take stimulant-interacting medication; ask a doctor or pharmacist if unsure."
+  },
+  {
+   "name": "Vitamin D",
+   "dose": "1000 to 2000 IU daily, only if a blood test shows you are low",
+   "timing": "Morning, with breakfast, since it absorbs better with dietary fat",
+   "evidence_level": "context-dependent",
+   "reason": "Indoor work plus evening training often means limited sun exposure. Supplementation fixes a documented deficiency; it does not boost someone who is already replete. Ask for a 25(OH)D test before starting.",
+   "caveat": "Confirm the dose with a physician after testing; more is not better, and high doses accumulate."
+  },
+  {
+   "name": "Omega-3 (EPA and DHA)",
+   "dose": "2 to 3 servings of fatty fish per week (salmon, mackerel, sardines), or 1 to 2 g combined EPA and DHA from fish oil daily if fish intake is low",
+   "timing": "With meals",
+   "evidence_level": "moderate",
+   "reason": "Cardiovascular health support with possible modest recovery benefits. Since you eat fish, food is the preferred route; the capsule is a fallback.",
+   "caveat": "If you take anticoagulant or blood pressure medication, clear fish oil doses with your physician first."
+  }
+ ],
+ "supplements_excluded_note": "Deliberately excluded: anything hormonal (SARMs, prohormones, products marketed as testosterone boosters), fat burners and thermogenics, BCAAs and EAAs (redundant at 165 g of daily protein), glutamine for muscle growth, and proprietary-blend pre-workouts. These are unproven, unnecessary at your protein intake, or carry real health and contamination risks. A product promising steroid-like results without being a steroid is either lying or dangerous.",
+ "duration_and_paths": {
+  "plan_duration_months": 4,
+  "duration_rationale": "Run this plan for 16 weeks with deload weeks at week 6 and week 12. Muscle gain is slow, roughly 0.5 to 0.75 kg of scale weight per month for an intermediate, so 16 weeks is the minimum runway to bank 2 to 3 kg and let double progression compound on every lift. Switching programs before 12 weeks is the most common self-inflicted stall in this phase.",
+  "review_points": "Check at weeks 4, 8 and 12: the 7-day average weight trend should sit at plus 0.12 to 0.19 kg per week; the navel waist measurement should rise far slower than body weight (more than 1 cm per month suggests the surplus is too big); and bench, squat, deadlift and overhead press logbook numbers should each have progressed at least twice per block.",
+  "next_paths": [
+   {
+    "name": "Accumulation Block 2 (12 to 16 weeks)",
+    "when_to_choose": "Waist is up less than 4 cm from baseline, lifts are still progressing, and you want more size.",
+    "what_changes": "Keep the calorie logic tracking the same 0.5 to 0.75 kg per month gain against your new maintenance. Swap roughly a third of the exercises for close variants, for example bench press to low-incline barbell press and hack squat to front squat, and add 1 to 2 weekly sets to one lagging muscle. Everything else, including the split and progression rules, stays."
+   },
+   {
+    "name": "Strength Block (8 weeks)",
+    "when_to_choose": "Main lifts are stalling despite good recovery, or you want to convert new muscle into peak strength numbers.",
+    "what_changes": "Squat, bench, deadlift and overhead press move to 3 to 6 reps at RPE 7 to 9 with 3 to 5 minute rests; isolation volume drops about 30 percent; calories come down to maintenance to plus 150 kcal, roughly 2800 to 2950 given your new body weight; frequency and split stay the same."
+   },
+   {
+    "name": "Mini-cut, then return to gaining (6 to 8 weeks)",
+    "when_to_choose": "Waist is up 4 cm or more, or you are visibly softer than you want to be.",
+    "what_changes": "Calories drop to about 500 below your new maintenance, roughly 2350 to 2450 kcal; protein rises to 2.2 g per kg, about 180 g; training volume drops about 20 percent while loads stay heavy to defend muscle; steps rise to 9000 to 10000. After 6 to 8 weeks, return to a gaining block at the new maintenance plus 250 kcal."
+   }
+  ]
+ },
+ "safety_notes": {
+  "flagged_issues": [
+   "No health issues, injuries or allergies were reported on the intake form, so no condition-specific modifications were required."
+  ],
+  "exercise_modifications": [
+   "If any lift causes sharp or localized joint pain, as opposed to normal muscle burn, stop that exercise, use its listed substitution, and see a physiotherapist if the pain persists beyond a week; that assessment is outside a trainer's scope.",
+   "Squat and deadlift technique should be checked early: film your first heavy sessions and compare against reputable references, or have a qualified coach watch one session before loads climb.",
+   "The RIR 2 floor on conventional deadlifts is a hard rule in this program; do not take them to failure.",
+   "During the week 6 and week 12 deloads, resist adding extra work; the reduction is the point."
+  ],
+  "medical_disclaimer": "This plan is educational information, not medical advice, and nothing in it is a diagnosis or treatment. It was generated from self-reported data and assumes a healthy adult cleared for vigorous exercise. Consult a physician before starting this or any exercise and nutrition program. Stop training and seek medical care immediately if you experience chest pain, dizziness, fainting, or unusual shortness of breath. Review all supplements with a doctor or pharmacist, especially alongside prescription medication."
+ }
+}
