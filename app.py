@@ -302,8 +302,7 @@ def trainer_api():
     # Gemini occasionally returns 503 UNAVAILABLE ("high demand") or a rate-limit
     # blip — these are transient and on Google's side. Retry with exponential
     # backoff, then FALL BACK to gemini-2.5-flash-lite (a separate, lighter
-    # capacity pool on the same API key) before giving up. Retries only happen
-    # while nothing has been streamed yet, so they can never duplicate text.
+    # capacity pool on the same API key) before giving up.
     TRANSIENT = ("503", "unavailable", "high demand", "overloaded",
                  "429", "resource_exhausted", "rate limit", "500", "internal error")
     MODEL_CHAIN = ("gemini-2.5-flash", "gemini-2.5-flash",
@@ -317,14 +316,16 @@ def trainer_api():
         else:
             time.sleep(1.5 * (2 ** attempt))
 
-    # The model can be silent for tens of seconds before its first byte
-    # (thinking + queueing under load), and the retry backoffs add more silence.
-    # Proxies kill silent responses with an HTML error page. So the model chain
-    # runs in a worker thread feeding a queue, while the response generator
-    # emits a whitespace keepalive — legal around JSON, invisible after the
-    # client's trim — whenever 10 s pass with no real data.
+    # Architecture: the model chain runs in a worker thread and the FULL output
+    # is buffered and VALIDATED server-side before anything real is sent. The
+    # response generator emits only whitespace keepalives (legal before JSON,
+    # invisible after the client's trim) every 10 s until the worker delivers
+    # one complete, parse-checked payload. Two consequences:
+    #   - keepalives can never land inside the JSON (a mid-stream stall used to
+    #     let a space split a number and corrupt the payload), and
+    #   - a bad/truncated/unparseable attempt is retried server-side instead of
+    #     asking the user to click again.
     def run_model_chain(q):
-        sent_text = False
         for attempt in range(MAX_ATTEMPTS):
             finish = ""
             try:
@@ -334,10 +335,10 @@ def trainer_api():
                     contents=user_content,
                     config=types.GenerateContentConfig(**config_kwargs),
                 )
+                parts = []
                 for chunk in response:
                     if chunk.text:
-                        sent_text = True
-                        q.put(("text", chunk.text))
+                        parts.append(chunk.text)
                     try:
                         fr = chunk.candidates[0].finish_reason
                         if fr:
@@ -345,26 +346,30 @@ def trainer_api():
                     except (AttributeError, IndexError, TypeError):
                         pass
 
-                # Stream finished without raising. Report anything other than a
-                # clean completion (an ERROR: marker after any partial JSON is
-                # what the client surfaces to the user).
-                if not sent_text:
-                    if "SAFETY" in finish or "RECITATION" in finish or "BLOCK" in finish:
-                        q.put(("end", "\nERROR: A content filter blocked the plan. This usually comes from "
-                                      "sensitive wording in the health or extra-info box — rephrase it plainly and try again."))
-                    elif "MAX_TOKEN" in finish:
-                        q.put(("end", "\nERROR: The plan ran out of length before it finished. Please try again; "
-                                      "if it keeps happening, shorten the extra-info box."))
-                    elif attempt < MAX_ATTEMPTS - 1:
-                        backoff(attempt)
-                        continue  # empty with no clear reason — treat as a blip and retry
-                    else:
-                        q.put(("end", "\nERROR: The Trainer returned no content. Please try again in a moment."))
-                elif finish and "STOP" not in finish and "FINISH_REASON_UNSPECIFIED" not in finish:
-                    q.put(("end", f"\nERROR: The plan was cut off before it finished ({finish}). "
-                                  f"Please try again; if it repeats, shorten the extra-info box."))
-                else:
-                    q.put(("end", None))
+                text = "".join(parts).strip()
+                if text.startswith("```"):  # JSON mode shouldn't fence, but be safe
+                    text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+                try:
+                    data = json_mod.loads(text)
+                except ValueError:
+                    data = None
+                if isinstance(data, dict) and data.get("type") in ("questions", "plan"):
+                    q.put(("end", text))  # complete, validated payload
+                    return
+
+                # Unusable output. A safety block will not improve on retry;
+                # everything else (truncated, malformed, empty) gets retried.
+                if "SAFETY" in finish or "RECITATION" in finish or "BLOCK" in finish:
+                    q.put(("end", "\nERROR: A content filter blocked the plan. This usually comes from "
+                                  "sensitive wording in the health or extra-info box — rephrase it plainly and try again."))
+                    return
+                print(f"[trainer] attempt {attempt + 1}/{MAX_ATTEMPTS} unusable output "
+                      f"(model={MODEL_CHAIN[attempt]}, finish={finish or '?'}, chars={len(text)})", flush=True)
+                if attempt < MAX_ATTEMPTS - 1:
+                    backoff(attempt)
+                    continue
+                q.put(("end", "\nERROR: The model kept returning an incomplete plan — it is under heavy load "
+                              "right now. Nothing is wrong with your details; please try again in a few minutes."))
                 return
             except Exception as exc:
                 err = str(exc)
@@ -373,8 +378,7 @@ def trainer_api():
                     q.put(("end", "\nERROR: Invalid GEMINI_API_KEY on the server."))
                     return
                 transient = any(m in low for m in TRANSIENT)
-                # Only safe to retry if we have not sent any bytes for this request.
-                if transient and not sent_text and attempt < MAX_ATTEMPTS - 1:
+                if transient and attempt < MAX_ATTEMPTS - 1:
                     backoff(attempt)
                     continue
                 if transient:
@@ -390,16 +394,13 @@ def trainer_api():
         threading.Thread(target=run_model_chain, args=(q,), daemon=True).start()
         while True:
             try:
-                kind, val = q.get(timeout=10)
+                _, val = q.get(timeout=10)
             except Empty:
-                yield " "  # keepalive
+                yield " "  # keepalive while the worker generates/validates/retries
                 continue
-            if kind == "text":
+            if val:
                 yield val
-            else:
-                if val:
-                    yield val
-                return
+            return
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
