@@ -1,6 +1,7 @@
 import math
 import os
 import ssl
+import time
 from datetime import date
 import urllib.request
 import json as json_mod
@@ -296,48 +297,72 @@ def trainer_api():
     except AttributeError:
         pass
 
+    # Gemini occasionally returns 503 UNAVAILABLE ("high demand") or a rate-limit
+    # blip — these are transient and on Google's side. Retry with exponential
+    # backoff before giving up, but ONLY while nothing has been streamed yet, so
+    # a retry can never duplicate already-sent text.
+    TRANSIENT = ("503", "unavailable", "high demand", "overloaded",
+                 "429", "resource_exhausted", "rate limit", "500", "internal error")
+    MAX_ATTEMPTS = 4
+
     def generate():
-        try:
-            client = genai.Client(api_key=GEMINI_API_KEY)
-            response = client.models.generate_content_stream(
-                model="gemini-2.5-flash",
-                contents=user_content,
-                config=types.GenerateContentConfig(**config_kwargs),
-            )
+        for attempt in range(MAX_ATTEMPTS):
             emitted = False
             finish = ""
-            for chunk in response:
-                if chunk.text:
-                    emitted = True
-                    yield chunk.text
-                try:
-                    fr = chunk.candidates[0].finish_reason
-                    if fr:
-                        finish = str(fr)
-                except (AttributeError, IndexError, TypeError):
-                    pass
-            # If nothing came back, or generation stopped for anything other than
-            # a normal completion, tell the client exactly why (an ERROR: marker
-            # after any partial JSON is what the client surfaces to the user).
-            if not emitted:
-                if "SAFETY" in finish or "RECITATION" in finish or "BLOCK" in finish:
-                    yield ("\nERROR: A content filter blocked the plan. This usually comes from "
-                           "sensitive wording in the health or extra-info box — rephrase it plainly and try again.")
-                elif "MAX_TOKEN" in finish:
-                    yield ("\nERROR: The plan ran out of length before it finished. Please try again; "
-                           "if it keeps happening, shorten the extra-info box.")
-                else:
-                    yield (f"\nERROR: The Trainer returned no content"
-                           f"{' (' + finish + ')' if finish else ''}. Please try again in a moment.")
-            elif finish and "STOP" not in finish and "FINISH_REASON_UNSPECIFIED" not in finish:
-                yield (f"\nERROR: The plan was cut off before it finished ({finish}). "
-                       f"Please try again; if it repeats, shorten the extra-info box.")
-        except Exception as exc:
-            err = str(exc)
-            if "API_KEY" in err or "api key" in err.lower() or "401" in err:
-                yield "\nERROR: Invalid GEMINI_API_KEY on the server."
-            else:
+            try:
+                client = genai.Client(api_key=GEMINI_API_KEY)
+                response = client.models.generate_content_stream(
+                    model="gemini-2.5-flash",
+                    contents=user_content,
+                    config=types.GenerateContentConfig(**config_kwargs),
+                )
+                for chunk in response:
+                    if chunk.text:
+                        emitted = True
+                        yield chunk.text
+                    try:
+                        fr = chunk.candidates[0].finish_reason
+                        if fr:
+                            finish = str(fr)
+                    except (AttributeError, IndexError, TypeError):
+                        pass
+
+                # Stream finished without raising. Report anything other than a
+                # clean completion (an ERROR: marker after any partial JSON is
+                # what the client surfaces to the user).
+                if not emitted:
+                    if "SAFETY" in finish or "RECITATION" in finish or "BLOCK" in finish:
+                        yield ("\nERROR: A content filter blocked the plan. This usually comes from "
+                               "sensitive wording in the health or extra-info box — rephrase it plainly and try again.")
+                    elif "MAX_TOKEN" in finish:
+                        yield ("\nERROR: The plan ran out of length before it finished. Please try again; "
+                               "if it keeps happening, shorten the extra-info box.")
+                    elif attempt < MAX_ATTEMPTS - 1:
+                        time.sleep(1.5 * (2 ** attempt))
+                        continue  # empty with no clear reason — treat as a blip and retry
+                    else:
+                        yield ("\nERROR: The Trainer returned no content. Please try again in a moment.")
+                elif finish and "STOP" not in finish and "FINISH_REASON_UNSPECIFIED" not in finish:
+                    yield (f"\nERROR: The plan was cut off before it finished ({finish}). "
+                           f"Please try again; if it repeats, shorten the extra-info box.")
+                return
+            except Exception as exc:
+                err = str(exc)
+                low = err.lower()
+                if "api_key" in low or "api key" in low or "401" in low:
+                    yield "\nERROR: Invalid GEMINI_API_KEY on the server."
+                    return
+                transient = any(m in low for m in TRANSIENT)
+                # Only safe to retry if we have not sent any bytes for this request.
+                if transient and not emitted and attempt < MAX_ATTEMPTS - 1:
+                    time.sleep(1.5 * (2 ** attempt))
+                    continue
+                if transient:
+                    yield ("\nERROR: Gemini is temporarily overloaded (high demand on Google's side, "
+                           "not your account or key). Please try again in a minute or two.")
+                    return
                 yield f"\nERROR: {err}"
+                return
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
