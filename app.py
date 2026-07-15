@@ -299,11 +299,21 @@ def trainer_api():
 
     # Gemini occasionally returns 503 UNAVAILABLE ("high demand") or a rate-limit
     # blip — these are transient and on Google's side. Retry with exponential
-    # backoff before giving up, but ONLY while nothing has been streamed yet, so
-    # a retry can never duplicate already-sent text.
+    # backoff, then FALL BACK to gemini-2.5-flash-lite (a separate, lighter
+    # capacity pool on the same API key) before giving up. Retries only happen
+    # while nothing has been streamed yet, so they can never duplicate text.
     TRANSIENT = ("503", "unavailable", "high demand", "overloaded",
                  "429", "resource_exhausted", "rate limit", "500", "internal error")
-    MAX_ATTEMPTS = 4
+    MODEL_CHAIN = ("gemini-2.5-flash", "gemini-2.5-flash",
+                   "gemini-2.5-flash-lite", "gemini-2.5-flash-lite")
+    MAX_ATTEMPTS = len(MODEL_CHAIN)
+
+    def backoff(attempt):
+        # switching to a different model pool: no point waiting long first
+        if attempt + 1 < MAX_ATTEMPTS and MODEL_CHAIN[attempt + 1] != MODEL_CHAIN[attempt]:
+            time.sleep(0.5)
+        else:
+            time.sleep(1.5 * (2 ** attempt))
 
     def generate():
         for attempt in range(MAX_ATTEMPTS):
@@ -312,7 +322,7 @@ def trainer_api():
             try:
                 client = genai.Client(api_key=GEMINI_API_KEY)
                 response = client.models.generate_content_stream(
-                    model="gemini-2.5-flash",
+                    model=MODEL_CHAIN[attempt],
                     contents=user_content,
                     config=types.GenerateContentConfig(**config_kwargs),
                 )
@@ -338,7 +348,7 @@ def trainer_api():
                         yield ("\nERROR: The plan ran out of length before it finished. Please try again; "
                                "if it keeps happening, shorten the extra-info box.")
                     elif attempt < MAX_ATTEMPTS - 1:
-                        time.sleep(1.5 * (2 ** attempt))
+                        backoff(attempt)
                         continue  # empty with no clear reason — treat as a blip and retry
                     else:
                         yield ("\nERROR: The Trainer returned no content. Please try again in a moment.")
@@ -355,11 +365,11 @@ def trainer_api():
                 transient = any(m in low for m in TRANSIENT)
                 # Only safe to retry if we have not sent any bytes for this request.
                 if transient and not emitted and attempt < MAX_ATTEMPTS - 1:
-                    time.sleep(1.5 * (2 ** attempt))
+                    backoff(attempt)
                     continue
                 if transient:
                     yield ("\nERROR: Gemini is temporarily overloaded (high demand on Google's side, "
-                           "not your account or key). Please try again in a minute or two.")
+                           "not your account or key) — even the backup model. Please try again in a minute or two.")
                     return
                 yield f"\nERROR: {err}"
                 return
