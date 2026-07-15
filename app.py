@@ -235,6 +235,12 @@ except FileNotFoundError:
     TRAINER_SYSTEM = ""
 
 
+@app.route("/api/version")
+def version():
+    # Render sets RENDER_GIT_COMMIT; lets us verify which commit is actually live.
+    return jsonify({"commit": os.environ.get("RENDER_GIT_COMMIT", "dev")[:7]})
+
+
 @app.route("/trainer")
 def trainer():
     return render_template("trainer.html")
