@@ -63,6 +63,14 @@
     .fu-q .why { font-family: var(--sans); font-size: 12px; line-height: 1.6; color: var(--gray-2); margin-bottom: 10px; }
     .fu-note { margin-top: 22px; font-family: var(--sans); font-size: 12px; color: var(--gray-2); }
 
+    /* ── mode tabs ── */
+    .mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .mtab { border: 1px solid var(--rule-2); background: transparent; border-radius: 999px;
+      padding: 10px 22px; font-family: var(--sans); font-size: 13px; font-weight: 600;
+      color: var(--gray); cursor: pointer; transition: all .2s; }
+    .mtab:hover { border-color: var(--black); color: var(--black); }
+    .mtab.on { background: var(--black); border-color: var(--black); color: #fff; }
+
     /* ── error ── */
     .err { display: none; width: min(620px,100%); margin-top: 18px; padding: 14px 18px; border-radius: 14px;
       border: 1px solid rgba(200,60,50,.3); background: rgba(200,60,50,.05);
@@ -189,6 +197,12 @@
       <p class="mod-sub">an evidence-based training &amp; nutrition studio</p>
     </div>
 
+    <!-- ── MODE TABS ── -->
+    <div class="mode-tabs fade-rise-d1" id="modeTabs" role="tablist">
+      <button class="mtab on" id="tabPlan" type="button">New program</button>
+      <button class="mtab" id="tabCheckin" type="button">Week-4 check-in</button>
+    </div>
+
     <!-- ── INTAKE ── -->
     <form class="intake fade-rise-d1" id="intakeForm" autocomplete="off">
       <div class="intake-inner">
@@ -219,7 +233,7 @@
             <input class="os-input" id="fGoalNote" placeholder="e.g. bigger arms, first pull-up, wedding in June"></div>
         </div>
 
-        <div class="sec">Availability</div>
+        <div class="sec">Availability &amp; where you train</div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="fDays">Days per week</label>
             <div class="os-select-wrap"><select class="os-select" id="fDays">
@@ -229,15 +243,34 @@
               <option>45 minutes</option><option selected>1 hour</option><option>1.5 hours</option><option>2 hours</option></select></div></div>
           <div class="field"><label class="os-label" for="fTimings">Gym timings</label>
             <input class="os-input" id="fTimings" placeholder="e.g. 7–8:30 pm"></div>
+          <div class="field"><label class="os-label" for="fEnv">Where do you train?</label>
+            <div class="os-select-wrap"><select class="os-select" id="fEnv">
+              <option>Commercial gym</option><option>Home — dumbbells</option>
+              <option>Home — barbell setup</option><option>Bodyweight only</option></select></div></div>
+          <div class="field"><label class="os-label" for="fEquip">Equipment notes (optional)</label>
+            <input class="os-input" id="fEquip" placeholder="e.g. dumbbells up to 20 kg, no leg press, has rings"></div>
+          <div class="field"><label class="os-label" for="fLifts">Current lifts (optional)</label>
+            <input class="os-input" id="fLifts" placeholder="e.g. bench 60 kg × 8, squat 80 kg × 5">
+            <div class="hintline">If given, your plan starts with concrete weights instead of “find your weight”.</div></div>
         </div>
 
-        <div class="sec">Health</div>
+        <div class="sec">Health &amp; recovery</div>
         <div class="grid2">
           <div class="field"><label class="os-label" for="fHealth">Any health issues?</label>
             <textarea class="os-input" id="fHealth" placeholder="e.g. mild knee pain, asthma — or 'none'"></textarea>
             <div class="hintline">Anything medical stays a suggestion, not advice — the plan will say so too.</div></div>
           <div class="field"><label class="os-label" for="fAllergy">Any allergies?</label>
             <textarea class="os-input" id="fAllergy" placeholder="e.g. lactose, peanuts — or 'none'"></textarea></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label class="os-label" for="fSleep">Sleep per night</label>
+            <div class="os-select-wrap"><select class="os-select" id="fSleep">
+              <option>Under 5.5 h</option><option>5.5–6.5 h</option><option selected>7–8 h</option><option>8+ h</option></select></div></div>
+          <div class="field"><label class="os-label" for="fStress">Life stress</label>
+            <div class="os-select-wrap"><select class="os-select" id="fStress">
+              <option>Low</option><option selected>Moderate</option><option>High</option></select></div></div>
+          <div class="field"><label class="os-label" for="fInjury">Past injuries or surgeries (optional)</label>
+            <input class="os-input" id="fInjury" placeholder="e.g. old shoulder dislocation, ACL repair 2019"></div>
         </div>
 
         <div class="sec">Fuel</div>
@@ -252,6 +285,9 @@
               <option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div></div>
           <div class="field"><label class="os-label" for="fSteps">Average steps per day</label>
             <input class="os-input" id="fSteps" type="number" min="0" step="500" placeholder="e.g. 6000"></div>
+          <div class="field"><label class="os-label" for="fFoods">Foods you eat daily (optional)</label>
+            <input class="os-input" id="fFoods" placeholder="e.g. dal, roti, paneer, rice — your sample day uses these">
+          </div>
         </div>
 
         <div class="sec">Anything else</div>
@@ -261,6 +297,66 @@
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="buildBtn">Build my program</button>
           <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Nothing is stored — the plan lives in your browser and your PDF.</div>
+        </div>
+      </div>
+    </form>
+
+    <!-- ── CHECK-IN ── -->
+    <form class="intake" id="checkinForm" autocomplete="off" style="display:none">
+      <div class="intake-inner">
+        <div class="sec">You</div>
+        <div class="grid3">
+          <div class="field"><label class="os-label" for="cName">Name</label>
+            <input class="os-input" id="cName" placeholder="Your name" required></div>
+          <div class="field"><label class="os-label" for="cGoal">The goal you trained for</label>
+            <div class="os-select-wrap"><select class="os-select" id="cGoal">
+              <option>Muscle gain</option><option>Fat loss</option><option>Strength</option>
+              <option>Body recomposition</option><option>General fitness</option></select></div></div>
+          <div class="field"><label class="os-label" for="cWeeks">Weeks on the plan</label>
+            <div class="os-select-wrap"><select class="os-select" id="cWeeks">
+              <option>2</option><option>3</option><option selected>4</option><option>6</option><option>8</option></select></div></div>
+        </div>
+
+        <div class="sec">The measurements</div>
+        <div class="grid3">
+          <div class="field"><label class="os-label" for="cWeightStart">Weight when you started</label>
+            <input class="os-input" id="cWeightStart" placeholder="e.g. 82 kg" required></div>
+          <div class="field"><label class="os-label" for="cWeightNow">Weight now (7-day average if you have it)</label>
+            <input class="os-input" id="cWeightNow" placeholder="e.g. 83.1 kg" required></div>
+          <div class="field"><label class="os-label" for="cCalTarget">Calorie target you were given</label>
+            <input class="os-input" id="cCalTarget" placeholder="e.g. 2980 kcal"></div>
+          <div class="field"><label class="os-label" for="cWaist">Waist change (optional)</label>
+            <input class="os-input" id="cWaist" placeholder="e.g. +1 cm, same, −2 cm"></div>
+        </div>
+
+        <div class="sec">Adherence — honesty makes the recalibration work</div>
+        <div class="grid3">
+          <div class="field"><label class="os-label" for="cSessions">Sessions completed</label>
+            <div class="os-select-wrap"><select class="os-select" id="cSessions">
+              <option>All or nearly all</option><option>About 75%</option><option>About half</option><option>Under half</option></select></div></div>
+          <div class="field"><label class="os-label" for="cDiet">Diet adherence</label>
+            <div class="os-select-wrap"><select class="os-select" id="cDiet">
+              <option>90%+ of days</option><option>70–90% of days</option><option>50–70% of days</option><option>Under 50%</option></select></div></div>
+          <div class="field"><label class="os-label" for="cSleep">Sleep per night lately</label>
+            <div class="os-select-wrap"><select class="os-select" id="cSleep">
+              <option>Under 5.5 h</option><option>5.5–6.5 h</option><option selected>7–8 h</option><option>8+ h</option></select></div></div>
+        </div>
+
+        <div class="sec">The training log</div>
+        <div class="grid2">
+          <div class="field"><label class="os-label" for="cLifts">Key lifts, then → now</label>
+            <textarea class="os-input" id="cLifts" placeholder="e.g. bench 60→65 kg × 8, squat 80→90 kg × 6, lateral raises stuck at 10 kg"></textarea></div>
+          <div class="field"><label class="os-label" for="cPain">Any pain or new issues?</label>
+            <textarea class="os-input" id="cPain" placeholder="e.g. right shoulder pinches on overhead press — or 'none'"></textarea></div>
+        </div>
+
+        <div class="sec">Anything else</div>
+        <div class="field"><label class="os-label" for="cExtra">Anything the numbers don’t show</label>
+          <textarea class="os-input" id="cExtra" placeholder="e.g. travelled for a week, switched to morning sessions, appetite way up…"></textarea></div>
+
+        <div class="go-row">
+          <button type="submit" class="os-btn-primary" id="checkinBtn">Recalibrate my program</button>
+          <div class="go-note">Your measured trend beats any formula — the Trainer re-anchors calories and volume on what actually happened, and returns a full revised program.</div>
         </div>
       </div>
     </form>
@@ -299,8 +395,20 @@
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const form = $('intakeForm'), thinking = $('thinking'), followup = $('followup'),
-        planWrap = $('planWrap'), errBox = $('errBox');
+  const form = $('intakeForm'), checkinForm = $('checkinForm'), thinking = $('thinking'),
+        followup = $('followup'), planWrap = $('planWrap'), errBox = $('errBox'),
+        modeTabs = $('modeTabs');
+
+  let mode = 'plan';
+  function setMode(m) {
+    mode = m;
+    $('tabPlan').classList.toggle('on', m === 'plan');
+    $('tabCheckin').classList.toggle('on', m === 'checkin');
+    form.style.display = m === 'plan' ? '' : 'none';
+    checkinForm.style.display = m === 'checkin' ? '' : 'none';
+  }
+  $('tabPlan').addEventListener('click', () => setMode('plan'));
+  $('tabCheckin').addEventListener('click', () => setMode('checkin'));
 
   $('fDiet').addEventListener('change', () => {
     $('dietOtherWrap').classList.toggle('show', $('fDiet').value === 'Other');
@@ -310,7 +418,8 @@
     'Timing meals around your sessions…','Grading the supplement evidence…','Writing the why…'];
   let thTimer = null;
   function setState(s) {
-    form.style.display = s === 'form' ? '' : 'none';
+    if (s === 'form') { setMode(mode); } else { form.style.display = 'none'; checkinForm.style.display = 'none'; }
+    modeTabs.style.display = s === 'form' ? '' : 'none';
     thinking.classList.toggle('show', s === 'thinking');
     followup.classList.toggle('show', s === 'followup');
     planWrap.classList.toggle('show', s === 'plan');
@@ -325,16 +434,37 @@
   function fail(msg) { setState('form'); errBox.textContent = msg; errBox.classList.add('show'); }
 
   function intake() {
+    if (mode === 'checkin') {
+      return {
+        name: $('cName').value, goal: $('cGoal').value,
+        'weeks on the plan': $('cWeeks').value,
+        'weight when plan started': $('cWeightStart').value,
+        'weight now (7-day avg if given)': $('cWeightNow').value,
+        'calorie target that was prescribed': $('cCalTarget').value,
+        'waist change': $('cWaist').value,
+        'sessions completed': $('cSessions').value,
+        'diet adherence': $('cDiet').value,
+        'sleep per night lately': $('cSleep').value,
+        'key lifts then vs now': $('cLifts').value,
+        'pain or new issues': $('cPain').value,
+        'extra info': $('cExtra').value,
+      };
+    }
     return {
       name: $('fName').value, 'gender assigned at birth': $('fSex').value,
       'date of birth': $('fDob').value, height: $('fHeight').value, weight: $('fWeight').value,
       'training experience': $('fExp').value,
       goal: $('fGoal').value + ($('fGoalNote').value ? ' — ' + $('fGoalNote').value : ''),
       'days per week': $('fDays').value, 'hours per session': $('fHours').value,
-      'gym timings': $('fTimings').value, 'health issues': $('fHealth').value,
-      allergies: $('fAllergy').value,
+      'gym timings': $('fTimings').value,
+      'training environment': $('fEnv').value, 'equipment notes': $('fEquip').value,
+      'current lifts': $('fLifts').value,
+      'health issues': $('fHealth').value, allergies: $('fAllergy').value,
+      'sleep hours per night': $('fSleep').value, 'stress level': $('fStress').value,
+      'injury history': $('fInjury').value,
       'diet preference': $('fDiet').value === 'Other' ? 'Other — ' + $('fDietOther').value : $('fDiet').value,
       'average steps per day': $('fSteps').value, 'meals per day': $('fMeals').value,
+      'food preferences': $('fFoods').value,
       'extra info': $('fExtra').value,
     };
   }
@@ -344,6 +474,7 @@
     setState('thinking');
     try {
       const body = { intake: intake() };
+      if (mode === 'checkin') body.mode = 'checkin';
       if (followupAnswers) body.followup_answers = followupAnswers;
       const demoParam = new URLSearchParams(location.search).get('demo');
       if (demoParam !== null) body.demo = demoParam === 'stream' ? 'stream' : 1;
@@ -386,6 +517,7 @@
   }
 
   form.addEventListener('submit', e => { e.preventDefault(); submit(null); });
+  checkinForm.addEventListener('submit', e => { e.preventDefault(); submit(null); });
   $('fuBtn').addEventListener('click', () => {
     submit(pendingQuestions.map((q, i) => ({ q: q.question, a: $('fuA' + i).value })));
   });
@@ -436,14 +568,26 @@
       ['Daily target', ps.calorie_target_kcal != null ? ps.calorie_target_kcal + ' kcal' : ''],
     ]);
 
-    h += H('The Numbers, Shown');
-    h += P(ps.bmr_equation);
-    h += P(ps.activity_factor_note);
-    h += P(ps.calorie_adjustment_note);
-    h += P(ps.bmi_note);
-    if (Array.isArray(ps.assumptions) && ps.assumptions.length) {
-      h += LAB('Assumptions made'); h += OL(ps.assumptions);
+    const cr = d.checkin_review;
+    if (cr) {
+      h += H('The Check-in Verdict');
+      if (cr.verdict) h += '<div class="pd-pull">' + esc(cr.verdict) + '</div>';
+      h += P(cr.measured_trend);
+      h += P(cr.real_tdee_estimate);
+      h += P(cr.calorie_change);
+      if (Array.isArray(cr.training_changes) && cr.training_changes.length) {
+        h += LAB('Change these'); h += OL(cr.training_changes);
+      }
+      if (Array.isArray(cr.keep_doing) && cr.keep_doing.length) {
+        h += LAB('Keep doing — the data says it works'); h += OL(cr.keep_doing);
+      }
     }
+
+    let numbers = P(ps.bmr_equation) + P(ps.activity_factor_note) + P(ps.calorie_adjustment_note) + P(ps.bmi_note);
+    if (Array.isArray(ps.assumptions) && ps.assumptions.length) {
+      numbers += LAB('Assumptions made') + OL(ps.assumptions);
+    }
+    if (numbers) h += H('The Numbers, Shown') + numbers;
 
     const ws = d.weekly_split || {};
     h += H(ws.split_name || 'The Week');

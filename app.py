@@ -273,7 +273,11 @@ def trainer_api():
     if not TRAINER_SYSTEM:
         return jsonify({"error": "Trainer knowledge base missing on server."}), 500
 
-    lines = ["INTAKE FORM:"]
+    if payload.get("mode") == "checkin":
+        lines = ["MODE: WEEK-4 CHECK-IN", "",
+                 "CHECK-IN DATA (the client has been running a plan; recalibrate from the measured results):"]
+    else:
+        lines = ["INTAKE FORM:"]
     for k, v in intake.items():
         v = str(v).strip()
         if v:
