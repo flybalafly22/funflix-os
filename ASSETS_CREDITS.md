@@ -20,5 +20,11 @@ _None imported yet — current SFX/music are procedural (Web Audio). CC0 sample 
 ## Icons
 _None imported yet — current UI uses text/emoji. CC0 icon set (or authored SVG) lands in Sprint 4._
 
+## The Trainer (unrelated to THE FLY, same repo)
+| Asset | File(s) | Source | License | Notes |
+|---|---|---|---|---|
+| Movement pictograms (17 glyphs) | inline SVG in `templates/trainer.html` | authored in-repo (trainer Sprint 4) | CC0-1.0 / own work | signage-style exercise icons in the plan table + PDF |
+| PWA app icons | `static/trainer/icon-192.png`, `icon-512.png` | generated in-repo (headless render) | CC0-1.0 / own work | serif T + acid underline on paper |
+
 ---
 _Add a row here in the same commit that introduces any new asset. No asset ships without a recorded license._

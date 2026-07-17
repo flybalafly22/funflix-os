@@ -26,11 +26,15 @@ from this file directly.
 
 - Sprint 3 — In Your Pocket (SPRINT_3.md): check-in plan diff (old → new with
   deltas), installable PWA with offline saved-plan + logs
+- Sprint 4 — Signature (SPRINT_4.md): self-authored movement pictograms in
+  the plan + PDF, native share sheet (covers email-to-self), MOBILE_APP.md
+  strategy + iOS standalone metas
 
 ## Next up (high value, roughly ordered)
-- **Exercise illustrations**: CC0 line-art or CSS diagrams for the top ~40
-  movements (license ledger in ASSETS_CREDITS.md).
-- **Email plan to self**: needs a mail provider decision (cost/keys — owner).
+- **Play Store listing (TWA)**: everything is prepared; needs owner's Google
+  Play account ($25 one-time) + PWABuilder clicks — see MOBILE_APP.md.
+- **Server-sent email**: only if the share sheet proves insufficient; needs
+  an owner mail-provider key (Resend/SendGrid free tier).
 
 ## Deliberately not doing
 - Server-side plan storage / accounts — privacy is a feature ("nothing is

@@ -12,6 +12,9 @@
   <link rel="manifest" href="/static/trainer/manifest.json">
   <meta name="theme-color" content="#FAFAF8">
   <link rel="apple-touch-icon" href="/static/trainer/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Trainer">
   <style>
     .stage { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 64px 24px 96px; }
     .mod-head { text-align: center; margin-bottom: 44px; }
@@ -76,6 +79,8 @@
     .mtab.restore { margin-left: auto; border-style: dashed; color: var(--accD); }
     .mtab.restore:hover { border-color: var(--accD); }
 
+    table.ex .exn { display: inline-flex; align-items: center; gap: 9px; }
+    table.ex .exg { width: 24px; height: 24px; flex: none; color: var(--black); opacity: .85; }
     table.ex .vid { margin-left: 8px; font-family: var(--monoX); font-size: 9.5px;
       letter-spacing: .08em; color: var(--accD); text-decoration: none; white-space: nowrap; }
     table.ex .vid:hover { text-decoration: underline; }
@@ -761,9 +766,15 @@
     const btn = $('shareBtn'), old = btn.textContent;
     try {
       const url = location.origin + location.pathname + '#p=' + await compressToB64(JSON.stringify(lastPlan.d));
-      await navigator.clipboard.writeText(url);
-      btn.textContent = 'Copied ✓';
-    } catch (e) { btn.textContent = 'Copy failed'; }
+      // mobile: native share sheet (Mail, WhatsApp, notes — "email it to myself" included)
+      if (navigator.share) {
+        await navigator.share({ title: 'My training program — The Trainer', url });
+        btn.textContent = 'Shared ✓';
+      } else {
+        await navigator.clipboard.writeText(url);
+        btn.textContent = 'Copied ✓';
+      }
+    } catch (e) { if (e && e.name !== 'AbortError') btn.textContent = 'Copy failed'; }
     setTimeout(() => { btn.textContent = old; }, 1800);
   });
   (async () => {
@@ -780,6 +791,52 @@
   })();
 
   function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
+
+  /* ── movement pictograms (self-authored — see ASSETS_CREDITS.md) ── */
+  const GS = 'fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"';
+  const GH = (x, y) => '<circle cx="' + x + '" cy="' + y + '" r="3" fill="currentColor" stroke="none"/>';
+  const GLYPHS = {
+    bench: GH(11,28) + '<path ' + GS + ' d="M8 33 H40 M13 33 V41 M35 33 V41 M15 28 H33 M26 28 V15 M16 15 H36 M18 11 V19 M34 11 V19"/>',
+    ohp: GH(24,21) + '<path ' + GS + ' d="M12 13 H36 M14 9 V17 M34 9 V17 M24 25 L17 13 M24 25 L31 13 M24 25 V33 M24 33 L19 42 M24 33 L29 42"/>',
+    squat: GH(24,9) + '<path ' + GS + ' d="M10 15 H38 M12 11 V19 M36 11 V19 M24 15 V25 M24 25 L15 30 L18 42 M24 25 L33 30 L30 42"/>',
+    deadlift: GH(15,16) + '<path ' + GS + ' d="M29 42 V32 M29 32 L16 19 M20 24 L18 33 M29 42 H35"/><circle cx="18" cy="37" r="4" fill="none" stroke="currentColor" stroke-width="3"/>',
+    row: GH(14,14) + '<path ' + GS + ' d="M29 40 V31 M29 31 L15 17 M23 24 V28 M29 40 H35"/><circle cx="23" cy="32" r="3.4" fill="none" stroke="currentColor" stroke-width="3"/>',
+    pull: GH(24,14) + '<path ' + GS + ' d="M12 8 H36 M24 19 L15 8 M24 19 L33 8 M24 19 V30 M24 30 L20 37 M24 30 L28 37"/>',
+    curl: GH(21,11) + '<path ' + GS + ' d="M21 16 V34 M21 34 L17 42 M21 34 L25 42 M21 21 V28 M21 28 L31 21"/><circle cx="32" cy="20" r="2.6" fill="currentColor" stroke="none"/>',
+    triceps: GH(21,11) + '<path ' + GS + ' d="M21 16 V34 M21 34 L17 42 M21 34 L25 42 M21 21 V28 M21 28 L31 33"/><circle cx="32" cy="34" r="2.6" fill="currentColor" stroke="none"/>',
+    lateral: GH(24,10) + '<path ' + GS + ' d="M24 15 V32 M24 32 L20 42 M24 32 L28 42 M24 18 H11 M24 18 H37"/><circle cx="10" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="38" cy="18" r="2.6" fill="currentColor" stroke="none"/>',
+    fly: GH(24,24) + '<path ' + GS + ' d="M10 30 Q24 6 38 30 M24 28 V40"/><circle cx="10" cy="31" r="2.6" fill="currentColor" stroke="none"/><circle cx="38" cy="31" r="2.6" fill="currentColor" stroke="none"/>',
+    lunge: GH(26,9) + '<path ' + GS + ' d="M26 14 V26 M26 26 L17 31 M17 31 V42 M26 26 L34 38 M34 38 L31 42"/>',
+    legcurl: GH(10,26) + '<path ' + GS + ' d="M10 31 H34 M13 26 H32 M32 26 L38 18"/><circle cx="39" cy="16" r="2.6" fill="currentColor" stroke="none"/>',
+    calf: GH(24,8) + '<path ' + GS + ' d="M24 13 V33 M24 33 L32 42 M14 42 H38"/>',
+    abs: GH(11,32) + '<path ' + GS + ' d="M8 42 H40 M14 35 V42 M13 34 L33 36 M33 36 L36 42"/>',
+    carry: GH(24,8) + '<path ' + GS + ' d="M24 13 V30 M24 30 L20 42 M24 30 L28 42 M24 17 L17 26 M24 17 L31 26"/><circle cx="17" cy="29" r="2.8" fill="currentColor" stroke="none"/><circle cx="31" cy="29" r="2.8" fill="currentColor" stroke="none"/>',
+    cardio: GH(25,9) + '<path ' + GS + ' d="M25 14 L23 27 M23 27 L15 34 M15 34 L13 42 M23 27 L32 36 M32 36 L30 42 M24 18 L31 23 M24 18 L17 22"/>',
+    barbell: '<path ' + GS + ' d="M6 24 H42 M12 15 V33 M36 15 V33 M17 18 V30 M31 18 V30"/>',
+  };
+  const GLYPH_RULES = [
+    [/leg curl|lying curl|seated curl|hamstring|nordic/, 'legcurl'],
+    [/calf/, 'calf'],
+    [/pulldown|pull-down|pull-up|pull up|pullup|chin-up|chin up|chin\b/, 'pull'],
+    [/overhead press|shoulder press|ohp|military|landmine press|arnold/, 'ohp'],
+    [/bench|chest press|floor press|push-up|pushup|push up|\bdips?\b/, 'bench'],
+    [/\bfly|flye|pec deck|pec-deck|crossover|pullover/, 'fly'],
+    [/lunge|split squat|bulgarian|step-up|step up|pistol/, 'lunge'],
+    [/squat|leg press|hack|leg extension/, 'squat'],
+    [/deadlift|rdl|romanian|good morning|hip thrust|glute bridge|swing|back extension|hip hinge|rack pull/, 'deadlift'],
+    [/crunch|plank|leg raise|knee raise|sit-up|situp|ab wheel|rollout|dead bug|bird|pallof|woodchop|core|hollow/, 'abs'],
+    [/walk|jog|\brun|bike|cycl|rower|rowing|elliptical|cardio|zone|stair|swim|jump rope|treadmill/, 'cardio'],
+    [/lateral|front raise|rear delt|reverse fly|face pull|shrug|upright row/, 'lateral'],
+    [/row/, 'row'],
+    [/curl/, 'curl'],
+    [/triceps|tricep|pressdown|push-down|pushdown|skull|kickback|extension/, 'triceps'],
+    [/carry|farmer|suitcase/, 'carry'],
+  ];
+  function glyphFor(name) {
+    const n = String(name || '').toLowerCase();
+    for (const [re, key] of GLYPH_RULES) if (re.test(n)) return GLYPHS[key];
+    return GLYPHS.barbell;
+  }
 
   /* ── plan renderer ── */
   const lastPlan = { d: null };
@@ -894,7 +951,8 @@
           if (ex.substitution) subs += '<span class="sub">Substitute: ' + esc(ex.substitution) + '</span>';
           const vid = '<a class="vid" href="https://www.youtube.com/results?search_query=' +
             encodeURIComponent(String(ex.name || '') + ' form') + '" target="_blank" rel="noopener">form &nearr;</a>';
-          h += '<tr><td>' + esc(ex.name) + vid + subs + '</td>' +
+          const glyph = '<svg class="exg" viewBox="0 0 48 48" aria-hidden="true">' + glyphFor(ex.name) + '</svg>';
+          h += '<tr><td><span class="exn">' + glyph + esc(ex.name) + '</span>' + vid + subs + '</td>' +
             '<td>' + esc(ex.sets) + ' × ' + esc(ex.rep_range || ex.reps || '') + '</td>' +
             '<td>' + fmtRest(ex.rest_seconds != null ? ex.rest_seconds : ex.rest) + '</td>' +
             '<td class="hide-m">' + esc(ex.rpe_or_rir || ex.effort || '') + '</td></tr>';
