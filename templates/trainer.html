@@ -264,6 +264,11 @@
     .ac-status { margin-top: 10px; font-family: var(--sans); font-size: 13.5px; line-height: 1.65; color: var(--gray); }
     .mtab.sync { color: var(--accD); }
 
+    .peek { display: block; margin-top: 10px; background: none; border: none; padding: 0;
+      font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--accD);
+      cursor: pointer; text-align: left; }
+    .peek:hover { text-decoration: underline; }
+
     /* ═══════════ coach mode ═══════════ */
     .coach { position: fixed; inset: 0; z-index: 300; background: var(--paper); display: flex; flex-direction: column; }
     .coach[hidden] { display: none; }
@@ -484,7 +489,8 @@
 
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="buildBtn">Build my program</button>
-          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Nothing leaves your device unless you create a free Sync account — otherwise the plan lives in your browser and your PDF.</div>
+          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Nothing leaves your device unless you create a free Sync account — otherwise the plan lives in your browser and your PDF.
+            <button type="button" class="peek" id="peekBtn">Just looking? Preview a sample program →</button></div>
         </div>
       </div>
     </form>
@@ -811,6 +817,9 @@
       if (followupAnswers) body.followup_answers = followupAnswers;
       const demoParam = new URLSearchParams(location.search).get('demo');
       if (demoParam !== null) body.demo = demoParam === 'stream' ? 'stream' : 1;
+      const peek = demoOnce;
+      demoOnce = false;
+      if (peek) body.demo = 1;
       const r = await fetch('/api/trainer', { method: 'POST',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const ct = r.headers.get('content-type') || '';
@@ -843,15 +852,19 @@
           (data.note ? '<div class="fu-note">' + esc(data.note) + '</div>' : '');
         setState('followup');
       } else if (data.type === 'plan') {
-        savePlan(data);
+        if (!peek) savePlan(data);  // a peeked sample must never clobber a real plan or sync
         renderPlan(data);
         setState('plan');
+        if (peek) document.querySelector('.pa-note').textContent =
+          'A sample program — fill the form to build yours. “Download PDF” uses your browser’s print dialog.';
       } else { fail('The Trainer returned an unexpected reply. Please try again.'); }
     } catch (e) { fail('Could not reach The Trainer: ' + e.message); }
   }
 
   form.addEventListener('submit', e => { e.preventDefault(); submit(null); });
   checkinForm.addEventListener('submit', e => { e.preventDefault(); submit(null); });
+  let demoOnce = false;
+  $('peekBtn').addEventListener('click', () => { demoOnce = true; submit(null); });
   $('fuBtn').addEventListener('click', () => {
     submit(pendingQuestions.map((q, i) => ({ q: q.question, a: $('fuA' + i).value })));
   });

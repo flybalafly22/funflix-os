@@ -2,7 +2,7 @@
    Served from /trainer-sw.js (root path) so its scope can cover /trainer.
    Strategy: network-first navigations (always fresh online, cached shell
    offline), stale-while-revalidate statics, /api/ untouched. */
-const CACHE = 'trainer-v1';
+const CACHE = 'trainer-v2';
 const SHELL = ['/trainer', '/static/os.css', '/static/os.js',
                '/static/trainer/manifest.json',
                '/static/trainer/icon-192.png', '/static/trainer/icon-512.png'];

@@ -161,6 +161,12 @@ with sync_playwright() as p:
         check("checkin_autofill_from_logs",
               "60 kg x 8 -> 65 kg x 8" in autofill, autofill[:120])
 
+        # ── sprint 6: Q&A panel + account surfaces exist ──
+        check("qa_panel_present",
+              pg.evaluate("() => !!document.getElementById('qaWrap') && document.querySelectorAll('.qa-chip').length === 3"))
+        check("account_surfaces_present",
+              pg.evaluate("() => !!document.getElementById('acct') && !!document.getElementById('tabAcct')"))
+
         # ── sprint 5: coach mode opens, adjusts, and counts rest ──
         pg.click("#tabLog"); pg.wait_for_timeout(250)
         pg.click("#coachStart"); pg.wait_for_timeout(250)

@@ -81,6 +81,17 @@ def smoke():
     if not ok:
         failures.append("demo-plan")
 
+    try:
+        status, body = get("/api/auth/me")
+        me = json.loads(body)
+        ok = status == 200 and "enabled" in me
+        note = f"accounts {'enabled' if me.get('enabled') else 'DISABLED'}"
+    except Exception as exc:
+        ok, note = False, exc
+    print(f"GET /api/auth/me: {'OK' if ok else 'FAIL'} ({note})", flush=True)
+    if not ok:
+        failures.append("auth-me")
+
     return failures
 
 

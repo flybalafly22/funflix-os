@@ -19,10 +19,12 @@ Note: this Flask app (`calculator_web`) hosts several small games/tools (a calcu
 `templates/town.html` + `static/town/*.js`.
 
 For **The Trainer** (`/trainer`, the AI training-plan studio): standing teams, roadmap and sprint
-docs live in `docs/trainer/` — start with `docs/trainer/TEAMS.md`. Its QA suite is `tests/`
-(pytest) + `qa/site_qa.py`; CI is `.github/workflows/ci.yml`; live-deploy verification is
-`scripts/verify_live.py` (live site `https://funflix-os.onrender.com`, live commit at
-`/api/version`; server config is `gunicorn.conf.py` because Render ignores the Procfile).
+docs live in `docs/trainer/` — start with `docs/trainer/TEAMS.md` and `docs/trainer/MANAGER.md`
+(the Producer charter). Its QA suite is `tests/` (pytest) + `qa/site_qa.py`; CI is
+`.github/workflows/ci.yml`; live-deploy verification is `scripts/verify_live.py` (live site
+`https://funflix-os.onrender.com`, live commit at `/api/version`; server config is
+`gunicorn.conf.py` because Render ignores the Procfile). Accounts & cross-device sync are enabled
+by `DATABASE_URL` (Neon Postgres, Render env var) and degrade gracefully without it.
 
 ---
 
