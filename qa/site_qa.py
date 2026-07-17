@@ -112,6 +112,54 @@ with sync_playwright() as p:
               f"{len(doc_text)} chars of plan text")
         check("demo_flow_console_clean", len(errs) == 0, "; ".join(errs[:5]))
         pg.screenshot(path=os.path.join(SHOTS, "site_trainer_plan.png"), full_page=True)
+
+        # ── sprint 2: share link round-trip (same page keeps the saved plan) ──
+        share_url = None
+        try:
+            ctx_share = browser.new_context(permissions=["clipboard-read", "clipboard-write"])
+            pgs = ctx_share.new_page()
+            pgs.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
+            pgs.fill("#fName", "QA Smoke"); pgs.fill("#fDob", "2002-05-01")
+            pgs.fill("#fHeight", "178 cm"); pgs.fill("#fWeight", "82 kg")
+            pgs.click("#buildBtn"); pgs.wait_for_selector(".plan-wrap.show", timeout=45000)
+            pgs.click("#shareBtn"); pgs.wait_for_timeout(600)
+            share_url = pgs.evaluate("navigator.clipboard.readText()")
+            check("share_link_copied", isinstance(share_url, str) and "#p=" in share_url,
+                  f"{len(share_url or '')} chars")
+            ctx_share.close()
+        except Exception as exc:
+            check("share_link_copied", False, exc)
+
+        if share_url:
+            errs_s = []
+            pg2 = fresh_page(browser, 1280, errs_s)
+            pg2.goto(share_url, wait_until="networkidle", timeout=30000)
+            try:
+                pg2.wait_for_selector(".plan-wrap.show", timeout=10000)
+                sec2 = pg2.evaluate("() => document.querySelectorAll('.pd-h').length")
+                check("shared_link_renders_plan", sec2 >= 8, f"{sec2} sections")
+            except Exception as exc:
+                check("shared_link_renders_plan", False, exc)
+            check("shared_link_console_clean", len(errs_s) == 0, "; ".join(errs_s[:5]))
+            pg2.close()
+
+        # ── sprint 2: workout logger + check-in autofill ──
+        pg.goto(BASE + "/trainer", wait_until="networkidle", timeout=30000)
+        check("log_tab_visible_with_saved_plan",
+              pg.evaluate("() => document.getElementById('tabLog').style.display !== 'none'"))
+        pg.click("#tabLog"); pg.wait_for_timeout(300)
+        blocks = pg.evaluate("() => document.querySelectorAll('#lgList .lg-ex').length")
+        check("log_form_has_exercises", blocks >= 3, f"{blocks} exercise blocks")
+        for kg in ("60", "65"):
+            pg.fill('#lgList input[data-ex="0"][data-set="0"][data-k="kg"]', kg)
+            pg.fill('#lgList input[data-ex="0"][data-set="0"][data-k="reps"]', "8")
+            pg.click("#logBtn"); pg.wait_for_timeout(250)
+        hist = pg.evaluate("() => document.querySelectorAll('#lgHist .lg-hrow').length")
+        check("log_history_two_sessions", hist == 2, f"{hist} history rows")
+        pg.click("#tabCheckin"); pg.wait_for_timeout(250)
+        autofill = pg.evaluate("() => document.getElementById('cLifts').value")
+        check("checkin_autofill_from_logs",
+              "60 kg x 8 -> 65 kg x 8" in autofill, autofill[:120])
         pg.close()
 
     except Exception:

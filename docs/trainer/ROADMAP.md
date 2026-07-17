@@ -15,14 +15,12 @@ from this file directly.
   health (RED-S floor, iron as suggestion), night shift
 - Week-4 check-in: measured-trend recalibration with checkin_review verdict
 
-## Sprint 1 (current) — Trust & Stickiness
-See SPRINT_1.md.
+- Sprint 1 — Trust & Stickiness (SPRINT_1.md): tests/CI/live-verify, rate
+  limit, Restore last plan, exercise form links
+- Sprint 2 — Close the Loop (SPRINT_2.md): workout logger + check-in autofill
+  from logged sessions, share-a-plan via compressed URL fragment
 
 ## Next up (high value, roughly ordered)
-- **Workout logger**: in-browser session log (localStorage) matching the plan's
-  exercises; feeds the check-in with real numbers instead of memory.
-- **Share a plan**: encode plan JSON into a compressed URL fragment (no server
-  storage, privacy preserved) so users can send their program to a friend/coach.
 - **Third-provider fallback**: Groq/OpenRouter leg for Gemini outages — needs
   the owner to create a free API key and add it to Render env.
 - **Plan diffing at check-in**: show old vs new side-by-side (calories, sets).

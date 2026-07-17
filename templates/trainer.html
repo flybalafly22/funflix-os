@@ -64,7 +64,7 @@
     .fu-note { margin-top: 22px; font-family: var(--sans); font-size: 12px; color: var(--gray-2); }
 
     /* ── mode tabs ── */
-    .mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .mode-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; max-width: 100%; }
     .mtab { border: 1px solid var(--rule-2); background: transparent; border-radius: 999px;
       padding: 10px 22px; font-family: var(--sans); font-size: 13px; font-weight: 600;
       color: var(--gray); cursor: pointer; transition: all .2s; }
@@ -76,6 +76,22 @@
     table.ex .vid { margin-left: 8px; font-family: var(--monoX); font-size: 9.5px;
       letter-spacing: .08em; color: var(--accD); text-decoration: none; white-space: nowrap; }
     table.ex .vid:hover { text-decoration: underline; }
+
+    /* ── session log ── */
+    .lg-ex { padding: 15px 0; border-bottom: 1px solid var(--rule); }
+    .lg-ex:last-child { border-bottom: none; }
+    .lg-name { font-family: var(--sans); font-weight: 600; font-size: 14px; color: var(--black); }
+    .lg-rx { font-family: var(--monoX); font-size: 10px; letter-spacing: .08em; color: var(--accD); margin-left: 10px; }
+    .lg-sets { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+    .lg-set { display: flex; align-items: center; gap: 5px; }
+    .lg-set input { width: 62px; text-align: center; }
+    .lg-set .x { font-family: var(--monoX); font-size: 11px; color: var(--gray-2); }
+    .lg-hrow { display: grid; grid-template-columns: 92px 1fr; gap: 14px; padding: 12px 4px;
+      border-bottom: 1px solid var(--rule); align-items: baseline; }
+    .lg-hrow:last-child { border-bottom: none; }
+    .lg-hrow .hd { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
+    .lg-hrow .hb { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: #2A2A26; }
+    .lg-hrow .hb b { color: var(--black); }
 
     /* ── error ── */
     .err { display: none; width: min(620px,100%); margin-top: 18px; padding: 14px 18px; border-radius: 14px;
@@ -208,6 +224,7 @@
     <div class="mode-tabs fade-rise-d1" id="modeTabs" role="tablist">
       <button class="mtab on" id="tabPlan" type="button">New program</button>
       <button class="mtab" id="tabCheckin" type="button">Week-4 check-in</button>
+      <button class="mtab" id="tabLog" type="button" style="display:none">Log a session</button>
       <button class="mtab restore" id="tabRestore" type="button" style="display:none">Restore last plan</button>
     </div>
 
@@ -369,6 +386,26 @@
       </div>
     </form>
 
+    <!-- ── SESSION LOG ── -->
+    <form class="intake" id="logForm" autocomplete="off" style="display:none">
+      <div class="intake-inner">
+        <div class="sec">Log a session</div>
+        <div class="grid3">
+          <div class="field"><label class="os-label" for="lDay">Which session?</label>
+            <div class="os-select-wrap"><select class="os-select" id="lDay"></select></div></div>
+          <div class="field"><label class="os-label" for="lDate">Date</label>
+            <input class="os-input" id="lDate" type="date"></div>
+        </div>
+        <div id="lgList"></div>
+        <div class="go-row">
+          <button type="submit" class="os-btn-primary" id="logBtn">Save session</button>
+          <div class="go-note">Logs live only in this browser. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
+        </div>
+        <div class="sec" id="lgHistHead" style="display:none">Previous sessions</div>
+        <div id="lgHist"></div>
+      </div>
+    </form>
+
     <!-- ── THINKING ── -->
     <div class="thinking" id="thinking">
       <div class="th-ring"></div>
@@ -392,6 +429,7 @@
       <div class="plan-actions">
         <div class="pa-note">Your program is ready. “Download PDF” uses your browser’s print dialog — choose “Save as PDF”.</div>
         <button class="btn-again" id="againBtn">Start over</button>
+        <button class="btn-again" id="shareBtn">Share link</button>
         <button class="btn-dl" id="dlBtn">Download PDF</button>
       </div>
       <article id="planDoc" aria-label="Your training program"></article>
@@ -412,11 +450,16 @@
     mode = m;
     $('tabPlan').classList.toggle('on', m === 'plan');
     $('tabCheckin').classList.toggle('on', m === 'checkin');
+    $('tabLog').classList.toggle('on', m === 'log');
     form.style.display = m === 'plan' ? '' : 'none';
     checkinForm.style.display = m === 'checkin' ? '' : 'none';
+    $('logForm').style.display = m === 'log' ? '' : 'none';
+    if (m === 'log') buildLogForm();
+    if (m === 'checkin') autofillCheckin();
   }
   $('tabPlan').addEventListener('click', () => setMode('plan'));
   $('tabCheckin').addEventListener('click', () => setMode('checkin'));
+  $('tabLog').addEventListener('click', () => setMode('log'));
 
   $('fDiet').addEventListener('change', () => {
     $('dietOtherWrap').classList.toggle('show', $('fDiet').value === 'Other');
@@ -539,27 +582,179 @@
     try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: Date.now(), plan: d })); } catch (e) {}
     refreshRestore();
   }
+  function savedPlan() {
+    try { const s = JSON.parse(localStorage.getItem(PLAN_KEY)); return s && s.plan ? s : null; }
+    catch (e) { return null; }
+  }
   function refreshRestore() {
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem(PLAN_KEY)); } catch (e) {}
+    const saved = savedPlan();
     const btn = $('tabRestore');
-    if (saved && saved.plan) {
+    if (saved) {
       const dt = new Date(saved.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
       btn.textContent = 'Restore last plan · ' + dt;
       btn.style.display = '';
     } else { btn.style.display = 'none'; }
+    $('tabLog').style.display = saved && Array.isArray(saved.plan.workout_days) && saved.plan.workout_days.length ? '' : 'none';
+  }
+
+  /* ── session log (device-only) ── */
+  const LOG_KEY = 'trainerLogs';
+  function loadLogs() {
+    try { const l = JSON.parse(localStorage.getItem(LOG_KEY)); return Array.isArray(l) ? l : []; }
+    catch (e) { return []; }
+  }
+  function buildLogForm() {
+    const saved = savedPlan();
+    if (!saved) return;
+    const days = saved.plan.workout_days || [];
+    const sel = $('lDay');
+    const prev = sel.value;
+    sel.innerHTML = days.map((d, i) => '<option value="' + i + '">' + esc(d.day_label || ('Day ' + (i + 1))) + '</option>').join('');
+    if (prev && +prev < days.length) sel.value = prev;
+    if (!$('lDate').value) $('lDate').value = new Date().toISOString().slice(0, 10);
+    renderLgList();
+    renderLgHist();
+  }
+  function renderLgList() {
+    const saved = savedPlan();
+    if (!saved) return;
+    const day = (saved.plan.workout_days || [])[+$('lDay').value || 0];
+    if (!day) { $('lgList').innerHTML = ''; return; }
+    $('lgList').innerHTML = (day.exercises || []).map((ex, ei) => {
+      const n = Math.max(1, Math.min(8, +ex.sets || 3));
+      let sets = '';
+      for (let s = 0; s < n; s++) {
+        sets += '<span class="lg-set"><input class="os-input" inputmode="decimal" placeholder="kg" data-ex="' + ei + '" data-set="' + s + '" data-k="kg">' +
+          '<span class="x">×</span>' +
+          '<input class="os-input" inputmode="numeric" placeholder="reps" data-ex="' + ei + '" data-set="' + s + '" data-k="reps"></span>';
+      }
+      return '<div class="lg-ex"><div class="lg-name">' + esc(ex.name) +
+        '<span class="lg-rx">' + esc(ex.sets) + ' × ' + esc(ex.rep_range || '') + (ex.rpe_or_rir ? ' · ' + esc(ex.rpe_or_rir) : '') + '</span></div>' +
+        '<div class="lg-sets">' + sets + '</div></div>';
+    }).join('');
+  }
+  $('lDay').addEventListener('change', renderLgList);
+  function bestSet(sets) {
+    let b = null;
+    for (const s of sets) {
+      const kg = parseFloat(s.kg), reps = parseInt(s.reps, 10);
+      if (isNaN(kg) && isNaN(reps)) continue;
+      const c = { kg: isNaN(kg) ? 0 : kg, reps: isNaN(reps) ? 0 : reps };
+      if (!b || c.kg > b.kg || (c.kg === b.kg && c.reps > b.reps)) b = c;
+    }
+    return b;
+  }
+  function fmtSet(b) { return b.kg ? b.kg + ' kg x ' + (b.reps || '?') : (b.reps || '?') + ' reps'; }
+  function renderLgHist() {
+    const logs = loadLogs();
+    $('lgHistHead').style.display = logs.length ? '' : 'none';
+    $('lgHist').innerHTML = logs.slice(0, 6).map(s => {
+      const dt = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      const bits = s.entries.map(e => { const b = bestSet(e.sets); return b ? '<b>' + esc(e.name) + '</b> ' + esc(fmtSet(b)) : ''; }).filter(Boolean);
+      return '<div class="lg-hrow"><span class="hd">' + esc(dt) + '</span><span class="hb">' + esc(s.day || '') + ' — ' + bits.join(' · ') + '</span></div>';
+    }).join('');
+  }
+  $('logForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const saved = savedPlan();
+    if (!saved) return;
+    const day = (saved.plan.workout_days || [])[+$('lDay').value || 0];
+    const entries = [];
+    (day.exercises || []).forEach((ex, ei) => {
+      const sets = [];
+      document.querySelectorAll('#lgList input[data-ex="' + ei + '"][data-k="kg"]').forEach((kgIn, s) => {
+        const repsIn = document.querySelector('#lgList input[data-ex="' + ei + '"][data-set="' + kgIn.dataset.set + '"][data-k="reps"]');
+        if (kgIn.value.trim() || (repsIn && repsIn.value.trim())) sets.push({ kg: kgIn.value.trim(), reps: repsIn ? repsIn.value.trim() : '' });
+      });
+      if (sets.length) entries.push({ name: ex.name, sets });
+    });
+    if (!entries.length) { errBox.textContent = 'Enter at least one set before saving.'; errBox.classList.add('show'); return; }
+    errBox.classList.remove('show');
+    const logs = loadLogs();
+    // same-day sessions must keep their real order: use the current time when
+    // logging for today, noon of the chosen day otherwise
+    const dv = $('lDate').value;
+    const at = (!dv || dv === new Date().toISOString().slice(0, 10))
+      ? Date.now() : new Date(dv + 'T12:00:00').getTime();
+    logs.unshift({ at, day: day.day_label || '', entries });
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 40))); } catch (e2) {}
+    renderLgList();
+    renderLgHist();
+    const btn = $('logBtn'), old = btn.textContent;
+    btn.textContent = 'Saved ✓';
+    setTimeout(() => { btn.textContent = old; }, 1600);
+  });
+
+  /* ── check-in autofill from logs: first vs latest best set per exercise ── */
+  function autofillCheckin() {
+    if ($('cLifts').value.trim()) return;
+    const logs = loadLogs();
+    if (logs.length < 2) return;
+    const chron = logs.slice().sort((a, b) => a.at - b.at);
+    const first = {}, last = {};
+    chron.forEach(s => s.entries.forEach(e => {
+      const b = bestSet(e.sets);
+      if (!b) return;
+      if (!(e.name in first)) first[e.name] = b;
+      last[e.name] = b;
+    }));
+    const lines = Object.keys(first)
+      .filter(n => first[n].kg !== last[n].kg || first[n].reps !== last[n].reps)
+      .map(n => n + ': ' + fmtSet(first[n]) + ' -> ' + fmtSet(last[n]));
+    Object.keys(first).forEach(n => {
+      if (first[n].kg === last[n].kg && first[n].reps === last[n].reps) lines.push(n + ': stuck at ' + fmtSet(last[n]));
+    });
+    if (lines.length) $('cLifts').value = lines.join('\n') + '\n(from my session log)';
   }
   $('tabRestore').addEventListener('click', () => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(PLAN_KEY));
-      if (saved && saved.plan) { renderPlan(saved.plan); setState('plan'); }
-    } catch (e) {}
+    const saved = savedPlan();
+    if (saved) { renderPlan(saved.plan); setState('plan'); }
   });
   refreshRestore();
+
+  /* ── share a plan: deflate → base64url in the URL fragment (never sent to a server) ── */
+  async function compressToB64(str) {
+    const cs = new CompressionStream('deflate-raw');
+    const buf = await new Response(new Blob([str]).stream().pipeThrough(cs)).arrayBuffer();
+    let s = '';
+    new Uint8Array(buf).forEach(b => { s += String.fromCharCode(b); });
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  async function decompressFromB64(b64) {
+    const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const ds = new DecompressionStream('deflate-raw');
+    return await new Response(new Blob([arr]).stream().pipeThrough(ds)).text();
+  }
+  if (typeof CompressionStream === 'undefined') $('shareBtn').style.display = 'none';
+  $('shareBtn').addEventListener('click', async () => {
+    if (!lastPlan.d) return;
+    const btn = $('shareBtn'), old = btn.textContent;
+    try {
+      const url = location.origin + location.pathname + '#p=' + await compressToB64(JSON.stringify(lastPlan.d));
+      await navigator.clipboard.writeText(url);
+      btn.textContent = 'Copied ✓';
+    } catch (e) { btn.textContent = 'Copy failed'; }
+    setTimeout(() => { btn.textContent = old; }, 1800);
+  });
+  (async () => {
+    if (location.hash.indexOf('#p=') === 0 && typeof DecompressionStream !== 'undefined') {
+      try {
+        const d = JSON.parse(await decompressFromB64(location.hash.slice(3)));
+        if (d && d.type === 'plan') {
+          renderPlan(d);
+          setState('plan');
+          document.querySelector('.pa-note').textContent = 'A program shared with you. “Download PDF” uses your browser’s print dialog.';
+        }
+      } catch (e) {}
+    }
+  })();
 
   function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
 
   /* ── plan renderer ── */
+  const lastPlan = { d: null };
   let secN = 0;
   function H(t) { secN++; return '<div class="pd-h"><span class="n">' + String(secN).padStart(2, '0') + '</span><span class="t">' + esc(t) + '</span></div>'; }
   function P(t) { return t ? '<p class="pd-p">' + esc(t) + '</p>' : ''; }
@@ -583,6 +778,7 @@
   }
 
   function renderPlan(d) {
+    lastPlan.d = d;
     secN = 0;
     const ps = d.profile_summary || {};
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
