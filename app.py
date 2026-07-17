@@ -290,6 +290,13 @@ def trainer():
     return render_template("trainer.html")
 
 
+@app.route("/trainer-sw.js")
+def trainer_sw():
+    # The service worker must be served from a root-level path so its scope
+    # can cover /trainer (a worker under /static/ could only control /static/).
+    return app.send_static_file("trainer/sw.js")
+
+
 @app.route("/api/trainer", methods=["POST"])
 def trainer_api():
     payload = request.json or {}

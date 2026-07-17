@@ -160,6 +160,23 @@ with sync_playwright() as p:
         autofill = pg.evaluate("() => document.getElementById('cLifts').value")
         check("checkin_autofill_from_logs",
               "60 kg x 8 -> 65 kg x 8" in autofill, autofill[:120])
+
+        # ── sprint 3: PWA assets reachable and sane ──
+        pwa = pg.evaluate("""async () => {
+          const out = { manifest_link: !!document.querySelector('link[rel="manifest"]') };
+          for (const [k, u] of [['sw', '/trainer-sw.js'],
+                                ['manifest', '/static/trainer/manifest.json'],
+                                ['icon192', '/static/trainer/icon-192.png'],
+                                ['icon512', '/static/trainer/icon-512.png']]) {
+            try { out[k] = (await fetch(u)).status; } catch (e) { out[k] = String(e); }
+          }
+          try { out.start_url = (await (await fetch('/static/trainer/manifest.json')).json()).start_url; }
+          catch (e) { out.start_url = String(e); }
+          return out;
+        }""")
+        check("pwa_assets_served", pwa.get("manifest_link") and pwa.get("sw") == 200
+              and pwa.get("manifest") == 200 and pwa.get("icon192") == 200
+              and pwa.get("icon512") == 200 and pwa.get("start_url") == "/trainer", pwa)
         pg.close()
 
     except Exception:

@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/os.css">
+  <link rel="manifest" href="/static/trainer/manifest.json">
+  <meta name="theme-color" content="#FAFAF8">
+  <link rel="apple-touch-icon" href="/static/trainer/icon-192.png">
   <style>
     .stage { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 64px 24px 96px; }
     .mod-head { text-align: center; margin-bottom: 44px; }
@@ -92,6 +95,20 @@
     .lg-hrow .hd { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
     .lg-hrow .hb { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: #2A2A26; }
     .lg-hrow .hb b { color: var(--black); }
+
+    /* ── check-in diff ── */
+    .diff { border: 1px solid var(--rule); border-radius: 14px; padding: 6px 18px; margin: 10px 0 6px;
+      break-inside: avoid; }
+    .diff .dr { display: grid; grid-template-columns: 140px 1fr auto; gap: 12px; align-items: baseline;
+      padding: 10px 0; border-bottom: 1px solid var(--rule); }
+    .diff .dr:last-child { border-bottom: none; }
+    .diff .dl { font-family: var(--monoX); font-size: 10px; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--gray-2); }
+    .diff .dv { font-family: var(--sans); font-size: 13.5px; color: var(--gray); }
+    .diff .dv b { color: var(--black); }
+    .diff .dc { font-family: var(--monoX); font-size: 10.5px; color: var(--accD); white-space: nowrap; }
+    .diff .dc.same { color: var(--gray-2); }
+    @media (max-width: 560px) { .diff .dr { grid-template-columns: 1fr auto; } .diff .dl { grid-column: 1 / -1; padding-top: 2px; } }
 
     /* ── error ── */
     .err { display: none; width: min(620px,100%); margin-top: 18px; padding: 14px 18px; border-radius: 14px;
@@ -521,7 +538,11 @@
   }
 
   let pendingQuestions = [];
+  let prevForDiff = null;
   async function submit(followupAnswers) {
+    // a check-in's revised plan will overwrite the saved one — keep the old
+    // plan around so the renderer can show what changed
+    if (mode === 'checkin') { const sp = savedPlan(); prevForDiff = sp ? sp.plan : null; }
     setState('thinking');
     try {
       const body = { intake: intake() };
@@ -712,6 +733,13 @@
   });
   refreshRestore();
 
+  /* ── PWA: installable, saved plan + logs readable offline at the gym ── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/trainer-sw.js', { scope: '/trainer' }).catch(() => {});
+    });
+  }
+
   /* ── share a plan: deflate → base64url in the URL fragment (never sent to a server) ── */
   async function compressToB64(str) {
     const cs = new CompressionStream('deflate-raw');
@@ -770,6 +798,32 @@
     return pairs.length ? '<div class="pd-meta">' + pairs.map(m =>
       '<div><b>' + esc(m[0]) + '</b><span>' + esc(m[1]) + '</span></div>').join('') + '</div>' : '';
   }
+  function DIFF(oldP, newP) {
+    if (!oldP || !newP) return '';
+    const n = v => (v == null || isNaN(+v)) ? null : +v;
+    const sets = p => (p.workout_days || []).reduce((t, w) =>
+      t + (w.exercises || []).reduce((s, e) => s + (+e.sets || 0), 0), 0) || null;
+    const rows = [
+      ['Calories', n((oldP.diet_plan || {}).calorie_target_kcal), n((newP.diet_plan || {}).calorie_target_kcal), ' kcal'],
+      ['Protein', n((oldP.diet_plan || {}).protein_g), n((newP.diet_plan || {}).protein_g), ' g'],
+      ['Carbs', n((oldP.diet_plan || {}).carbs_g), n((newP.diet_plan || {}).carbs_g), ' g'],
+      ['Fat', n((oldP.diet_plan || {}).fat_g), n((newP.diet_plan || {}).fat_g), ' g'],
+      ['Daily steps', n((oldP.cardio_and_steps || {}).daily_step_target), n((newP.cardio_and_steps || {}).daily_step_target), ''],
+      ['Training days', (oldP.workout_days || []).length || null, (newP.workout_days || []).length || null, '/wk'],
+      ['Weekly hard sets', sets(oldP), sets(newP), ''],
+    ].filter(r => r[1] != null && r[2] != null);
+    if (!rows.length) return '';
+    let h = LAB('Old plan → new plan');
+    h += '<div class="diff">' + rows.map(r => {
+      const d = r[2] - r[1];
+      const chip = d === 0 ? '<span class="dc same">unchanged</span>'
+        : '<span class="dc">' + (d > 0 ? '+' : '−') + Math.abs(Math.round(d * 10) / 10) + r[3].trim() + '</span>';
+      return '<div class="dr"><span class="dl">' + esc(r[0]) + '</span>' +
+        '<span class="dv">' + esc(r[1]) + r[3] + ' → <b>' + esc(r[2]) + r[3] + '</b></span>' + chip + '</div>';
+    }).join('') + '</div>';
+    return h;
+  }
+
   function fmtRest(s) {
     if (s == null || s === '') return '';
     const n = Number(s);
@@ -810,6 +864,7 @@
       if (Array.isArray(cr.keep_doing) && cr.keep_doing.length) {
         h += LAB('Keep doing — the data says it works'); h += OL(cr.keep_doing);
       }
+      h += DIFF(prevForDiff, d);
     }
 
     let numbers = P(ps.bmr_equation) + P(ps.activity_factor_note) + P(ps.calorie_adjustment_note) + P(ps.bmi_note);

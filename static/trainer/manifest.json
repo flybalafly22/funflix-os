@@ -1,0 +1,15 @@
+{
+  "name": "The Trainer — FUNFLIX",
+  "short_name": "Trainer",
+  "description": "Evidence-based training & nutrition studio. Your plan and workout log, offline at the gym.",
+  "start_url": "/trainer",
+  "scope": "/trainer",
+  "display": "standalone",
+  "background_color": "#FAFAF8",
+  "theme_color": "#FAFAF8",
+  "icons": [
+    { "src": "/static/trainer/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/trainer/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/trainer/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

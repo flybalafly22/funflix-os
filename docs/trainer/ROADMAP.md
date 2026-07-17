@@ -24,11 +24,12 @@ from this file directly.
   fails (compact prompt for the 12k TPM free tier; ~7 s emergency plans).
   Activates when GROQ_API_KEY is set in the Render environment.
 
+- Sprint 3 — In Your Pocket (SPRINT_3.md): check-in plan diff (old → new with
+  deltas), installable PWA with offline saved-plan + logs
+
 ## Next up (high value, roughly ordered)
-- **Plan diffing at check-in**: show old vs new side-by-side (calories, sets).
 - **Exercise illustrations**: CC0 line-art or CSS diagrams for the top ~40
   movements (license ledger in ASSETS_CREDITS.md).
-- **Progressive Web App**: installable, offline access to the saved plan.
 - **Email plan to self**: needs a mail provider decision (cost/keys — owner).
 
 ## Deliberately not doing
