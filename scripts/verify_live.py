@@ -10,6 +10,7 @@ Exit 0 = live site serves the expected commit and a working demo plan.
 Used by CI on every push to main, and by hand after any deploy.
 """
 import json
+import ssl
 import sys
 import time
 import urllib.request
@@ -18,10 +19,17 @@ BASE = "https://funflix-os.onrender.com"
 DEPLOY_TIMEOUT_S = 900   # Render build + swap can take a while
 POLL_S = 15
 
+# macOS system Python often lacks root CAs; certifi is already a repo dependency.
+try:
+    import certifi
+    SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    SSL_CTX = ssl.create_default_context()
+
 
 def get(path, timeout=30):
     req = urllib.request.Request(BASE + path, headers={"User-Agent": "verify-live/1.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urllib.request.urlopen(req, timeout=timeout, context=SSL_CTX) as r:
         return r.status, r.read()
 
 
@@ -30,7 +38,7 @@ def post_json(path, payload, timeout=60):
         BASE + path, data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "User-Agent": "verify-live/1.0"},
         method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urllib.request.urlopen(req, timeout=timeout, context=SSL_CTX) as r:
         return r.status, r.read()
 
 

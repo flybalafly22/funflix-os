@@ -41,5 +41,16 @@ itself (rate limiting), and keeps what users build (plan persistence).
 ## Out of scope (rolled to roadmap)
 Workout logger, share links, third-provider fallback, PWA.
 
-## Outcome
-_(fill at close)_
+## Outcome — CLOSED 2026-07-17, all scope shipped
+
+- QA: 32 pytest tests green in ~0.5 s; `qa/site_qa.py` 13/13 checks, report +
+  screenshots committed. Authored by a parallel QA agent; integrated cleanly.
+- CI/CD: first GitHub Actions run on `dbea5c9` — **both jobs passed**,
+  including live-verify (waited for the Render deploy, confirmed the live
+  commit and a working demo plan).
+- Automation: `scripts/verify_live.py` works from CI and by hand
+  (fix during close: use certifi CAs — macOS system Python lacks root certs).
+- Features verified: rate limit 6/hr (429 on 7th spoofed-IP call; localhost +
+  demo exempt), Restore-last-plan pill survives reload and re-renders
+  instantly, 26 form-video links visible on screen and absent in print.
+- Rolled over: nothing. Next sprint candidates: workout logger, share-a-plan.
