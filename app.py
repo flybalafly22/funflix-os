@@ -13,6 +13,10 @@ from google.genai import types
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+# Optional last-resort fallback for The Trainer when every Gemini attempt fails:
+# an OpenAI-compatible call to Groq (independent infrastructure). Set on Render.
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 app = Flask(__name__)
 
@@ -234,6 +238,16 @@ try:
 except FileNotFoundError:
     TRAINER_SYSTEM = ""
 
+# Condensed prompt for the Groq fallback: its free tier caps prompt+completion
+# around 12k tokens/min, which the full prompt alone nearly exhausts.
+TRAINER_SYSTEM_COMPACT = ""
+_TRAINER_SYS_COMPACT_PATH = os.path.join(os.path.dirname(__file__), "data", "trainer_system_compact.txt")
+try:
+    with open(_TRAINER_SYS_COMPACT_PATH) as _f:
+        TRAINER_SYSTEM_COMPACT = _f.read()
+except FileNotFoundError:
+    TRAINER_SYSTEM_COMPACT = ""
+
 
 # Per-IP sliding-window rate limit for real plan generations (demo is exempt).
 # Protects the Gemini quota if the site gets real traffic. In-memory per worker
@@ -369,6 +383,47 @@ def trainer_api():
     #     let a space split a number and corrupt the payload), and
     #   - a bad/truncated/unparseable attempt is retried server-side instead of
     #     asking the user to click again.
+    def groq_fallback(q, fallback_err_msg):
+        # Last resort when every Gemini attempt failed: one shot at Groq's
+        # Llama 3.3 70B (independent infrastructure, same system prompt, same
+        # validation). On any problem, surface the original friendly error.
+        if not GROQ_API_KEY:
+            q.put(("end", fallback_err_msg))
+            return
+        try:
+            print("[trainer] gemini exhausted — trying groq fallback", flush=True)
+            req = urllib.request.Request(
+                "https://api.groq.com/openai/v1/chat/completions",
+                data=json_mod.dumps({
+                    "model": GROQ_MODEL,
+                    "messages": [
+                        {"role": "system", "content": TRAINER_SYSTEM_COMPACT or TRAINER_SYSTEM},
+                        {"role": "user", "content": user_content},
+                    ],
+                    "temperature": 0.5,
+                    "max_tokens": 6000,
+                    "response_format": {"type": "json_object"},
+                }).encode(),
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}",
+                         "Content-Type": "application/json",
+                         # Groq's edge blocks the default Python-urllib agent
+                         "User-Agent": "funflix-trainer/1.0"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=180, context=SSL_CTX) as resp:
+                body = json_mod.loads(resp.read())
+            text = body["choices"][0]["message"]["content"].strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            data = json_mod.loads(text)
+            if isinstance(data, dict) and data.get("type") in ("questions", "plan"):
+                q.put(("end", text))
+                return
+            print(f"[trainer] groq fallback returned unusable output (chars={len(text)})", flush=True)
+        except Exception as exc:
+            print(f"[trainer] groq fallback failed: {exc}", flush=True)
+        q.put(("end", fallback_err_msg))
+
     def run_model_chain(q):
         for attempt in range(MAX_ATTEMPTS):
             finish = ""
@@ -412,8 +467,8 @@ def trainer_api():
                 if attempt < MAX_ATTEMPTS - 1:
                     backoff(attempt)
                     continue
-                q.put(("end", "\nERROR: The model kept returning an incomplete plan — it is under heavy load "
-                              "right now. Nothing is wrong with your details; please try again in a few minutes."))
+                groq_fallback(q, "\nERROR: The model kept returning an incomplete plan — it is under heavy load "
+                                 "right now. Nothing is wrong with your details; please try again in a few minutes.")
                 return
             except Exception as exc:
                 err = str(exc)
@@ -426,10 +481,10 @@ def trainer_api():
                     backoff(attempt)
                     continue
                 if transient:
-                    q.put(("end", "\nERROR: Gemini is temporarily overloaded (high demand on Google's side, "
-                                  "not your account or key) — even the backup model. Please try again in a minute or two."))
+                    groq_fallback(q, "\nERROR: Gemini is temporarily overloaded (high demand on Google's side, "
+                                     "not your account or key) — even the backup model. Please try again in a minute or two.")
                     return
-                q.put(("end", f"\nERROR: {err}"))
+                groq_fallback(q, f"\nERROR: {err}")
                 return
         q.put(("end", None))  # unreachable, but the reader must never block forever
 

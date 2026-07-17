@@ -20,9 +20,11 @@ from this file directly.
 - Sprint 2 — Close the Loop (SPRINT_2.md): workout logger + check-in autofill
   from logged sessions, share-a-plan via compressed URL fragment
 
+- Third-provider fallback: Groq Llama 3.3 70B leg after the full Gemini chain
+  fails (compact prompt for the 12k TPM free tier; ~7 s emergency plans).
+  Activates when GROQ_API_KEY is set in the Render environment.
+
 ## Next up (high value, roughly ordered)
-- **Third-provider fallback**: Groq/OpenRouter leg for Gemini outages — needs
-  the owner to create a free API key and add it to Render env.
 - **Plan diffing at check-in**: show old vs new side-by-side (calories, sets).
 - **Exercise illustrations**: CC0 line-art or CSS diagrams for the top ~40
   movements (license ledger in ASSETS_CREDITS.md).
