@@ -1,16 +1,21 @@
+import hashlib
 import math
 import os
+import re
 import ssl
 import threading
 import time
-from datetime import date
+from contextlib import contextmanager
+from datetime import date, timedelta
 from queue import Empty, Queue
+
+from werkzeug.security import check_password_hash, generate_password_hash
 import urllib.request
 import json as json_mod
 import certifi
 from google import genai
 from google.genai import types
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, Response, session, stream_with_context
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # Optional last-resort fallback for The Trainer when every Gemini attempt fails:
@@ -19,6 +24,106 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
 app = Flask(__name__)
+
+# ════════ accounts & sync (optional — enabled when DATABASE_URL is set) ════════
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+if DATABASE_URL and "sslmode=" not in DATABASE_URL:
+    DATABASE_URL += ("&" if "?" in DATABASE_URL else "?") + "sslmode=require"
+
+# Stable across workers/restarts so sessions survive; set SECRET_KEY to rotate.
+app.secret_key = os.environ.get("SECRET_KEY") or hashlib.sha256(
+    ("funflix-trainer::" + (DATABASE_URL or "no-db")).encode()).hexdigest()
+app.config.update(
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),
+    PERMANENT_SESSION_LIFETIME=timedelta(days=90),
+)
+
+
+class PgStore:
+    """Thin storage layer so tests can swap in a memory store."""
+
+    def __init__(self, url):
+        import psycopg2
+        from psycopg2 import pool
+        self._pg = psycopg2
+        self.pool = pool.SimpleConnectionPool(1, 4, url)
+        self._init()
+
+    @contextmanager
+    def _cur(self):
+        conn = self.pool.getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                yield conn, cur
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                cur.close()
+        finally:
+            self.pool.putconn(conn)
+
+    def _init(self):
+        with self._cur() as (conn, cur):
+            cur.execute("""CREATE TABLE IF NOT EXISTS trainer_users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                pw_hash TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT now())""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS trainer_blobs (
+                user_id INTEGER REFERENCES trainer_users(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                value JSONB NOT NULL,
+                updated_at BIGINT NOT NULL,
+                PRIMARY KEY (user_id, kind))""")
+
+    def create_user(self, email, pw_hash):
+        try:
+            with self._cur() as (conn, cur):
+                cur.execute("INSERT INTO trainer_users (email, pw_hash) VALUES (%s, %s) RETURNING id",
+                            (email, pw_hash))
+                return cur.fetchone()[0]
+        except self._pg.IntegrityError:
+            return None
+
+    def get_user(self, email):
+        with self._cur() as (conn, cur):
+            cur.execute("SELECT id, pw_hash FROM trainer_users WHERE email = %s", (email,))
+            return cur.fetchone()
+
+    def get_email(self, uid):
+        with self._cur() as (conn, cur):
+            cur.execute("SELECT email FROM trainer_users WHERE id = %s", (uid,))
+            row = cur.fetchone()
+            return row[0] if row else None
+
+    def put_blob(self, uid, kind, value, at):
+        from psycopg2.extras import Json
+        with self._cur() as (conn, cur):
+            cur.execute("""INSERT INTO trainer_blobs (user_id, kind, value, updated_at)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, kind) DO UPDATE SET value = EXCLUDED.value,
+                    updated_at = EXCLUDED.updated_at
+                WHERE trainer_blobs.updated_at <= EXCLUDED.updated_at""",
+                        (uid, kind, Json(value), int(at)))
+
+    def get_blobs(self, uid):
+        with self._cur() as (conn, cur):
+            cur.execute("SELECT kind, value, updated_at FROM trainer_blobs WHERE user_id = %s", (uid,))
+            return {k: {"value": v, "at": at} for k, v, at in cur.fetchall()}
+
+
+STORE = None
+if DATABASE_URL:
+    try:
+        STORE = PgStore(DATABASE_URL)
+        print("[db] connected, accounts enabled", flush=True)
+    except Exception as exc:
+        print(f"[db] unavailable, accounts disabled: {exc}", flush=True)
 
 # Precomputed supplement analysis (built offline by analysis/build_analysis_json.py).
 # Loaded once at startup so production needs no pandas/sklearn.
@@ -263,20 +368,103 @@ def _client_ip():
     return (fwd.split(",")[0].strip() if fwd else request.remote_addr) or ""
 
 
-def _rate_limited(ip):
+def _rate_limited(ip, bucket="plan", limit=None):
     # Localhost stays exempt: local dev and the test suite hit the API freely,
     # while real clients behind Render's proxy arrive via X-Forwarded-For.
     if ip in ("127.0.0.1", "::1", ""):
         return False
+    limit = limit or TRAINER_RL_MAX
+    key = f"{bucket}|{ip}"
     now = time.time()
     with _trainer_rl_lock:
-        hits = [t for t in _trainer_hits.get(ip, []) if now - t < TRAINER_RL_WINDOW_S]
-        if len(hits) >= TRAINER_RL_MAX:
-            _trainer_hits[ip] = hits
+        hits = [t for t in _trainer_hits.get(key, []) if now - t < TRAINER_RL_WINDOW_S]
+        if len(hits) >= limit:
+            _trainer_hits[key] = hits
             return True
         hits.append(now)
-        _trainer_hits[ip] = hits
+        _trainer_hits[key] = hits
         return False
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _uid():
+    return session.get("uid") if STORE else None
+
+
+@app.route("/api/auth/me")
+def auth_me():
+    uid = _uid()
+    return jsonify({"enabled": STORE is not None,
+                    "user": STORE.get_email(uid) if uid else None})
+
+
+@app.route("/api/auth/register", methods=["POST"])
+def auth_register():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    if _rate_limited(_client_ip(), bucket="auth", limit=10):
+        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+    p = request.json or {}
+    email = str(p.get("email", "")).strip().lower()
+    pw = str(p.get("password", ""))
+    if not _EMAIL_RE.match(email):
+        return jsonify({"error": "That doesn't look like an email address."}), 400
+    if len(pw) < 8:
+        return jsonify({"error": "Password needs at least 8 characters."}), 400
+    uid = STORE.create_user(email, generate_password_hash(pw))
+    if uid is None:
+        return jsonify({"error": "That email already has an account — sign in instead."}), 409
+    session.permanent = True
+    session["uid"] = uid
+    return jsonify({"user": email})
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    if _rate_limited(_client_ip(), bucket="auth", limit=10):
+        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+    p = request.json or {}
+    email = str(p.get("email", "")).strip().lower()
+    pw = str(p.get("password", ""))
+    row = STORE.get_user(email)
+    if not row or not check_password_hash(row[1], pw):
+        return jsonify({"error": "Email or password is wrong."}), 401
+    session.permanent = True
+    session["uid"] = row[0]
+    return jsonify({"user": email})
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def auth_logout():
+    session.clear()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/sync", methods=["GET", "PUT"])
+def sync():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    uid = _uid()
+    if not uid:
+        return jsonify({"error": "Sign in to sync."}), 401
+    if request.method == "GET":
+        blobs = STORE.get_blobs(uid)
+        return jsonify({"plan": blobs.get("plan"), "logs": blobs.get("logs")})
+    p = request.json or {}
+    for kind, cap in (("plan", 300_000), ("logs", 800_000)):
+        item = p.get(kind)
+        if not isinstance(item, dict) or "value" not in item:
+            continue
+        if len(json_mod.dumps(item["value"])) > cap:
+            return jsonify({"error": f"{kind} too large to sync."}), 413
+        STORE.put_blob(uid, kind, item["value"], item.get("at") or int(time.time() * 1000))
+    blobs = STORE.get_blobs(uid)
+    return jsonify({"plan_at": (blobs.get("plan") or {}).get("at"),
+                    "logs_at": (blobs.get("logs") or {}).get("at")})
 
 
 @app.route("/api/version")
@@ -507,6 +695,84 @@ def trainer_api():
             if val:
                 yield val
             return
+
+    return Response(stream_with_context(generate()), mimetype="text/plain")
+
+
+TRAINER_QA_SYSTEM = """You are The Trainer — the same evidence-based coach who wrote the client's \
+program, attached below as JSON. Answer the client's questions about THEIR program.
+
+Rules:
+- Ground every answer in the attached plan and quote its numbers. When the plan already explains \
+something (rationale, quality_vs_quantity, progressive_overload, safety_notes), teach from that \
+material rather than inventing new reasoning.
+- Exercise swaps: point to the substitution already listed in the plan when one exists; otherwise \
+suggest an equal-stimulus alternative that fits the client's equipment context, keeping the same \
+sets, rep range, rest, and effort.
+- Missed days and scheduling: apply the plan's scheduling_note logic (keep a day between repeats \
+of the same session type; never stack for lost time). Do not invent a new program.
+- If a request would change targets wholesale (calories, weekly volume, the split itself), \
+explain briefly and direct them to the Week-4 check-in, which recalibrates from measured data.
+- Anything medical — pain, injury, illness, medication — is outside your expertise: recommend a \
+physician or physiotherapist, offer at most a conservative suggestion labelled as such, \
+consistent with the plan's safety notes.
+- Tone: warm, direct, numbers attached. 2 to 5 short sentences, or a tight list. PLAIN TEXT only: \
+no markdown symbols, no emojis.
+- If the question is unrelated to training, nutrition, recovery, or this plan, decline in one \
+friendly sentence and steer back to the program."""
+
+
+@app.route("/api/trainer/ask", methods=["POST"])
+def trainer_ask():
+    payload = request.json or {}
+    plan = payload.get("plan")
+    messages = payload.get("messages") or []
+    if not isinstance(plan, dict) or plan.get("type") != "plan":
+        return jsonify({"error": "No program attached — build or restore a plan first."}), 400
+    if not isinstance(messages, list) or not any(m.get("role") == "user" for m in messages):
+        return jsonify({"error": "Ask a question."}), 400
+    if not GEMINI_API_KEY:
+        return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
+    if _rate_limited(_client_ip(), bucket="qa", limit=20):
+        return jsonify({"error": "That's a lot of questions within the hour — the studio needs a "
+                                 "breather. Your limit resets soon."}), 429
+
+    contents = []
+    for m in messages[-12:]:
+        role = "model" if m.get("role") == "assistant" else "user"
+        text = str(m.get("content") or "").strip()
+        if text:
+            contents.append(types.Content(role=role, parts=[types.Part(text=text[:2000])]))
+    if not contents:
+        return jsonify({"error": "Ask a question."}), 400
+
+    system = TRAINER_QA_SYSTEM + "\n\n==== THE CLIENT'S PLAN (JSON) ====\n" + json_mod.dumps(plan)
+    config_kwargs = dict(system_instruction=system, temperature=0.4)
+    try:
+        config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=512)
+    except AttributeError:
+        pass
+
+    def generate():
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            response = client.models.generate_content_stream(
+                model="gemini-2.5-flash",
+                contents=contents,
+                config=types.GenerateContentConfig(**config_kwargs),
+            )
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as exc:
+            err = str(exc)
+            low = err.lower()
+            if "api_key" in low or "api key" in low or "401" in low:
+                yield "\nERROR: Invalid GEMINI_API_KEY on the server."
+            elif any(m in low for m in ("503", "unavailable", "high demand", "overloaded", "429")):
+                yield "\nERROR: The coach is briefly overloaded — ask again in a moment."
+            else:
+                yield f"\nERROR: {err}"
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 

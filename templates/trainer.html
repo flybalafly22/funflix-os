@@ -219,6 +219,51 @@
       color: #8A6420; margin-bottom: 8px; }
     .safety p { font-family: var(--sans); font-size: 12.5px; line-height: 1.7; color: #5A4A28; margin: 6px 0; }
 
+    /* ═══════════ ask the trainer ═══════════ */
+    .qa { margin-top: 26px; background: #fff; border: 1px solid #E9E9E5; border-radius: 24px;
+      padding: 28px 32px; box-shadow: 0 1px 2px rgba(17,17,16,.03), 0 24px 70px rgba(17,17,16,.05); }
+    .qa-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .qa-head .qn { color: var(--accD); font-size: 15px; }
+    .qa-head .qt { font-family: var(--serif); font-size: 24px; color: var(--black); }
+    .qa-sub { font-family: var(--sans); font-size: 12.5px; color: var(--gray-2); }
+    .qa-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .qa-chip { background: transparent; border: 1px solid var(--rule-2); border-radius: 999px;
+      padding: 8px 16px; font-family: var(--sans); font-size: 12.5px; color: var(--gray);
+      cursor: pointer; transition: all .2s; }
+    .qa-chip:hover { border-color: var(--black); color: var(--black); }
+    .qa-thread { margin-top: 6px; }
+    .qm { margin-top: 16px; max-width: 88%; font-family: var(--sans); font-size: 14px;
+      line-height: 1.7; white-space: pre-wrap; }
+    .qm.you { margin-left: auto; background: var(--black); color: #fff; border-radius: 16px 16px 4px 16px;
+      padding: 11px 16px; width: fit-content; }
+    .qm.coach { color: #2A2A26; border-left: 2px solid var(--acc); padding-left: 16px; }
+    .qm.coach.pending::after { content: '▍'; color: var(--accD); animation: qablink 1s steps(1) infinite; }
+    @keyframes qablink { 50% { opacity: 0; } }
+    .qa-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+    .qa-row .os-input { flex: 1; }
+    .qa-send { padding: 12px 26px; }
+    .qa-send[disabled] { opacity: .5; cursor: default; }
+    .qa-note { margin-top: 12px; font-family: var(--sans); font-size: 11.5px; color: var(--gray-2); }
+
+    /* ═══════════ account / sync ═══════════ */
+    .acct { position: fixed; inset: 0; z-index: 320; background: rgba(17,17,16,.30);
+      backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+      display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .acct[hidden] { display: none; }
+    .ac-card { position: relative; width: min(480px, 100%); background: var(--paper);
+      border: 1px solid #E9E9E5; border-radius: 28px; padding: 42px 44px 36px;
+      box-shadow: 0 40px 120px rgba(17,17,16,.28); }
+    @media (max-width: 560px) { .ac-card { padding: 32px 24px 28px; } }
+    .ac-close { position: absolute; top: 14px; right: 14px; }
+    .ac-card .field { margin-top: 18px; }
+    .ac-card .co-sub { margin-bottom: 6px; }
+    .ac-btns { display: flex; gap: 10px; margin-top: 26px; align-items: center; }
+    .ac-btns .os-btn-primary { flex: 1; }
+    .ac-err { margin-top: 12px; font-family: var(--sans); font-size: 13px; color: #A03428; }
+    .ac-who { margin-top: 16px; font-family: var(--monoX); font-size: 12px; letter-spacing: .06em; color: var(--accD); }
+    .ac-status { margin-top: 10px; font-family: var(--sans); font-size: 13.5px; line-height: 1.65; color: var(--gray); }
+    .mtab.sync { color: var(--accD); }
+
     /* ═══════════ coach mode ═══════════ */
     .coach { position: fixed; inset: 0; z-index: 300; background: var(--paper); display: flex; flex-direction: column; }
     .coach[hidden] { display: none; }
@@ -318,7 +363,7 @@
     @media print {
       @page { margin: 14mm 12mm; }
       body { background: #fff !important; }
-      .hud, .statusbar, .palette, .mod-head, .intake, .thinking, .followup, .err, .plan-actions, .mode-tabs, .coach { display: none !important; }
+      .hud, .statusbar, .palette, .mod-head, .intake, .thinking, .followup, .err, .plan-actions, .mode-tabs, .coach, .qa { display: none !important; }
       .stage { padding: 0; }
       .plan-wrap { width: 100%; }
       #planDoc { border: none; box-shadow: none; border-radius: 0; padding: 0; }
@@ -342,6 +387,7 @@
       <button class="mtab on" id="tabPlan" type="button">New program</button>
       <button class="mtab" id="tabCheckin" type="button">Week-4 check-in</button>
       <button class="mtab" id="tabLog" type="button" style="display:none">Log a session</button>
+      <button class="mtab sync" id="tabAcct" type="button" style="display:none">Sync</button>
       <button class="mtab restore" id="tabRestore" type="button" style="display:none">Restore last plan</button>
     </div>
 
@@ -438,7 +484,7 @@
 
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="buildBtn">Build my program</button>
-          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Nothing is stored — the plan lives in your browser and your PDF.</div>
+          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Nothing leaves your device unless you create a free Sync account — otherwise the plan lives in your browser and your PDF.</div>
         </div>
       </div>
     </form>
@@ -592,6 +638,34 @@
       </div>
     </div>
 
+    <!-- ── ACCOUNT / SYNC ── -->
+    <div class="acct" id="acct" hidden>
+      <div class="ac-card">
+        <button class="co-x ac-close" id="acClose" type="button">Close</button>
+        <div id="acOut">
+          <div class="co-lead">Your program, <em>on every device</em></div>
+          <div class="co-sub">A free account keeps your plan, workout logs and check-ins in sync between
+            this browser and your phone. Without one, everything stays on this device — that promise doesn't change.</div>
+          <div class="field"><label class="os-label" for="acEmail">Email</label>
+            <input class="os-input" id="acEmail" type="email" autocomplete="email"></div>
+          <div class="field"><label class="os-label" for="acPw">Password — 8+ characters</label>
+            <input class="os-input" id="acPw" type="password" autocomplete="current-password"></div>
+          <div class="ac-err" id="acErr"></div>
+          <div class="ac-btns">
+            <button class="os-btn-primary" id="acRegister" type="button">Create account</button>
+            <button class="co-ghost" id="acLogin" type="button">Sign in</button>
+          </div>
+        </div>
+        <div id="acIn" hidden>
+          <div class="co-lead">Synced. <em>Everywhere.</em></div>
+          <div class="ac-who" id="acWho"></div>
+          <div class="ac-status">Your plan and logs now follow you — phone at the gym, laptop at home.
+            Everything still works offline; changes sync when you're back.</div>
+          <div class="ac-btns"><button class="co-ghost" id="acLogout" type="button">Sign out</button></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── THINKING ── -->
     <div class="thinking" id="thinking">
       <div class="th-ring"></div>
@@ -620,6 +694,23 @@
         <button class="btn-dl" id="dlBtn">Download PDF</button>
       </div>
       <article id="planDoc" aria-label="Your training program"></article>
+
+      <!-- ── ASK THE TRAINER ── -->
+      <div class="qa" id="qaWrap">
+        <div class="qa-head"><span class="qn">&#10022;</span><span class="qt">Ask The Trainer</span>
+          <span class="qa-sub">about this program — swaps, whys, what-ifs</span></div>
+        <div class="qa-chips" id="qaChips">
+          <button type="button" class="qa-chip">Why these exercises for me?</button>
+          <button type="button" class="qa-chip">Can I swap an exercise I dislike?</button>
+          <button type="button" class="qa-chip">What happens if I miss a day?</button>
+        </div>
+        <div class="qa-thread" id="qaThread"></div>
+        <form class="qa-row" id="qaForm" autocomplete="off">
+          <input class="os-input" id="qaIn" placeholder="Ask anything about your program…">
+          <button class="btn-dl qa-send" id="qaSend" type="submit">Ask</button>
+        </form>
+        <div class="qa-note">Answers are grounded in your plan. Coaching guidance — not medical advice.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -772,6 +863,7 @@
   function savePlan(d) {
     try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: Date.now(), plan: d })); } catch (e) {}
     refreshRestore();
+    if (typeof pushPlan === 'function') pushPlan();
   }
   function savedPlan() {
     try { const s = JSON.parse(localStorage.getItem(PLAN_KEY)); return s && s.plan ? s : null; }
@@ -869,7 +961,8 @@
     const at = (!dv || dv === new Date().toISOString().slice(0, 10))
       ? Date.now() : new Date(dv + 'T12:00:00').getTime();
     logs.unshift({ at, day: day.day_label || '', entries });
-    try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 40))); } catch (e2) {}
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 200))); } catch (e2) {}
+    pushLogs();
     renderLgList();
     renderLgHist();
     const btn = $('logBtn'), old = btn.textContent;
@@ -1046,7 +1139,8 @@
     if (entries.length) {
       const logs = loadLogs();
       logs.unshift({ at: Date.now(), day: CO.day.day_label || '', entries });
-      try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 40))); } catch (e) {}
+      try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 200))); } catch (e) {}
+      pushLogs();
     }
     const setsN = entries.reduce((t, e) => t + e.sets.length, 0);
     const vol = entries.reduce((t, e) => t + e.sets.reduce((s, x) => s + (parseFloat(x.kg) || 0) * (parseInt(x.reps, 10) || 0), 0), 0);
@@ -1125,6 +1219,87 @@
   });
   refreshRestore();
 
+  /* ── accounts & sync (opt-in; without an account nothing leaves the device) ── */
+  const SYNC = { user: null, enabled: false };
+  document.body.appendChild($('acct'));
+  function acctPill() {
+    const t = $('tabAcct');
+    t.style.display = SYNC.enabled ? '' : 'none';
+    t.textContent = SYNC.user ? '● ' + SYNC.user.split('@')[0] : 'Sync';
+  }
+  function acctPanels() {
+    $('acOut').hidden = !!SYNC.user;
+    $('acIn').hidden = !SYNC.user;
+    if (SYNC.user) $('acWho').textContent = SYNC.user;
+  }
+  async function syncMe() {
+    try {
+      const d = await (await fetch('/api/auth/me')).json();
+      SYNC.enabled = !!d.enabled; SYNC.user = d.user || null;
+    } catch (e) { SYNC.enabled = false; }
+    acctPill();
+    if (SYNC.user) pullMerge();
+  }
+  async function pullMerge() {
+    try {
+      const r = await fetch('/api/sync');
+      if (!r.ok) return;
+      const d = await r.json();
+      const localAt = (savedPlan() || {}).at || 0;
+      if (d.plan && d.plan.at > localAt) {
+        try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: d.plan.at, plan: d.plan.value })); } catch (e) {}
+      } else if (localAt && (!d.plan || localAt > d.plan.at)) { pushPlan(); }
+      const remote = (d.logs && d.logs.value) || [];
+      const local = loadLogs();
+      const seen = {}, merged = [];
+      remote.concat(local).forEach(s => {
+        const k = s.at + '|' + (s.day || '');
+        if (!seen[k]) { seen[k] = 1; merged.push(s); }
+      });
+      merged.sort((a, b) => b.at - a.at);
+      const capped = merged.slice(0, 200);
+      try { localStorage.setItem(LOG_KEY, JSON.stringify(capped)); } catch (e) {}
+      if (capped.length !== remote.length) pushLogs();
+      refreshRestore();
+    } catch (e) {}
+  }
+  async function pushPlan() {
+    const s = savedPlan();
+    if (!SYNC.user || !s) return;
+    try {
+      await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: { value: s.plan, at: s.at } }) });
+    } catch (e) {}
+  }
+  async function pushLogs() {
+    if (!SYNC.user) return;
+    try {
+      await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logs: { value: loadLogs(), at: Date.now() } }) });
+    } catch (e) {}
+  }
+  async function acctCall(path) {
+    $('acErr').textContent = '';
+    try {
+      const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: $('acEmail').value, password: $('acPw').value }) });
+      const d = await r.json();
+      if (!r.ok || d.error) { $('acErr').textContent = d.error || 'Something went wrong.'; return; }
+      SYNC.user = d.user; $('acPw').value = '';
+      acctPill(); acctPanels(); pullMerge();
+    } catch (e) { $('acErr').textContent = 'Could not reach the server.'; }
+  }
+  $('tabAcct').addEventListener('click', () => { acctPanels(); $('acct').hidden = false; });
+  $('acClose').addEventListener('click', () => { $('acct').hidden = true; });
+  $('acct').addEventListener('click', e => { if (e.target === $('acct')) $('acct').hidden = true; });
+  $('acRegister').addEventListener('click', () => acctCall('/api/auth/register'));
+  $('acLogin').addEventListener('click', () => acctCall('/api/auth/login'));
+  $('acLogout').addEventListener('click', async () => {
+    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+    SYNC.user = null; acctPill(); acctPanels(); $('acct').hidden = true;
+  });
+  syncMe();
+
   /* ── PWA: installable, saved plan + logs readable offline at the gym ── */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -1178,6 +1353,68 @@
   })();
 
   function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
+
+  /* ── ask the trainer: plan-grounded Q&A, streamed live ── */
+  let qaMsgs = [], qaBusy = false;
+  function qaReset() {
+    qaMsgs = []; qaBusy = false;
+    $('qaThread').innerHTML = '';
+    $('qaChips').style.display = '';
+    $('qaSend').disabled = false;
+  }
+  function qaBubble(cls, text) {
+    const d = document.createElement('div');
+    d.className = 'qm ' + cls;
+    d.textContent = text;
+    $('qaThread').appendChild(d);
+    d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return d;
+  }
+  async function qaSend(text) {
+    text = String(text || '').trim();
+    if (!text || qaBusy || !lastPlan.d) return;
+    qaBusy = true;
+    $('qaSend').disabled = true;
+    $('qaChips').style.display = 'none';
+    $('qaIn').value = '';
+    qaMsgs.push({ role: 'user', content: text });
+    qaBubble('you', text);
+    const bub = qaBubble('coach pending', '');
+    try {
+      const r = await fetch('/api/trainer/ask', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: lastPlan.d, messages: qaMsgs.slice(-12) }),
+      });
+      const ct = r.headers.get('content-type') || '';
+      if (ct.indexOf('application/json') !== -1) {
+        const data = await r.json();
+        bub.textContent = data.error || 'Something went sideways — try again.';
+      } else {
+        const reader = r.body.getReader(), dec = new TextDecoder();
+        let full = '';
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += dec.decode(value, { stream: true });
+          bub.textContent = full.replace(/\nERROR:[\s\S]*$/, '');
+          bub.scrollIntoView({ block: 'nearest' });
+        }
+        const em = full.match(/(?:^|\n)ERROR: ([\s\S]+)$/);
+        if (em) { bub.textContent = em[1].trim(); }
+        else { qaMsgs.push({ role: 'assistant', content: full.trim() }); }
+      }
+    } catch (e) {
+      bub.textContent = 'Could not reach the coach: ' + e.message;
+    }
+    bub.classList.remove('pending');
+    qaBusy = false;
+    $('qaSend').disabled = false;
+  }
+  $('qaForm').addEventListener('submit', e => { e.preventDefault(); qaSend($('qaIn').value); });
+  $('qaChips').addEventListener('click', e => {
+    const c = e.target.closest('.qa-chip');
+    if (c) qaSend(c.textContent);
+  });
 
   /* ── movement pictograms (self-authored — see ASSETS_CREDITS.md) ── */
   const GS = 'fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"';
@@ -1277,6 +1514,7 @@
 
   function renderPlan(d) {
     lastPlan.d = d;
+    qaReset();
     secN = 0;
     const ps = d.profile_summary || {};
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });

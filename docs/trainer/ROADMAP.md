@@ -29,6 +29,12 @@ from this file directly.
 - Sprint 4 — Signature (SPRINT_4.md): self-authored movement pictograms in
   the plan + PDF, native share sheet (covers email-to-self), MOBILE_APP.md
   strategy + iOS standalone metas
+- Sprint 5 — Coach Mode (SPRINT_5.md): live session runner with prescribed
+  rest timers, plate math + ramps, readiness compression, stall watch,
+  luxury UI pass
+- Sprint 6 — The Studio Remembers (SPRINT_6.md): plan-grounded Ask-the-
+  Trainer chat; accounts & cross-device sync on Neon Postgres (opt-in,
+  privacy promise intact)
 
 ## Next up (high value, roughly ordered)
 - **Play Store listing (TWA)**: everything is prepared; needs owner's Google
@@ -37,7 +43,7 @@ from this file directly.
   an owner mail-provider key (Resend/SendGrid free tier).
 
 ## Deliberately not doing
-- Server-side plan storage / accounts — privacy is a feature ("nothing is
-  stored" is in the UI copy). Revisit only with explicit owner decision.
+- Forced accounts — sync stays opt-in; the no-account "nothing leaves your
+  device" path is a feature (owner approved server-side sync Sprint 6).
 - Paid model tiers without owner sign-off (costs money).
 - Medical features beyond the disclaimer machinery (scope/liability).
