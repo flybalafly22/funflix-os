@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Compile check
+        run: python -m py_compile app.py gunicorn.conf.py
+      - name: Unit tests
+        run: python -m pytest tests/ -q
+
+  live-verify:
+    # After Render auto-deploys this push, confirm the LIVE site actually
+    # serves this commit and a working plan. Render ignores the Procfile and
+    # deploys can fail silently — never trust an unverified deploy.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Wait for deploy, then smoke the live site
+        run: python scripts/verify_live.py --wait-for ${{ github.sha }}

@@ -70,6 +70,12 @@
       color: var(--gray); cursor: pointer; transition: all .2s; }
     .mtab:hover { border-color: var(--black); color: var(--black); }
     .mtab.on { background: var(--black); border-color: var(--black); color: #fff; }
+    .mtab.restore { margin-left: auto; border-style: dashed; color: var(--accD); }
+    .mtab.restore:hover { border-color: var(--accD); }
+
+    table.ex .vid { margin-left: 8px; font-family: var(--monoX); font-size: 9.5px;
+      letter-spacing: .08em; color: var(--accD); text-decoration: none; white-space: nowrap; }
+    table.ex .vid:hover { text-decoration: underline; }
 
     /* ── error ── */
     .err { display: none; width: min(620px,100%); margin-top: 18px; padding: 14px 18px; border-radius: 14px;
@@ -185,6 +191,7 @@
       #planDoc { border: none; box-shadow: none; border-radius: 0; padding: 0; }
       .day, .supp, .path, .safety { break-inside: avoid; }
       .pd-h { break-after: avoid; }
+      table.ex .vid { display: none !important; }
     }
   </style>
 </head>
@@ -201,6 +208,7 @@
     <div class="mode-tabs fade-rise-d1" id="modeTabs" role="tablist">
       <button class="mtab on" id="tabPlan" type="button">New program</button>
       <button class="mtab" id="tabCheckin" type="button">Week-4 check-in</button>
+      <button class="mtab restore" id="tabRestore" type="button" style="display:none">Restore last plan</button>
     </div>
 
     <!-- ── INTAKE ── -->
@@ -510,6 +518,7 @@
           (data.note ? '<div class="fu-note">' + esc(data.note) + '</div>' : '');
         setState('followup');
       } else if (data.type === 'plan') {
+        savePlan(data);
         renderPlan(data);
         setState('plan');
       } else { fail('The Trainer returned an unexpected reply. Please try again.'); }
@@ -523,6 +532,30 @@
   });
   $('againBtn').addEventListener('click', () => setState('form'));
   $('dlBtn').addEventListener('click', () => window.print());
+
+  /* ── plan persistence (device-only; nothing leaves the browser) ── */
+  const PLAN_KEY = 'trainerLastPlan';
+  function savePlan(d) {
+    try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: Date.now(), plan: d })); } catch (e) {}
+    refreshRestore();
+  }
+  function refreshRestore() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(PLAN_KEY)); } catch (e) {}
+    const btn = $('tabRestore');
+    if (saved && saved.plan) {
+      const dt = new Date(saved.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      btn.textContent = 'Restore last plan · ' + dt;
+      btn.style.display = '';
+    } else { btn.style.display = 'none'; }
+  }
+  $('tabRestore').addEventListener('click', () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PLAN_KEY));
+      if (saved && saved.plan) { renderPlan(saved.plan); setState('plan'); }
+    } catch (e) {}
+  });
+  refreshRestore();
 
   function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
 
@@ -608,7 +641,9 @@
           let subs = '';
           if (ex.tempo_or_notes) subs += '<span class="sub">' + esc(ex.tempo_or_notes) + '</span>';
           if (ex.substitution) subs += '<span class="sub">Substitute: ' + esc(ex.substitution) + '</span>';
-          h += '<tr><td>' + esc(ex.name) + subs + '</td>' +
+          const vid = '<a class="vid" href="https://www.youtube.com/results?search_query=' +
+            encodeURIComponent(String(ex.name || '') + ' form') + '" target="_blank" rel="noopener">form &nearr;</a>';
+          h += '<tr><td>' + esc(ex.name) + vid + subs + '</td>' +
             '<td>' + esc(ex.sets) + ' × ' + esc(ex.rep_range || ex.reps || '') + '</td>' +
             '<td>' + fmtRest(ex.rest_seconds != null ? ex.rest_seconds : ex.rest) + '</td>' +
             '<td class="hide-m">' + esc(ex.rpe_or_rir || ex.effort || '') + '</td></tr>';

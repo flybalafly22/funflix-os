@@ -235,6 +235,36 @@ except FileNotFoundError:
     TRAINER_SYSTEM = ""
 
 
+# Per-IP sliding-window rate limit for real plan generations (demo is exempt).
+# Protects the Gemini quota if the site gets real traffic. In-memory per worker
+# (2 workers → effective ceiling up to 2x the number below; fine at this scale).
+TRAINER_RL_MAX = int(os.environ.get("TRAINER_RL_MAX", "6"))
+TRAINER_RL_WINDOW_S = 3600
+_trainer_hits = {}
+_trainer_rl_lock = threading.Lock()
+
+
+def _client_ip():
+    fwd = request.headers.get("X-Forwarded-For", "")
+    return (fwd.split(",")[0].strip() if fwd else request.remote_addr) or ""
+
+
+def _rate_limited(ip):
+    # Localhost stays exempt: local dev and the test suite hit the API freely,
+    # while real clients behind Render's proxy arrive via X-Forwarded-For.
+    if ip in ("127.0.0.1", "::1", ""):
+        return False
+    now = time.time()
+    with _trainer_rl_lock:
+        hits = [t for t in _trainer_hits.get(ip, []) if now - t < TRAINER_RL_WINDOW_S]
+        if len(hits) >= TRAINER_RL_MAX:
+            _trainer_hits[ip] = hits
+            return True
+        hits.append(now)
+        _trainer_hits[ip] = hits
+        return False
+
+
 @app.route("/api/version")
 def version():
     # Render sets RENDER_GIT_COMMIT; lets us verify which commit is actually live.
@@ -272,6 +302,10 @@ def trainer_api():
         return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
     if not TRAINER_SYSTEM:
         return jsonify({"error": "Trainer knowledge base missing on server."}), 500
+
+    if _rate_limited(_client_ip()):
+        return jsonify({"error": "That's several programs within the hour — the studio needs a moment. "
+                                 "Your limit resets within the hour, and your details stay in the form."}), 429
 
     if payload.get("mode") == "checkin":
         lines = ["MODE: WEEK-4 CHECK-IN", "",
