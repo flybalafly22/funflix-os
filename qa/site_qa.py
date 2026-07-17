@@ -161,6 +161,24 @@ with sync_playwright() as p:
         check("checkin_autofill_from_logs",
               "60 kg x 8 -> 65 kg x 8" in autofill, autofill[:120])
 
+        # ── sprint 5: coach mode opens, adjusts, and counts rest ──
+        pg.click("#tabLog"); pg.wait_for_timeout(250)
+        pg.click("#coachStart"); pg.wait_for_timeout(250)
+        check("coach_opens_readiness",
+              pg.evaluate("() => !document.getElementById('coach').hidden && !document.getElementById('coReady').hidden"))
+        pg.click("#coBegin"); pg.wait_for_timeout(250)
+        check("coach_shows_exercise",
+              pg.evaluate("() => !document.getElementById('coEx').hidden && document.getElementById('coName').textContent.length > 3"))
+        pg.fill("#coKg0", "60"); pg.fill("#coRp0", "8")
+        pg.click('.co-log[data-set="0"]'); pg.wait_for_timeout(300)
+        check("coach_rest_timer_runs",
+              pg.evaluate("() => !document.getElementById('coRest').hidden && /\\d:\\d\\d/.test(document.getElementById('coTimer').textContent)"))
+        pg.click("#coSkip"); pg.wait_for_timeout(200)
+        pg.click("#coExit"); pg.wait_for_timeout(200)
+        pg.click("#coClose"); pg.wait_for_timeout(200)
+        check("coach_session_saved_to_log",
+              pg.evaluate("() => JSON.parse(localStorage.getItem('trainerLogs'))[0].entries.some(e => e.sets.length)"))
+
         # ── sprint 3: PWA assets reachable and sane ──
         pwa = pg.evaluate("""async () => {
           const out = { manifest_link: !!document.querySelector('link[rel="manifest"]') };

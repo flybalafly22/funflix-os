@@ -219,11 +219,106 @@
       color: #8A6420; margin-bottom: 8px; }
     .safety p { font-family: var(--sans); font-size: 12.5px; line-height: 1.7; color: #5A4A28; margin: 6px 0; }
 
+    /* ═══════════ coach mode ═══════════ */
+    .coach { position: fixed; inset: 0; z-index: 300; background: var(--paper); display: flex; flex-direction: column; }
+    .coach[hidden] { display: none; }
+    .co-top { display: flex; align-items: center; gap: 16px; padding: 16px 22px;
+      border-bottom: 1px solid var(--rule); background: rgba(250,250,248,.92); }
+    .co-x { background: transparent; border: 1px solid var(--rule-2); border-radius: 999px; padding: 8px 18px;
+      font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--gray); cursor: pointer; transition: all .2s; }
+    .co-x:hover { border-color: var(--black); color: var(--black); }
+    .co-day { font-family: var(--sans); font-weight: 700; font-size: 14px; color: var(--black);
+      flex: 1; text-align: center; }
+    .co-count { font-family: var(--monoX); font-size: 10.5px; letter-spacing: .18em; color: var(--accD); }
+    .co-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 40px 22px 60px; }
+    .co-panel { width: min(620px, 100%); }
+    .co-lead { font-family: var(--serif); font-size: clamp(26px, 4.5vw, 34px); line-height: 1.15; color: var(--black); }
+    .co-lead em { color: var(--accD); }
+    .co-sub { margin-top: 10px; font-family: var(--sans); font-size: 14px; color: var(--gray); line-height: 1.6; }
+    .co-rgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 30px 0; }
+    @media (max-width: 560px) { .co-rgrid { grid-template-columns: 1fr; } }
+    .co-begin { width: 100%; }
+    .co-adjust { border: 1px solid rgba(12,138,76,.25); background: rgba(189,242,63,.10); border-radius: 14px;
+      padding: 14px 18px; margin-bottom: 24px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #2A2A26; }
+    .co-adjust b { color: var(--accD); font-family: var(--monoX); font-size: 10px; letter-spacing: .16em;
+      text-transform: uppercase; display: block; margin-bottom: 5px; }
+    .co-glyph { color: var(--black); }
+    .co-glyph svg { width: 54px; height: 54px; }
+    .co-name { font-family: var(--serif); font-size: clamp(30px, 5vw, 40px); line-height: 1.05;
+      letter-spacing: -0.01em; color: var(--black); margin-top: 10px; }
+    .co-target { margin-top: 12px; font-family: var(--monoX); font-size: 12px; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--accD); }
+    .co-cue { margin-top: 10px; font-family: var(--sans); font-size: 14px; line-height: 1.65; color: var(--gray); }
+    .co-plates { margin-top: 22px; border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px; background: #fff; }
+    .co-plates .os-input { max-width: 160px; }
+    .co-plate-out { margin-top: 10px; font-family: var(--monoX); font-size: 13px; color: var(--black); }
+    .co-plate-out b { color: var(--accD); }
+    .co-ramp { margin-top: 8px; font-family: var(--sans); font-size: 12.5px; line-height: 1.7; color: var(--gray-2); }
+    .co-sets { margin-top: 26px; }
+    .co-set { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--rule); }
+    .co-set:last-child { border-bottom: none; }
+    .co-set .sn { font-family: var(--monoX); font-size: 10.5px; letter-spacing: .14em; color: var(--gray-2); width: 52px; }
+    .co-set input { width: 78px; text-align: center; }
+    .co-set .x { font-family: var(--monoX); font-size: 11px; color: var(--gray-2); }
+    .co-log { margin-left: auto; background: var(--black); color: #fff; border: none; border-radius: 999px;
+      font-family: var(--sans); font-size: 12.5px; font-weight: 600; padding: 10px 20px; cursor: pointer;
+      transition: transform .15s, background .2s, opacity .2s; }
+    .co-log:hover { transform: translateY(-1px); }
+    .co-log.done { background: transparent; color: var(--accD); border: 1px solid rgba(12,138,76,.35); cursor: default; }
+    .co-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 30px; }
+    .co-ghost { background: transparent; border: 1px solid var(--rule-2); border-radius: 999px; padding: 11px 22px;
+      font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--gray); cursor: pointer; transition: all .2s; }
+    .co-ghost:hover { border-color: var(--black); color: var(--black); }
+    .co-restwrap { text-align: center; padding-top: 8vh; }
+    .co-rest-label { font-family: var(--monoX); font-size: 10.5px; letter-spacing: .3em; color: var(--accD); }
+    .co-timer { font-family: var(--serif); font-size: clamp(84px, 20vw, 148px); line-height: 1;
+      color: var(--black); font-variant-numeric: tabular-nums; margin: 24px 0 10px; }
+    .co-rest-next { font-family: var(--sans); font-size: 14px; color: var(--gray); margin-bottom: 26px; }
+    .co-summary { margin: 24px 0; border: 1px solid var(--rule); border-radius: 16px; background: #fff; padding: 6px 20px; }
+    .co-summary .dr { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--rule); font-family: var(--sans); font-size: 14px; color: var(--gray); }
+    .co-summary .dr:last-child { border-bottom: none; }
+    .co-summary .dr b { color: var(--black); font-variant-numeric: tabular-nums; }
+
+    .stall { border: 1px solid rgba(200,140,40,.35); background: rgba(200,140,40,.05); border-radius: 14px;
+      padding: 14px 18px; margin: 18px 0; }
+    .stall .st-h { font-family: var(--monoX); font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+      color: #8A6420; margin-bottom: 6px; }
+    .stall p { font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #5A4A28; margin: 4px 0; }
+
+    .coach-cta { width: 100%; background: var(--black); color: #fff; border: none; border-radius: 12px;
+      font-family: var(--sans); font-size: 13.5px; font-weight: 600; padding: 13px 18px; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(17,17,16,.16); transition: transform .2s, box-shadow .2s; }
+    .coach-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(17,17,16,.22); }
+
+    /* ═══════════ luxury pass ═══════════ */
+    .mode-tabs { background: #fff; border: 1px solid var(--rule-2); border-radius: 999px; padding: 5px;
+      gap: 4px; box-shadow: 0 1px 2px rgba(17,17,16,.04), 0 10px 34px rgba(17,17,16,.05); width: fit-content; }
+    .mtab { border: none; padding: 9px 20px; }
+    .mtab:hover { color: var(--black); }
+    .mtab.restore { border: 1px dashed var(--rule-2); }
+    #planDoc, .intake .intake-inner, .fu-card {
+      box-shadow: 0 1px 2px rgba(17,17,16,.03), 0 30px 90px rgba(17,17,16,.07); }
+    #planDoc { border-radius: 28px; border-color: #E9E9E5; }
+    .pd-h { align-items: center; }
+    .pd-h::after { content: ''; flex: 1; height: 1px; background: var(--rule); margin-left: 16px; }
+    table.ex td, .pd-meta span, .meal .mm, .meal-tot, .diff .dv, .diff .dc {
+      font-variant-numeric: tabular-nums; }
+    .day, .supp, .path, .diff, .co-plates { border-color: #E9E9E5; }
+    .day { box-shadow: 0 1px 2px rgba(17,17,16,.03); }
+    .os-btn-primary { box-shadow: 0 10px 30px rgba(17,17,16,.20); transition: transform .2s, box-shadow .2s; }
+    .os-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 38px rgba(17,17,16,.26); }
+    .th-line { font-family: var(--serif) !important; font-style: italic; }
+    .th-shimmer { width: 190px; height: 2px; margin: 18px auto 0; border-radius: 2px;
+      background: linear-gradient(90deg, var(--rule) 20%, var(--acc) 50%, var(--rule) 80%);
+      background-size: 200% 100%; animation: coshim 1.8s linear infinite; }
+    @keyframes coshim { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
     /* ═══════════ print = the PDF ═══════════ */
     @media print {
       @page { margin: 14mm 12mm; }
       body { background: #fff !important; }
-      .hud, .statusbar, .palette, .mod-head, .intake, .thinking, .followup, .err, .plan-actions { display: none !important; }
+      .hud, .statusbar, .palette, .mod-head, .intake, .thinking, .followup, .err, .plan-actions, .mode-tabs, .coach { display: none !important; }
       .stage { padding: 0; }
       .plan-wrap { width: 100%; }
       #planDoc { border: none; box-shadow: none; border-radius: 0; padding: 0; }
@@ -417,21 +512,91 @@
             <div class="os-select-wrap"><select class="os-select" id="lDay"></select></div></div>
           <div class="field"><label class="os-label" for="lDate">Date</label>
             <input class="os-input" id="lDate" type="date"></div>
+          <div class="field coach-cta-wrap"><label class="os-label">&nbsp;</label>
+            <button type="button" class="coach-cta" id="coachStart">Run it live — Coach Mode →</button>
+            <div class="hintline">Rest timers, plate math, and set-by-set logging, straight from your plan.</div></div>
         </div>
         <div id="lgList"></div>
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="logBtn">Save session</button>
           <div class="go-note">Logs live only in this browser. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
         </div>
+        <div id="lgStall"></div>
         <div class="sec" id="lgHistHead" style="display:none">Previous sessions</div>
         <div id="lgHist"></div>
       </div>
     </form>
 
+    <!-- ── COACH MODE ── -->
+    <div class="coach" id="coach" hidden>
+      <div class="co-top">
+        <button class="co-x" id="coExit" type="button">Exit</button>
+        <div class="co-day" id="coDay"></div>
+        <div class="co-count" id="coCount"></div>
+      </div>
+
+      <div class="co-scroll">
+        <!-- readiness -->
+        <div class="co-panel" id="coReady">
+          <div class="co-lead">Before you lift — <em>thirty seconds of honesty</em></div>
+          <div class="co-sub">Coach Mode adjusts today's session to the body that actually showed up.</div>
+          <div class="co-rgrid">
+            <div class="field"><label class="os-label" for="rSleep">Last night's sleep</label>
+              <div class="os-select-wrap"><select class="os-select" id="rSleep">
+                <option>7 h or more</option><option>5.5–6.5 h</option><option>Under 5.5 h</option></select></div></div>
+            <div class="field"><label class="os-label" for="rSore">How do you feel?</label>
+              <div class="os-select-wrap"><select class="os-select" id="rSore">
+                <option>Fresh</option><option>Normal</option><option>Beat up</option></select></div></div>
+            <div class="field"><label class="os-label" for="rTime">Time today</label>
+              <div class="os-select-wrap"><select class="os-select" id="rTime">
+                <option>Full session</option><option>About 45 minutes</option><option>About 30 minutes</option></select></div></div>
+          </div>
+          <button class="os-btn-primary co-begin" id="coBegin" type="button">Begin the session</button>
+        </div>
+
+        <!-- exercise -->
+        <div class="co-panel" id="coEx" hidden>
+          <div class="co-adjust" id="coAdjust" hidden></div>
+          <div class="co-glyph" id="coGlyph"></div>
+          <div class="co-name" id="coName"></div>
+          <div class="co-target" id="coTarget"></div>
+          <div class="co-cue" id="coCue"></div>
+          <div class="co-plates" id="coPlates" hidden>
+            <label class="os-label" for="coW">Working weight (kg)</label>
+            <input class="os-input" id="coW" inputmode="decimal" placeholder="e.g. 67.5">
+            <div class="co-plate-out" id="coPlateOut"></div>
+            <div class="co-ramp" id="coRamp"></div>
+          </div>
+          <div class="co-sets" id="coSets"></div>
+          <div class="co-nav">
+            <button class="co-ghost" id="coPrev" type="button">← Previous</button>
+            <button class="co-ghost" id="coNext" type="button">Next exercise →</button>
+          </div>
+        </div>
+
+        <!-- rest -->
+        <div class="co-panel co-restwrap" id="coRest" hidden>
+          <div class="co-rest-label">REST — YOUR PLAN PRESCRIBES IT</div>
+          <div class="co-timer" id="coTimer">0:00</div>
+          <div class="co-rest-next" id="coRestNext"></div>
+          <button class="co-ghost" id="coSkip" type="button">Skip rest</button>
+        </div>
+
+        <!-- done -->
+        <div class="co-panel" id="coDone" hidden>
+          <div class="co-lead">Session logged. <em>The logbook is the scoreboard.</em></div>
+          <div class="co-summary" id="coSummary"></div>
+          <div id="coStall"></div>
+          <button class="os-btn-primary co-begin" id="coClose" type="button">Save &amp; close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── THINKING ── -->
     <div class="thinking" id="thinking">
       <div class="th-ring"></div>
       <div class="th-line" id="thLine">Reading your intake…</div>
+      <div class="th-shimmer"></div>
       <div class="th-sub">A complete program takes a minute or two — every number is computed for you.</div>
     </div>
 
@@ -673,6 +838,7 @@
   function fmtSet(b) { return b.kg ? b.kg + ' kg x ' + (b.reps || '?') : (b.reps || '?') + ' reps'; }
   function renderLgHist() {
     const logs = loadLogs();
+    $('lgStall').innerHTML = stallHTML(stallWatch());
     $('lgHistHead').style.display = logs.length ? '' : 'none';
     $('lgHist').innerHTML = logs.slice(0, 6).map(s => {
       const dt = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -709,6 +875,227 @@
     const btn = $('logBtn'), old = btn.textContent;
     btn.textContent = 'Saved ✓';
     setTimeout(() => { btn.textContent = old; }, 1600);
+  });
+
+  /* ── stall watch: the plan's own stall rule, applied to the log ── */
+  function stallWatch() {
+    const logs = loadLogs().slice().sort((a, b) => a.at - b.at);
+    const hist = {};
+    logs.forEach(s => s.entries.forEach(e => {
+      const b = bestSet(e.sets);
+      if (b) (hist[e.name] = hist[e.name] || []).push(b);
+    }));
+    const out = [];
+    for (const name in hist) {
+      const hs = hist[name];
+      if (hs.length < 3) continue;
+      const better = (x, y) => (y.kg > x.kg) || (y.kg === x.kg && y.reps > x.reps);
+      const [a, b, c] = hs.slice(-3);
+      if (!better(a, b) && !better(b, c)) {
+        out.push({ name, last: c, reset: c.kg ? Math.max(2.5, Math.round(c.kg * 0.9 / 2.5) * 2.5) : null });
+      }
+    }
+    return out;
+  }
+  function stallHTML(list) {
+    if (!list.length) return '';
+    return '<div class="stall"><div class="st-h">Stall watch — your plan’s rule, applied</div>' +
+      list.map(s => '<p><b>' + esc(s.name) + '</b> has not beaten ' + esc(fmtSet(s.last)) +
+        ' in 3 sessions. Your plan’s protocol: reduce 10% ' +
+        (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild — if sleep and food are in order.</p>').join('') +
+      '</div>';
+  }
+
+  /* ── coach mode: the plan's rules, executed live ── */
+  const BAR_KG = 20, PLATE_SIZES = [25, 20, 15, 10, 5, 2.5, 1.25];
+  function plateMath(target) {
+    target = parseFloat(target);
+    if (!target || isNaN(target)) return '';
+    if (target <= BAR_KG) return 'that’s the empty bar (or lighter) — use fixed bars or dumbbells';
+    let per = (target - BAR_KG) / 2;
+    const parts = [];
+    for (const s of PLATE_SIZES) { while (per >= s - 1e-9) { parts.push(s); per -= s; } }
+    const loaded = target - per * 2;
+    return (parts.length ? '<b>' + parts.join(' + ') + '</b> per side' : 'empty bar') +
+      (per > 0.01 ? ' · closest loadable: ' + loaded + ' kg' : '');
+  }
+  function rampFor(w) {
+    w = parseFloat(w);
+    if (!w || isNaN(w) || w <= BAR_KG) return '';
+    const r = p => Math.max(BAR_KG, Math.round(w * p / 2.5) * 2.5);
+    return 'Ramp: bar × 10 · ' + r(.4) + ' kg × 8 · ' + r(.6) + ' kg × 5 · ' + r(.8) + ' kg × 3 · then work sets';
+  }
+  const barbellish = n => /barbell|back squat|front squat|deadlift|bench press|overhead press|rack pull|hip thrust|good morning|row/.test(String(n).toLowerCase()) &&
+    !/dumbbell|machine|cable|goblet|smith|chest-supported|seated cable|band/.test(String(n).toLowerCase());
+
+  const CO = { exs: [], idx: 0, entries: [], day: null, banner: '', t0: 0, timer: null };
+
+  function coPanels(show) {
+    ['coReady', 'coEx', 'coRest', 'coDone'].forEach(id => { $(id).hidden = id !== show; });
+  }
+  function coAdjust(day) {
+    const sleepBad = $('rSleep').selectedIndex === 2, sore = $('rSore').selectedIndex === 2,
+          time = $('rTime').selectedIndex;
+    let exs = (day.exercises || []).map(e => ({ ex: e, sets: Math.max(1, +e.sets || 3), note: '' }));
+    const iso = x => (+x.ex.rest_seconds || 120) < 105;
+    const notes = [];
+    if (time === 2) {
+      const keep = exs.filter(x => !iso(x)).slice(0, 3);
+      exs = (keep.length ? keep : exs.slice(0, 3)).map(x => ({ ...x, sets: Math.min(3, x.sets), note: 'capped' }));
+      notes.push('30-minute version: the big rocks only — your compounds keep priority, isolation waits for a fuller day.');
+    } else if (time === 1) {
+      exs.forEach(x => { if (iso(x) && x.sets > 2) { x.note = '−' + (x.sets - 2) + ' set'; x.sets = 2; } });
+      notes.push('45-minute version: isolation trimmed to 2 sets — superset opposing arm work to save minutes, never cut rest on compounds.');
+    }
+    if (sleepBad || sore) {
+      let dropped = false;
+      exs.forEach(x => { if (iso(x) && x.sets > 2 && !dropped) { x.sets -= 1; x.note = x.note || '−1 set'; dropped = true; } });
+      notes.push('Rough recovery day: leave 3 reps in reserve on everything. Protecting the stimulus you can actually recover from beats grinding — your plan’s own rule.');
+    }
+    CO.banner = notes.join(' ');
+    return exs;
+  }
+  function lastSetsFor(name, n) {
+    const logs = loadLogs();
+    for (const s of logs) {
+      const e = s.entries.find(x => x.name === name);
+      if (e) return e.sets.slice(0, n);
+    }
+    return [];
+  }
+  function coRender() {
+    const x = CO.exs[CO.idx], ex = x.ex;
+    $('coCount').textContent = 'EXERCISE ' + (CO.idx + 1) + ' / ' + CO.exs.length;
+    $('coGlyph').innerHTML = '<svg viewBox="0 0 48 48">' + glyphFor(ex.name) + '</svg>';
+    $('coName').textContent = ex.name;
+    $('coTarget').textContent = x.sets + ' sets × ' + (ex.rep_range || '?') + (ex.rpe_or_rir ? ' · ' + ex.rpe_or_rir : '') +
+      ' · rest ' + fmtRest(ex.rest_seconds);
+    $('coCue').textContent = ex.tempo_or_notes || '';
+    const showPlates = barbellish(ex.name);
+    $('coPlates').hidden = !showPlates;
+    if (showPlates) { $('coW').value = ''; $('coPlateOut').innerHTML = ''; $('coRamp').textContent = ''; }
+    const prev = lastSetsFor(ex.name, x.sets);
+    const logged = CO.entries[CO.idx] ? CO.entries[CO.idx].sets : [];
+    $('coSets').innerHTML = Array.from({ length: x.sets }, (_, i) => {
+      const done = logged[i];
+      const ph = prev[i] || {};
+      return '<div class="co-set"><span class="sn">SET ' + (i + 1) + '</span>' +
+        '<input class="os-input" inputmode="decimal" placeholder="' + esc(ph.kg || 'kg') + '" id="coKg' + i + '"' + (done ? ' value="' + esc(done.kg) + '" disabled' : '') + '>' +
+        '<span class="x">×</span>' +
+        '<input class="os-input" inputmode="numeric" placeholder="' + esc(ph.reps || 'reps') + '" id="coRp' + i + '"' + (done ? ' value="' + esc(done.reps) + '" disabled' : '') + '>' +
+        '<button type="button" class="co-log' + (done ? ' done' : '') + '" data-set="' + i + '"' + (done ? ' disabled' : '') + '>' + (done ? 'Logged ✓' : 'Log set') + '</button></div>';
+    }).join('');
+    $('coPrev').style.visibility = CO.idx === 0 ? 'hidden' : '';
+    $('coNext').textContent = CO.idx === CO.exs.length - 1 ? 'Finish session →' : 'Next exercise →';
+    $('coAdjust').hidden = !CO.banner;
+    if (CO.banner) $('coAdjust').innerHTML = '<b>Adjusted for today</b>' + esc(CO.banner);
+  }
+  function coChime() {
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.25].forEach(t => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.frequency.value = 880; o.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(0.12, ac.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + t + 0.22);
+        o.start(ac.currentTime + t); o.stop(ac.currentTime + t + 0.24);
+      });
+    } catch (e) {}
+    if (navigator.vibrate) navigator.vibrate([180, 90, 180]);
+  }
+  function coStartRest(seconds, lastOfExercise) {
+    let left = Math.max(5, Math.round(seconds || 90));
+    coPanels('coRest');
+    $('coRestNext').textContent = lastOfExercise
+      ? 'Up next: ' + (CO.idx < CO.exs.length - 1 ? CO.exs[CO.idx + 1].ex.name : 'session summary')
+      : 'Then: ' + CO.exs[CO.idx].ex.name + ', next set';
+    const tick = () => {
+      $('coTimer').textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+      if (left <= 0) { clearInterval(CO.timer); CO.timer = null; coChime(); coAfterRest(lastOfExercise); return; }
+      left -= 1;
+    };
+    tick();
+    CO.timer = setInterval(tick, 1000);
+  }
+  function coAfterRest(lastOfExercise) {
+    if (lastOfExercise && CO.idx < CO.exs.length - 1) CO.idx += 1;
+    if (lastOfExercise && CO.idx === CO.exs.length - 1 && coExerciseDone(CO.idx)) { coFinish(); return; }
+    coPanels('coEx');
+    coRender();
+  }
+  function coExerciseDone(i) {
+    return CO.entries[i] && CO.entries[i].sets.filter(Boolean).length >= CO.exs[i].sets;
+  }
+  // sets container is rebuilt per exercise; the log buttons use a delegated listener
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.co-log');
+    if (!btn || btn.disabled) return;
+    const i = +btn.dataset.set;
+    const kg = $('coKg' + i).value.trim(), reps = $('coRp' + i).value.trim();
+    if (!kg && !reps) { $('coKg' + i).focus(); return; }
+    if (!CO.entries[CO.idx]) CO.entries[CO.idx] = { name: CO.exs[CO.idx].ex.name, sets: [] };
+    CO.entries[CO.idx].sets[i] = { kg, reps };
+    const last = coExerciseDone(CO.idx);
+    if (last && CO.idx === CO.exs.length - 1) { coFinish(); return; }
+    coStartRest(CO.exs[CO.idx].ex.rest_seconds, last);
+  });
+  function coFinish() {
+    if (CO.timer) { clearInterval(CO.timer); CO.timer = null; }
+    const entries = CO.entries.filter(e => e && e.sets.filter(Boolean).length)
+      .map(e => ({ name: e.name, sets: e.sets.filter(Boolean) }));
+    if (entries.length) {
+      const logs = loadLogs();
+      logs.unshift({ at: Date.now(), day: CO.day.day_label || '', entries });
+      try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 40))); } catch (e) {}
+    }
+    const setsN = entries.reduce((t, e) => t + e.sets.length, 0);
+    const vol = entries.reduce((t, e) => t + e.sets.reduce((s, x) => s + (parseFloat(x.kg) || 0) * (parseInt(x.reps, 10) || 0), 0), 0);
+    const mins = Math.max(1, Math.round((Date.now() - CO.t0) / 60000));
+    $('coSummary').innerHTML =
+      '<div class="dr"><span>Hard sets logged</span><b>' + setsN + '</b></div>' +
+      '<div class="dr"><span>Total volume moved</span><b>' + Math.round(vol).toLocaleString() + ' kg</b></div>' +
+      '<div class="dr"><span>Session time</span><b>' + mins + ' min</b></div>';
+    $('coStall').innerHTML = stallHTML(stallWatch());
+    coPanels('coDone');
+  }
+  function openCoach() {
+    const saved = savedPlan();
+    if (!saved) return;
+    CO.day = (saved.plan.workout_days || [])[+$('lDay').value || 0];
+    if (!CO.day) return;
+    CO.idx = 0; CO.entries = []; CO.banner = ''; CO.t0 = Date.now();
+    $('coDay').textContent = CO.day.day_label || 'Session';
+    $('coCount').textContent = '';
+    coPanels('coReady');
+    $('coach').hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeCoach() {
+    if (CO.timer) { clearInterval(CO.timer); CO.timer = null; }
+    $('coach').hidden = true;
+    document.body.style.overflow = '';
+    renderLgHist();
+  }
+  // escape the page's stacking context (.page-wrap is z-index:5, under the hud)
+  document.body.appendChild($('coach'));
+  $('coachStart').addEventListener('click', openCoach);
+  $('coBegin').addEventListener('click', () => { CO.exs = coAdjust(CO.day); CO.t0 = Date.now(); coPanels('coEx'); coRender(); });
+  $('coPrev').addEventListener('click', () => { if (CO.idx > 0) { CO.idx -= 1; coRender(); } });
+  $('coNext').addEventListener('click', () => {
+    if (CO.idx === CO.exs.length - 1) { coFinish(); } else { CO.idx += 1; coRender(); }
+  });
+  $('coSkip').addEventListener('click', () => {
+    if (CO.timer) { clearInterval(CO.timer); CO.timer = null; }
+    coAfterRest($('coRestNext').textContent.indexOf('Up next') === 0);
+  });
+  $('coExit').addEventListener('click', () => {
+    const any = CO.entries.some(e => e && e.sets.filter(Boolean).length);
+    if (any) { coFinish(); coPanels('coDone'); } else { closeCoach(); }
+  });
+  $('coClose').addEventListener('click', closeCoach);
+  $('coW').addEventListener('input', () => {
+    $('coPlateOut').innerHTML = plateMath($('coW').value);
+    $('coRamp').textContent = CO.idx === 0 ? rampFor($('coW').value) : '';
   });
 
   /* ── check-in autofill from logs: first vs latest best set per exercise ── */
