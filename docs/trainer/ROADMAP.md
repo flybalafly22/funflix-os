@@ -36,7 +36,13 @@ from this file directly.
   Trainer chat; accounts & cross-device sync on Neon Postgres (opt-in,
   privacy promise intact)
 
-## Next up (high value, roughly ordered — Producer-groomed, Sprint 7 review)
+## Next up (high value, roughly ordered — Producer-groomed, Sprint 10 review)
+- **Export & erase**: one-click JSON export of plan/logs/history + a delete-
+  account endpoint that wipes server rows — the privacy promise, demonstrable.
+- **Adherence pulse + calendar**: locally computed week strip ("3 of 4
+  sessions · next: Upper A") + .ics download of training days. Zero server.
+- **Trend-fed check-in**: bodyweight/top-set sparklines from logs shown at
+  check-in and passed into the recalibration payload.
 - **Plan history for synced accounts**: keep last N plans server-side; browse
   and diff any two — makes Sync materially more valuable than localStorage.
 - **First-run experience**: hero-level sample-program CTA + progressive

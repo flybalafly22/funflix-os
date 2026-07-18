@@ -245,23 +245,6 @@
     .qa-send[disabled] { opacity: .5; cursor: default; }
     .qa-note { margin-top: 12px; font-family: var(--sans); font-size: 11.5px; color: var(--gray-2); }
 
-    /* ═══════════ account / sync ═══════════ */
-    .acct { position: fixed; inset: 0; z-index: 320; background: rgba(17,17,16,.30);
-      backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
-      display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .acct[hidden] { display: none; }
-    .ac-card { position: relative; width: min(480px, 100%); background: var(--paper);
-      border: 1px solid #E9E9E5; border-radius: 28px; padding: 42px 44px 36px;
-      box-shadow: 0 40px 120px rgba(17,17,16,.28); }
-    @media (max-width: 560px) { .ac-card { padding: 32px 24px 28px; } }
-    .ac-close { position: absolute; top: 14px; right: 14px; }
-    .ac-card .field { margin-top: 18px; }
-    .ac-card .co-sub { margin-bottom: 6px; }
-    .ac-btns { display: flex; gap: 10px; margin-top: 26px; align-items: center; }
-    .ac-btns .os-btn-primary { flex: 1; }
-    .ac-err { margin-top: 12px; font-family: var(--sans); font-size: 13px; color: #A03428; }
-    .ac-who { margin-top: 16px; font-family: var(--monoX); font-size: 12px; letter-spacing: .06em; color: var(--accD); }
-    .ac-status { margin-top: 10px; font-family: var(--sans); font-size: 13.5px; line-height: 1.65; color: var(--gray); }
     .mtab.sync { color: var(--accD); }
 
     /* ── intake stepper ── */
@@ -287,16 +270,6 @@
     .w-points span::before { content: '— '; color: var(--accD); }
     .w-cta { width: auto; padding: 14px 34px; }
 
-    .ac-hist-head { margin-top: 26px; font-family: var(--monoX); font-size: 10px; font-weight: 500;
-      letter-spacing: .22em; text-transform: uppercase; color: var(--accD); }
-    .ac-hrow { display: flex; align-items: baseline; gap: 12px; padding: 12px 0;
-      border-bottom: 1px solid var(--rule); cursor: pointer; }
-    .ac-hrow:last-child { border-bottom: none; }
-    .ac-hrow:hover .hg { color: var(--accD); }
-    .ac-hrow .hd { font-family: var(--monoX); font-size: 10.5px; color: var(--gray-2); white-space: nowrap; }
-    .ac-hrow .hg { flex: 1; font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--black);
-      transition: color .2s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ac-hrow .hk { font-family: var(--monoX); font-size: 10.5px; color: var(--gray-2); white-space: nowrap; }
 
     .peek { display: block; margin-top: 10px; background: none; border: none; padding: 0;
       font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--accD);
@@ -712,36 +685,7 @@
       </div>
     </div>
 
-    <!-- ── ACCOUNT / SYNC ── -->
-    <div class="acct" id="acct" hidden>
-      <div class="ac-card">
-        <button class="co-x ac-close" id="acClose" type="button">Close</button>
-        <div id="acOut">
-          <div class="co-lead">Your program, <em>on every device</em></div>
-          <div class="co-sub">A free account keeps your plan, workout logs and check-ins in sync between
-            this browser and your phone. Without one, everything stays on this device — that promise doesn't change.</div>
-          <div class="field"><label class="os-label" for="acEmail">Email</label>
-            <input class="os-input" id="acEmail" type="email" autocomplete="email"></div>
-          <div class="field"><label class="os-label" for="acPw">Password — 8+ characters</label>
-            <input class="os-input" id="acPw" type="password" autocomplete="current-password">
-            <div class="hintline">No password reset exists yet — keep it in a password manager.</div></div>
-          <div class="ac-err" id="acErr"></div>
-          <div class="ac-btns">
-            <button class="os-btn-primary" id="acRegister" type="button">Create account</button>
-            <button class="co-ghost" id="acLogin" type="button">Sign in</button>
-          </div>
-        </div>
-        <div id="acIn" hidden>
-          <div class="co-lead">Synced. <em>Everywhere.</em></div>
-          <div class="ac-who" id="acWho"></div>
-          <div class="ac-status">Your plan and logs now follow you — phone at the gym, laptop at home.
-            Everything still works offline; changes sync when you're back.</div>
-          <div class="ac-hist-head" id="acHistHead" hidden>Plan history</div>
-          <div id="acHist"></div>
-          <div class="ac-btns"><button class="co-ghost" id="acLogout" type="button">Sign out</button></div>
-        </div>
-      </div>
-    </div>
+    <!-- account modal is chrome-owned: injected by os.js on every page -->
 
     <!-- ── THINKING ── -->
     <div class="thinking" id="thinking">
@@ -1363,30 +1307,22 @@
   });
   refreshRestore();
 
-  /* ── accounts & sync (opt-in; without an account nothing leaves the device) ── */
+  /* ── accounts & sync: modal is chrome-owned (os.js); the engine lives here ── */
   const SYNC = { user: null, enabled: false };
-  document.body.appendChild($('acct'));
   function acctPill() {
     const t = $('tabAcct');
     t.style.display = SYNC.enabled ? '' : 'none';
     t.textContent = SYNC.user ? '● ' + SYNC.user.split('@')[0] : 'Sync';
   }
-  function acctPanels() {
-    $('acOut').hidden = !!SYNC.user;
-    $('acIn').hidden = !SYNC.user;
-    if (SYNC.user) $('acWho').textContent = SYNC.user;
-  }
-  async function syncMe() {
-    try {
-      const d = await (await fetch('/api/auth/me')).json();
-      SYNC.enabled = !!d.enabled; SYNC.user = d.user || null;
-    } catch (e) { SYNC.enabled = false; }
+  function syncAuthLost() {
+    SYNC.user = null;
     acctPill();
-    if (SYNC.user) pullMerge();
+    if (window.OS_ACCT) { OS_ACCT.user = null; OS_ACCT._emit('logout'); }
   }
   async function pullMerge() {
     try {
       const r = await fetch('/api/sync');
+      if (r.status === 401) { syncAuthLost(); return; }
       if (!r.ok) return;
       const d = await r.json();
       const localAt = (savedPlan() || {}).at || 0;
@@ -1418,50 +1354,24 @@
     const s = savedPlan();
     if (!SYNC.user || !s) return;
     try {
-      await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      const r = await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: { value: s.plan, at: s.at } }) });
+      if (r.status === 401) syncAuthLost();
     } catch (e) {}
   }
   async function pushLogs() {
     if (!SYNC.user) return;
     try {
-      await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      const r = await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ logs: { value: loadLogs(), at: Date.now() } }) });
+      if (r.status === 401) syncAuthLost();
     } catch (e) {}
   }
-  async function acctCall(path) {
-    $('acErr').textContent = '';
+  // shared modal (os.js) calls this to open an archived plan in place
+  window.TRAINER_VIEW_HISTORY = async id => {
     try {
-      const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: $('acEmail').value, password: $('acPw').value }) });
-      const d = await r.json();
-      if (!r.ok || d.error) { $('acErr').textContent = d.error || 'Something went wrong.'; return; }
-      SYNC.user = d.user; $('acPw').value = '';
-      acctPill(); acctPanels(); pullMerge(); loadHistory();
-    } catch (e) { $('acErr').textContent = 'Could not reach the server.'; }
-  }
-  async function loadHistory() {
-    $('acHistHead').hidden = true;
-    $('acHist').innerHTML = '';
-    if (!SYNC.user) return;
-    try {
-      const d = await (await fetch('/api/history')).json();
-      const h = d.history || [];
-      if (!h.length) return;
-      $('acHistHead').hidden = false;
-      $('acHist').innerHTML = h.map(x => '<div class="ac-hrow" data-id="' + x.id + '">' +
-        '<span class="hd">' + new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + '</span>' +
-        '<span class="hg">' + esc(x.goal) + '</span>' +
-        '<span class="hk">' + (x.kcal ? esc(x.kcal) + ' kcal · ' : '') + esc(x.days) + ' days/wk</span></div>').join('');
-    } catch (e) {}
-  }
-  $('acHist').addEventListener('click', async e => {
-    const row = e.target.closest('.ac-hrow');
-    if (!row) return;
-    try {
-      const d = await (await fetch('/api/history/' + row.dataset.id)).json();
+      const d = await (await fetch('/api/history/' + id)).json();
       if (!d.plan) return;
-      $('acct').hidden = true;
       renderPlan(d.plan);
       const cur = savedPlan();
       if (cur) $('planDoc').insertAdjacentHTML('afterbegin', DIFF(d.plan, cur.plan, 'This plan → your current'));
@@ -1470,24 +1380,21 @@
       const kb = $('keepBtn');
       kb.textContent = 'Make this my current plan';
       kb.style.display = '';
-    } catch (e2) {}
+    } catch (e) {}
+  };
+  $('tabAcct').addEventListener('click', () => { if (window.OS_ACCT) OS_ACCT.open(); });
+  if (window.OS_ACCT) OS_ACCT.on(st => {
+    SYNC.user = st.user;
+    SYNC.enabled = st.enabled;
+    acctPill();
+    if (st.user && (st.event === 'me' || st.event === 'login')) pullMerge();
+    if (st.event === 'logout') refreshRestore();
   });
-  window.TRAINER_ACCT_OPEN = () => { acctPanels(); loadHistory(); $('acct').hidden = false; };
-  $('tabAcct').addEventListener('click', window.TRAINER_ACCT_OPEN);
-  if (location.hash === '#account') {
+  const histMatch = location.hash.match(/^#history=(\d+)$/);
+  if (histMatch) {
     history.replaceState(null, '', location.pathname + location.search);
-    setTimeout(window.TRAINER_ACCT_OPEN, 250);
+    setTimeout(() => window.TRAINER_VIEW_HISTORY(histMatch[1]), 400);
   }
-  $('acClose').addEventListener('click', () => { $('acct').hidden = true; });
-  $('acct').addEventListener('click', e => { if (e.target === $('acct')) $('acct').hidden = true; });
-  $('acRegister').addEventListener('click', () => acctCall('/api/auth/register'));
-  $('acLogin').addEventListener('click', () => acctCall('/api/auth/login'));
-  $('acLogout').addEventListener('click', async () => {
-    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
-    SYNC.user = null; acctPill(); acctPanels(); $('acct').hidden = true;
-  });
-  syncMe();
-
   /* ── PWA: installable, saved plan + logs readable offline at the gym ── */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -1734,7 +1641,7 @@
   function renderPlan(d) {
     lastPlan.d = d;
     qaReset();
-    $('keepBtn').style.display = 'none';  // only the shared-plan path re-shows it
+    $('keepBtn').style.display = 'none';  // shared-plan and archive views re-show it
     secN = 0;
     const ps = d.profile_summary || {};
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
