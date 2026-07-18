@@ -95,7 +95,7 @@ with sync_playwright() as p:
         pg.fill("#fDob", "2002-05-01")
         pg.fill("#fHeight", "178 cm")
         pg.fill("#fWeight", "82 kg")
-        pg.click("#buildBtn")
+        pg.click("#next1"); pg.click("#next2"); pg.click("#buildBtn")
         try:
             pg.wait_for_selector(".plan-wrap.show", timeout=45000)
             check("demo_plan_appears", True)
@@ -121,7 +121,7 @@ with sync_playwright() as p:
             pgs.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
             pgs.fill("#fName", "QA Smoke"); pgs.fill("#fDob", "2002-05-01")
             pgs.fill("#fHeight", "178 cm"); pgs.fill("#fWeight", "82 kg")
-            pgs.click("#buildBtn"); pgs.wait_for_selector(".plan-wrap.show", timeout=45000)
+            pgs.click("#next1"); pgs.click("#next2"); pgs.click("#buildBtn"); pgs.wait_for_selector(".plan-wrap.show", timeout=45000)
             pgs.click("#shareBtn"); pgs.wait_for_timeout(600)
             share_url = pgs.evaluate("navigator.clipboard.readText()")
             check("share_link_copied", isinstance(share_url, str) and "#p=" in share_url,
@@ -166,7 +166,7 @@ with sync_playwright() as p:
         pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
         pg.fill("#fName", "QA"); pg.fill("#fDob", "2002-05-01")
         pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82")
-        pg.click("#buildBtn")
+        pg.click("#next1"); pg.click("#next2"); pg.click("#buildBtn")
         pg.wait_for_selector(".plan-wrap.show", timeout=45000)
         check("demo_never_clobbers_saved_plan",
               pg.evaluate("() => JSON.parse(localStorage.getItem('trainerLastPlan')).plan.profile_summary.goal === 'REAL'"))
@@ -175,7 +175,7 @@ with sync_playwright() as p:
         pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
         pg.fill("#fName", "QA"); pg.fill("#fDob", "2002-05-01")
         pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82")
-        pg.click("#buildBtn")
+        pg.click("#next1"); pg.click("#next2"); pg.click("#buildBtn")
         pg.wait_for_selector(".plan-wrap.show", timeout=45000)
         check("demo_seeds_fresh_visitor",
               pg.evaluate("() => !!localStorage.getItem('trainerLastPlan')"))

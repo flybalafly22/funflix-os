@@ -318,6 +318,8 @@
     <a class="link" href="#apps" id="navApps">Apps</a>
     <a class="link" href="#cost">Cost</a>
     <a class="link" href="#about">About</a>
+    <a class="link" href="/trainer#account" id="ffxAcct" style="color:var(--accD);font-weight:600"
+       title="Free — your training plan, workout log and check-ins on every device">Create account</a>
     <button type="button" class="kbd" id="palHint" title="Quick launch" aria-label="Open quick launch (Command K)">&#8984;K</button>
     <a class="ffx-cta" href="#apps">Open FUNFLIX</a>
   </div>
@@ -334,7 +336,7 @@
     <a class="ffx-cta big" href="#apps">Open FUNFLIX</a>
     <a class="ffx-ghost" href="#apps">Browse the apps &rarr;</a>
   </div>
-  <div class="ffx-mono-note">NO ACCOUNT &middot; NO INSTALL &middot; NO ADS</div>
+  <div class="ffx-mono-note">NO INSTALL &middot; NO ADS &middot; FREE OPTIONAL ACCOUNT &mdash; YOUR TRAINING ON EVERY DEVICE</div>
 
   <div class="mock-wrap">
     <div class="mock-glow" style="left:-20px;top:40px;background:radial-gradient(circle,rgba(189,242,63,.4),transparent 68%)"></div>
@@ -1415,6 +1417,15 @@
       '— eight apps, one place. psst: press ⌘K. and try making the calculator say 42.');
   } catch (e) {}
 })();
+</script>
+
+<script>
+/* account-aware nav pill (accounts are optional; sold, never forced) */
+fetch('/api/auth/me').then(r => r.json()).then(d => {
+  const a = document.getElementById('ffxAcct');
+  if (!a || !d.enabled) { if (a && !d.enabled) a.style.display = 'none'; return; }
+  if (d.user) { a.textContent = '\u25cf ' + d.user.split('@')[0]; a.title = 'Your account \u2014 training synced on every device'; }
+}).catch(() => {});
 </script>
 </body>
 </html>

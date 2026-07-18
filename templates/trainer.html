@@ -264,6 +264,18 @@
     .ac-status { margin-top: 10px; font-family: var(--sans); font-size: 13.5px; line-height: 1.65; color: var(--gray); }
     .mtab.sync { color: var(--accD); }
 
+    /* ── intake stepper ── */
+    .stepper { display: flex; gap: 26px; margin-bottom: 30px; padding-bottom: 18px;
+      border-bottom: 1px solid var(--rule); }
+    .stp { background: none; border: none; padding: 0; display: flex; align-items: baseline; gap: 8px;
+      font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--gray-2);
+      cursor: pointer; transition: color .2s; }
+    .stp span { font-family: var(--monoX); font-size: 10px; letter-spacing: .14em; color: var(--rule-2); transition: color .2s; }
+    .stp.on { color: var(--black); }
+    .stp.on span { color: var(--accD); }
+    .fstep-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 30px; }
+    .fstep-nav .os-btn-primary, .go-row .os-btn-primary { width: auto; padding: 14px 30px; }
+
     /* ── first-run welcome ── */
     .welcome { width: min(720px, 100%); background: #fff; border: 1px solid #E9E9E5; border-radius: 24px;
       padding: 30px 34px; margin-bottom: 22px; text-align: center;
@@ -432,6 +444,13 @@
     <!-- ── INTAKE ── -->
     <form class="intake fade-rise-d1" id="intakeForm" autocomplete="off">
       <div class="intake-inner">
+        <div class="stepper" id="stepper" aria-label="Intake steps">
+          <button type="button" class="stp on" data-step="1"><span>01</span>You</button>
+          <button type="button" class="stp" data-step="2"><span>02</span>Training</button>
+          <button type="button" class="stp" data-step="3"><span>03</span>Fuel</button>
+        </div>
+
+        <div class="fstep" id="step1">
         <div class="sec">The client</div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="fName">Name</label>
@@ -459,6 +478,13 @@
             <input class="os-input" id="fGoalNote" placeholder="e.g. bigger arms, first pull-up, wedding in June"></div>
         </div>
 
+        <div class="fstep-nav">
+          <span></span>
+          <button type="button" class="os-btn-primary stp-next" id="next1">Next — Training →</button>
+        </div>
+        </div>
+
+        <div class="fstep" id="step2" style="display:none">
         <div class="sec">Availability &amp; where you train</div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="fDays">Days per week</label>
@@ -499,6 +525,13 @@
             <input class="os-input" id="fInjury" placeholder="e.g. old shoulder dislocation, ACL repair 2019"></div>
         </div>
 
+        <div class="fstep-nav">
+          <button type="button" class="co-ghost stp-back" data-to="1">← Back</button>
+          <button type="button" class="os-btn-primary stp-next" id="next2">Next — Fuel →</button>
+        </div>
+        </div>
+
+        <div class="fstep" id="step3" style="display:none">
         <div class="sec">Fuel</div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="fDiet">Diet preference</label>
@@ -521,9 +554,11 @@
           <textarea class="os-input" id="fExtra" placeholder="e.g. home dumbbells only on weekends, night-shift work, past sports, exercises you hate…"></textarea></div>
 
         <div class="go-row">
+          <button type="button" class="co-ghost stp-back" data-to="2">← Back</button>
           <button type="submit" class="os-btn-primary" id="buildBtn">Build my program</button>
           <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Nothing leaves your device unless you create a free Sync account — otherwise the plan lives in your browser and your PDF.
             <button type="button" class="peek" id="peekBtn">Just looking? Preview a sample program →</button></div>
+        </div>
         </div>
       </div>
     </form>
@@ -911,6 +946,29 @@
 
   form.addEventListener('submit', e => { e.preventDefault(); submit(null); });
   checkinForm.addEventListener('submit', e => { e.preventDefault(); submit(null); });
+  /* ── intake stepper ── */
+  let step = 1;
+  function setStep(n) {
+    step = n;
+    [1, 2, 3].forEach(i => { $('step' + i).style.display = i === n ? '' : 'none'; });
+    document.querySelectorAll('.stp').forEach(b => b.classList.toggle('on', +b.dataset.step <= n));
+    $('stepper').scrollIntoView({ block: 'nearest' });
+  }
+  function stepValid(n) {
+    const ids = n === 1 ? ['fName', 'fDob', 'fHeight', 'fWeight'] : [];
+    for (const id of ids) {
+      const el = $(id);
+      if (!el.checkValidity()) { el.reportValidity(); return false; }
+    }
+    return true;
+  }
+  $('next1').addEventListener('click', () => { if (stepValid(1)) setStep(2); });
+  $('next2').addEventListener('click', () => { if (stepValid(2)) setStep(3); });
+  document.querySelectorAll('.stp-back').forEach(b =>
+    b.addEventListener('click', () => setStep(+b.dataset.to)));
+  document.querySelectorAll('.stp').forEach(b =>
+    b.addEventListener('click', () => { const n = +b.dataset.step; if (n < step) setStep(n); }));
+
   let demoOnce = false;
   $('peekBtn').addEventListener('click', () => { demoOnce = true; submit(null); });
   $('welcomePeek').addEventListener('click', () => { demoOnce = true; submit(null); });
@@ -1414,7 +1472,12 @@
       kb.style.display = '';
     } catch (e2) {}
   });
-  $('tabAcct').addEventListener('click', () => { acctPanels(); loadHistory(); $('acct').hidden = false; });
+  window.TRAINER_ACCT_OPEN = () => { acctPanels(); loadHistory(); $('acct').hidden = false; };
+  $('tabAcct').addEventListener('click', window.TRAINER_ACCT_OPEN);
+  if (location.hash === '#account') {
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(window.TRAINER_ACCT_OPEN, 250);
+  }
   $('acClose').addEventListener('click', () => { $('acct').hidden = true; });
   $('acct').addEventListener('click', e => { if (e.target === $('acct')) $('acct').hidden = true; });
   $('acRegister').addEventListener('click', () => acctCall('/api/auth/register'));

@@ -69,10 +69,27 @@
   // with body.fade-out still applied (opacity:0) → the page looks blank / "doesn't load".
   window.addEventListener('pageshow', () => { document.body.classList.remove('fade-out'); });
 
+  /* ── the account: one identity, sold on every page ── */
+  const ACCT = { enabled: false, user: null };
+  function acctGo() {
+    if (typeof window.TRAINER_ACCT_OPEN === 'function') window.TRAINER_ACCT_OPEN();
+    else nav('/trainer#account');
+  }
   document.getElementById('hudCta').addEventListener('click', () => {
+    if (ACCT.enabled) { acctGo(); return; }
     if (typeof window.openAccess === 'function') window.openAccess();
     else nav('/');
   });
+  fetch('/api/auth/me').then(r => r.json()).then(d => {
+    ACCT.enabled = !!d.enabled;
+    ACCT.user = d.user || null;
+    if (!ACCT.enabled) return;
+    const cta = document.getElementById('hudCta');
+    cta.textContent = ACCT.user ? '● ' + ACCT.user.split('@')[0] : 'Create account';
+    cta.title = ACCT.user
+      ? 'Your account — training synced on every device'
+      : 'Free account: your training plan, workout log and check-ins on every device';
+  }).catch(() => {});
 
   const mob = document.getElementById('hudMobile');
   document.getElementById('hudBurger').addEventListener('click', e => {
@@ -108,6 +125,11 @@
       run: () => nav(m.path),
       disabled: m.path === current.path,
     })).filter(i => !i.disabled);
+    if (ACCT.enabled) {
+      items.unshift(ACCT.user
+        ? { id: '&#9679;', label: 'Your account — ' + ACCT.user, hint: 'training synced on every device', run: acctGo }
+        : { id: '&#9679;', label: 'Create your FUNFLIX account', hint: 'free — your training, on every device', run: acctGo });
+    }
     if (window.OS_PALETTE_EXTRA) items.push(...window.OS_PALETTE_EXTRA);
     return items;
   }
