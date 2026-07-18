@@ -73,3 +73,24 @@ def test_qa_rate_bucket_is_separate_from_plan_bucket(monkeypatch):
     r = c.post("/api/trainer/ask",
                json={"plan": PLAN, "messages": [{"role": "user", "content": "hello"}]}, headers=ip)
     assert r.status_code == 200
+
+
+def test_log_digest_rides_in_system_instruction(_setup):
+    digest = {"sessions": [{"date": "2026-07-10", "day": "D1",
+                            "best_sets": ["Barbell bench press: 65 kg x 8"]}],
+              "stalls": [], "plan_age_days": 7}
+    r = _c().post("/api/trainer/ask",
+                  json={"plan": PLAN, "log_digest": digest,
+                        "messages": [{"role": "user", "content": "How is my bench going?"}]})
+    assert r.status_code == 200
+    sysinstr = _setup["config"].system_instruction
+    assert "THE CLIENT'S TRAINING LOG" in sysinstr and "65 kg x 8" in sysinstr
+
+
+def test_oversized_digest_is_dropped(_setup):
+    digest = {"sessions": ["x" * 25_000]}
+    r = _c().post("/api/trainer/ask",
+                  json={"plan": PLAN, "log_digest": digest,
+                        "messages": [{"role": "user", "content": "hi"}]})
+    assert r.status_code == 200
+    assert "THE CLIENT'S TRAINING LOG" not in _setup["config"].system_instruction

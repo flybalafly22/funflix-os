@@ -655,7 +655,8 @@
           <div class="field"><label class="os-label" for="acEmail">Email</label>
             <input class="os-input" id="acEmail" type="email" autocomplete="email"></div>
           <div class="field"><label class="os-label" for="acPw">Password — 8+ characters</label>
-            <input class="os-input" id="acPw" type="password" autocomplete="current-password"></div>
+            <input class="os-input" id="acPw" type="password" autocomplete="current-password">
+            <div class="hintline">No password reset exists yet — keep it in a password manager.</div></div>
           <div class="ac-err" id="acErr"></div>
           <div class="ac-btns">
             <button class="os-btn-primary" id="acRegister" type="button">Create account</button>
@@ -696,6 +697,7 @@
       <div class="plan-actions">
         <div class="pa-note">Your program is ready. “Download PDF” uses your browser’s print dialog — choose “Save as PDF”.</div>
         <button class="btn-again" id="againBtn">Start over</button>
+        <button class="btn-again" id="keepBtn" style="display:none">Save to this device</button>
         <button class="btn-again" id="shareBtn">Share link</button>
         <button class="btn-dl" id="dlBtn">Download PDF</button>
       </div>
@@ -820,6 +822,7 @@
       const peek = demoOnce;
       demoOnce = false;
       if (peek) body.demo = 1;
+      const isDemo = !!body.demo;
       const r = await fetch('/api/trainer', { method: 'POST',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const ct = r.headers.get('content-type') || '';
@@ -852,10 +855,16 @@
           (data.note ? '<div class="fu-note">' + esc(data.note) + '</div>' : '');
         setState('followup');
       } else if (data.type === 'plan') {
-        if (!peek) savePlan(data);  // a peeked sample must never clobber a real plan or sync
+        // Demo-sourced plans must never clobber a real saved plan or reach sync.
+        // A fresh visitor's demo may seed local state (never pushed).
+        if (!isDemo) savePlan(data);
+        else if (!savedPlan()) {
+          try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: Date.now(), plan: data })); } catch (e) {}
+          refreshRestore();
+        }
         renderPlan(data);
         setState('plan');
-        if (peek) document.querySelector('.pa-note').textContent =
+        if (isDemo) document.querySelector('.pa-note').textContent =
           'A sample program — fill the form to build yours. “Download PDF” uses your browser’s print dialog.';
       } else { fail('The Trainer returned an unexpected reply. Please try again.'); }
     } catch (e) { fail('Could not reach The Trainer: ' + e.message); }
@@ -1205,8 +1214,26 @@
     $('coRamp').textContent = CO.idx === 0 ? rampFor($('coW').value) : '';
   });
 
-  /* ── check-in autofill from logs: first vs latest best set per exercise ── */
+  /* ── check-in prefills: the studio fills in what it already knows ── */
   function autofillCheckin() {
+    const saved = savedPlan();
+    if (saved && !checkinForm.dataset.prefilled) {
+      checkinForm.dataset.prefilled = '1';
+      const ps = saved.plan.profile_summary || {};
+      if (!$('cName').value && ps.name) $('cName').value = ps.name;
+      const goal = String(ps.goal || '').toLowerCase();
+      [...$('cGoal').options].some(o => {
+        if (goal.indexOf(o.value.toLowerCase()) === 0 || goal.includes(o.value.toLowerCase())) {
+          $('cGoal').value = o.value; return true;
+        }
+        return false;
+      });
+      const kcal = (saved.plan.diet_plan || {}).calorie_target_kcal;
+      if (!$('cCalTarget').value && kcal != null) $('cCalTarget').value = kcal + ' kcal';
+      const weeks = Math.max(1, Math.round((Date.now() - saved.at) / 604800000));
+      const opts = [...$('cWeeks').options].map(o => +o.value);
+      $('cWeeks').value = String(opts.reduce((b, o) => Math.abs(o - weeks) < Math.abs(b - weeks) ? o : b, opts[0]));
+    }
     if ($('cLifts').value.trim()) return;
     const logs = loadLogs();
     if (logs.length < 2) return;
@@ -1261,6 +1288,13 @@
       const localAt = (savedPlan() || {}).at || 0;
       if (d.plan && d.plan.at > localAt) {
         try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: d.plan.at, plan: d.plan.value })); } catch (e) {}
+        // honesty: if a plan is on screen, show the newer one and say so —
+        // Q&A and Share must ground in what the account now holds
+        if (planWrap.classList.contains('show')) {
+          renderPlan(d.plan.value);
+          document.querySelector('.pa-note').textContent =
+            'Updated from your account · ' + new Date(d.plan.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
       } else if (localAt && (!d.plan || localAt > d.plan.at)) { pushPlan(); }
       const remote = (d.logs && d.logs.value) || [];
       const local = loadLogs();
@@ -1352,6 +1386,14 @@
     } catch (e) { if (e && e.name !== 'AbortError') btn.textContent = 'Copy failed'; }
     setTimeout(() => { btn.textContent = old; }, 1800);
   });
+  $('keepBtn').addEventListener('click', () => {
+    if (!lastPlan.d) return;
+    if (savedPlan() && !confirm('Replace the plan already saved on this device?')) return;
+    savePlan(lastPlan.d);
+    $('keepBtn').style.display = 'none';
+    document.querySelector('.pa-note').textContent =
+      'Saved ✓ — the Log tab, Coach Mode and check-ins now work with this program.';
+  });
   (async () => {
     if (location.hash.indexOf('#p=') === 0 && typeof DecompressionStream !== 'undefined') {
       try {
@@ -1360,6 +1402,7 @@
           renderPlan(d);
           setState('plan');
           document.querySelector('.pa-note').textContent = 'A program shared with you. “Download PDF” uses your browser’s print dialog.';
+          $('keepBtn').style.display = '';
         }
       } catch (e) {}
     }
@@ -1383,6 +1426,24 @@
     d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     return d;
   }
+  function qaLogDigest() {
+    const logs = loadLogs();
+    if (!logs.length) return null;
+    const sessions = logs.slice(0, 10).map(s => ({
+      date: new Date(s.at).toISOString().slice(0, 10),
+      day: s.day || '',
+      best_sets: s.entries.map(e => {
+        const b = bestSet(e.sets);
+        return b ? e.name + ': ' + fmtSet(b) : null;
+      }).filter(Boolean),
+    }));
+    const sp = savedPlan();
+    return {
+      sessions,
+      stalls: stallWatch().map(s => s.name + ' stalled at ' + fmtSet(s.last)),
+      plan_age_days: sp ? Math.max(0, Math.round((Date.now() - sp.at) / 86400000)) : null,
+    };
+  }
   async function qaSend(text) {
     text = String(text || '').trim();
     if (!text || qaBusy || !lastPlan.d) return;
@@ -1394,9 +1455,12 @@
     qaBubble('you', text);
     const bub = qaBubble('coach pending', '');
     try {
+      const body = { plan: lastPlan.d, messages: qaMsgs.slice(-12) };
+      const dig = qaLogDigest();
+      if (dig) body.log_digest = dig;
       const r = await fetch('/api/trainer/ask', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: lastPlan.d, messages: qaMsgs.slice(-12) }),
+        body: JSON.stringify(body),
       });
       const ct = r.headers.get('content-type') || '';
       if (ct.indexOf('application/json') !== -1) {
@@ -1528,6 +1592,7 @@
   function renderPlan(d) {
     lastPlan.d = d;
     qaReset();
+    $('keepBtn').style.display = 'none';  // only the shared-plan path re-shows it
     secN = 0;
     const ps = d.profile_summary || {};
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });

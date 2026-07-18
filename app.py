@@ -719,7 +719,12 @@ consistent with the plan's safety notes.
 - Tone: warm, direct, numbers attached. 2 to 5 short sentences, or a tight list. PLAIN TEXT only: \
 no markdown symbols, no emojis.
 - If the question is unrelated to training, nutrition, recovery, or this plan, decline in one \
-friendly sentence and steer back to the program."""
+friendly sentence and steer back to the program.
+- When a TRAINING LOG is attached, ground progress questions in the actual logged numbers: quote \
+the client's real weights, reps and dates, name stalls the log shows and apply the plan's stall \
+rule to them, and praise measured progress specifically. If no log is attached and progress is \
+asked about, say the honest thing: log sessions (the Log tab or Coach Mode) and the answers get \
+personal."""
 
 
 @app.route("/api/trainer/ask", methods=["POST"])
@@ -747,6 +752,9 @@ def trainer_ask():
         return jsonify({"error": "Ask a question."}), 400
 
     system = TRAINER_QA_SYSTEM + "\n\n==== THE CLIENT'S PLAN (JSON) ====\n" + json_mod.dumps(plan)
+    digest = payload.get("log_digest")
+    if isinstance(digest, dict) and len(json_mod.dumps(digest)) < 20_000:
+        system += "\n\n==== THE CLIENT'S TRAINING LOG (their real logged sessions) ====\n" + json_mod.dumps(digest)
     config_kwargs = dict(system_instruction=system, temperature=0.4)
     try:
         config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=512)

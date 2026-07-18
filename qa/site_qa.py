@@ -161,6 +161,26 @@ with sync_playwright() as p:
         check("checkin_autofill_from_logs",
               "60 kg x 8 -> 65 kg x 8" in autofill, autofill[:120])
 
+        # ── sprint 7: a demo submit must never clobber a saved real plan ──
+        pg.evaluate("localStorage.setItem('trainerLastPlan', JSON.stringify({at: 111, plan: {type:'plan', profile_summary:{goal:'REAL'}, workout_days:[{day_label:'D', exercises:[{name:'X', sets:3}]}]}}))")
+        pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
+        pg.fill("#fName", "QA"); pg.fill("#fDob", "2002-05-01")
+        pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82")
+        pg.click("#buildBtn")
+        pg.wait_for_selector(".plan-wrap.show", timeout=45000)
+        check("demo_never_clobbers_saved_plan",
+              pg.evaluate("() => JSON.parse(localStorage.getItem('trainerLastPlan')).plan.profile_summary.goal === 'REAL'"))
+        # fresh visitor's demo DOES seed local state (downstream logger checks rely on it)
+        pg.evaluate("localStorage.removeItem('trainerLastPlan')")
+        pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
+        pg.fill("#fName", "QA"); pg.fill("#fDob", "2002-05-01")
+        pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82")
+        pg.click("#buildBtn")
+        pg.wait_for_selector(".plan-wrap.show", timeout=45000)
+        check("demo_seeds_fresh_visitor",
+              pg.evaluate("() => !!localStorage.getItem('trainerLastPlan')"))
+        pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
+
         # ── sprint 6: Q&A panel + account surfaces exist ──
         check("qa_panel_present",
               pg.evaluate("() => !!document.getElementById('qaWrap') && document.querySelectorAll('.qa-chip').length === 3"))

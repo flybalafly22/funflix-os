@@ -36,7 +36,17 @@ from this file directly.
   Trainer chat; accounts & cross-device sync on Neon Postgres (opt-in,
   privacy promise intact)
 
-## Next up (high value, roughly ordered)
+## Next up (high value, roughly ordered — Producer-groomed, Sprint 7 review)
+- **Plan history for synced accounts**: keep last N plans server-side; browse
+  and diff any two — makes Sync materially more valuable than localStorage.
+- **First-run experience**: hero-level sample-program CTA + progressive
+  disclosure of the 20-field intake into ~3 steps.
+- **Homepage → trainer conversion**: the Trainer card deep-links into the
+  sample-program peek, not the blank form.
+- **Password reset via emailed one-time code** — blocked on owner
+  mail-provider key (interim honesty line shipped Sprint 7).
+- **Performance pass**: Lighthouse mobile on /trainer; split the inline
+  template's CSS/JS only if it moves the score.
 - **Play Store listing (TWA)**: everything is prepared; needs owner's Google
   Play account ($25 one-time) + PWABuilder clicks — see MOBILE_APP.md.
 - **Server-sent email**: only if the share sheet proves insufficient; needs
