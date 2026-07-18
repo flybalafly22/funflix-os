@@ -80,6 +80,11 @@ class PgStore:
                 value JSONB NOT NULL,
                 updated_at BIGINT NOT NULL,
                 PRIMARY KEY (user_id, kind))""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS trainer_plan_history (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES trainer_users(id) ON DELETE CASCADE,
+                plan JSONB NOT NULL,
+                saved_at BIGINT NOT NULL)""")
 
     def create_user(self, email, pw_hash):
         try:
@@ -104,12 +109,34 @@ class PgStore:
     def put_blob(self, uid, kind, value, at):
         from psycopg2.extras import Json
         with self._cur() as (conn, cur):
+            if kind == "plan":
+                # a newer plan archives the one it replaces (per-user cap 10)
+                cur.execute("SELECT value, updated_at FROM trainer_blobs WHERE user_id=%s AND kind='plan'", (uid,))
+                row = cur.fetchone()
+                if row and int(at) > row[1]:
+                    cur.execute("INSERT INTO trainer_plan_history (user_id, plan, saved_at) VALUES (%s, %s, %s)",
+                                (uid, Json(row[0]), row[1]))
+                    cur.execute("""DELETE FROM trainer_plan_history WHERE user_id=%s AND id NOT IN (
+                        SELECT id FROM trainer_plan_history WHERE user_id=%s
+                        ORDER BY saved_at DESC LIMIT 10)""", (uid, uid))
             cur.execute("""INSERT INTO trainer_blobs (user_id, kind, value, updated_at)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (user_id, kind) DO UPDATE SET value = EXCLUDED.value,
                     updated_at = EXCLUDED.updated_at
                 WHERE trainer_blobs.updated_at <= EXCLUDED.updated_at""",
                         (uid, kind, Json(value), int(at)))
+
+    def get_history(self, uid):
+        with self._cur() as (conn, cur):
+            cur.execute("""SELECT id, plan, saved_at FROM trainer_plan_history
+                WHERE user_id=%s ORDER BY saved_at DESC""", (uid,))
+            return [(i, p, at) for i, p, at in cur.fetchall()]
+
+    def get_history_item(self, uid, hid):
+        with self._cur() as (conn, cur):
+            cur.execute("SELECT plan FROM trainer_plan_history WHERE user_id=%s AND id=%s", (uid, hid))
+            row = cur.fetchone()
+            return row[0] if row else None
 
     def get_blobs(self, uid):
         with self._cur() as (conn, cur):
@@ -465,6 +492,35 @@ def sync():
     blobs = STORE.get_blobs(uid)
     return jsonify({"plan_at": (blobs.get("plan") or {}).get("at"),
                     "logs_at": (blobs.get("logs") or {}).get("at")})
+
+
+@app.route("/api/history")
+def history_list():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    uid = _uid()
+    if not uid:
+        return jsonify({"error": "Sign in to see your history."}), 401
+    out = []
+    for hid, plan, at in STORE.get_history(uid):
+        ps = plan.get("profile_summary") or {}
+        out.append({"id": hid, "at": at, "goal": ps.get("goal") or "Program",
+                    "kcal": (plan.get("diet_plan") or {}).get("calorie_target_kcal"),
+                    "days": len(plan.get("workout_days") or [])})
+    return jsonify({"history": out})
+
+
+@app.route("/api/history/<int:hid>")
+def history_item(hid):
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    uid = _uid()
+    if not uid:
+        return jsonify({"error": "Sign in to see your history."}), 401
+    plan = STORE.get_history_item(uid, hid)
+    if plan is None:
+        return jsonify({"error": "Not found."}), 404
+    return jsonify({"plan": plan})
 
 
 @app.route("/api/version")

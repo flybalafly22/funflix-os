@@ -264,6 +264,28 @@
     .ac-status { margin-top: 10px; font-family: var(--sans); font-size: 13.5px; line-height: 1.65; color: var(--gray); }
     .mtab.sync { color: var(--accD); }
 
+    /* ── first-run welcome ── */
+    .welcome { width: min(720px, 100%); background: #fff; border: 1px solid #E9E9E5; border-radius: 24px;
+      padding: 30px 34px; margin-bottom: 22px; text-align: center;
+      box-shadow: 0 1px 2px rgba(17,17,16,.03), 0 24px 70px rgba(17,17,16,.06); }
+    .w-lead { font-family: var(--serif); font-size: clamp(20px, 3.2vw, 26px); line-height: 1.3; color: var(--black); }
+    .w-lead em { color: var(--accD); }
+    .w-points { display: flex; flex-direction: column; gap: 7px; margin: 18px 0 22px; }
+    .w-points span { font-family: var(--sans); font-size: 13.5px; color: var(--gray); }
+    .w-points span::before { content: '— '; color: var(--accD); }
+    .w-cta { width: auto; padding: 14px 34px; }
+
+    .ac-hist-head { margin-top: 26px; font-family: var(--monoX); font-size: 10px; font-weight: 500;
+      letter-spacing: .22em; text-transform: uppercase; color: var(--accD); }
+    .ac-hrow { display: flex; align-items: baseline; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--rule); cursor: pointer; }
+    .ac-hrow:last-child { border-bottom: none; }
+    .ac-hrow:hover .hg { color: var(--accD); }
+    .ac-hrow .hd { font-family: var(--monoX); font-size: 10.5px; color: var(--gray-2); white-space: nowrap; }
+    .ac-hrow .hg { flex: 1; font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--black);
+      transition: color .2s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ac-hrow .hk { font-family: var(--monoX); font-size: 10.5px; color: var(--gray-2); white-space: nowrap; }
+
     .peek { display: block; margin-top: 10px; background: none; border: none; padding: 0;
       font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--accD);
       cursor: pointer; text-align: left; }
@@ -385,6 +407,17 @@
       <div class="mod-over">Instrument No. VIII</div>
       <h1 class="mod-title">The Trainer</h1>
       <p class="mod-sub">an evidence-based training &amp; nutrition studio</p>
+    </div>
+
+    <!-- ── FIRST-RUN WELCOME ── -->
+    <div class="welcome" id="welcome" style="display:none">
+      <div class="w-lead">Programs written like a coach writes them — <em>every number justified.</em></div>
+      <div class="w-points">
+        <span>Evidence-based plan, built for your equipment and recovery</span>
+        <span>A live coach in the gym — rest timers, plate math, session log</span>
+        <span>Recalibrates from your measured results, syncs to every device</span>
+      </div>
+      <button type="button" class="os-btn-primary w-cta" id="welcomePeek">See a sample program — 10 seconds</button>
     </div>
 
     <!-- ── MODE TABS ── -->
@@ -668,6 +701,8 @@
           <div class="ac-who" id="acWho"></div>
           <div class="ac-status">Your plan and logs now follow you — phone at the gym, laptop at home.
             Everything still works offline; changes sync when you're back.</div>
+          <div class="ac-hist-head" id="acHistHead" hidden>Plan history</div>
+          <div id="acHist"></div>
           <div class="ac-btns"><button class="co-ghost" id="acLogout" type="button">Sign out</button></div>
         </div>
       </div>
@@ -742,6 +777,7 @@
     $('logForm').style.display = m === 'log' ? '' : 'none';
     if (m === 'log') buildLogForm();
     if (m === 'checkin') autofillCheckin();
+    updateWelcome();
   }
   $('tabPlan').addEventListener('click', () => setMode('plan'));
   $('tabCheckin').addEventListener('click', () => setMode('checkin'));
@@ -755,7 +791,10 @@
     'Timing meals around your sessions…','Grading the supplement evidence…','Writing the why…'];
   let thTimer = null;
   function setState(s) {
-    if (s === 'form') { setMode(mode); } else { form.style.display = 'none'; checkinForm.style.display = 'none'; }
+    if (s === 'form') { setMode(mode); } else {
+      form.style.display = 'none'; checkinForm.style.display = 'none';
+      $('logForm').style.display = 'none'; updateWelcome();
+    }
     modeTabs.style.display = s === 'form' ? '' : 'none';
     thinking.classList.toggle('show', s === 'thinking');
     followup.classList.toggle('show', s === 'followup');
@@ -874,6 +913,12 @@
   checkinForm.addEventListener('submit', e => { e.preventDefault(); submit(null); });
   let demoOnce = false;
   $('peekBtn').addEventListener('click', () => { demoOnce = true; submit(null); });
+  $('welcomePeek').addEventListener('click', () => { demoOnce = true; submit(null); });
+  function updateWelcome() {
+    $('welcome').style.display =
+      (!savedPlan() && mode === 'plan' && form.style.display !== 'none') ? '' : 'none';
+  }
+  if (new URLSearchParams(location.search).has('sample')) { demoOnce = true; submit(null); }
   $('fuBtn').addEventListener('click', () => {
     submit(pendingQuestions.map((q, i) => ({ q: q.question, a: $('fuA' + i).value })));
   });
@@ -900,6 +945,7 @@
       btn.style.display = '';
     } else { btn.style.display = 'none'; }
     $('tabLog').style.display = saved && Array.isArray(saved.plan.workout_days) && saved.plan.workout_days.length ? '' : 'none';
+    if (typeof updateWelcome === 'function') updateWelcome();
   }
 
   /* ── session log (device-only) ── */
@@ -1333,10 +1379,42 @@
       const d = await r.json();
       if (!r.ok || d.error) { $('acErr').textContent = d.error || 'Something went wrong.'; return; }
       SYNC.user = d.user; $('acPw').value = '';
-      acctPill(); acctPanels(); pullMerge();
+      acctPill(); acctPanels(); pullMerge(); loadHistory();
     } catch (e) { $('acErr').textContent = 'Could not reach the server.'; }
   }
-  $('tabAcct').addEventListener('click', () => { acctPanels(); $('acct').hidden = false; });
+  async function loadHistory() {
+    $('acHistHead').hidden = true;
+    $('acHist').innerHTML = '';
+    if (!SYNC.user) return;
+    try {
+      const d = await (await fetch('/api/history')).json();
+      const h = d.history || [];
+      if (!h.length) return;
+      $('acHistHead').hidden = false;
+      $('acHist').innerHTML = h.map(x => '<div class="ac-hrow" data-id="' + x.id + '">' +
+        '<span class="hd">' + new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + '</span>' +
+        '<span class="hg">' + esc(x.goal) + '</span>' +
+        '<span class="hk">' + (x.kcal ? esc(x.kcal) + ' kcal · ' : '') + esc(x.days) + ' days/wk</span></div>').join('');
+    } catch (e) {}
+  }
+  $('acHist').addEventListener('click', async e => {
+    const row = e.target.closest('.ac-hrow');
+    if (!row) return;
+    try {
+      const d = await (await fetch('/api/history/' + row.dataset.id)).json();
+      if (!d.plan) return;
+      $('acct').hidden = true;
+      renderPlan(d.plan);
+      const cur = savedPlan();
+      if (cur) $('planDoc').insertAdjacentHTML('afterbegin', DIFF(d.plan, cur.plan, 'This plan → your current'));
+      setState('plan');
+      document.querySelector('.pa-note').textContent = 'From your archive. Make it current to train and log against it again.';
+      const kb = $('keepBtn');
+      kb.textContent = 'Make this my current plan';
+      kb.style.display = '';
+    } catch (e2) {}
+  });
+  $('tabAcct').addEventListener('click', () => { acctPanels(); loadHistory(); $('acct').hidden = false; });
   $('acClose').addEventListener('click', () => { $('acct').hidden = true; });
   $('acct').addEventListener('click', e => { if (e.target === $('acct')) $('acct').hidden = true; });
   $('acRegister').addEventListener('click', () => acctCall('/api/auth/register'));
@@ -1402,6 +1480,7 @@
           renderPlan(d);
           setState('plan');
           document.querySelector('.pa-note').textContent = 'A program shared with you. “Download PDF” uses your browser’s print dialog.';
+          $('keepBtn').textContent = 'Save to this device';
           $('keepBtn').style.display = '';
         }
       } catch (e) {}
@@ -1556,7 +1635,7 @@
     return pairs.length ? '<div class="pd-meta">' + pairs.map(m =>
       '<div><b>' + esc(m[0]) + '</b><span>' + esc(m[1]) + '</span></div>').join('') + '</div>' : '';
   }
-  function DIFF(oldP, newP) {
+  function DIFF(oldP, newP, label) {
     if (!oldP || !newP) return '';
     const n = v => (v == null || isNaN(+v)) ? null : +v;
     const sets = p => (p.workout_days || []).reduce((t, w) =>
@@ -1571,7 +1650,7 @@
       ['Weekly hard sets', sets(oldP), sets(newP), ''],
     ].filter(r => r[1] != null && r[2] != null);
     if (!rows.length) return '';
-    let h = LAB('Old plan → new plan');
+    let h = LAB(label || 'Old plan → new plan');
     h += '<div class="diff">' + rows.map(r => {
       const d = r[2] - r[1];
       const chip = d === 0 ? '<span class="dc same">unchanged</span>'

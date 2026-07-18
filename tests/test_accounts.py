@@ -10,7 +10,9 @@ class MemStore:
     def __init__(self):
         self.users = {}   # email -> (id, pw_hash)
         self.blobs = {}   # (uid, kind) -> {"value":..., "at":...}
+        self.hist = {}    # uid -> [(id, plan, at)] newest first
         self._seq = 0
+        self._hseq = 0
 
     def create_user(self, email, pw_hash):
         if email in self.users:
@@ -32,7 +34,20 @@ class MemStore:
         cur = self.blobs.get((uid, kind))
         if cur and cur["at"] > at:
             return
+        if kind == "plan" and cur and int(at) > cur["at"]:
+            self._hseq += 1
+            self.hist.setdefault(uid, []).insert(0, (self._hseq, cur["value"], cur["at"]))
+            self.hist[uid] = self.hist[uid][:10]
         self.blobs[(uid, kind)] = {"value": value, "at": int(at)}
+
+    def get_history(self, uid):
+        return list(self.hist.get(uid, []))
+
+    def get_history_item(self, uid, hid):
+        for i, p, at in self.hist.get(uid, []):
+            if i == hid:
+                return p
+        return None
 
     def get_blobs(self, uid):
         return {k: dict(v) for (u, k), v in self.blobs.items() if u == uid}
@@ -111,3 +126,40 @@ def test_sync_size_guard(client):
     _reg(client)
     huge = {"type": "plan", "x": "y" * 400_000}
     assert client.put("/api/sync", json={"plan": {"value": huge, "at": 1}}).status_code == 413
+
+
+def _plan(goal, kcal):
+    return {"type": "plan", "profile_summary": {"goal": goal},
+            "diet_plan": {"calorie_target_kcal": kcal},
+            "workout_days": [{"day_label": "D1", "exercises": []}]}
+
+
+def test_plan_overwrite_archives_previous(client):
+    _reg(client)
+    client.put("/api/sync", json={"plan": {"value": _plan("First", 2800), "at": 1000}})
+    client.put("/api/sync", json={"plan": {"value": _plan("Second", 3000), "at": 2000}})
+    h = client.get("/api/history").get_json()["history"]
+    assert len(h) == 1 and h[0]["goal"] == "First" and h[0]["kcal"] == 2800 and h[0]["days"] == 1
+    item = client.get(f"/api/history/{h[0]['id']}").get_json()["plan"]
+    assert item["profile_summary"]["goal"] == "First"
+
+
+def test_history_cap_ten(client):
+    _reg(client)
+    for i in range(12):
+        client.put("/api/sync", json={"plan": {"value": _plan(f"P{i}", 3000), "at": 1000 + i}})
+    h = client.get("/api/history").get_json()["history"]
+    assert len(h) == 10
+    assert h[0]["goal"] == "P10"  # newest archived = the one replaced last
+
+
+def test_history_requires_auth(client):
+    assert client.get("/api/history").status_code == 401
+    assert client.get("/api/history/1").status_code == 401
+
+
+def test_older_plan_write_does_not_archive(client):
+    _reg(client)
+    client.put("/api/sync", json={"plan": {"value": _plan("Current", 3000), "at": 5000}})
+    client.put("/api/sync", json={"plan": {"value": _plan("Stale", 2000), "at": 1000}})
+    assert client.get("/api/history").get_json()["history"] == []
