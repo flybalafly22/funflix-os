@@ -31,5 +31,25 @@ logs). This sprint ships their prescriptions.
    half-life, stateful check-in rules).
    *Accept: no contradicting numbers between the two prompts or modes.*
 
-## Outcome
-_(open)_
+## Outcome — CLOSED 2026-07-19, all scope shipped
+
+- Stateful check-in live end-to-end: planDigest() + qaLogDigest() + computed
+  weeks + disruption field attach client-side (browser-verified), server
+  injects both digests for Gemini and Groq, prompt rules added to both
+  prompts. **Live proof (one real production check-in with the demo plan as
+  previous program): the revised plan kept 26/26 exercise names, quoted the
+  logged bench progression (62.5→67.5 kg x 8) in training_changes, carried
+  the load forward, and produced a trend-anchored verdict — recalibration is
+  now continuous coaching, not a plan lottery.**
+- _validate_plan() gate live on both legs: demo passes; broken plans
+  (skeletons, macro math off, markdown, allergens — plural-stemmed) retry;
+  chain exhaustion soft-serves the best parseable plan instead of erroring;
+  failure names logged for the Lab's failure-rate cadence.
+- Muscle-gain-rate contradiction reconciled (one experience-scaled table,
+  both modes reference it); compact prompt got the full parity patch — Groq
+  plans now carry the stall rule the UI attributes to them, novice linear
+  progression, special populations, check-in bands, and the stateful
+  check-in rules.
+- QA: pytest 77/77 (13 new), site_qa 29/29, check-in digest browser
+  verification, live verify ALL OK on 37a1ba0, validator confirms the live
+  check-in output.
