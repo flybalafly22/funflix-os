@@ -120,8 +120,32 @@
     .osacct .ac-ghost { background: transparent; border: 1px solid #DDDDD8; border-radius: 999px;
       padding: 12px 22px; font-family: inherit; font-size: 13px; font-weight: 500; color: #63635E; cursor: pointer; }
     .osacct .ac-ghost:hover { border-color: #111110; color: #111110; }
-    .osacct .ac-who { margin-top: 16px; font-family: 'Geist Mono',monospace; font-size: 12px;
-      letter-spacing: .06em; color: #0C8A4C; }
+    .osacct .ac-who { margin-top: 3px; font-family: 'Geist Mono',monospace; font-size: 11.5px;
+      letter-spacing: .05em; color: #0C8A4C; overflow: hidden; text-overflow: ellipsis; }
+    .osacct .ac-prof { display: flex; gap: 16px; align-items: center; min-width: 0; }
+    .osacct .ac-prof > div:last-child { min-width: 0; }
+    .osacct .ac-ava { width: 56px; height: 56px; border-radius: 999px; flex: none; display: flex;
+      align-items: center; justify-content: center; font-family: 'Instrument Serif',Georgia,serif;
+      font-size: 27px; color: #0C8A4C; background: #EFF4EE; border: 1px solid #CFE0D2;
+      box-shadow: inset 0 0 0 4px #FAFAF8; text-transform: uppercase; }
+    .osacct .ac-name { font-family: 'Instrument Serif',Georgia,serif; font-weight: 400;
+      font-size: clamp(24px, 4vw, 29px); line-height: 1.1; color: #111110; text-transform: capitalize;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .osacct .ac-since { margin-top: 4px; font-size: 11.5px; color: #6D6D66; }
+    .osacct .ac-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+      background: #E9E9E5; border: 1px solid #E9E9E5; border-radius: 16px; overflow: hidden; margin-top: 22px; }
+    .osacct .ac-stat { background: #FFFFFE; padding: 13px 8px 11px; text-align: center; }
+    .osacct .ac-stat b { display: block; font-family: 'Instrument Serif',Georgia,serif; font-weight: 400;
+      font-size: 21px; color: #111110; }
+    .osacct .ac-stat span { display: block; margin-top: 4px; font-family: 'Geist Mono',monospace;
+      font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; color: #6D6D66; }
+    .osacct .ac-ok { margin-top: 12px; font-size: 13px; color: #0C8A4C; }
+    .osacct a.ac-ghost { text-decoration: none; display: inline-block; text-align: center; }
+    .osacct .ac-danger { margin-top: 26px; padding-top: 16px; border-top: 1px dashed #E2E2DD; }
+    .osacct .ac-del-link { background: none; border: none; padding: 0; font-family: inherit;
+      font-size: 12px; color: #9A9A93; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .osacct .ac-del-link:hover { color: #A03428; }
+    .osacct .ac-danger-btn { background: #A03428; box-shadow: 0 10px 30px rgba(160,52,40,.25); }
     .osacct .ac-status { margin-top: 10px; font-size: 13.5px; line-height: 1.65; color: #63635E; }
     .osacct .ac-hist-head { margin-top: 26px; font-family: 'Geist Mono',monospace; font-size: 10px;
       letter-spacing: .22em; text-transform: uppercase; color: #0C8A4C; }
@@ -136,6 +160,9 @@
     .osacct .ac-next { display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 600;
       color: #0C8A4C; text-decoration: none; }
     .osacct .ac-next:hover { text-decoration: underline; }
+    @keyframes osacctIn { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+    .osacct .ac-card { animation: osacctIn .28s cubic-bezier(.2,.7,.2,1); }
+    @media (prefers-reduced-motion: reduce) { .osacct .ac-card { animation: none; } }
     @media print { .osacct { display: none !important; } }`;
   document.head.appendChild(acctCSS);
 
@@ -157,20 +184,50 @@
           <input id="acPw" type="password" autocomplete="current-password">
           <div class="ac-hint">No password reset exists yet &mdash; keep it in a password manager.</div></div>
         <div class="ac-err" id="acErr"></div>
+        <div class="ac-ok" id="acNote"></div>
         <div class="ac-btns">
           <button class="ac-primary" id="acRegister" type="button">Create account</button>
           <button class="ac-ghost" id="acLogin" type="button">Sign in</button>
         </div>
       </div>
       <div id="acIn" hidden>
-        <div class="ac-lead">Synced. <em>Everywhere.</em></div>
-        <div class="ac-who" id="acWho"></div>
+        <div class="ac-prof">
+          <div class="ac-ava" id="acAva"></div>
+          <div>
+            <div class="ac-name" id="acName"></div>
+            <div class="ac-who" id="acWho"></div>
+            <div class="ac-since" id="acSince"></div>
+          </div>
+        </div>
+        <div class="ac-stats" id="acStats" hidden>
+          <div class="ac-stat"><b id="acStPlan">&mdash;</b><span>plan synced</span></div>
+          <div class="ac-stat"><b id="acStLogs">0</b><span>sessions logged</span></div>
+          <div class="ac-stat"><b id="acStHist">0</b><span>archived plans</span></div>
+        </div>
         <div class="ac-status">Your plan and logs follow you &mdash; phone at the gym, laptop at home.
           Everything still works offline; changes sync when you're back.</div>
         <a class="ac-next" id="acGoTrainer" href="/trainer" style="display:none">Open The Trainer &rarr;</a>
         <div class="ac-hist-head" id="acHistHead" hidden>Plan history</div>
         <div id="acHist"></div>
-        <div class="ac-btns"><button class="ac-ghost" id="acLogout" type="button">Sign out</button></div>
+        <div class="ac-btns">
+          <a class="ac-ghost" id="acExport" href="/api/export" download="the-trainer-export.json">Export my data</a>
+          <button class="ac-ghost" id="acLogout" type="button">Sign out</button>
+        </div>
+        <div class="ac-danger">
+          <button class="ac-del-link" id="acDelOpen" type="button">Delete my account&hellip;</button>
+          <div id="acDelBox" hidden>
+            <div class="ac-sub">This permanently wipes your account and every synced record from our
+              server &mdash; plan, logs, archived plans. Data saved on this device stays yours.
+              Export first if you want a copy. Type your password to confirm.</div>
+            <div class="ac-field"><label for="acDelPw">Password</label>
+              <input id="acDelPw" type="password" autocomplete="current-password"></div>
+            <div class="ac-err" id="acDelErr"></div>
+            <div class="ac-btns">
+              <button class="ac-primary ac-danger-btn" id="acDelGo" type="button">Delete forever</button>
+              <button class="ac-ghost" id="acDelCancel" type="button">Keep my account</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>`;
   document.body.appendChild(acctEl);
@@ -180,11 +237,35 @@
   function acctPanels() {
     $a('acOut').hidden = !!ACCT.user;
     $a('acIn').hidden = !ACCT.user;
-    if (ACCT.user) $a('acWho').textContent = ACCT.user;
+    if (ACCT.user) {
+      $a('acWho').textContent = ACCT.user;
+      $a('acName').textContent = ACCT.user.split('@')[0].replace(/[._-]+/g, ' ');
+      $a('acAva').textContent = ACCT.user.charAt(0);
+    } else {
+      $a('acSince').textContent = '';
+      $a('acStats').hidden = true;
+      $a('acDelBox').hidden = true;
+      $a('acDelPw').value = '';
+      $a('acDelErr').textContent = '';
+    }
     $a('acGoTrainer').style.display =
       (ACCT.user && location.pathname.indexOf('/trainer') !== 0) ? '' : 'none';
   }
-  function acctOpen() { acctPanels(); acctHistory(); acctEl.hidden = false; }
+  async function acctProfile() {
+    if (!ACCT.user) return;
+    try {
+      const d = await (await fetch('/api/profile')).json();
+      if (!d.user || d.user !== ACCT.user) return;
+      const dd = ms => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      $a('acStPlan').textContent = d.plan_at ? dd(d.plan_at) : '—';
+      $a('acStLogs').textContent = d.logs_n || 0;
+      $a('acStHist').textContent = d.history_n || 0;
+      if (d.since) $a('acSince').textContent = 'Member since ' +
+        new Date(d.since).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      $a('acStats').hidden = false;
+    } catch (e) {}
+  }
+  function acctOpen() { $a('acNote').textContent = ''; acctPanels(); acctHistory(); acctProfile(); acctEl.hidden = false; }
   function acctClose() { acctEl.hidden = true; }
   function refreshCtas() {
     const cta = document.getElementById('hudCta');
@@ -230,7 +311,7 @@
       const d = await r.json();
       if (!r.ok || d.error) { $a('acErr').textContent = d.error || 'Something went wrong.'; return; }
       ACCT.user = d.user; $a('acPw').value = '';
-      acctPanels(); acctHistory(); refreshCtas(); ACCT._emit('login');
+      acctPanels(); acctHistory(); acctProfile(); refreshCtas(); ACCT._emit('login');
     } catch (e) { $a('acErr').textContent = 'Could not reach the server.'; }
   }
   $a('acClose').addEventListener('click', acctClose);
@@ -241,6 +322,24 @@
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
     ACCT.user = null;
     acctPanels(); refreshCtas(); acctClose(); ACCT._emit('logout');
+  });
+  $a('acDelOpen').addEventListener('click', () => {
+    const box = $a('acDelBox');
+    box.hidden = !box.hidden;
+    if (!box.hidden) $a('acDelPw').focus();
+  });
+  $a('acDelCancel').addEventListener('click', () => { $a('acDelBox').hidden = true; $a('acDelErr').textContent = ''; });
+  $a('acDelGo').addEventListener('click', async () => {
+    $a('acDelErr').textContent = '';
+    try {
+      const r = await fetch('/api/auth/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: $a('acDelPw').value }) });
+      const d = await r.json();
+      if (!r.ok || d.error) { $a('acDelErr').textContent = d.error || 'Something went wrong.'; return; }
+      ACCT.user = null;
+      acctPanels(); refreshCtas(); ACCT._emit('logout');
+      $a('acNote').textContent = 'Account deleted — every record on our server is gone. Anything saved on this device is still yours.';
+    } catch (e) { $a('acDelErr').textContent = 'Could not reach the server.'; }
   });
 
   const hudCtaEl = document.getElementById('hudCta');

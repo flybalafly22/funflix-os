@@ -52,6 +52,21 @@ class MemStore:
     def get_blobs(self, uid):
         return {k: dict(v) for (u, k), v in self.blobs.items() if u == uid}
 
+    def get_account(self, uid):
+        for e, (i, h) in self.users.items():
+            if i == uid:
+                return {"email": e, "pw_hash": h, "since": "2026-01-01T00:00:00"}
+        return None
+
+    def delete_user(self, uid):
+        email = self.get_email(uid)
+        if email is None:
+            return False
+        del self.users[email]
+        self.blobs = {(u, k): v for (u, k), v in self.blobs.items() if u != uid}
+        self.hist.pop(uid, None)
+        return True
+
 
 @pytest.fixture()
 def client(monkeypatch):
@@ -163,3 +178,57 @@ def test_older_plan_write_does_not_archive(client):
     client.put("/api/sync", json={"plan": {"value": _plan("Current", 3000), "at": 5000}})
     client.put("/api/sync", json={"plan": {"value": _plan("Stale", 2000), "at": 1000}})
     assert client.get("/api/history").get_json()["history"] == []
+
+
+def test_profile_requires_auth(client):
+    assert client.get("/api/profile").status_code == 401
+    assert client.get("/api/export").status_code == 401
+
+
+def test_profile_counts(client):
+    _reg(client)
+    client.put("/api/sync", json={"plan": {"value": _plan("First", 2800), "at": 1000},
+                                  "logs": {"value": [{"at": 1}, {"at": 2}], "at": 1000}})
+    client.put("/api/sync", json={"plan": {"value": _plan("Second", 3000), "at": 2000}})
+    d = client.get("/api/profile").get_json()
+    assert d["user"] == "lift@example.com" and d["since"]
+    assert d["plan_at"] == 2000 and d["logs_n"] == 2 and d["history_n"] == 1
+
+
+def test_export_shape(client):
+    _reg(client)
+    client.put("/api/sync", json={"plan": {"value": _plan("First", 2800), "at": 1000},
+                                  "logs": {"value": [{"at": 1}], "at": 1000}})
+    client.put("/api/sync", json={"plan": {"value": _plan("Second", 3000), "at": 2000}})
+    r = client.get("/api/export")
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("Content-Disposition", "")
+    d = r.get_json()
+    assert d["format"] == "the-trainer/export-1"
+    assert d["account"]["email"] == "lift@example.com"
+    assert d["plan"]["value"]["profile_summary"]["goal"] == "Second"
+    assert len(d["logs"]["value"]) == 1
+    assert len(d["history"]) == 1
+    assert d["history"][0]["plan"]["profile_summary"]["goal"] == "First"
+
+
+def test_delete_account_wipes_everything(client):
+    _reg(client)
+    client.put("/api/sync", json={"plan": {"value": _plan("First", 2800), "at": 1000}})
+    client.put("/api/sync", json={"plan": {"value": _plan("Second", 3000), "at": 2000}})
+    # wrong password → refused, nothing deleted
+    r = client.post("/api/auth/delete", json={"password": "wrongwrong"})
+    assert r.status_code == 401
+    assert client.get("/api/auth/me").get_json()["user"] == "lift@example.com"
+    # right password → gone: session cleared, rows wiped, login impossible
+    r = client.post("/api/auth/delete", json={"password": "hunter2boat"})
+    assert r.status_code == 200 and r.get_json()["ok"] is True
+    assert client.get("/api/auth/me").get_json()["user"] is None
+    assert A.STORE.get_user("lift@example.com") is None
+    assert A.STORE.get_blobs(1) == {} and A.STORE.get_history(1) == []
+    r = client.post("/api/auth/login", json={"email": "lift@example.com", "password": "hunter2boat"})
+    assert r.status_code == 401
+
+
+def test_delete_requires_auth(client):
+    assert client.post("/api/auth/delete", json={"password": "x"}).status_code == 401

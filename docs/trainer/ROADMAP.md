@@ -35,10 +35,35 @@ from this file directly.
 - Sprint 6 — The Studio Remembers (SPRINT_6.md): plan-grounded Ask-the-
   Trainer chat; accounts & cross-device sync on Neon Postgres (opt-in,
   privacy promise intact)
+- Sprint 11 — Yours, Visibly (SPRINT_11.md): R&D LAB + SIMULATION teams
+  hired (first studies in RND_LAB.md / SIM_STUDY.md); export & erase
+  (/api/export, password-confirmed /api/auth/delete); site-wide profile
+  view in the account modal (/api/profile: member-since + live counts)
 
-## Next up (high value, roughly ordered — Producer-groomed, Sprint 10 review)
-- **Export & erase**: one-click JSON export of plan/logs/history + a delete-
-  account endpoint that wipes server rows — the privacy promise, demonstrable.
+## Next up (high value, roughly ordered — groomed from the R&D LAB and
+## SIMULATION studies, 2026-07-19; details in RND_LAB.md + SIM_STUDY.md)
+- **Stateful check-in** (both teams' #1): the recalibration request must carry
+  the saved plan digest + original intake (injuries/equipment/allergies) +
+  qaLogDigest — today it regenerates from 13 form fields and forgets the
+  client. Also: compute elapsed weeks from savedPlan().at (cWeeks cap distorts
+  trends) and add a travel/illness flag.
+- **Plan validator**: pure-Python _validate_plan() (required keys, macro
+  arithmetic ±3%, allergen scan, no-newline strings) wired into the retry
+  chain — today only `type` is checked and skeleton plans ship.
+- **Deload awareness**: deload-due banner from plan age + logs, deload
+  checkbox at check-in, stall-history in the payload; stall watch should
+  escalate, not repeat "reduce 10%" forever. Fix the stall false-positive
+  (judge by e1RM, not kg-then-reps) and Coach Mode progression cues
+  ("add 2.5 kg today"); warm-up ramps for every exercise, not just the first.
+- **Groq parity patch**: apply RND_LAB's ~330-token compact-prompt additions
+  (stall rule, special populations, consistent surplus numbers) so fallback
+  plans stop being second-class.
+- **Prompt consistency + demo upgrade**: reconcile the muscle-gain-rate
+  contradiction (section 4 vs check-in bands); give trainer_demo.json
+  current_lifts (shows off starting-loads) and fix its volume_analysis claim.
+- **Bodyweight log + retention safety**: somewhere to log weight (check-in
+  asks for 7-day averages it never collects); raise/trim the 200-session log
+  cap with a warning; nudge sync/export after the fifth logged session.
 - **Adherence pulse + calendar**: locally computed week strip ("3 of 4
   sessions · next: Upper A") + .ics download of training days. Zero server.
 - **Trend-fed check-in**: bodyweight/top-set sparklines from logs shown at

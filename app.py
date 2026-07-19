@@ -143,6 +143,21 @@ class PgStore:
             cur.execute("SELECT kind, value, updated_at FROM trainer_blobs WHERE user_id = %s", (uid,))
             return {k: {"value": v, "at": at} for k, v, at in cur.fetchall()}
 
+    def get_account(self, uid):
+        with self._cur() as (conn, cur):
+            cur.execute("SELECT email, pw_hash, created_at FROM trainer_users WHERE id = %s", (uid,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {"email": row[0], "pw_hash": row[1],
+                    "since": row[2].isoformat() if row[2] else None}
+
+    def delete_user(self, uid):
+        # blobs + history rows go with the user via ON DELETE CASCADE
+        with self._cur() as (conn, cur):
+            cur.execute("DELETE FROM trainer_users WHERE id = %s", (uid,))
+            return cur.rowcount > 0
+
 
 STORE = None
 if DATABASE_URL:
@@ -521,6 +536,67 @@ def history_item(hid):
     if plan is None:
         return jsonify({"error": "Not found."}), 404
     return jsonify({"plan": plan})
+
+
+@app.route("/api/profile")
+def profile():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    uid = _uid()
+    if not uid:
+        return jsonify({"error": "Sign in to see your profile."}), 401
+    acct = STORE.get_account(uid)
+    if not acct:
+        session.clear()
+        return jsonify({"error": "Sign in to see your profile."}), 401
+    blobs = STORE.get_blobs(uid)
+    logs = (blobs.get("logs") or {}).get("value")
+    return jsonify({"user": acct["email"], "since": acct["since"],
+                    "plan_at": (blobs.get("plan") or {}).get("at"),
+                    "logs_n": len(logs) if isinstance(logs, list) else 0,
+                    "history_n": len(STORE.get_history(uid))})
+
+
+@app.route("/api/export")
+def export_data():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    uid = _uid()
+    if not uid:
+        return jsonify({"error": "Sign in to export your data."}), 401
+    acct = STORE.get_account(uid)
+    if not acct:
+        session.clear()
+        return jsonify({"error": "Sign in to export your data."}), 401
+    blobs = STORE.get_blobs(uid)
+    doc = {"format": "the-trainer/export-1",
+           "exported_at": int(time.time() * 1000),
+           "account": {"email": acct["email"], "since": acct["since"]},
+           "plan": blobs.get("plan"),
+           "logs": blobs.get("logs"),
+           "history": [{"id": hid, "saved_at": at, "plan": plan}
+                       for hid, plan, at in STORE.get_history(uid)]}
+    resp = jsonify(doc)
+    resp.headers["Content-Disposition"] = 'attachment; filename="the-trainer-export.json"'
+    return resp
+
+
+@app.route("/api/auth/delete", methods=["POST"])
+def auth_delete():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    if _rate_limited(_client_ip(), bucket="auth", limit=10):
+        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+    uid = _uid()
+    if not uid:
+        return jsonify({"error": "Sign in first."}), 401
+    acct = STORE.get_account(uid)
+    pw = str((request.json or {}).get("password", ""))
+    if not acct or not check_password_hash(acct["pw_hash"], pw):
+        return jsonify({"error": "Password is wrong — account not deleted."}), 401
+    STORE.delete_user(uid)
+    session.clear()
+    return jsonify({"ok": True})
 
 
 @app.route("/api/version")

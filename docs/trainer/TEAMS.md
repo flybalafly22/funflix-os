@@ -31,6 +31,25 @@ outcome log — written at sprint start, closed with results).
 **Cadence:** a sprint = one focused working session. Close the sprint doc with
 what shipped and what rolled over before starting the next.
 
+## R&D LAB — output quality & new ideas
+**Lives in:** `docs/trainer/RND_LAB.md` (findings ledger, refreshed by study runs).
+**What it does:** studies the levers on generated-output quality (system prompts,
+validators, coaching heuristics, demo plan), proposes concrete improvements and
+genuinely new quality ideas — all under the $0 constraint.
+**Rule:** every finding cites file:line and ships with the exact fix (for prompt
+work: the actual sentences to add). Findings feed the ROADMAP, not the code
+directly — the Producer pulls them into sprints.
+
+## SIMULATION — longitudinal user studies
+**Lives in:** `docs/trainer/SIM_STUDY.md`.
+**What it does:** desk-simulates realistic subjects using THE TRAINER over long
+horizons (first study: 3 subjects × 12 months) against established
+exercise-science expectations; divergences between what the app WOULD do and
+what SHOULD happen are findings, tagged [accuracy]/[user-friendliness]/[reliability].
+**Rule:** simulations are honest about being simulations; every finding names the
+simulated moment that exposed it and a $0 fix. Re-run after major coaching-logic
+changes.
+
 ## Operational facts every team needs
 - Live site: `https://funflix-os.onrender.com` (Render auto-deploys `main`).
 - Live commit check: `GET /api/version`.

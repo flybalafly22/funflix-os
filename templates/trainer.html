@@ -713,6 +713,7 @@
         <button class="btn-again" id="againBtn">Start over</button>
         <button class="btn-again" id="keepBtn" style="display:none">Save to this device</button>
         <button class="btn-again" id="shareBtn">Share link</button>
+        <button class="btn-again" id="exportBtn">Export data</button>
         <button class="btn-dl" id="dlBtn">Download PDF</button>
       </div>
       <article id="planDoc" aria-label="Your training program"></article>
@@ -1417,6 +1418,20 @@
     const ds = new DecompressionStream('deflate-raw');
     return await new Response(new Blob([arr]).stream().pipeThrough(ds)).text();
   }
+  /* ── export: signed-in → full server document; guest → what this device holds ── */
+  $('exportBtn').addEventListener('click', () => {
+    if (SYNC.user) { location.href = '/api/export'; return; }
+    const doc = { format: 'the-trainer/export-1', exported_at: Date.now(), account: null,
+      source: 'this device only — create a free account to include synced history',
+      plan: savedPlan(), logs: loadLogs(), history: [] };
+    const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'the-trainer-export.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+
   if (typeof CompressionStream === 'undefined') $('shareBtn').style.display = 'none';
   $('shareBtn').addEventListener('click', async () => {
     if (!lastPlan.d) return;
