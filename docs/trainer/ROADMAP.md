@@ -50,11 +50,10 @@ from this file directly.
 - **Plan validator**: pure-Python _validate_plan() (required keys, macro
   arithmetic ±3%, allergen scan, no-newline strings) wired into the retry
   chain — today only `type` is checked and skeleton plans ship.
-- **Deload awareness**: deload-due banner from plan age + logs, deload
-  checkbox at check-in, stall-history in the payload; stall watch should
-  escalate, not repeat "reduce 10%" forever. Fix the stall false-positive
-  (judge by e1RM, not kg-then-reps) and Coach Mode progression cues
-  ("add 2.5 kg today"); warm-up ramps for every exercise, not just the first.
+- ~~Deload awareness~~ — SHIPPED Sprint 13 (autopilot card + coach halving +
+  e1RM stall watch with escalation + progression cues + mid-session ramps +
+  RIR-today override). Still open from the cluster: deload checkbox on the
+  check-in form + stall-history in the check-in payload.
 - **Groq parity patch**: apply RND_LAB's ~330-token compact-prompt additions
   (stall rule, special populations, consistent surplus numbers) so fallback
   plans stop being second-class.

@@ -306,6 +306,10 @@
     .co-target { margin-top: 12px; font-family: var(--monoX); font-size: 12px; letter-spacing: .14em;
       text-transform: uppercase; color: var(--accD); }
     .co-cue { margin-top: 10px; font-family: var(--sans); font-size: 14px; line-height: 1.65; color: var(--gray); }
+    .co-coach { margin-top: 12px; font-family: var(--sans); font-size: 13.5px; line-height: 1.6; color: #2A2A26; }
+    .co-coach:empty { display: none; }
+    .co-coach b { color: var(--accD); font-family: var(--monoX); font-size: 10px; letter-spacing: .16em;
+      text-transform: uppercase; margin-right: 6px; }
     .co-plates { margin-top: 22px; border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px; background: #fff; }
     .co-plates .os-input { max-width: 160px; }
     .co-plate-out { margin-top: 10px; font-family: var(--monoX); font-size: 13px; color: var(--black); }
@@ -342,6 +346,10 @@
     .stall .st-h { font-family: var(--monoX); font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
       color: #8A6420; margin-bottom: 6px; }
     .stall p { font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #5A4A28; margin: 4px 0; }
+    .stall.deload { border-color: rgba(12,138,76,.30); background: rgba(189,242,63,.08); }
+    .stall.deload .st-h { color: var(--accD); }
+    .stall.deload p { color: #2A3A26; }
+    .stall.deload .btn-again { margin-top: 8px; }
 
     .coach-cta { width: 100%; background: var(--black); color: #fff; border: none; border-radius: 12px;
       font-family: var(--sans); font-size: 13.5px; font-weight: 600; padding: 13px 18px; cursor: pointer;
@@ -658,6 +666,7 @@
           <div class="co-name" id="coName"></div>
           <div class="co-target" id="coTarget"></div>
           <div class="co-cue" id="coCue"></div>
+          <div class="co-coach" id="coCoach"></div>
           <div class="co-plates" id="coPlates" hidden>
             <label class="os-label" for="coW">Working weight (kg)</label>
             <input class="os-input" id="coW" inputmode="decimal" placeholder="e.g. 67.5">
@@ -1006,20 +1015,25 @@
     }).join('');
   }
   $('lDay').addEventListener('change', renderLgList);
+  // progress is judged by estimated 1RM (Epley), not raw kg — 60 kg x 8 beats
+  // 62.5 kg x 5, so double-progression rep gains count as the progress they are
+  const e1rm = s => (s.kg || 0) * (1 + (s.reps || 0) / 30);
   function bestSet(sets) {
     let b = null;
     for (const s of sets) {
       const kg = parseFloat(s.kg), reps = parseInt(s.reps, 10);
       if (isNaN(kg) && isNaN(reps)) continue;
       const c = { kg: isNaN(kg) ? 0 : kg, reps: isNaN(reps) ? 0 : reps };
-      if (!b || c.kg > b.kg || (c.kg === b.kg && c.reps > b.reps)) b = c;
+      if (!b || e1rm(c) > e1rm(b) + 1e-9 ||
+          (Math.abs(e1rm(c) - e1rm(b)) <= 1e-9 && c.reps > b.reps)) b = c;
     }
     return b;
   }
   function fmtSet(b) { return b.kg ? b.kg + ' kg x ' + (b.reps || '?') : (b.reps || '?') + ' reps'; }
   function renderLgHist() {
     const logs = loadLogs();
-    $('lgStall').innerHTML = stallHTML(stallWatch());
+    const dl = deloadInfo();
+    $('lgStall').innerHTML = (dl ? deloadHTML(dl) : '') + stallHTML(stallWatch());
     $('lgHistHead').style.display = logs.length ? '' : 'none';
     $('lgHist').innerHTML = logs.slice(0, 6).map(s => {
       const dt = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -1027,6 +1041,12 @@
       return '<div class="lg-hrow"><span class="hd">' + esc(dt) + '</span><span class="hb">' + esc(s.day || '') + ' — ' + bits.join(' · ') + '</span></div>';
     }).join('');
   }
+  $('lgStall').addEventListener('click', e => {
+    if (e.target && e.target.id === 'dlDone') {
+      try { localStorage.setItem(DL_KEY, String(Date.now())); } catch (e2) {}
+      renderLgHist();
+    }
+  });
   $('logForm').addEventListener('submit', e => {
     e.preventDefault();
     const saved = savedPlan();
@@ -1059,22 +1079,31 @@
     setTimeout(() => { btn.textContent = old; }, 1600);
   });
 
-  /* ── stall watch: the plan's own stall rule, applied to the log ── */
+  /* ── stall watch: the plan's own stall rule, judged by e1RM ── */
   function stallWatch() {
     const logs = loadLogs().slice().sort((a, b) => a.at - b.at);
     const hist = {};
     logs.forEach(s => s.entries.forEach(e => {
       const b = bestSet(e.sets);
-      if (b) (hist[e.name] = hist[e.name] || []).push(b);
+      if (!b) return;
+      let vol = 0;
+      e.sets.forEach(x => { const r = parseInt(x.reps, 10); if (!isNaN(r)) vol += r; });
+      (hist[e.name] = hist[e.name] || []).push({ kg: b.kg, reps: b.reps, e1: e1rm(b), vol });
     }));
     const out = [];
     for (const name in hist) {
       const hs = hist[name];
       if (hs.length < 3) continue;
-      const better = (x, y) => (y.kg > x.kg) || (y.kg === x.kg && y.reps > x.reps);
+      // improving = higher best e1RM, or same e1RM with more total reps
+      const better = (x, y) => y.e1 > x.e1 + 1e-9 ||
+        (Math.abs(y.e1 - x.e1) <= 1e-9 && y.vol > x.vol);
       const [a, b, c] = hs.slice(-3);
       if (!better(a, b) && !better(b, c)) {
-        out.push({ name, last: c, reset: c.kg ? Math.max(2.5, Math.round(c.kg * 0.9 / 2.5) * 2.5) : null });
+        // still flat one session further back = past the 10%-reset window; the
+        // plan's own escalation is a deload, not another reset
+        const deep = hs.length >= 4 && !better(hs[hs.length - 4], a);
+        out.push({ name, last: c, deep,
+                   reset: c.kg ? Math.max(2.5, Math.round(c.kg * 0.9 / 2.5) * 2.5) : null });
       }
     }
     return out;
@@ -1082,10 +1111,36 @@
   function stallHTML(list) {
     if (!list.length) return '';
     return '<div class="stall"><div class="st-h">Stall watch — your plan’s rule, applied</div>' +
-      list.map(s => '<p><b>' + esc(s.name) + '</b> has not beaten ' + esc(fmtSet(s.last)) +
-        ' in 3 sessions. Your plan’s protocol: reduce 10% ' +
-        (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild — if sleep and food are in order.</p>').join('') +
+      list.map(s => s.deep
+        ? '<p><b>' + esc(s.name) + '</b> is still flat after 4 sessions — past the reset window. ' +
+          'Your plan’s escalation: take the deload (halve sets, −15–20% load) this week, then rebuild.</p>'
+        : '<p><b>' + esc(s.name) + '</b> has not beaten ' + esc(fmtSet(s.last)) +
+          ' (by estimated 1RM) in 3 sessions. Your plan’s protocol: reduce 10% ' +
+          (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild — if sleep and food are in order.</p>').join('') +
       '</div>';
+  }
+
+  /* ── deload autopilot: the plan's cadence, actually scheduled ── */
+  const DL_KEY = 'trainerDeloadDone';
+  function deloadInfo() {
+    const sp = savedPlan();
+    if (!sp || !sp.plan) return null;
+    const p = sp.plan;
+    const txt = (((p.progressive_overload || {}).deload) || '') + ' ' +
+                (((p.duration_and_paths || {}).review_points) || '');
+    const m = String(txt).match(/every\s+(\d+)\s*(?:to|-|–|or)?\s*\d*\s*weeks?/i);
+    const cadence = Math.min(8, Math.max(4, (m && parseInt(m[1], 10)) || 6));
+    let doneAt = 0;
+    try { doneAt = +localStorage.getItem(DL_KEY) || 0; } catch (e) {}
+    const sinceW = Math.floor((Date.now() - Math.max(sp.at, doneAt)) / 604800000);
+    return sinceW >= cadence ? { cadence, sinceW } : null;
+  }
+  function deloadHTML(dl) {
+    return '<div class="stall deload"><div class="st-h">Deload week — your plan’s schedule</div>' +
+      '<p>It’s been ' + dl.sinceW + ' weeks of hard training (your plan calls for a deload about every ' +
+      dl.cadence + '). This week: <b>halve the sets, take 15–20% off the loads</b>, keep the movements. ' +
+      'Resist adding work — this week is what makes next month’s PRs possible.</p>' +
+      '<button type="button" class="btn-again" id="dlDone">I’ve done my deload ✓</button></div>';
   }
 
   /* ── coach mode: the plan's rules, executed live ── */
@@ -1121,6 +1176,12 @@
     let exs = (day.exercises || []).map(e => ({ ex: e, sets: Math.max(1, +e.sets || 3), note: '' }));
     const iso = x => (+x.ex.rest_seconds || 120) < 105;
     const notes = [];
+    CO.rir3 = sleepBad || sore;
+    CO.deload = !!deloadInfo();
+    if (CO.deload) {
+      exs = exs.map(x => ({ ...x, sets: Math.max(1, Math.ceil(x.sets / 2)), note: 'deload' }));
+      notes.push('Deload week: sets halved, take 15–20% off your usual loads. Same movements, easy quality reps — this week is what makes next month’s PRs possible.');
+    }
     if (time === 2) {
       const keep = exs.filter(x => !iso(x)).slice(0, 3);
       exs = (keep.length ? keep : exs.slice(0, 3)).map(x => ({ ...x, sets: Math.min(3, x.sets), note: 'capped' }));
@@ -1145,14 +1206,38 @@
     }
     return [];
   }
+  // double progression, said out loud: top of range on every set last time →
+  // add load today; otherwise the target is one more rep somewhere
+  function coProgressCue(ex) {
+    if (CO.deload) return '';
+    const prev = lastSetsFor(ex.name, 99);
+    if (!prev.length) return '';
+    const top = parseInt(String(ex.rep_range || '').match(/(\d+)\s*$/)?.[1], 10);
+    if (!top) return '';
+    const counted = prev.filter(s => s.reps !== '' && !isNaN(parseInt(s.reps, 10)));
+    if (!counted.length) return '';
+    const allTop = counted.every(s => parseInt(s.reps, 10) >= top);
+    const lower = /squat|deadlift|leg|lunge|hip|calf|rdl|good morning|hamstring|glute/.test(String(ex.name).toLowerCase());
+    if (allTop) {
+      return '<b>Coach:</b> last time you hit the top of the range on every set — add ' +
+        (lower ? '5' : '2.5') + ' kg today and rebuild the reps.';
+    }
+    const b = bestSet(counted);
+    return '<b>Coach:</b> beat last time — ' + (b ? esc(fmtSet(b)) + ' was your best; ' : '') +
+      'one more rep on any set wins the day.';
+  }
   function coRender() {
     const x = CO.exs[CO.idx], ex = x.ex;
     $('coCount').textContent = 'EXERCISE ' + (CO.idx + 1) + ' / ' + CO.exs.length;
     $('coGlyph').innerHTML = '<svg viewBox="0 0 48 48">' + glyphFor(ex.name) + '</svg>';
     $('coName').textContent = ex.name;
-    $('coTarget').textContent = x.sets + ' sets × ' + (ex.rep_range || '?') + (ex.rpe_or_rir ? ' · ' + ex.rpe_or_rir : '') +
+    // rough-recovery days override the displayed effort target so the number
+    // in front of you agrees with the banner
+    const rir = CO.rir3 ? 'RIR 3 (today)' : (ex.rpe_or_rir || '');
+    $('coTarget').textContent = x.sets + ' sets × ' + (ex.rep_range || '?') + (rir ? ' · ' + rir : '') +
       ' · rest ' + fmtRest(ex.rest_seconds);
     $('coCue').textContent = ex.tempo_or_notes || '';
+    $('coCoach').innerHTML = coProgressCue(ex);
     const showPlates = barbellish(ex.name);
     $('coPlates').hidden = !showPlates;
     if (showPlates) { $('coW').value = ''; $('coPlateOut').innerHTML = ''; $('coRamp').textContent = ''; }
@@ -1278,7 +1363,9 @@
   $('coClose').addEventListener('click', closeCoach);
   $('coW').addEventListener('input', () => {
     $('coPlateOut').innerHTML = plateMath($('coW').value);
-    $('coRamp').textContent = CO.idx === 0 ? rampFor($('coW').value) : '';
+    // every heavy barbell lift gets a ramp, not just the session opener — a
+    // deadlift placed fourth needs one more than anything
+    $('coRamp').textContent = rampFor($('coW').value);
   });
 
   /* ── check-in prefills: the studio fills in what it already knows ── */

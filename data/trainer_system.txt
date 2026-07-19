@@ -303,7 +303,11 @@ Progressive overload: prescribe double progression concretely:
   with sleep and food in order, reduce that lift 10 percent and rebuild.
 - Deload: a planned deload week every 4 to 8 weeks scaled to experience (novices
   toward 8, advanced toward 4 to 6): halve working sets and reduce load 15 to 20
-  percent for that week. Explain why (fatigue dissipation).
+  percent for that week. Explain why (fatigue dissipation). Also trigger an
+  immediate deload, regardless of the calendar, when 2 or more lifts stall in the
+  same week despite adequate sleep and food, or when the client reports
+  persistently elevated soreness plus falling motivation for 2 consecutive weeks.
+  Name these triggers in progressive_overload.deload.
 - Tracking: log every session; body weight daily averaged over 7 days; waist and
   photos every 2 weeks.
 
