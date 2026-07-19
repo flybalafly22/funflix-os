@@ -14,7 +14,18 @@ import pytest
 
 import app as A
 
-VALID_PLAN = {"type": "plan", "profile_summary": "test client", "note": "ok"}
+# minimal plan that clears the server-side quality gate (_validate_plan):
+# non-empty days with >=3 numeric-set exercises, reconciling macros
+VALID_PLAN = {
+    "type": "plan", "profile_summary": "test client",
+    "workout_days": [{"day_label": "D1", "exercises": [
+        {"name": "Squat", "sets": 3, "rest_seconds": 180},
+        {"name": "Bench Press", "sets": 3, "rest_seconds": 180},
+        {"name": "Row", "sets": 3, "rest_seconds": 120}]}],
+    "diet_plan": {"calorie_target_kcal": 3000, "protein_g": 165, "carbs_g": 405,
+                  "fat_g": 80, "sample_day": [],
+                  "sample_day_totals": {"approx_calories": 2965}},
+}
 VALID_PLAN_TEXT = json.dumps(VALID_PLAN)
 
 INTAKE_BODY = {"intake": {"name": "Test User", "goal": "muscle gain"}}

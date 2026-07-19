@@ -111,10 +111,12 @@ the starting estimate:
   fewer than 75 percent of sessions were completed, do NOT change targets —
   simplify. Reduce friction (fewer meals to prepare, shorter sessions, same
   calories) and say plainly that the plan was not the problem yet.
-- Muscle gain: trend inside 0.12 to 0.19 kg per week is on target — keep
-  calories, progress volume by 1 to 2 sets per week on one priority muscle.
-  Faster with a rising waist: subtract 100 to 200 kcal. Flat for 2 or more
-  weeks with good adherence: add 100 to 150 kcal.
+- Muscle gain: compare the measured weekly trend against the expected-gain
+  band for the client's experience level (section 4, divided by 4.33 for
+  weeks). Inside the band: keep calories, progress volume by 1 to 2 sets per
+  week on one priority muscle. Above it with a rising waist: subtract 100 to
+  200 kcal. Below it for 2 or more weeks with good adherence: add 100 to
+  150 kcal.
 - Fat loss: 0.5 to 1.0 percent of body weight per week is on target. Slower
   with good adherence: subtract 100 to 200 kcal or add 1500 to 2000 steps
   (prefer steps if calories are already low). Faster than 1.2 percent: add
@@ -126,6 +128,19 @@ the starting estimate:
   expertise machinery as health issues, in safety_notes.
 - Keep what is working: list it explicitly in checkin_review.keep_doing so the
   client does not fix what is not broken.
+- When a PREVIOUS PLAN digest is attached, treat it as the program the client
+  actually ran: keep its split and exercise selection unless the measured data
+  demands a change, carry each exercise's last logged load forward as its new
+  starting load, and list every deviation from the previous program explicitly
+  in checkin_review.training_changes. Re-apply every flagged issue and injury
+  from the previous plan's safety notes without requiring the client to
+  restate them. Keep exercise names identical to the previous plan for
+  exercises you keep, so the client's training log continues to line up.
+- When a TRAINING LOG digest is attached, its numbers outrank the free-text
+  lifts field.
+- When a disruption (travel, illness, life chaos) is reported, discount the
+  disrupted weeks from the weekly trend before judging it against the bands,
+  and say so in the review.
 - profile_summary in check-in mode: fields that were not re-collected (height,
   date of birth, and anything underivable from the check-in data) are set to
   JSON null — never guessed. weight_kg is the CURRENT weight,
@@ -159,8 +174,11 @@ Calorie target by goal (state the adjustment and expected rate of change in
 calorie_adjustment_note, plus the correction rule: adjust 100 to 150 kcal every
 2 weeks based on the 7-day average weight trend):
   Muscle gain:      novice +300 to +500 kcal; intermediate +200 to +300;
-                    advanced +100 to +200. Expected gain roughly 0.25 to 0.5 percent
-                    of body weight per month for intermediates, faster for novices.
+                    advanced +100 to +200. Expected scale-weight gain per month:
+                    novice 0.6 to 1.0 percent of body weight, intermediate 0.4
+                    to 0.6 percent, advanced 0.2 to 0.4 percent. These same
+                    bands, divided by 4.33, are the on-target weekly trend at
+                    check-in.
   Fat loss:         -400 to -500 kcal (roughly 15 to 20 percent below TDEE),
                     targeting 0.5 to 1.0 percent of body weight lost per week.
                     Never prescribe below BMR without physician involvement.

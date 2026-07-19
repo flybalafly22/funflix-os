@@ -59,6 +59,18 @@ def _fast(monkeypatch):
     _Down503.calls = []
 
 
+GOOD_PLAN = {
+    "type": "plan", "profile_summary": "groq client",
+    "workout_days": [{"day_label": "D1", "exercises": [
+        {"name": "Squat", "sets": 3, "rest_seconds": 180},
+        {"name": "Bench Press", "sets": 3, "rest_seconds": 180},
+        {"name": "Row", "sets": 3, "rest_seconds": 120}]}],
+    "diet_plan": {"calorie_target_kcal": 3000, "protein_g": 165, "carbs_g": 405,
+                  "fat_g": 80, "sample_day": [],
+                  "sample_day_totals": {"approx_calories": 2965}},
+}
+
+
 def _post():
     return A.app.test_client().post(
         "/api/trainer", json={"intake": {"name": "R", "goal": "muscle gain"}})
@@ -67,10 +79,11 @@ def _post():
 def test_groq_rescues_total_gemini_outage(monkeypatch):
     monkeypatch.setattr(A, "GROQ_API_KEY", "test-groq-key")
     cap = {}
-    plan = json.dumps({"type": "plan", "via": "groq"})
+    good = dict(GOOD_PLAN, via="groq")
+    plan = json.dumps(good)
     monkeypatch.setattr(A.urllib.request, "urlopen", _fake_urlopen_factory(plan, cap))
     body = _post().get_data(as_text=True)
-    assert json.loads(body.strip()) == {"type": "plan", "via": "groq"}
+    assert json.loads(body.strip()) == good
     assert "ERROR" not in body
     assert len(_Down503.calls) == 4  # full Gemini chain exhausted first
     assert "groq.com" in cap["url"]
@@ -107,7 +120,7 @@ def test_groq_http_failure_keeps_friendly_error(monkeypatch):
 def test_groq_not_called_when_gemini_healthy(monkeypatch):
     class _Healthy:
         def generate_content_stream(self, **kw):
-            return iter([_Chunk('{"type":"plan","ok":true}')])
+            return iter([_Chunk(json.dumps(dict(GOOD_PLAN, ok=True)))])
 
     monkeypatch.setattr(A.genai, "Client",
                         type("C", (), {"__init__": lambda s, **k: setattr(s, "models", _Healthy())}))
@@ -118,4 +131,4 @@ def test_groq_not_called_when_gemini_healthy(monkeypatch):
 
     monkeypatch.setattr(A.urllib.request, "urlopen", fail_if_called)
     body = _post().get_data(as_text=True)
-    assert json.loads(body.strip()) == {"type": "plan", "ok": True}
+    assert json.loads(body.strip()) == dict(GOOD_PLAN, ok=True)

@@ -617,6 +617,80 @@ def trainer_sw():
     return app.send_static_file("trainer/sw.js")
 
 
+def _plan_strings(o):
+    if isinstance(o, dict):
+        for v in o.values():
+            yield from _plan_strings(v)
+    elif isinstance(o, list):
+        for v in o:
+            yield from _plan_strings(v)
+    elif isinstance(o, str):
+        yield o
+
+
+def _validate_plan(data, intake=None):
+    """Quality gate beyond "parses as JSON with a type field". Returns the list
+    of failed check names; empty = usable. Tolerances sit looser than the
+    prompt's own promises (3% macro math vs its 2%, 7% sample-day vs its 5%)
+    so borderline-honest output is not rejected — this catches the skeleton
+    plans, broken arithmetic and allergen slips that used to ship."""
+    if not isinstance(data, dict):
+        return ["not_object"]
+    t = data.get("type")
+    if t == "questions":
+        qs = data.get("questions")
+        ok = (isinstance(qs, list) and 1 <= len(qs) <= 4 and all(
+            (isinstance(q, str) and q.strip()) or
+            (isinstance(q, dict) and str(q.get("question", "")).strip())
+            for q in qs))
+        return [] if ok else ["questions_shape"]
+    if t != "plan":
+        return ["type"]
+    fails = []
+    days = data.get("workout_days")
+    if not (isinstance(days, list) and days):
+        fails.append("no_workout_days")
+    else:
+        for d in days:
+            exs = d.get("exercises") if isinstance(d, dict) else None
+            if not (isinstance(exs, list) and len(exs) >= 3):
+                fails.append("thin_day")
+                break
+            if not all(isinstance(x, dict) and isinstance(x.get("sets"), (int, float))
+                       and isinstance(x.get("rest_seconds"), (int, float)) for x in exs):
+                fails.append("non_numeric_sets")
+                break
+    dp = data.get("diet_plan")
+    if not isinstance(dp, dict):
+        fails.append("no_diet_plan")
+        dp = {}
+    kcal = dp.get("calorie_target_kcal")
+    p, c, f = dp.get("protein_g"), dp.get("carbs_g"), dp.get("fat_g")
+    if all(isinstance(v, (int, float)) and v > 0 for v in (kcal, p, c, f)):
+        if abs(p * 4 + c * 4 + f * 9 - kcal) > 0.03 * kcal:
+            fails.append("macro_math")
+    else:
+        fails.append("missing_macros")
+    tot = dp.get("sample_day_totals")
+    if isinstance(tot, dict) and isinstance(kcal, (int, float)) and kcal:
+        ak = tot.get("approx_calories")
+        if isinstance(ak, (int, float)) and abs(ak - kcal) > 0.07 * kcal:
+            fails.append("sample_day_totals_off")
+    for s in _plan_strings(data):
+        if "\n" in s or "**" in s or "##" in s or "```" in s:
+            fails.append("markdown_or_newline")
+            break
+    alg = str((intake or {}).get("allergies", "")).lower()
+    # stem trailing s so "peanuts" catches "peanut butter"
+    words = [w.rstrip("s") for w in re.split(r"[^a-z]+", alg)
+             if len(w) >= 4 and w not in ("none", "nothing", "known", "food", "mild", "severe")]
+    if words and isinstance(dp.get("sample_day"), list):
+        hay = json_mod.dumps(dp["sample_day"]).lower()
+        if any(w in hay for w in words):
+            fails.append("allergen_in_sample_day")
+    return fails
+
+
 @app.route("/api/trainer", methods=["POST"])
 def trainer_api():
     payload = request.json or {}
@@ -663,6 +737,19 @@ def trainer_api():
         lines.append("\nFOLLOW-UP ANSWERS (you asked, the client answered — do NOT ask again; produce the plan):")
         for qa in followups[:8]:
             lines.append(f"- Q: {str(qa.get('q','')).strip()}\n  A: {str(qa.get('a','')).strip()}")
+    if payload.get("mode") == "checkin":
+        # the stateful check-in: the plan the client actually ran + their logged
+        # numbers ride along, so recalibration evolves the program instead of
+        # regenerating one from 13 form fields (shared with the Groq leg too)
+        for key, label in (
+                ("prev_plan", "PREVIOUS PLAN (digest of the program the client actually ran):"),
+                ("log_digest", "THE CLIENT'S TRAINING LOG (recent sessions, best sets, stalls):")):
+            blob = payload.get(key)
+            if isinstance(blob, dict):
+                bj = json_mod.dumps(blob)
+                if len(bj) <= 20000:
+                    lines.append("\n" + label)
+                    lines.append(bj)
     user_content = "\n".join(lines)
 
     # Stream the JSON out as it is generated. A full plan takes well over the
@@ -710,12 +797,17 @@ def trainer_api():
     #     let a space split a number and corrupt the payload), and
     #   - a bad/truncated/unparseable attempt is retried server-side instead of
     #     asking the user to click again.
+    # A plan that parses and is plan-shaped but flunks the quality gate is kept
+    # as a last resort: retried for a clean one, served only if the whole chain
+    # (including Groq) exhausts — better a flawed plan than an error page.
+    soft = {"text": None}
+
     def groq_fallback(q, fallback_err_msg):
         # Last resort when every Gemini attempt failed: one shot at Groq's
         # Llama 3.3 70B (independent infrastructure, same system prompt, same
         # validation). On any problem, surface the original friendly error.
         if not GROQ_API_KEY:
-            q.put(("end", fallback_err_msg))
+            q.put(("end", soft["text"] or fallback_err_msg))
             return
         try:
             print("[trainer] gemini exhausted — trying groq fallback", flush=True)
@@ -744,12 +836,17 @@ def trainer_api():
                 text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
             data = json_mod.loads(text)
             if isinstance(data, dict) and data.get("type") in ("questions", "plan"):
-                q.put(("end", text))
-                return
-            print(f"[trainer] groq fallback returned unusable output (chars={len(text)})", flush=True)
+                fails = _validate_plan(data, intake)
+                if not fails:
+                    q.put(("end", text))
+                    return
+                print(f"[trainer] groq plan failed quality checks: {fails}", flush=True)
+                soft["text"] = soft["text"] or text
+            else:
+                print(f"[trainer] groq fallback returned unusable output (chars={len(text)})", flush=True)
         except Exception as exc:
             print(f"[trainer] groq fallback failed: {exc}", flush=True)
-        q.put(("end", fallback_err_msg))
+        q.put(("end", soft["text"] or fallback_err_msg))
 
     def run_model_chain(q):
         for attempt in range(MAX_ATTEMPTS):
@@ -780,8 +877,13 @@ def trainer_api():
                 except ValueError:
                     data = None
                 if isinstance(data, dict) and data.get("type") in ("questions", "plan"):
-                    q.put(("end", text))  # complete, validated payload
-                    return
+                    fails = _validate_plan(data, intake)
+                    if not fails:
+                        q.put(("end", text))  # complete, validated payload
+                        return
+                    print(f"[trainer] attempt {attempt + 1} plan failed quality checks: {fails}", flush=True)
+                    soft["text"] = soft["text"] or text
+                    data = None
 
                 # Unusable output. A safety block will not improve on retry;
                 # everything else (truncated, malformed, empty) gets retried.

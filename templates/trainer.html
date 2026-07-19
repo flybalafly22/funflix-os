@@ -575,6 +575,10 @@
           <div class="field"><label class="os-label" for="cSleep">Sleep per night lately</label>
             <div class="os-select-wrap"><select class="os-select" id="cSleep">
               <option>Under 5.5 h</option><option>5.5–6.5 h</option><option selected>7–8 h</option><option>8+ h</option></select></div></div>
+          <div class="field"><label class="os-label" for="cDisrupt">Disruption this block?</label>
+            <div class="os-select-wrap"><select class="os-select" id="cDisrupt">
+              <option selected>None — a normal block</option><option>Travel</option>
+              <option>Illness</option><option>Work / life chaos</option></select></div></div>
         </div>
 
         <div class="sec">The training log</div>
@@ -801,9 +805,15 @@
         'sessions completed': $('cSessions').value,
         'diet adherence': $('cDiet').value,
         'sleep per night lately': $('cSleep').value,
+        'disruption this block (discount its weeks from the trend)': $('cDisrupt').value,
         'key lifts then vs now': $('cLifts').value,
         'pain or new issues': $('cPain').value,
         'extra info': $('cExtra').value,
+        // the select above caps at 8; the measured elapsed time keeps long
+        // gaps from doubling the computed weekly trend
+        'weeks since the plan was generated (computed, trust over the select)':
+          (() => { const sp = savedPlan();
+                   return sp ? String(Math.max(1, Math.round((Date.now() - sp.at) / 604800000))) : ''; })(),
       };
     }
     return {
@@ -834,7 +844,15 @@
     setState('thinking');
     try {
       const body = { intake: intake() };
-      if (mode === 'checkin') body.mode = 'checkin';
+      if (mode === 'checkin') {
+        body.mode = 'checkin';
+        // the stateful check-in: send the program the client actually ran and
+        // their logged numbers so the Trainer evolves it instead of rebuilding
+        const dg = planDigest();
+        if (dg) body.prev_plan = dg;
+        const ld = qaLogDigest();
+        if (ld) body.log_digest = ld;
+      }
       if (followupAnswers) body.followup_answers = followupAnswers;
       const demoParam = new URLSearchParams(location.search).get('demo');
       if (demoParam !== null) body.demo = demoParam === 'stream' ? 'stream' : 1;
@@ -1490,6 +1508,31 @@
     d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     return d;
   }
+  /* ── compact digest of the saved plan for the stateful check-in ── */
+  function planDigest() {
+    const sp = savedPlan();
+    if (!sp || !sp.plan) return null;
+    const p = sp.plan;
+    return {
+      weekly_split: p.weekly_split || null,
+      profile: p.profile_summary || null,
+      diet_targets: p.diet_plan ? {
+        calorie_target_kcal: p.diet_plan.calorie_target_kcal,
+        protein_g: p.diet_plan.protein_g,
+        carbs_g: p.diet_plan.carbs_g,
+        fat_g: p.diet_plan.fat_g,
+      } : null,
+      safety_notes: p.safety_notes || null,
+      days: (p.workout_days || []).map(d => ({
+        day: d.day_label || '',
+        exercises: (d.exercises || []).slice(0, 12).map(x =>
+          (x.name || '') + ' — ' + (x.sets || '?') + ' x ' + (x.rep_range || '?') +
+          (x.tempo_or_notes && /\d/.test(x.tempo_or_notes) ? ' (' + x.tempo_or_notes + ')' : '')),
+      })),
+      generated_days_ago: Math.max(0, Math.round((Date.now() - sp.at) / 86400000)),
+    };
+  }
+
   function qaLogDigest() {
     const logs = loadLogs();
     if (!logs.length) return null;
