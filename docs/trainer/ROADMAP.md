@@ -39,6 +39,15 @@ from this file directly.
   hired (first studies in RND_LAB.md / SIM_STUDY.md); export & erase
   (/api/export, password-confirmed /api/auth/delete); site-wide profile
   view in the account modal (/api/profile: member-since + live counts)
+- Sprint 12 — The Trainer Remembers (SPRINT_12.md): stateful check-in
+  (prev-plan + log digests into the recalibration), plan validator gate,
+  muscle-gain-rate reconciliation, Groq compact-prompt parity
+- Sprint 13 — Deload Autopilot & Honest Progress (SPRINT_13.md): deload
+  autopilot card + coach halving, e1RM stall watch with escalation,
+  Coach Mode progression cues + mid-session ramps + RIR-today override
+- Sprint 14 — Your Data, Only Yours (SPRINT_14.md): audit + fix of a
+  shared-browser cross-account bleed (owner-stamped device storage);
+  multi-user isolation now a permanent server+browser test dimension
 
 ## Next up (high value, roughly ordered — groomed from the R&D LAB and
 ## SIMULATION studies, 2026-07-19; details in RND_LAB.md + SIM_STUDY.md)

@@ -1421,16 +1421,32 @@
     t.textContent = SYNC.user ? '● ' + SYNC.user.split('@')[0] : 'Sync';
   }
   function syncAuthLost() {
+    // a dead/expired session is NOT an explicit logout — keep this device's
+    // data (it stays stamped to its owner, so it can never merge into another
+    // account) and simply reflect the signed-out state
     SYNC.user = null;
     acctPill();
-    if (window.OS_ACCT) { OS_ACCT.user = null; OS_ACCT._emit('logout'); }
+    if (window.OS_ACCT) { OS_ACCT.user = null; OS_ACCT._emit('authlost'); }
   }
-  async function pullMerge() {
+  async function pullMerge(opts) {
+    opts = opts || {};
     try {
       const r = await fetch('/api/sync');
       if (r.status === 401) { syncAuthLost(); return; }
       if (!r.ok) return;
       const d = await r.json();
+      // Un-owned (guest) local data may be adopted UP only into an account that
+      // has none yet — a fresh registration keeping the plan it just built. If
+      // the account already has a plan, this browser's guest data belongs to
+      // someone else (shared device); the server wins and local is replaced.
+      if (opts.adoptGuest && d.plan) {
+        try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: d.plan.at, plan: d.plan.value })); } catch (e) {}
+        try { localStorage.setItem(LOG_KEY, JSON.stringify((d.logs && d.logs.value) || [])); } catch (e) {}
+        try { localStorage.removeItem(DL_KEY); } catch (e) {}
+        if (planWrap.classList.contains('show')) renderPlan(d.plan.value);
+        refreshRestore();
+        return;
+      }
       const localAt = (savedPlan() || {}).at || 0;
       if (d.plan && d.plan.at > localAt) {
         try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: d.plan.at, plan: d.plan.value })); } catch (e) {}
@@ -1489,12 +1505,44 @@
     } catch (e) {}
   };
   $('tabAcct').addEventListener('click', () => { if (window.OS_ACCT) OS_ACCT.open(); });
+
+  /* ── device isolation: localStorage is per-browser, not per-account ──
+     Every synced record is stamped with the account that owns it. When the
+     signed-in identity changes — sign-out, account deletion, or a DIFFERENT
+     account signing in on a shared browser — this device's training data is
+     wiped so one person's plan/logs can never surface in, or sync up into,
+     another person's account. */
+  const OWNER_KEY = 'trainerOwner';
+  function deviceReset() {
+    try {
+      localStorage.removeItem(PLAN_KEY);
+      localStorage.removeItem(LOG_KEY);
+      localStorage.removeItem(DL_KEY);
+    } catch (e) {}
+    checkinForm.dataset.prefilled = '';
+    lastPlan.d = null;
+    prevForDiff = null;
+    if (typeof qaReset === 'function') qaReset();
+    if (planWrap.classList.contains('show')) setState('form');
+    refreshRestore();
+  }
   if (window.OS_ACCT) OS_ACCT.on(st => {
     SYNC.user = st.user;
     SYNC.enabled = st.enabled;
     acctPill();
-    if (st.user && (st.event === 'me' || st.event === 'login')) pullMerge();
-    if (st.event === 'logout') refreshRestore();
+    if (st.event === 'authlost') { refreshRestore(); return; }
+    if (st.user && (st.event === 'me' || st.event === 'login')) {
+      let owner = null;
+      try { owner = localStorage.getItem(OWNER_KEY); } catch (e) {}
+      // data owned by a DIFFERENT account is foreign — wipe before touching sync
+      if (owner && owner !== st.user) deviceReset();
+      try { localStorage.setItem(OWNER_KEY, st.user); } catch (e) {}
+      pullMerge({ adoptGuest: !owner });
+    }
+    if (st.event === 'logout') {
+      deviceReset();
+      try { localStorage.removeItem(OWNER_KEY); } catch (e) {}
+    }
   });
   const histMatch = location.hash.match(/^#history=(\d+)$/);
   if (histMatch) {

@@ -232,3 +232,93 @@ def test_delete_account_wipes_everything(client):
 
 def test_delete_requires_auth(client):
     assert client.post("/api/auth/delete", json={"password": "x"}).status_code == 401
+
+
+# ── cross-user isolation: two accounts on the same store must never see or
+#    touch each other's data (the guarantee behind "saved separately per user") ──
+
+def _plan2(goal, kcal):
+    return {"type": "plan", "profile_summary": {"goal": goal},
+            "diet_plan": {"calorie_target_kcal": kcal},
+            "workout_days": [{"day_label": "D1", "exercises": []}]}
+
+
+def test_two_users_have_separate_plans_logs_history(client):
+    # user A (via the fixture client) and user B (a second client, same store)
+    _reg(client, email="a@example.com")
+    client.put("/api/sync", json={"plan": {"value": _plan2("A-first", 2000), "at": 1000},
+                                  "logs": {"value": [{"at": 1, "day": "A"}], "at": 1000}})
+    client.put("/api/sync", json={"plan": {"value": _plan2("A-second", 2100), "at": 2000}})
+
+    b = A.app.test_client()
+    _reg(b, email="b@example.com")
+    b.put("/api/sync", json={"plan": {"value": _plan2("B-first", 3000), "at": 1000},
+                             "logs": {"value": [{"at": 9, "day": "B"}], "at": 1000}})
+
+    # each sees only their own current plan, logs, history, profile, export
+    da = client.get("/api/sync").get_json()
+    db = b.get("/api/sync").get_json()
+    assert da["plan"]["value"]["profile_summary"]["goal"] == "A-second"
+    assert db["plan"]["value"]["profile_summary"]["goal"] == "B-first"
+    assert da["logs"]["value"] == [{"at": 1, "day": "A"}]
+    assert db["logs"]["value"] == [{"at": 9, "day": "B"}]
+    assert client.get("/api/history").get_json()["history"][0]["goal"] == "A-first"
+    assert b.get("/api/history").get_json()["history"] == []  # B never overwrote a plan
+    assert client.get("/api/profile").get_json()["user"] == "a@example.com"
+    assert b.get("/api/profile").get_json()["user"] == "b@example.com"
+    assert client.get("/api/export").get_json()["account"]["email"] == "a@example.com"
+    assert b.get("/api/export").get_json()["account"]["email"] == "b@example.com"
+
+
+def test_user_cannot_read_another_users_history_item(client):
+    # A archives a plan; B must not be able to fetch it by guessing its id (IDOR)
+    _reg(client, email="a@example.com")
+    client.put("/api/sync", json={"plan": {"value": _plan2("A-first", 2000), "at": 1000}})
+    client.put("/api/sync", json={"plan": {"value": _plan2("A-second", 2100), "at": 2000}})
+    a_hid = client.get("/api/history").get_json()["history"][0]["id"]
+    assert client.get(f"/api/history/{a_hid}").status_code == 200  # A can read it
+
+    b = A.app.test_client()
+    _reg(b, email="b@example.com")
+    assert b.get(f"/api/history/{a_hid}").status_code == 404  # B cannot
+
+
+def test_one_users_write_never_touches_another(client):
+    _reg(client, email="a@example.com")
+    client.put("/api/sync", json={"plan": {"value": _plan2("A", 2000), "at": 5000},
+                                  "logs": {"value": [{"at": 1, "day": "A"}], "at": 5000}})
+    b = A.app.test_client()
+    _reg(b, email="b@example.com")
+    # B hammers sync with its own data at various timestamps
+    for t in (1000, 6000, 3000, 9000):
+        b.put("/api/sync", json={"plan": {"value": _plan2("B", 3000), "at": t},
+                                 "logs": {"value": [{"at": 9, "day": "B"}], "at": t}})
+    # A's data is byte-for-byte unchanged
+    da = client.get("/api/sync").get_json()
+    assert da["plan"]["value"]["profile_summary"]["goal"] == "A"
+    assert da["plan"]["at"] == 5000
+    assert da["logs"]["value"] == [{"at": 1, "day": "A"}]
+
+
+def test_deleting_one_account_leaves_the_other_intact(client):
+    _reg(client, email="a@example.com")
+    client.put("/api/sync", json={"plan": {"value": _plan2("A", 2000), "at": 1000}})
+    b = A.app.test_client()
+    _reg(b, email="b@example.com", pw="bpassword8")
+    b.put("/api/sync", json={"plan": {"value": _plan2("B", 3000), "at": 1000}})
+
+    assert client.post("/api/auth/delete", json={"password": "hunter2boat"}).status_code == 200
+    # B is untouched: still signed in, data intact, account still exists
+    assert b.get("/api/auth/me").get_json()["user"] == "b@example.com"
+    assert b.get("/api/sync").get_json()["plan"]["value"]["profile_summary"]["goal"] == "B"
+    assert A.STORE.get_user("b@example.com") is not None
+
+
+def test_all_data_endpoints_reject_the_anonymous(client):
+    # nothing is readable or writable without a session
+    for method, path in (("get", "/api/sync"), ("put", "/api/sync"),
+                         ("get", "/api/history"), ("get", "/api/history/1"),
+                         ("get", "/api/profile"), ("get", "/api/export"),
+                         ("post", "/api/auth/delete")):
+        r = getattr(client, method)(path, json={})
+        assert r.status_code == 401, f"{method} {path} was not 401"
