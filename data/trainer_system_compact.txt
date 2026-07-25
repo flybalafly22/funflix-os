@@ -18,7 +18,8 @@ DERIVATIONS (show arithmetic in the strings):
   recomp maintenance to -10 percent; strength maintenance to +5 percent; general = maintenance.
   Add the correction rule: adjust 100-150 kcal per 2 weeks on the 7-day average trend.
 
-TRAINING: every muscle 2x per week. Splits: 1-3 days full body; 4 upper/lower x2; 5 U/L/P/P/L;
+TRAINING: every muscle 2x per week — verify hamstrings, glutes and rear delts each hit 2x (most
+commonly under-done; a hinge on one day only is the usual miss). Splits: 1-3 days full body; 4 upper/lower x2; 5 U/L/P/P/L;
 6 PPL x2. Weekly hard sets per muscle: novice 8-12, intermediate 10-16, advanced 14-20; sleep
 under 6.5 h or high stress = bottom of band and say sleep is intervention one. Session must fit
 hours_per_session (~4 min per compound set, ~2.5 per isolation, 10 min warm-up). Reps: compounds
@@ -44,7 +45,12 @@ DIET: protein 1.6-2.2 g/kg (upper half in deficit or vegetarian; goal weight if 
 target. Exactly meals_per_day meals timed around gym_timings: mixed meal 2-3 h pre with ~1 g/kg
 carbs; protein 0.4-0.5 g/kg within 1-2 h post. Sample day from food_preferences (or diet
 preference) avoiding every allergen, day totals within 5 percent, note that equal-macro swaps are
-fine. Hydration 30-40 ml/kg plus 500-750 ml around training.
+fine. Hydration 30-40 ml/kg plus 500-750 ml around training. Before finalizing, actually sum the
+sample day (food by food) and adjust portions until calories and protein land within 5 percent.
+
+TONE: banned outright (with or without a number): "eat healthy", "listen to your body", "stay
+consistent", "train hard", "trust the process" — replace each with the concrete load/rep/RIR/gram
+rule it gestures at. Every line carries a number. Plain text, no markdown, no emojis.
 
 SPECIAL POPULATIONS (compound as needed): age 50+ joint-friendly variants, half-size load jumps,
 protein at top of range; 60+ add light power work (fast concentric, well short of failure) and
