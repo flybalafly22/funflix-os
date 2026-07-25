@@ -680,14 +680,20 @@ def _validate_plan(data, intake=None):
         if "\n" in s or "**" in s or "##" in s or "```" in s:
             fails.append("markdown_or_newline")
             break
+    # Allergen scan (defence-in-depth behind the prompt). Scan the WHOLE diet
+    # plan, not just the sample day, and keep short allergen words (egg, soy,
+    # nut, fish) which the old len>=4 floor silently dropped. Word-boundary
+    # match with an optional trailing 's' so "peanut" catches "peanut butter"
+    # and "peanuts" without false-hitting "eggplant"/"nutrition".
     alg = str((intake or {}).get("allergies", "")).lower()
-    # stem trailing s so "peanuts" catches "peanut butter"
-    words = [w.rstrip("s") for w in re.split(r"[^a-z]+", alg)
-             if len(w) >= 4 and w not in ("none", "nothing", "known", "food", "mild", "severe")]
-    if words and isinstance(dp.get("sample_day"), list):
-        hay = json_mod.dumps(dp["sample_day"]).lower()
-        if any(w in hay for w in words):
-            fails.append("allergen_in_sample_day")
+    stop = {"none", "nothing", "known", "food", "mild", "severe", "and", "the",
+            "any", "all", "nil", "free", "allergy", "allergies", "intolerance"}
+    words = [(w[:-1] if w.endswith("s") and len(w) > 3 else w)
+             for w in re.split(r"[^a-z]+", alg) if len(w) >= 3 and w not in stop]
+    if words and isinstance(dp, dict):
+        hay = " ".join(_plan_strings(dp)).lower()
+        if any(re.search(r"\b" + re.escape(w) + r"s?\b", hay) for w in words):
+            fails.append("allergen_in_diet")
     return fails
 
 

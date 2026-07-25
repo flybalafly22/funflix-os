@@ -1080,31 +1080,52 @@
   });
 
   /* ── stall watch: the plan's own stall rule, judged by e1RM ── */
+  const WEEK_MS = 604800000, DAY_MS = 86400000;
+  function lastSessionAt() {
+    const logs = loadLogs();
+    return logs.reduce((m, s) => Math.max(m, s.at || 0), 0);
+  }
+  function trainedWeeksSince(anchor) {
+    const wk = {};
+    loadLogs().forEach(s => { if ((s.at || 0) >= anchor) wk[Math.floor(s.at / WEEK_MS)] = 1; });
+    return Object.keys(wk).length;
+  }
+  function planExperience() {
+    const sp = savedPlan();
+    return String((((sp || {}).plan || {}).profile_summary || {}).experience_level || '').toLowerCase();
+  }
   function stallWatch() {
+    // advanced lifters progress slowly — 3 flat sessions is normal, so widen
+    // the window; and sessions more than 3 weeks apart aren't comparable (a
+    // layoff is not a stall)
+    const win = /advanced|elite/.test(planExperience()) ? 4 : 3;
+    const GAP = 21 * DAY_MS;
     const logs = loadLogs().slice().sort((a, b) => a.at - b.at);
     const hist = {};
-    logs.forEach(s => s.entries.forEach(e => {
-      const b = bestSet(e.sets);
-      if (!b) return;
-      let vol = 0;
-      e.sets.forEach(x => { const r = parseInt(x.reps, 10); if (!isNaN(r)) vol += r; });
-      (hist[e.name] = hist[e.name] || []).push({ kg: b.kg, reps: b.reps, e1: e1rm(b), vol });
-    }));
+    logs.forEach(s => {
+      if (s.deload) return;  // a deliberately reduced week is never a stall
+      s.entries.forEach(e => {
+        const b = bestSet(e.sets);
+        if (!b) return;
+        let vol = 0;
+        e.sets.forEach(x => { const r = parseInt(x.reps, 10); if (!isNaN(r)) vol += r; });
+        (hist[e.name] = hist[e.name] || []).push({ at: s.at, kg: b.kg, reps: b.reps, e1: e1rm(b), vol });
+      });
+    });
+    const better = (x, y) => y.e1 > x.e1 + 1e-9 || (Math.abs(y.e1 - x.e1) <= 1e-9 && y.vol > x.vol);
+    const contiguous = arr => arr.every((p, i) => i === 0 || p.at - arr[i - 1].at <= GAP);
+    const improving = arr => arr.some((p, i) => i > 0 && better(arr[i - 1], p));
     const out = [];
     for (const name in hist) {
       const hs = hist[name];
-      if (hs.length < 3) continue;
-      // improving = higher best e1RM, or same e1RM with more total reps
-      const better = (x, y) => y.e1 > x.e1 + 1e-9 ||
-        (Math.abs(y.e1 - x.e1) <= 1e-9 && y.vol > x.vol);
-      const [a, b, c] = hs.slice(-3);
-      if (!better(a, b) && !better(b, c)) {
-        // still flat one session further back = past the 10%-reset window; the
-        // plan's own escalation is a deload, not another reset
-        const deep = hs.length >= 4 && !better(hs[hs.length - 4], a);
-        out.push({ name, last: c, deep,
-                   reset: c.kg ? Math.max(2.5, Math.round(c.kg * 0.9 / 2.5) * 2.5) : null });
-      }
+      if (hs.length < win) continue;
+      const wnd = hs.slice(-win);
+      if (!contiguous(wnd) || improving(wnd)) continue;
+      const last = wnd[wnd.length - 1];
+      const deepWnd = hs.slice(-(win + 1));
+      const deep = deepWnd.length === win + 1 && contiguous(deepWnd) && !improving(deepWnd);
+      out.push({ name, last, deep, n: win,
+                 reset: last.kg ? Math.max(2.5, Math.round(last.kg * 0.9 / 2.5) * 2.5) : null });
     }
     return out;
   }
@@ -1112,10 +1133,10 @@
     if (!list.length) return '';
     return '<div class="stall"><div class="st-h">Stall watch — your plan’s rule, applied</div>' +
       list.map(s => s.deep
-        ? '<p><b>' + esc(s.name) + '</b> is still flat after 4 sessions — past the reset window. ' +
+        ? '<p><b>' + esc(s.name) + '</b> is still flat after ' + (s.n + 1) + ' sessions — past the reset window. ' +
           'Your plan’s escalation: take the deload (halve sets, −15–20% load) this week, then rebuild.</p>'
         : '<p><b>' + esc(s.name) + '</b> has not beaten ' + esc(fmtSet(s.last)) +
-          ' (by estimated 1RM) in 3 sessions. Your plan’s protocol: reduce 10% ' +
+          ' (by estimated 1RM) in ' + s.n + ' sessions. Your plan’s protocol: reduce 10% ' +
           (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild — if sleep and food are in order.</p>').join('') +
       '</div>';
   }
@@ -1125,6 +1146,10 @@
   function deloadInfo() {
     const sp = savedPlan();
     if (!sp || !sp.plan) return null;
+    // returning from a break (>14 days since the last session) is detraining,
+    // not fatigue — never prescribe a deload to someone who should ramp back up
+    const lastAt = lastSessionAt();
+    if (lastAt && Date.now() - lastAt > 14 * DAY_MS) return null;
     const p = sp.plan;
     const txt = (((p.progressive_overload || {}).deload) || '') + ' ' +
                 (((p.duration_and_paths || {}).review_points) || '');
@@ -1132,7 +1157,13 @@
     const cadence = Math.min(8, Math.max(4, (m && parseInt(m[1], 10)) || 6));
     let doneAt = 0;
     try { doneAt = +localStorage.getItem(DL_KEY) || 0; } catch (e) {}
-    const sinceW = Math.floor((Date.now() - Math.max(sp.at, doneAt)) / 604800000);
+    const anchor = Math.max(sp.at, doneAt);
+    // fatigue accrues from TRAINING, not the calendar: count weeks that actually
+    // contain a logged session since the anchor. A user who never logs still
+    // gets a calendar-based reminder (we can't see their training otherwise).
+    const sinceW = loadLogs().length
+      ? trainedWeeksSince(anchor)
+      : Math.floor((Date.now() - anchor) / WEEK_MS);
     return sinceW >= cadence ? { cadence, sinceW } : null;
   }
   function deloadHTML(dl) {
@@ -1206,15 +1237,31 @@
     }
     return [];
   }
+  // most recent NON-deload session that contains this exercise (a deload week's
+  // reduced loads must not become the baseline the next session progresses from)
+  function lastEntryFor(name) {
+    const logs = loadLogs();
+    for (const s of logs) {
+      if (s.deload) continue;
+      const e = s.entries.find(x => x.name === name);
+      if (e) return { sets: e.sets, at: s.at || 0 };
+    }
+    return null;
+  }
   // double progression, said out loud: top of range on every set last time →
   // add load today; otherwise the target is one more rep somewhere
   function coProgressCue(ex) {
     if (CO.deload) return '';
-    const prev = lastSetsFor(ex.name, 99);
-    if (!prev.length) return '';
+    const last = lastEntryFor(ex.name);
+    if (!last) return '';
+    // back after a long break: ease in, do not chase load off a stale number
+    if (Date.now() - last.at > 14 * DAY_MS) {
+      return '<b>Coach:</b> first time back on this in a while — start about 10% below your ' +
+        'last working weight and leave 2–3 reps in reserve; rebuild before you push.';
+    }
     const top = parseInt(String(ex.rep_range || '').match(/(\d+)\s*$/)?.[1], 10);
     if (!top) return '';
-    const counted = prev.filter(s => s.reps !== '' && !isNaN(parseInt(s.reps, 10)));
+    const counted = last.sets.filter(s => s.reps !== '' && !isNaN(parseInt(s.reps, 10)));
     if (!counted.length) return '';
     const allTop = counted.every(s => parseInt(s.reps, 10) >= top);
     const lower = /squat|deadlift|leg|lunge|hip|calf|rdl|good morning|hamstring|glute/.test(String(ex.name).toLowerCase());
@@ -1312,7 +1359,11 @@
       .map(e => ({ name: e.name, sets: e.sets.filter(Boolean) }));
     if (entries.length) {
       const logs = loadLogs();
-      logs.unshift({ at: Date.now(), day: CO.day.day_label || '', entries });
+      // tag deload sessions so stall watch / progression cues ignore their
+      // deliberately reduced loads
+      const sess = { at: Date.now(), day: CO.day.day_label || '', entries };
+      if (CO.deload) sess.deload = true;
+      logs.unshift(sess);
       try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 200))); } catch (e) {}
       pushLogs();
     }

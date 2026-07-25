@@ -61,8 +61,31 @@ def test_markdown_in_strings_fails():
 def test_allergen_in_sample_day_fails():
     p = _good()
     p["diet_plan"]["sample_day"] = [{"meal": "M1", "foods": ["20 g peanut butter"]}]
-    assert "allergen_in_sample_day" in A._validate_plan(p, {"allergies": "peanuts"})
+    assert "allergen_in_diet" in A._validate_plan(p, {"allergies": "peanuts"})
     assert A._validate_plan(p, {"allergies": "none"}) == []
+
+
+def test_short_allergens_are_enforced():
+    # "egg"/"soy"/"nut" (<=4 chars) used to slip past the len>=4 floor
+    p = _good()
+    p["diet_plan"]["sample_day"] = [{"meal": "M1", "foods": ["3 whole eggs", "oats"]}]
+    assert "allergen_in_diet" in A._validate_plan(p, {"allergies": "egg"})
+    assert "allergen_in_diet" in A._validate_plan(p, {"allergies": "eggs, shellfish"})
+
+
+def test_allergen_scanned_beyond_sample_day():
+    # an allergen hiding in meal_schedule (not sample_day) must still be caught
+    p = _good()
+    p["diet_plan"]["sample_day"] = []
+    p["diet_plan"]["meal_schedule"] = [{"meal": "Lunch", "timing_note": "grilled fish fillet"}]
+    assert "allergen_in_diet" in A._validate_plan(p, {"allergies": "fish"})
+
+
+def test_allergen_word_boundary_no_false_positive():
+    # "nut" allergy must not false-hit "nutrition" / "coconut" prose
+    p = _good()
+    p["diet_plan"]["macro_rationale"] = "solid nutrition with coconut water"
+    assert A._validate_plan(p, {"allergies": "nut"}) == []
 
 
 def test_questions_shape():

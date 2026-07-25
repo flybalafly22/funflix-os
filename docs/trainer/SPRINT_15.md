@@ -51,5 +51,36 @@ findings land in RND_LAB.md / SIM_STUDY.md and are groomed here as they arrive.
 - Deload checkbox + stall-history into the check-in payload (SIM cluster remainder).
 - "Numbers verified" badge (server recomputes BMR/TDEE/macros, badges when it reconciles).
 
-## Outcome
-_(open — awaiting the two Sprint 15 studies, then Producer picks the build)_
+## Hotfix pass — SHIPPED 2026-07-19 (before the main build)
+
+Both Sprint-15 studies landed and independently converged on a cluster of real
+regressions in the Sprint 12–13 code. Fixed and verified immediately:
+
+- **Deload autopilot keyed on calendar age, not training** (R&D A4 / SIM S1):
+  `deloadInfo()` now counts weeks that actually contain a logged session since
+  the anchor (non-loggers still get a calendar reminder), and a >14-day gap
+  since the last session suppresses the deload entirely — a returning user
+  ramps back up, not down.
+- **Deload sessions poisoned the stall watch / progression cue** (R&D A3):
+  Coach Mode now tags deload sessions; `stallWatch()` and `coProgressCue()`
+  skip them, so a deliberately reduced week can't read as a stall or become
+  the baseline the next session tries to beat.
+- **Coach told a detrained lifter to ADD load** (SIM S7): if the newest
+  non-deload log for a lift is >14 days old, the cue eases back (−10%,
+  2–3 RIR) instead of "add 2.5 kg" off a stale number.
+- **Stall watch window ignored experience and time** (SIM S2): the window is
+  now experience-scaled (advanced → 4 flat sessions, not 3) and sessions more
+  than 21 days apart are treated as non-comparable (a layoff isn't a stall).
+- **Allergen validator gap** (R&D A2): short allergens (egg, soy, nut, fish)
+  are now enforced (the old len≥4 floor dropped them), the scan covers the
+  whole diet plan (not just the sample day), and word-boundary matching avoids
+  "nut"→"nutrition" false hits.
+
+Evidence: pytest 85/85 (+4 allergen tests), a 10-check browser hotfix pass
+(trained-weeks trigger, welcome-back suppression, no deload-poison, stale-cue
+ease-back, preserved add-load happy path), site_qa 29/29. SIM also confirmed
+Sprints 12–14 improved simulated outcomes (Marcus ~80%→90% adherence, Dev's
+knee-safe programming survives recalibration).
+
+## Outcome (main build)
+_(open — Producer to pick from the queued candidates now the hotfix is clear)_

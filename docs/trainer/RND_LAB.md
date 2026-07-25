@@ -405,3 +405,389 @@ send it to Groq too — parity is payload as well as prompt.
 7. **Idea intake:** close each sprint by adding at least one new $0 quality idea
    to this file's ranked list, and promote the top unbuilt one to ROADMAP.md when
    it beats what is queued.
+
+---
+
+## Sprint 15 study
+
+Second study. Three of the first study's findings shipped (Sprints 12–14:
+stateful check-in, `_validate_plan`, muscle-gain-rate reconciliation + Groq
+parity, deload autopilot / e1RM stall watch / Coach cues, data isolation). This
+study re-reads the surfaces those sprints created, finds where they still misfire,
+and specs the tool that makes every future prompt change safe. Study only, no code
+changed. Findings cite file:line as of commit 37ec26d. Constraints unchanged:
+$0 (free tiers), the live PC+mobile site is the product, the privacy promise holds.
+
+---
+
+### Deliverable 1 — The golden-intake eval bench (drop-in-ready spec)
+
+**Purpose.** Today a prompt edit ships on the strength of one hand-eyeballed live
+plan (R&D cadence item 5). The bench turns that into a deterministic, repeatable
+score across ~10 fixed populations, so any change to `trainer_system.txt`,
+`trainer_system_compact.txt`, `TRAINER_QA_SYSTEM`, the model chain, or
+`_validate_plan` is gated by a number, not a vibe. It is the enabling tool for
+every other idea in this file — nothing else here is safe to ship without it.
+
+#### File layout
+
+```
+qa/
+  trainer_bench.py          # runner + rubric + assertion registry (~300 lines, stdlib only)
+  bench_intakes.json        # the 10 fixed intakes + their assertions (below)
+  bench_fixtures/           # captured plan JSON, one per intake id (checked in)
+    bmi37_novice_cut.json
+    ...
+  bench_report.json         # machine output (written each run)
+```
+
+`trainer_bench.py` imports the real gate so the bench and production can never
+drift: `from app import _validate_plan, _plan_strings`. Two small static tables
+live inside the runner (no new dependency, no data file):
+- `EXERCISE_MUSCLE` — ~40 canonical movement names (the ones the prompt's movement
+  patterns actually generate; reuse the form-cue library list from idea 6 of the
+  first study) → `{primary: [...], secondary: [...]}`. An unmapped exercise name
+  logs `unmapped_exercise` (a warning, never a failure) and is added to the map in
+  the same PR — the map is grown, not guessed.
+- `BANNED_PHRASES` — `["eat healthy", "listen to your body", "stay consistent",
+  "train hard", "be consistent", "trust the process"]` (from `trainer_system.txt`
+  TONE, 476-478), plus the markdown/emoji scan already in `_validate_plan`.
+
+#### How it runs
+
+**Offline (default — `python qa/trainer_bench.py`, $0, no key, CI-safe).** Scores
+two plan sources against the full rubric: (a) `data/trainer_demo.json` (as
+demo-Rohan's intake), and (b) every `qa/bench_fixtures/*.json` captured on a prior
+live run and checked in. This is the regression net for the *rubric code itself*
+and for the demo and last-known-good live plans; it never touches the network.
+Exits nonzero if the demo or any fixture regresses. Wire it into
+`.github/workflows/ci.yml` right after `pytest` (one line: `python qa/trainer_bench.py`).
+
+**Live (`BENCH_LIVE=1 python qa/trainer_bench.py --server http://127.0.0.1:5057`).**
+For each of the 10 intakes, POST once to a running server's `/api/trainer`
+(so the whole production path runs — full/compact prompt, retry chain,
+`_validate_plan`, soft-serve). ≤10 calls total, one per intake, no loops — well
+inside the Gemini free tier. On a `type:"questions"` response, re-POST once with
+that intake's canned `followup_answers` (each intake ships them) so triage resolves
+to a plan. Each returned plan is written to `qa/bench_fixtures/<id>.json` (so it
+becomes next run's offline fixture) and scored. The live path is gated behind the
+env flag so CI never spends the key; the R&D "prompt-change gate" (cadence item 1)
+runs it locally before merge and pastes the score delta into the sprint doc.
+
+#### The deterministic rubric (pure Python, per plan)
+
+Every check returns `(name, pass: bool, detail: str)`. Score = checks passed / run.
+
+| Check | What it does |
+|---|---|
+| `structural` | `_validate_plan(plan, intake) == []` — reuses the shipped gate verbatim (shape, macro math ±3%, sample-day ±7%, markdown/newline, sample-day allergen). |
+| `volume_band` | Tally direct hard sets per muscle from `workout_days` via `EXERCISE_MUSCLE` (primary = full set count, secondary = 0.5); assert every **primary** muscle sits inside the intake's `meta.band` (novice 8–12, intermediate 10–16, advanced 14–20). Secondary muscles may sit below band. Emits the per-muscle tally in `detail`. |
+| `session_time` | Per day: `8 + 4.5*compound_sets + 2.5*isolation_sets` minutes (the prompt's own upper bounds, 226-227; compound = `rest_seconds >= 105`) must be ≤ `hours per session`×60 × 1.15 tolerance. |
+| `allergen_scan` | Word-boundary regex `\b(word)s?\b` for each intake allergen over **all** plan strings (`_plan_strings(plan)`), not just `sample_day`. Floor len ≥ 3 so egg/soy/nut/fish are caught (see Audit finding 1). |
+| `banned_phrase` | Grep every plan string for `BANNED_PHRASES` and for emoji / markdown / `\n`. A banned phrase passes only if a digit or unit appears within 40 chars (a numbered rule is allowed). |
+| `population` | Runs each assertion in the intake's `assertions[]` through the registry below. Each assertion is one row in the score. |
+
+#### Population-assertion registry (each a pure `(plan, intake, arg) -> (bool, detail)`)
+
+- `no_exercise_matching:<regex>` — no exercise name (incl. warm-ups & substitutions) matches.
+- `some_exercise_matching:<regex>` — at least one exercise matches.
+- `protein_on_goal_weight` — `protein_g / meta.goal_weight_kg` in 1.6–2.4, **and** `protein_g` is below what current bodyweight×2.4 would give (proves goal-, not scale-weight anchoring; the BMI≥30 rule).
+- `no_calorie_deficit` — `calorie_target_kcal >= 0.98 × maintenance_est` (maintenance from the plan's own `profile_summary` if present, else Mifflin×activity). For minors and RED-S floors.
+- `calorie_floor:<kcal>` — `calorie_target_kcal >= arg`.
+- `rir_no_failure` — no `rpe_or_rir`/notes string contains `RIR 0`, `RIR 1`, `to failure`, `AMRAP`, `1RM` (minors: RIR-2 floor).
+- `string_present:<regex>` — regex found in any plan string (water-weight caveat, RED-S/under-fuel, physician/clearance, "not medical advice", supervision, "simplify"/"not the problem yet").
+- `frequency_min:<N>` — every primary muscle trained ≥ N distinct days/week (no bro split).
+- `starting_loads_present` — for each lift named in intake `current lifts`, the matching exercise's `tempo_or_notes` contains a kg number.
+- `meals_anchored_to_wake` — sample-day meal-timing strings reference wake time (`\bwake|after waking|on rising`), not clock time (night shift).
+- `equipment_denied:<regex>` — no exercise name matches the banned-equipment regex (home-dumbbell plan must not contain `machine|cable|smith|leg press|lat pulldown|hack squat`).
+- `checkin_review_present` — check-in intakes: `plan["checkin_review"]` exists and is the first key emitted (best-effort: the fixture is captured as raw text, so assert it appears before `"workout_days"` in the byte stream).
+- `targets_unchanged_vs_prev:<pct>` — check-in: `|new_kcal − prev_kcal| <= pct% × prev_kcal` (the adherence gate: don't move targets when adherence is low).
+
+#### The 10 fixed intakes (`qa/bench_intakes.json`)
+
+Real intake keys (human-readable, exactly as `intake()` emits them at
+`trainer.html:828-844`). `meta` and `assertions` are bench-only, never sent to the
+model. Abbreviated below; ship the full field set (all 23 keys) per intake.
+
+1. **`bmi37_novice_cut`** — BMI 37 beginner, fat loss.
+   `{"gender assigned at birth":"female","date of birth":"1991-04-02","height":"165 cm","weight":"101 kg","training experience":"brand new, never lifted","goal":"lose fat","days per week":"3","hours per session":"1","training environment":"commercial gym","sleep hours per night":"6","stress level":"moderate"}`
+   `meta:{band:"novice", goal_weight_kg:70}`.
+   Assertions: `no_exercise_matching:jump|plyo|box jump|run|sprint|skater|bound|burpee`; `some_exercise_matching:machine|seated|leg press|chest[- ]supported`; `protein_on_goal_weight`; `string_present:water.*(week|first two)`; `frequency_min:2`.
+
+2. **`novice_58m_gain`** — 58 y/o male novice, muscle gain.
+   `weight 78 kg, height 175 cm, experience "beginner", goal "build muscle", days 3, hours 1.25`. `meta:{band:"novice", goal_weight_kg:78}`.
+   Assertions: `some_exercise_matching:trap bar|machine|dumbbell`; `no_exercise_matching:jump|plyo|max.*deadlift`; `string_present:physician|clearance`; `protein_on_goal_weight`.
+
+3. **`minor_17_gain`** — 17 y/o (DOB makes age 17 vs current_date), muscle gain.
+   `weight 62 kg, height 172 cm, experience "about 1 year", goal "build muscle", days 4`. `meta:{band:"intermediate"}`.
+   Assertions: `rir_no_failure`; `no_calorie_deficit`; `string_present:supervis`; `structural`.
+
+4. **`vegetarian_evening_lowsleep`** — vegetarian, trains 8–9 pm, 5 h sleep, high stress, muscle gain.
+   `weight 70 kg, "diet preference":"vegetarian", "gym timings":"8 to 9 pm", "sleep hours per night":"5", "stress level":"high", days 4`. `meta:{band:"intermediate"}`.
+   Assertions: `no_exercise_matching:...` (n/a); `string_present:(chicken|beef|pork|salmon|tuna|shrimp|fish)` **must be false** → encode as `no_exercise_matching` variant `no_string:` (add to registry) OR reuse `allergen_scan` seeded from diet; `string_present:sleep.*(first|intervention|priority)`; volume at/below bottom of band → assert `volume_band` with band tightened to `novice`-floor (sleep <5.5 → 10–15% below bottom); `string_present:caffeine`.
+
+5. **`nightshift_cut`** — night-shift nurse, fat loss.
+   `weight 88 kg, "gym timings":"3 am after shift", "extra info":"night shift nurse, sleeps 9am–4pm", goal "lose fat", days 4`. `meta:{band:"intermediate"}`.
+   Assertions: `meals_anchored_to_wake`; `no_calorie_deficit` **inverted** (deficit expected) → assert `calorie_floor` only + trust structural for the arithmetic; `structural`.
+
+6. **`home_db_only_gain`** — home, adjustable dumbbells ≤30 kg, no bench, intermediate.
+   `"training environment":"home","equipment notes":"adjustable dumbbells up to 30 kg, no bench, no rack", experience "2 years", goal "build muscle", days 4`. `meta:{band:"intermediate"}`.
+   Assertions: `equipment_denied:machine|cable|smith|leg press|lat pulldown|hack squat|barbell`; `some_exercise_matching:dumbbell|goblet|floor press`; `frequency_min:2`.
+
+7. **`female_reds_floor`** — female, low intake + high activity, wants more fat loss.
+   `weight 55 kg, height 168 cm (BMI ~19.5), "extra info":"currently eating ~1200 kcal, 15,000 steps daily, lifting 5x", goal "lose more fat"`. `meta:{band:"intermediate"}`.
+   Assertions: `string_present:RED-?S|under-?fuel|energy availability`; `calorie_floor:1400`; `string_present:ferritin|iron`; `no_calorie_deficit` (hold the floor).
+
+8. **`knee_acl_strength`** — prior ACL recon, occasional patellar pain, strength.
+   `weight 82 kg, "injury history":"left ACL reconstruction 2019, occasional patellar pain on deep knee flexion", goal "get stronger"`. `meta:{band:"intermediate", goal_weight_kg:82}`.
+   Assertions: `no_exercise_matching:jump|plyo|deep lunge|sprint|pistol`; `string_present:not medical advice|outside (my|our)`; `string_present:(hip|posterior|hamstring|glute)`; `structural`.
+
+9. **`current_lifts_hypertrophy`** — lifts provided, intermediate, 5 days.
+   `"current lifts":"bench 80 kg x 5, back squat 120 kg x 5, deadlift 150 kg x 3", experience "2 years", goal "build muscle", days 5`. `meta:{band:"intermediate"}`.
+   Assertions: `starting_loads_present`; `frequency_min:2`; `session_time`; `volume_band`.
+
+10. **`checkin_low_adherence`** — check-in, bad adherence.
+    `mode:"checkin"`, intake goal "build muscle"; check-in data via intake keys: `"diet adherence":"about 50%","sessions completed per week":"2 of 4","weight then":"82 kg","weight now":"82.3 kg","weeks":"4"`; attach `prev_plan` (a planDigest of the demo) and `log_digest` (a qaLogDigest with 2 sparse sessions).
+    Assertions: `checkin_review_present`; `targets_unchanged_vs_prev:4`; `string_present:simplif|not the problem yet|reduce friction`; `structural`.
+
+(An optional 11th, `allergen_stress`: allergies "peanuts, shellfish, eggs", goal
+muscle gain — sole job is to exercise `allergen_scan` across swaps/snacks/supplements,
+i.e. the whole plan, catching the short-allergen miss from Audit finding 1.)
+
+#### Scoreboard output
+
+`qa/bench_report.json`:
+```json
+{ "generated":"2026-07-24T…","mode":"offline|live","model_chain":["gemini-2.5-flash",…],
+  "intakes":[
+    {"id":"bmi37_novice_cut","plan_source":"fixture|live","score":8,"max":9,"pass":false,
+     "checks":[
+       {"name":"structural","pass":true,"detail":""},
+       {"name":"volume_band","pass":true,"detail":"chest 11, back 12, quads 10, hams 8(sec)"},
+       {"name":"pop:no_exercise_matching","pass":false,"detail":"matched 'Box jump 3x10'"}]}],
+  "totals":{"intakes":10,"passed":8,"checks_run":74,"checks_passed":71} }
+```
+Plus a stdout table — one row per intake (`id  8/9  ✗ pop:no_jumping`) and a totals
+line. Nonzero exit if any intake falls below its bar (default: all checks pass; an
+optional per-intake `min_score` allows a known soft failure to be tolerated with a
+tracked reason). Producer implements in one sprint: `bench_intakes.json` + the
+registry + the two static tables + the runner, no further design needed.
+
+---
+
+### Deliverable 2 — Quality audit of the surfaces shipped since the first study
+
+Ranked by impact. Each ships the exact fix.
+
+#### A1 — The validator's allergen scan misses the most common allergens and only reads the sample day  *(safety, highest)*
+
+`app.py:683-690`. Two defects in the shipped gate:
+1. `words = [w.rstrip("s") for w in … if len(w) >= 4 …]` — the `len ≥ 4` floor
+   silently drops **egg(s)→egg(3), soy(3), nut(s)→nut(3), fish(4 but…)**. The four
+   most common food allergens after peanut are exactly the short ones, and they are
+   never checked. A client who typed `eggs` gets no allergen enforcement at all.
+2. `hay = json.dumps(dp["sample_day"])` — only the sample day is scanned. An
+   allergen in `diet_plan.food_swaps`, a snack note, the supplement rationale, or a
+   meal-timing string sails through, even though the prompt's own self-check (rule 6,
+   `trainer_system.txt:642`) promises "no listed allergen appears **anywhere**."
+
+**Fix** (`app.py`, replace 685-690):
+```python
+words = [w for w in re.split(r"[^a-z]+", alg)
+         if len(w) >= 3 and w not in ("none","nothing","known","food","mild","severe","and","any")]
+if words and isinstance(dp, dict):
+    hay = " ".join(_plan_strings(dp)).lower()
+    if any(re.search(r"\b" + re.escape(w) + r"s?\b", hay) for w in words):
+        fails.append("allergen_in_diet")
+```
+The word-boundary match (`\bnut s?\b`) lets the floor drop to 3 safely — it no
+longer false-hits `coconut`/`minute` — and scanning `_plan_strings(dp)` covers the
+whole diet block. Ship with a bench fixture (`allergen_stress`) that would fail today.
+
+#### A2 — Deload sessions poison the stall watch and the progression cue  *(false coaching, high)*
+
+Coach Mode already knows a session is a deload (`CO.deload`, `trainer.html:1180`)
+but `coFinish()` saves the log entry with no marker (`trainer.html:1315`:
+`logs.unshift({ at, day, entries })`). A deload week is *designed* to lower e1RM
+(halved sets, −15–20% load). So the very next `stallWatch()` (`trainer.html:1083`)
+reads the deload session as a non-improvement and can false-flag a stall the week
+after a planned backoff — and `coProgressCue()` (`trainer.html:1211`) reads the
+deloaded reps and, if they hit top-of-range at the light load, tells the user
+"add 2.5 kg today and rebuild" off a weight that was deliberately reduced.
+
+**Fix** (three edits, all deterministic, $0):
+- `trainer.html:1315` — `logs.unshift({ at:Date.now(), day:CO.day.day_label||'', entries, deload:CO.deload });`
+  and the manual logger `trainer.html:1072` — `logs.unshift({ at, day, entries, deload:!!deloadInfo() });`
+- `stallWatch()` `trainer.html:1084` — skip deload sessions:
+  `const logs = loadLogs().filter(s => !s.deload).slice().sort(…);`
+- `coProgressCue()` / `lastSetsFor()` `trainer.html:1201-1207` — skip deload sessions
+  when reading "last time": `for (const s of logs) { if (s.deload) continue; … }`.
+- `qaLogDigest()` `trainer.html:1685` inherits the fix through `stallWatch()`; also
+  drop deload sessions from `sessions` so the check-in model isn't shown a backoff
+  week as if it were a work week.
+
+#### A3 — Deload autopilot fires on calendar time, not accumulated training  *(misfire, high)*
+
+`trainer.html:1135`: `sinceW = floor((Date.now() − max(sp.at, doneAt)) / 604800000)`.
+This is wall-clock weeks since the plan was saved (or last deload), regardless of
+whether the client trained. A user who saved a plan, traveled two weeks, then
+trained four, is shown a deload card at "6 weeks" on four weeks of real fatigue.
+A deload answers accumulated stress; calendar weeks with no logged sessions are not
+stress. The logs to fix this are already in hand (`loadLogs()`).
+
+**Fix** (`trainer.html:1125-1136`): count distinct ISO-weeks that contain ≥1 logged
+session since the anchor, and require the client to have actually trained:
+```js
+const anchor = Math.max(sp.at, doneAt);
+const trainedWeeks = new Set(
+  loadLogs().filter(s => s.at >= anchor && !s.deload)
+            .map(s => Math.floor(s.at / 604800000))).size;
+return trainedWeeks >= cadence ? { cadence, sinceW: trainedWeeks } : null;
+```
+Keep a fallback: if the client logs nothing (Coach-Mode-only or non-loggers), fall
+back to the calendar count so the feature still triggers — `const weeks =
+trainedWeeks || calendarWeeks;`. This makes the card mean "you've done N hard
+weeks," which is what the copy already claims.
+
+#### A4 — Deload cadence parse grabs the earliest end of any range  *(misfire, medium)*
+
+`trainer.html:1131-1132`: the regex `every (\d+) … weeks` captures **only the first
+number**, so a plan that says "deload every 4 to 8 weeks" yields `cadence = 4` —
+the *advanced* end — for everyone, firing the card up to 4 weeks early and
+contradicting the prompt's "novices toward 8, advanced toward 4–6"
+(`trainer_system.txt:304-306`). The plan writes the range low-first; the parser
+should read the range, not its floor.
+
+**Fix** (`trainer.html:1131-1132`): capture both bounds and take the upper (or the
+rounded midpoint), still clamped 4–8:
+```js
+const m = String(txt).match(/every\s+(\d+)\s*(?:to|-|–|or)\s*(\d+)?\s*weeks?/i);
+const lo = m && +m[1], hi = m && (+m[2] || +m[1]);
+const cadence = Math.min(8, Math.max(4, hi || 6));
+```
+
+#### A5 — The progression cue advises a load jump off a single logged set  *(over-eager, medium)*
+
+`trainer.html:1217-1221`: `counted = prev.filter(has-reps)`; `allTop =
+counted.every(reps >= top)`. If the client logged only one set last time (quit
+early, or logged a single top set), `counted.length === 1`, and one set at the top
+of the range triggers "add 2.5/5 kg today." Double progression earns a load jump
+only when the *prescribed* set count all cleared the top — one set is noise.
+
+**Fix** (`trainer.html:1218`, after building `counted`): require at least two
+counted sets, and ideally the majority of the prescribed sets:
+```js
+if (counted.length < 2) return coBeatCue(counted);   // "beat a rep", never "add load"
+```
+(`coBeatCue` = the existing else-branch, factored out.)
+
+#### A6 — Check-in water-weight discount is unnumbered filler that violates the prompt's own rule  *(prompt, medium)*
+
+`trainer_system.txt:108-109`: "First 1 to 2 weeks of a new plan shift water weight;
+if the window includes them, discount **accordingly** and say so." The prompt's own
+TONE rule bans exactly this: "Every prescription gets a number" (`:476-478`).
+"Discount accordingly" at the single most trend-distorting moment gives the model no
+method, so it improvises inconsistently.
+
+**Fix** (`trainer_system.txt:108-109`, replace the sentence):
+> If the measured window includes the first 1 to 2 weeks of a new plan, the first
+> 0.5 to 1.5 kg of change is water and glycogen, not tissue: subtract it before
+> dividing by weeks, or compute the trend from week 2 onward if you have enough
+> data, and state which you did in checkin_review.measured_trend.
+
+Mirror one clause into the compact prompt's check-in block (parity cadence item 2).
+
+#### A7 — The check-in never tells the model when the last deload was, then asks it to reason about it  *(prompt+payload, medium)*
+
+`trainer_system.txt:126`: "consider a deload if 6 or more weeks since the last one" —
+but nothing in the check-in payload carries the deload clock. Sprint 13 stored it
+client-side (`DL_KEY`, `trainer.html:1124`) and `deloadInfo()` knows if one is due,
+yet `qaLogDigest()` (`trainer.html:1671-1688`) sends only `sessions`, `stalls`,
+`plan_age_days`. The model guesses a fact the app already knows.
+
+**Fix** (`trainer.html:1683-1687`, add to the returned object):
+```js
+last_deload_days_ago: (()=>{ let d=0; try{d=+localStorage.getItem(DL_KEY)||0;}catch(e){}
+  return d ? Math.round((Date.now()-d)/86400000) : null; })(),
+deload_due: !!deloadInfo(),
+```
+and one CHECK-IN MODE sentence (`trainer_system.txt`, after 126):
+> When the training-log digest reports deload_due true or last_deload_days_ago
+> above about 45, schedule the deload explicitly in progressive_overload.deload and
+> say why in checkin_review.training_changes; when it was recent, do not.
+
+**Lower-priority notes (log, don't necessarily ship this sprint):** the check-in
+still has no measured 7-day-average weight source, so the trend rides two spot
+weights (`trainer_system.txt:93-94`; the fix is idea "bodyweight quick-log", already
+on the roadmap). And `coProgressCue`'s `rep_range` parse (`trainer.html:1215`)
+silently returns nothing for ranges ending in a word ("12–15 per leg") — a missed
+cue, not a wrong one; widen the regex to `(\d+)\s*(?:reps?|per|each|\/)?\s*$`.
+
+---
+
+### Deliverable 3 — New, bolder quality ideas (beyond the first list), ranked
+
+1. **Cross-model numeric consensus badge.** For the arithmetic-critical fields only
+   (BMR, TDEE, macro reconciliation, per-muscle set tally), fire the *already-present*
+   Groq leg as a tiny compute-only second opinion — a ~200-token "here are the
+   client's stats and the plan's numbers; recompute and return JSON" prompt, not a
+   whole plan — and render a "two independent models agree on the numbers" badge when
+   they reconcile within 5%, or trigger a retry/flag when they diverge. No trainer at
+   $0 shows model-vs-model agreement on its math.
+   *Feasibility: one short Groq call (free 12k TPM already provisioned) + pure-Python
+   compare + one badge — $0.*
+2. **Longitudinal calibration ledger ("the studio grades itself").** The plan states
+   a predicted rate (e.g. "0.6–1.0%/mo"); bodyweight logs give the measured rate.
+   Store predicted-vs-actual per plan (localStorage, synced) and surface "our last
+   call landed within X% of measured" — a self-auditing accuracy score that compounds
+   into a moat over months. Directly measures the thing the whole product claims.
+   *Feasibility: arithmetic + localStorage + one inline line — $0, no API.*
+3. **Deterministic exercise-substitution graph.** Static JSON mapping each canonical
+   movement → equipment-conditioned substitutes + contraindication tags (knee /
+   shoulder / low-back / no-jumping). Powers three things with zero API: instant safe
+   swaps when a check-in or a Coach-Mode "this hurts" tap reports a new issue; the
+   client validator's fix-in-place (idea 7); and a structured injury→swap already
+   applied in the check-in payload.
+   *Feasibility: content graph (self-authored, CC0) + client lookup — $0.*
+4. **Live-canary bench diff (model-drift alarm).** Once the bench (Deliverable 1)
+   exists, run its 10 intakes weekly against the **live** endpoint via a scheduled
+   GH Action and alert on score regressions — catches Google silently changing a
+   flash model's behavior under a frozen prompt, which no static test can see.
+   *Feasibility: reuses the bench + one cron workflow + the free-tier key — $0.*
+5. **Readiness-adjusted "earned volume" autoregulation with an audit trail.** Extend
+   Coach Mode's readiness compression into a rolling weekly fatigue score fed by a
+   one-tap session-RPE (easy/as-planned/brutal); nudge next week's set targets up or
+   down **within the plan's band**, deterministic and plan-bounded, and log it so the
+   check-in can show "you autoregulated down two weeks running → a real recovery
+   deficit, not laziness." Turns readiness from a per-session banner into a tracked
+   trend the recalibration can act on.
+   *Feasibility: one button + rolling score + band-clamped set math — $0.*
+6. **Defense-in-depth client diet linter.** Deterministic client-side scan of the
+   rendered `sample_day` against the intake's allergies + diet preference; anything
+   the server validator missed is flagged inline with a one-tap swap from the
+   substitution graph (idea 3). Backstops Audit finding A1 in the browser.
+   *Feasibility: client scan + the graph — $0.*
+7. **Evidence-provenance tags.** Each landmark prescription (volume band, protein
+   g/kg, deficit rate, deload cadence) carries a short self-authored citation tag
+   ("10+ sets/muscle/wk — Schoenfeld 2017 meta") appended deterministically by
+   matching the plan's numbers to a curated `evidence_map.json`. Shows receipts no
+   $0 competitor shows; also doubles as a drift check (a number with no matching tag
+   is a number outside the evidence base).
+   *Feasibility: static JSON + template append — $0.*
+
+---
+
+### Top 5 to act on (across all three deliverables)
+
+1. **Ship the golden-intake bench (Deliverable 1)** — the gate that makes every
+   other change on this list safe; nothing else should merge a prompt edit without it.
+2. **Audit A1 — allergen scan** — a safety hole (egg/soy/nut/fish never enforced,
+   only the sample day scanned); ~6-line fix, ship a failing bench fixture with it.
+3. **Audit A2 — stop deload sessions poisoning the stall watch and progression cue**
+   — the shipped Sprint-13 features actively mis-coach the week after a deload; three
+   small deterministic edits.
+4. **Audit A3 — deload on trained weeks, not calendar weeks** — the autopilot
+   currently prescribes recovery for fatigue that wasn't accumulated.
+5. **Idea 1 — cross-model numeric consensus badge** — turns the free Groq leg we
+   already pay nothing for into a second opinion on the plan's math, a trust feature
+   uniquely cheap for us to own.

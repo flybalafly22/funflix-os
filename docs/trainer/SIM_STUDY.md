@@ -338,3 +338,364 @@ already exists.
 *Full simulation assumptions and code line references are inline above; everything is
 reproducible from `data/trainer_system.txt`, `app.py`, and `templates/trainer.html`
 at the commit this file lands on.*
+
+---
+
+# Sprint 15 re-run
+
+**Team:** SIMULATION · **Date:** 2026-07-24 · **Status:** complete · **Code changed: none**
+(this is analysis only; the only edit is this appended section).
+
+## What changed since the first study, and how this re-run reads the code
+
+Between the first study and now, Sprints 12–14 shipped fixes aimed squarely at the
+defects ranked above. This re-run re-executes the same deterministic rules — but
+against the **current** code — and assumes, as before, a **prompt-compliant model**,
+so every remaining failure is a design failure, not a model-quality one. The features
+now active, and the exact lines that implement them:
+
+- **Stateful check-in (Sprint 12).** The client attaches `planDigest()`
+  (`templates/trainer.html:1647` — weekly split, per-day exercise names + sets + rep
+  ranges + any numeric load note, `profile_summary` incl. `age_years` and
+  `experience_level`, diet targets, **and `safety_notes`**) and `qaLogDigest()`
+  (`:1671` — last 10 sessions' best sets, `stallWatch()` output, plan age) to the
+  check-in POST (`:860`). A computed elapsed-weeks field (`:823`) overrides the capped
+  select. A disruption dropdown (`:817`, form at `:586`) feeds trend discounting. The
+  server injects both digests verbatim under 20 KB (`app.py:744-752`) for Gemini and
+  Groq. Prompt rules: PREVIOUS PLAN (keep split/names, carry loads forward, re-apply
+  safety flags, list deviations), LOG-outranks-free-text, disruption discounting
+  (`trainer_system.txt:131-143`).
+- **Deload autopilot (Sprint 13).** `deloadInfo()` (`:1125`) parses the cadence from
+  the plan's own deload text (clamped 4–8, default 6) and fires a card in the Log tab
+  and Coach Mode when `sinceW >= cadence`; Coach Mode halves sets (`:1182`). Dismissal
+  writes `DL_KEY` and resets the clock (`:1046`).
+- **e1RM stall watch + escalation (Sprint 13).** `bestSet()`/`e1rm` (`:1020`) judge
+  progress by Epley e1RM with a total-reps tiebreak; `stallWatch()` (`:1083`) flags a
+  lift with no e1RM PR across the last 3 sessions and **escalates to the plan's deload
+  language on a 4th flat session** (the `deep` branch, `:1104`).
+- **Coach Mode cues (Sprint 13).** `coProgressCue()` (`:1211`) says "add 2.5/5 kg" when
+  every set hit the top of the range last time, else "beat a rep"; `barbellish` ramps
+  every barbell lift (`:1165`); readiness overrides RIR to 3 (`:1179`).
+- **Server plan validator (Sprint 12).** `_validate_plan()` (`app.py:631`) gates
+  shape, numeric sets, macro math ±3 %, sample-day ±7 %, markdown/newline, allergen
+  scan — wired into both retry legs (`:839`, `:880`).
+- **Data isolation (Sprint 14).** Owner-stamp + `deviceReset()` — closes cross-account
+  bleed on shared browsers. It did **not** touch the 200-log cap or add any backup path.
+
+## Verdict on the first study's findings F1–F9
+
+| # | First-study finding | Status now | Code reason |
+|---|---|---|---|
+| F1 | Check-ins are stateless | **FIXED** | `planDigest()` carries split, exercise names+loads, `age_years`, `experience_level`, and `safety_notes`; prompt re-applies safety flags and keeps names verbatim. Residuals: `age_years` is **frozen at plan time** (no DOB in the digest, so a client who crosses a 50+/60+ boundary mid-journey can't newly trigger it); equipment survives only **implicitly** via exercise names, so a *forced swap* has no equipment context (→ S4). |
+| F2 | Periodization not in the loop | **FIXED (loop) / PARTIAL (check-in)** | Deload autopilot + stall escalation are live and executed. Residuals: deload clock is calendar-only (S1), no aggregate "2 lifts stalled this week" trigger (S3), the two deload pathways don't coordinate (S5), and weeks-since-deload still isn't in the check-in payload. |
+| F3 | Progress judged by kg not e1RM; no cues | **FIXED** | `bestSet`/`stallWatch` are e1RM-based; `coProgressCue` issues add-load/beat-a-rep; ramps on every barbell lift. Residuals: the cue is detraining-blind (S7) and the 3-session window ignores experience/time (S2). |
+| F4 | User-initiated, no BW log, distorted window | **PARTIAL** | FIXED: computed elapsed-weeks kills the ÷8 doubling; disruption field added. STILL OPEN: no bodyweight log, no cadence nudge (loop is **still 100 % user-initiated** — grep finds no reminder banner), autofill still compares all-time first→last (`:1394`), and intermittency silently dilutes the trend (S6). |
+| F5 | Data on borrowed time; 200-log cap | **STILL OPEN** | Cap is still 200 (`:1073`, `:1316`, **and the sync-merge path `:1469`**); no 90 % warning, no post-session-5 sync/export nudge. Sprint 14 shipped isolation, not durability (S11). |
+| F6 | Stall advice ignores deficit context | **STILL OPEN** | `stallHTML` (`:1111`) has no goal branch; a lift merely *holding* in a deficit still reads "reduce 10 % if sleep and food are in order" (S8). |
+| F7 | No off-ramp at goal completion | **STILL OPEN** | No "Goal reached?" field; no maintenance-transition rule in `trainer_system.txt` (S9). |
+| F8 | Readiness/layoffs get token adjustments | **PARTIAL** | FIXED: readiness RIR-3 override + set drop + time-scaled coach adjustments. STILL OPEN: a >14-day mid-plan layoff still shows pre-gap placeholders and an add-load cue (S7). |
+| F9 | No server-side schema validation | **FIXED** | `_validate_plan()` gates both retry legs. |
+
+Net: **4 fully fixed (F1, F3, F9, and F2 in the loop), 2 partial (F4, F8), 3 still open
+(F5, F6, F7).** The two biggest first-study defects — stateless check-ins and
+periodization-in-prose-only — are the ones that genuinely closed.
+
+## Subject A — "Priya" re-run (beginner, fat loss)
+
+Only the months where a shipped feature changed the app's behavior are shown.
+
+| Mo | First study | Sprint-15 behavior | Delta |
+|----|------|------|------|
+| 3 | Check-in forced "6" or "8" weeks (actual gap 7) | Computed field sends **7** (`:823`); trend uses the true denominator | Small accuracy win — correct rate, correct keep/cut call |
+| 6 | Stall watch reset a lift that stalled *because she's in a deficit* | e1RM watch is smarter (rep gains at fixed weight no longer false-flag), **but** a genuinely held lift still flags "reduce 10 %" with the deficit-blind caveat (F6 open). The *check-in* advice is context-aware (prefers steps, sees the log) | PARTIAL — check-in good, Log-tab banner still deficit-blind |
+| 7 | Post-vacation +0.8 kg water → model **cut −150 kcal off a fake trend** | She selects disruption **"Travel"**; prompt discounts the disrupted weeks → **calories held**, no unnecessary cut | **FIXED** — the single clearest improvement in her year |
+| 11–12 | Goal reached; stuck cutting at ~1,470 kcal, no off-ramp | Unchanged — no goal-reached field or maintenance rule (F7 open) | STILL OPEN |
+
+**Outcome vs first study.** Final weight essentially unchanged (**≈ −12.9 kg** vs −12.8;
+she was already near the physiological best case), but the *risky moments* improved: the
+month-7 water-rebound cut is gone, so months 7–9 run at the correct deficit instead of
+an accidentally deeper one (avoids ~1–1.5 kg of over-fast loss and the associated hunger
+/ RED-S drift; modeled adherence months 8–9 holds ~88 % vs 85 %). Outcome-vs-best-case
+**~85 % → ~88 %**, gained almost entirely on process honesty, not on the scale. Residuals
+that still cost her: no off-ramp (F7), deficit-blind Log-tab stall copy (F6), still no
+bodyweight log and zero app-initiated contact (F4).
+
+## Subject B — "Marcus" re-run (intermediate, home barbell) — the biggest gainer
+
+| Mo | First study | Sprint-15 behavior | Delta |
+|----|------|------|------|
+| ~6 | No deload all year; he self-prescribed one in month 9 | `deloadInfo()` fires on schedule (~wk 6); Log tab + Coach Mode halve sets. His **first scheduled deload lands on time** | **FIXED** — fatigue managed, fewer downstream stalls |
+| 4 / 7 | Stall → "reduce 10 %" forever, zero escalation | e1RM watch; a **4th flat session escalates to the deload** (`deep` branch). Double-progression rep gains no longer false-flag | **FIXED** |
+| 5 | Check-in: `cWeeks` capped at 8 while 18 wks in → trend ÷8 **overstated his rate ~2×**; revised plan prescribed **cable machines he doesn't own**; renamed exercises **orphaned his logs** | Computed field sends **18** → +2.3 kg/18 wk = **+0.128 kg/wk** (in band → keep/+100) instead of the ÷8 artifact +0.29 kg/wk (over-band → spurious cut). `planDigest` carries his barbell exercise names; prompt keeps them (Sprint-12 live proof: 26/26 names kept) → **no cable machines, logs stay aligned, Coach placeholders keep working** | **FIXED** — the transformed month |
+| 11 | 200-log cap silently drops oldest sessions at 4×/wk | Cap still 200 (unchanged), but the check-in now uses `qaLogDigest`'s **recent** 10 sessions + LOG-outranks-free-text, so recalibration is unaffected; only the all-time autofill text/history is still moved | STILL OPEN, **lower severity** |
+| 12 | Flu, 2.5 wk off; first session back too heavy (pre-flu placeholders) | Readiness "beat up" now drops a set + forces RIR 3 — **but** `coProgressCue` still reads his pre-flu session and can say "add 2.5 kg today"; the >14-day discount doesn't exist | PARTIAL (F8) |
+
+**Outcome vs first study.** The month-5 check-in alone flips a likely wrong calorie cut
+into a correct hold, keeps his whole program intact, and preserves log continuity; the
+scheduled deloads smooth the year. Modeled big-four e1RM **+13–16 %** (vs +11–14 % first
+study), scale **+4.0 kg** with a cleaner muscle:fat split. Outcome-vs-best-case
+**~80 % → ~90 %**. Residuals: the 200-cap (now low impact) and the flu-return add-load
+cue (F8 / S7).
+
+## Subject C — "Dev" re-run (56, returning, knee OA) — the safety win
+
+| Mo | First study | Sprint-15 behavior | Delta |
+|----|------|------|------|
+| 3 | Pain-reported check-in **rebuilt without his DOB** → 50+ machinery lost; **conventional deadlift + walking lunges reappeared** next to a knee complaint; only his freshly-typed pain note kept deep knee flexion out | `planDigest` carries `profile.age_years = 56`, `experience_level`, **and `safety_notes`** (trap bar, box squat, leg-press pain-free range); prompt: re-apply flagged issues without restating, keep names → **trap bar and box squat preserved, conventional deadlift/lunges do NOT reappear**; he no longer has to re-type "I am 56, knee OA" | **FIXED (safety-adjacent)** — the app remembers |
+| 10 | 60+ rules can never fire for a continuing client | Still can't fire from age alone — `age_years` is frozen from the original plan and there's no DOB to recompute. Dev is 56→57 this year so it doesn't bite, but the **bracket-crossing edge is real** for multi-year clients | STILL OPEN (edge, not yet due for Dev) |
+| 6 | Near data-loss; saved only by his son's sync account | Sprint 14 added isolation, not durability; a non-synced user still loses everything to storage eviction. Dev synced, so fine | STILL OPEN (F5) |
+
+**Outcome vs first study.** Scale/strength essentially unchanged (**−4.6 kg recomp**, the
+best of the three both times) — but the **safety risk at every recalibration is removed**:
+a knee-OA client no longer has deep-knee-flexion movements re-prescribed when he checks
+in, and no longer depends on his own habit of re-declaring his condition. Outcome-vs-
+best-case **~90 % → ~93 %**, the gain being safety and dignity rather than a bigger number.
+
+## Updated cross-subject scoreboard (first study → Sprint 15)
+
+| | Priya | Marcus | Dev |
+|---|---|---|---|
+| Outcome vs best-case | 85 % → **88 %** | 80 % → **90 %** | 90 % → **93 %** |
+| Weight change | −12.8 → −12.9 kg | +4.2 kg | −4.6 kg |
+| Strength change | ~+50 % | +11–14 % → **+13–16 % e1RM** | ~+80 % |
+| Biggest fix that landed | disruption discount (mo 7) | stateful check-in + deload autopilot (mo 5–6) | safety context survives check-in (mo 3) |
+| Silent months (app-initiated contact) | **12 of 12** | **12 of 12** | **12 of 12** |
+
+The last row is unchanged and remains the quiet headline: **the app still never
+initiates anything.** All 36 original subject-months (and all 24 new ones below) are
+100 % user-initiated.
+
+---
+
+## New adversarial subject D — "Ade", advanced plateau-prone lifter
+
+**Profile:** 31M · 178 cm · 88.0 kg · goal: strength (a little size) · advanced (~7 yr) ·
+commercial gym · 4 days/wk upper/lower, 1.5 h · 9,000 steps · sleep 7 h · low–moderate
+stress · non-veg · current lifts near ceiling: **squat 180×3, bench 130×3, deadlift
+220×2, OHP 82×3**.
+
+**Intake e1RMs (Epley):** SQ 180×1.10 = **198**, BP 130×1.10 = **143**, DL 220×1.067 =
+**235**, OHP 82×1.10 = **90**.
+
+**What the app produces:** BMR = 10×88 + 6.25×178 − 5×31 + 5 = **1,843**; AF 1.5 (9k
+steps) + 0.10 = **1.6** → TDEE ≈ **2,950**; strength goal maintenance to +5 % →
+**≈ 3,040 kcal**, protein ~160 g. Advanced volume 14–20 sets/muscle, primary lifts 3–6
+at 80–90 %, Epley starting loads at ~85–90 %. Deload text reads "every 4 to 6 weeks"
+→ `deloadInfo` parses **4** (first number, clamped). Plate math and ramps at 180–220 kg
+are genuinely valuable.
+
+### Month by month
+
+| Mo | Key e1RM: SQ/BP/DL/OHP | App actions & events |
+|----|------|------|
+| 1 | 198 / 143 / 235 / 90 | Plan built. Coach Mode plate math + ramps land well at heavy loads. Check-in #1: +0.3 kg, strength goal → keep. Good. |
+| 2 | 199 / 144 / 236 / 90 | First non-monotonic block: bench 130×4, then 130×4 (off day), then 130×5. Two flat sessions early trip nothing yet — but a squat run of 3 same-e1RM sessions (normal for advanced) **false-flags "reduce 10 %."** He ignores it. **Cry-wolf begins.** |
+| 3 | 201 / 145 / 237 / 91 | Scheduled deload fires ~wk 4–5 (cadence 4); Coach Mode halves sets — **correct and on time. Helped.** A second spurious stall flag on OHP. He's learning to distrust the banner. |
+| 4 | 201 / **147** / 238 / 91 | **Genuine** bench plateau (expected at advanced). 3 flat → "reduce 10 %" → rebuild to 130 → stalls again (4th flat) → **escalates to the deload**; post-deload he breaks to 132.5. **The escalation worked — the app's best moment for D.** |
+| 5 | 202 / 148 / 239 / 92 | Check-in #2 (computed 20 wks, correct). Model reads the logged bench stall and **rotates** comp bench → a 3-week **"Paused Bench Press"** block — good coaching. But the rename **blanks Coach placeholders and resets that lift's stall/e1RM thread** (they're exact-name matched); the digest carried no `substitution`/equipment, so the swap is unguided. **New continuity break — on an intentional, correct change.** |
+| 6 | 203 / 149 / 240 / 92 | Paused block does its job; comp bench returns 132.5→135. |
+| 7 | 204 / 149 / **241** / 93 | Deadlift plateau; "reduce 10 %" → rebuild works once. |
+| 8 | 204 / 149 / 241 / 93 | Check-in #3: waist +1.5 cm (lean-bulk creep, he filled the optional field) → −100–150 kcal. Correct. |
+| 9 | **205** / 149 / 242 / 93 | Squat stalls hard: 3 flat → reduce → rebuild → 4th flat → **stall-escalation says deload.** He deloads — but he **calendar-deloaded 3 weeks earlier**, and `deloadInfo` will surface its own card again next week. **Two independent deload pathways, no coordination → risk of a double deload** that kills momentum. |
+| 10 | 205 / 149 / 242 / 93 | He now spends real attention *managing the app's flags* rather than training. |
+| 11 | 205 / 149 / 243 / 94 | **Squat and OHP stall in the same week.** The prompt's own "immediate deload when 2+ lifts stall" trigger exists — but it's **only evaluable at a check-in he isn't due for**; the loop's `deloadInfo` is calendar-only and `stallWatch` flags each lift independently. **The one trigger an advanced lifter needs most never fires in the loop.** |
+| 12 | **205 / 149 / 243 / 93** | Year end. e1RM: SQ +3.5 %, BP +4.2 %, DL +3.4 %, OHP +3.3 %; BW 88→89.4. A realistic advanced year. |
+
+**Year narrative.** The app genuinely helped at the two *real* plateaus (the 4th-flat
+escalation broke both bench and squat) and the plate math/ramps are worth real money at
+these loads. But the interactive layer is **tuned for a novice's progress cadence**: a
+3-session no-PR window flags a lifter who is progressing exactly as an advanced lifter
+must (non-monotonically), so the banner cries wolf ~monthly and he stops trusting it;
+the correct answer to a stubborn plateau (exercise rotation) breaks his log continuity
+the moment the model does it right; and the two deload pathways plus the missing
+aggregate trigger mean fatigue management is either double-applied or not applied when it
+matters. Outcome-vs-best-case **~78 %** — the e1RM numbers are near a good coach's, but
+the noise cost him trust and ~2–3 productive weeks.
+
+**Touchpoints:** 3 check-ins, ~200 logged sessions (brushes the cap), ~10 Q&A.
+
+---
+
+## New adversarial subject E — "Lin", highly intermittent traveler
+
+**Profile:** 38F · 168 cm · 66.0 kg · goal: fat loss · ~2 yr on-and-off (perpetual
+returner) · commercial + hotel gyms · *states* 4 days/wk (reality is bursty) · 1 h ·
+management consultant, travels 2–3 wk/month · 8,000 steps (airports) · sleep ~6 h (jet
+lag), variable · non-veg · no injuries.
+
+**What the app produces:** BMR (F) = 10×66 + 6.25×168 − 5×38 − 161 = **1,359**; AF 1.5
+(8k steps) + 0.10 = **1.6** → TDEE ≈ **2,170**; fat loss −450 → **1,720 kcal**, protein
+~130 g. The plan assumes the 4 days/wk she typed.
+
+### Month by month
+
+| Mo | Weight | Sessions logged | App actions & events |
+|----|------|------|------|
+| 1 | 66.0 → 64.6 | 15 (home month) | Plan built. Coach Mode plate math shines in unfamiliar hotel gyms. Solid start. |
+| 2 | 64.6 → 64.4 | 4 (travel) | Trains 4× all month. No check-in (too busy). Silent. |
+| 3 | 64.4 → 63.4 | 12 (home) | Check-in #1 at real-wk ~10. Computed elapsed = **10 wks**; −2.6 kg/10 = −0.26 kg/wk. She reports sessions "About half," diet "50–70 %," disruption "Travel." **Adherence gate fires → keep calories, simplify.** The gate *rescues* the fact that the 10-wk denominator diluted her real on-plan rate. **Helped, by luck of the gate.** |
+| 4 | 63.4 → 63.8 | 2 (3 wk abroad) | Travel eating; slight regain. Silent. |
+| 5 | 63.8 → 62.6 | 13 (home) | On return she opens the Log tab → **DELOAD CARD fires** (`deloadInfo` sees plan age ~18 wk, never dismissed). She hasn't trained in weeks — **being told to deload after detraining is backwards.** And `coProgressCue` reads her 6-week-old session and says **"add 2.5 kg today"** → first session back too heavy, sore. **Failed (two ways) — both from keying off calendar plan-age, not training recency.** |
+| 6 | 62.6 → (target) | 14 (good month) | Check-in #2 at real-wk ~22. −3.4 kg/**22** = **−0.15 kg/wk**. This month was clean so she reports "About 75 %" / "70–90 %" / disruption **"None"** → **gate does NOT fire.** Model reads −0.15 kg/wk as slow-loss-with-good-adherence → **subtracts 100–150 kcal (or adds steps).** But the −0.15 is a **dilution artifact** of dividing four on-off months by 22 continuous weeks; her actual on-plan weeks lost fine. The single-block disruption field **can't express the historical gaps.** **Failed — an unwarranted cut.** |
+| 7 | 62.6 → 62.9 | 3 (travel) | The needless cut → hungry on the road → adherence craters. |
+| 8 | 62.9 → 62.8 | 5 | — |
+| 9 | 62.8 → 62.0 | 12 (home) | Rebuild. Stall watch compares her 3 most-recent bench sessions **spanning ~4 months** with no time-awareness; her post-gap return is below her pre-gap number → **false "deep stall" → "take the deload"** when she actually just detrained. |
+| 10 | 62.0 → 61.6 | 8 | **Switches to a new work phone, no sync account.** `localStorage` plan + logs **gone.** Nothing ever nudged her to sync or export. **Re-onboards from a blank form** with approximate numbers. **Failed (reliability).** |
+| 11 | 61.6 → 61.3 | 11 | Fresh plan; no memory of the prior year's logs. |
+| 12 | 61.3 → 62.5 | 4 (holiday travel) | Year end **−3.5 kg**. |
+
+**Year narrative.** A *continuous* Lin on this exact plan would lose ~6–8 kg; her
+intermittency plus the app's continuous-training assumptions cost roughly half the
+result. The app's **adherence gate is her best friend** (month 3) — but the
+**calendar-based deload** (month 5), the **trend dilution → over-cut** (month 6), the
+**detrained "add load" cue** (month 5), the **time-blind stall detector** (month 9), and
+the **device-switch data loss** (month 10) each subtract. She is the subject who most
+exposes that the whole loop silently assumes you train roughly every week. Outcome-vs-
+best-case **~55–60 %**.
+
+**Touchpoints:** 2 check-ins (then a re-onboard), ~90 logged sessions (never near the
+cap), ~6 Q&A.
+
+---
+
+## FINDINGS (ranked by impact)
+
+### S1. Deload autopilot keys off calendar plan-age, not training recency — [accuracy] [user-friendliness]
+**Moment:** Lin month 5 — a deload card after a ~10-week no-training gap ("it's been
+14 weeks of hard training"), and an add-load cue, both because `deloadInfo` (`:1135`) and
+`coProgressCue` read plan age / the last stored session with no gap check. Ade months
+9 & 11 — the calendar clock collides with real fatigue state.
+**Why it matters:** the two hardest real cases — the returner and the intermittent user —
+are exactly where a *calendar* deload is worst; halving sets on someone who just
+detrained is backwards, and it's the single most common real event (coming back from a
+break).
+**$0 fix:** compute `lastSessionAt` from the logs and base `sinceW` on
+`Math.max(sp.at, doneAt, lastSessionAt)`; if there is no session in >14 days, replace
+the deload card with a "welcome back — ramp for 1–2 sessions, don't deload" card. Both
+values already exist in `loadLogs()` and `savedPlan()`.
+
+### S2. Stall Watch's 3-session window ignores experience and time — [accuracy] [user-friendliness]
+**Moment:** Ade months 2–3 & 10 — ~monthly false "reduce 10 %" flags because 3 sessions
+without an e1RM PR is *normal* advanced progress, so the banner cries wolf and he stops
+trusting it. Lin month 9 — a false "deep stall" from comparing sessions ~4 months apart.
+**Why it matters:** the stall banner is the app's main piece of *interactive* coaching;
+once it cries wolf, the user tunes out the true stalls too. The window is hard-coded at
+3 (`stallWatch`, `:1096,1100`) with no read of `experience_level` (which is in
+`savedPlan().plan.profile_summary`) and no read of session dates.
+**$0 fix:** scale the window by experience — novice 3, intermediate 4, advanced 5–6
+sessions — and ignore any two sessions >21 days apart when judging "consecutive." Both
+inputs are already loaded.
+
+### S3. No aggregate "2+ lifts stalled this week → deload now" trigger in the loop — [accuracy]
+**Moment:** Ade month 11 — squat and OHP stall in the same week; the prompt's own
+immediate-deload trigger (`trainer_system.txt:307-309`) is only evaluable at a check-in
+he isn't due for, and `deloadInfo` is calendar-only.
+**Why it matters:** the aggregate stall is the trigger advanced plateau lifters need
+most, and it lives only in PDF prose — the exact shape of the original F2.
+**$0 fix:** `stallWatch()` already returns the list; if ≥2 distinct lifts flag within
+the last 7 days of logs, surface the existing `deloadHTML` card immediately, independent
+of the calendar.
+
+### S4. Exercise rotation breaks log/Coach continuity — the Sprint-12 fix covers KEPT names, not INTENTIONALLY CHANGED ones — [reliability] [accuracy]
+**Moment:** Ade month 5 — the model correctly rotates comp bench → "Paused Bench Press";
+the rename blanks Coach placeholders and resets that lift's e1RM/stall thread because
+`lastSetsFor`/`stallWatch`/autofill are exact-name matched, and the digest carried no
+`substitution`/equipment to guide the swap.
+**Why it matters:** Sprint 12 solved continuity for exercises the model *keeps*; a
+*correct* rotation is now the thing that breaks it — penalizing good coaching.
+**$0 fix:** have the check-in emit a machine-readable `renamed_from` inside
+`training_changes` (or a small `checkin_review.exercise_renames` map); the client aliases
+old-name history to the new name in the three exact-match lookups. Also add
+`training_environment`/`equipment_notes` (or each exercise's `substitution`) to
+`planDigest` so rotations stay in-kit.
+
+### S5. The two deload pathways don't share a clock — [reliability]
+**Moment:** Ade month 9 — a stall-escalation deload followed a week later by an
+independent calendar deload card, risking a double deload that stalls momentum.
+**Why it matters:** over-deloading an advanced lifter is as costly as never deloading.
+**$0 fix:** whenever stall-escalation advises a deload (the `deep` branch) or the user
+dismisses any deload, write `DL_KEY = Date.now()`; `deloadInfo` already keys off
+`DL_KEY`, so one shared timestamp coordinates both automatically.
+
+### S6. The computed-elapsed-weeks field assumes continuous training; intermittency dilutes the trend — [accuracy]
+**Moment:** Lin month 6 — −3.4 kg over 22 *calendar* weeks reads −0.15 kg/wk and triggers
+an unwarranted −100–150 kcal cut, though her on-plan weeks lost fine; the single-block
+disruption dropdown can't express four months of on-off.
+**Why it matters:** the recalibration doctrine is "the measured trend is ground truth" —
+but the trend is measured per *calendar* week (`:823`, labelled "trust over the select"),
+so a busy/travel user (a large real segment) gets systematically over-cut.
+**$0 fix:** count distinct weeks that contain a logged session in the plan window
+(trivial from `loadLogs()` dates) and send **both** numbers — "22 calendar weeks, 9 with
+logged training"; add one prompt line: anchor the trend on active weeks when they are
+materially fewer than calendar weeks.
+
+### S7. Coach Mode still tells a detrained / long-gap lifter to ADD load — [accuracy]
+**Moment:** Lin month 5 and Marcus month 12 (flu) — `coProgressCue` (`:1211`) reads the
+last *stored* session, however old, and says "add 2.5 kg today"; the >14-day discount
+from the first study's F8 was never built.
+**Why it matters:** the most common real event — returning after a break — is where
+adding load is most likely to injure or discourage.
+**$0 fix:** in `coProgressCue`/`coAdjust`, if the newest log for the exercise is >14 days
+old, suppress the add-load cue, prefill placeholders at −10 % and +1 RIR, and show
+"long gap — rebuild for 1–2 sessions before adding load."
+
+### S8. Fat-loss stall copy is still deficit-blind (F6 still open) — [accuracy]
+**Moment:** Priya month 6 and Lin (any cut) — a lift merely *holding* in a deficit reads
+"reduce 10 % if sleep and food are in order," but in a cut food is deliberately not in
+order, so the caveat can't land.
+**$0 fix:** `stallWatch`/`stallHTML` already have `savedPlan()`; branch the copy on goal
+— for fat-loss plans: "holding strength in a deficit is winning; reset only if a lift
+*drops* two sessions running."
+
+### S9. Still no off-ramp at goal completion (F7 still open) — [accuracy] [user-friendliness]
+**Moment:** Priya months 11–12 — goal reached, still cutting at ~1,470 kcal; no
+"Goal reached?" field and no maintenance-transition rule.
+**$0 fix:** the first study's one prompt rule (propose the maintenance/reverse-diet
+transition in `checkin_review.verdict` when the trend shows the goal is met) plus a
+"Goal reached? yes/no" on the check-in form.
+
+### S10. Loop is still 100 % user-initiated; no bodyweight log, no cadence nudge, no re-onboarding prompt (F4 residual) — [user-friendliness]
+**Moment:** all five subjects — 60/60 subject-months with zero app-initiated contact;
+Lin returns after a gap to a 3-month-old plan with no "recalibrate?" prompt.
+**$0 fix:** a passive "Week 4 — check-in ready" banner when
+`Date.now() − saved.at > 28 days`, and a "your plan is N months old — recalibrate?"
+variant when the newest log is far newer than the plan is old; add a local bodyweight
+input + sparkline whose 7-day average prefills the check-in.
+
+### S11. 200-log cap and device-switch data loss unchanged; Sprint 14 fixed isolation, not durability (F5 still open) — [reliability]
+**Moment:** Marcus month 11 (cap eviction at 4×/wk — note the sync-merge path caps at
+200 too, `:1469`); Lin month 10 (new work phone, no sync account → total loss).
+**$0 fix:** raise the cap to 1,000 (logs are ~100 B/session), warn at 90 %, trim to the
+best set per exercise rather than whole sessions, and add a one-time post-session-5 nudge
+to create a free sync account or use the export button.
+
+---
+
+## Shortlist — top 5 changes for Sprint 15+ (ranked by real-outcome leverage)
+
+1. **Make deloads training-aware, not calendar-aware** (S1 + S3 + S5). Key the clock off
+   the last *logged* session; add a >14-day "welcome back — ramp, don't deload" branch;
+   fire an immediate deload when ≥2 lifts stall within 7 days; and coordinate both deload
+   pathways on one shared `DL_KEY` timestamp. Fixes the worst failures for the two hardest
+   users (returner, intermittent) *and* gives advanced lifters the trigger they need.
+2. **Make Stall Watch experience- and time-aware, and deficit-aware** (S2 + S8). Scale the
+   window by `experience_level`, ignore >21-day gaps, and branch the copy on goal. Kills
+   the cry-wolf that erodes trust in the app's main interactive coaching for advanced,
+   intermittent, and cutting users alike.
+3. **Handle the returning / detrained user everywhere** (S7 + the return half of S1). A
+   single >14-day-gap check that suppresses add-load cues, discounts placeholders, and
+   swaps the deload card for a rebuild card — the most common real event, currently
+   mishandled in three places.
+4. **Send active-weeks + historical-gap context so the trend survives intermittency**
+   (S6 + S4's digest additions). Compute active training weeks and send both numbers;
+   add equipment/`renamed_from` to the digest so rotations stay in-kit and keep their
+   log lineage. Stops the systematic over-cutting of the busy/travel segment.
+5. **Close the three first-study residuals that still bite real users** (S9 off-ramp +
+   S10 cadence nudge / bodyweight log + S11 durability). The goal off-ramp, a passive
+   check-in cadence banner, a bodyweight log, and a bigger cap + post-session-5 backup
+   nudge — the difference between a plan generator and a coach who stays with you.
+
+*All findings are grounded in the current `templates/trainer.html`, `app.py`, and
+`data/trainer_system.txt`; every remaining failure assumes a prompt-compliant model, so
+each is a design gap, not a model-quality one. Re-runs and new subjects follow the same
+desk-simulation method and physiological baselines documented at the top of this file.*
