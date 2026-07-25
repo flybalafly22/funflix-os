@@ -680,6 +680,13 @@ def _validate_plan(data, intake=None):
         if "\n" in s or "**" in s or "##" in s or "```" in s:
             fails.append("markdown_or_newline")
             break
+    # banned filler phrases carry no instruction — the prompt bans them outright;
+    # enforce it here too so a slip is retried server-side, not shipped
+    _banned = ("eat healthy", "listen to your body", "stay consistent",
+               "be consistent", "train hard", "trust the process")
+    hay_all = " ".join(_plan_strings(data)).lower()
+    if any(b in hay_all for b in _banned):
+        fails.append("banned_filler")
     # Allergen scan (defence-in-depth behind the prompt). Scan the WHOLE diet
     # plan, not just the sample day, and keep short allergen words (egg, soy,
     # nut, fish) which the old len>=4 floor silently dropped. Word-boundary

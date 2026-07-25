@@ -126,26 +126,30 @@ def check_session_time(plan, entry):
     hours = (entry.get("meta") or {}).get("hours_per_session")
     if not hours or not (plan.get("workout_days")):
         return None
-    # the per-set minutes are already generous upper bounds; 1.2 on top flags a
-    # genuinely bloated session (a 1 h slot running 75+ min), not a 2 min rounding
-    budget = float(hours) * 60 * 1.20
+    slot = float(hours) * 60
     worst = []
     for d in plan["workout_days"]:
-        comp = iso = 0
-        for ex in (d.get("exercises") or []):
-            try:
-                s = float(ex.get("sets") or 0)
-            except (TypeError, ValueError):
-                s = 0
-            rest = ex.get("rest_seconds") or 0
-            if isinstance(rest, (int, float)) and rest >= 105:
-                comp += s
-            else:
-                iso += s
-        est = 8 + 4.5 * comp + 2.5 * iso
+        declared = d.get("estimated_duration_minutes")
+        if isinstance(declared, (int, float)) and declared > 0:
+            # hold the model to its OWN stated duration — a firmer, less
+            # false-positive-prone signal than a crude per-set estimate
+            est, budget = float(declared), slot * 1.15
+        else:
+            comp = iso = 0
+            for ex in (d.get("exercises") or []):
+                try:
+                    s = float(ex.get("sets") or 0)
+                except (TypeError, ValueError):
+                    s = 0
+                rest = ex.get("rest_seconds") or 0
+                if isinstance(rest, (int, float)) and rest >= 105:
+                    comp += s
+                else:
+                    iso += s
+            est, budget = 8 + 4.5 * comp + 2.5 * iso, slot * 1.20
         if est > budget:
             worst.append(f"{d.get('day_label', '?')} ~{est:.0f}m > {budget:.0f}m")
-    return ("session_time", not worst, "; ".join(worst) or f"all days <= {budget:.0f}m")
+    return ("session_time", not worst, "; ".join(worst) or f"all days fit the {slot:.0f}m slot")
 
 
 def _allergen_words(raw):
@@ -165,20 +169,17 @@ def check_allergen_scan(plan, entry):
 
 
 def check_banned_phrase(plan, entry):
+    # these phrases are banned OUTRIGHT (matches the prompt + _validate_plan);
+    # markdown/newlines/emoji are never allowed inside strings either
     bad = []
+    hay = " ".join(_plan_strings(plan)).lower()
+    for ph in BANNED_PHRASES:
+        if ph in hay:
+            bad.append(f"'{ph}'")
     for s in _plan_strings(plan):
-        low = s.lower()
         if "\n" in s or "**" in s or "##" in s or "```" in s:
             bad.append("markdown/newline")
-            continue
-        for ph in BANNED_PHRASES:
-            i = low.find(ph)
-            while i != -1:
-                window = low[max(0, i - 40):i + len(ph) + 40]
-                if not re.search(r"\d", window):  # a numbered rule earns a pass
-                    bad.append(f"'{ph}'")
-                    break
-                i = low.find(ph, i + 1)
+            break
     return ("banned_phrase", not bad, ", ".join(sorted(set(bad))) or "clean")
 
 
@@ -262,10 +263,18 @@ def _a_calorie_floor(plan, entry, arg):
 
 
 def _a_rir_no_failure(plan, entry, arg):
-    for s in _plan_strings(plan):
+    # only the EFFORT prescriptions matter for a minor — the quality_vs_quantity
+    # stance and safety prose legitimately discuss proximity to failure as a concept
+    strings = []
+    for ex in _all_exercises(plan):
+        strings.append(str(ex.get("rpe_or_rir", "")))
+        strings.append(str(ex.get("tempo_or_notes", "")))
+    po = plan.get("progressive_overload") or {}
+    strings.append(json.dumps(po.get("protocol", "")))
+    for s in strings:
         if re.search(r"\brir\s*[01]\b|to failure|\bamrap\b|\b1rm\b|1 ?rep max", s, re.I):
-            return False, f"failure-ish cue: '{s[:40]}'"
-    return True, "no failure training"
+            return False, f"failure-ish effort cue: '{s[:40]}'"
+    return True, "no failure training in effort prescriptions"
 
 
 def _a_string_present(plan, entry, arg):

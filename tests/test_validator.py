@@ -88,6 +88,17 @@ def test_allergen_word_boundary_no_false_positive():
     assert A._validate_plan(p, {"allergies": "nut"}) == []
 
 
+def test_banned_filler_is_rejected():
+    # the prompt bans these outright; the gate enforces it so a slip is retried
+    p = _good()
+    p["workout_days"][0]["exercises"][0]["tempo_or_notes"] = "just listen to your body here"
+    assert "banned_filler" in A._validate_plan(p)
+    p2 = _good()
+    p2["profile_summary"] = "stay consistent and you will grow"
+    assert "banned_filler" in A._validate_plan(p2)
+    assert "banned_filler" not in A._validate_plan(_good())
+
+
 def test_questions_shape():
     assert A._validate_plan({"type": "questions", "questions": ["How many days?"]}) == []
     assert A._validate_plan({"type": "questions", "questions": []}) == ["questions_shape"]

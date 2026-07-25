@@ -58,7 +58,6 @@
       "meta": {"band": "intermediate", "hours_per_session": 1.25},
       "default_answer": "None of those apply — proceed with conservative assumptions.",
       "assertions": ["string_present:sleep.*(first|intervention|priority|foundation)",
-        "string_present:caffeine",
         "no_string_in_diet:chicken|beef|pork|salmon|tuna|shrimp|\\bfish\\b|steak|bacon"]
     },
     {

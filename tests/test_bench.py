@@ -69,6 +69,25 @@ def test_exercise_match_is_word_bounded():
     assert B._a_no_exercise_matching(jump, {}, "jump|run|sprint")[0] is False
 
 
+def test_rir_no_failure_ignores_philosophy_prose():
+    # "to failure" in the quality_vs_quantity stance is fine; in an effort cue is not
+    ok = {"workout_days": [{"exercises": [{"name": "Squat", "rpe_or_rir": "RIR 2"}]}],
+          "quality_vs_quantity": {"stance": "growth lives close to failure"}}
+    bad = {"workout_days": [{"exercises": [{"name": "Squat", "rpe_or_rir": "take it to failure"}]}]}
+    assert B._a_rir_no_failure(ok, {}, "")[0] is True
+    assert B._a_rir_no_failure(bad, {}, "")[0] is False
+
+
+def test_session_time_holds_model_to_declared_duration():
+    entry = {"meta": {"hours_per_session": 1.25}}  # 75 min slot
+    fits = {"workout_days": [{"day_label": "A", "estimated_duration_minutes": 70,
+            "exercises": [{"name": "x", "sets": 20, "rest_seconds": 180}]}]}
+    blown = {"workout_days": [{"day_label": "A", "estimated_duration_minutes": 100,
+             "exercises": [{"name": "x", "sets": 4, "rest_seconds": 180}]}]}
+    assert B.check_session_time(fits, entry)[1] is True   # declared 70 <= 75*1.15
+    assert B.check_session_time(blown, entry)[1] is False  # declared 100 > budget
+
+
 def test_checked_in_fixtures_still_pass():
     # the live-captured regression anchors must stay green offline
     fx = os.path.join(QA, "bench_fixtures")
