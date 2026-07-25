@@ -11,3 +11,4 @@ env/
 .DS_Store
 *.log
 .claude/
+qa/bench_report.json

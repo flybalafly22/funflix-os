@@ -1,0 +1,505 @@
+{
+ "type": "plan",
+ "profile_summary": {
+  "name": "Bench Home",
+  "age_years": 33,
+  "gender_assigned_at_birth": "male",
+  "height_cm": 180,
+  "weight_kg": 84,
+  "bmi": 25.9,
+  "bmi_note": "Your BMI of 25.9 falls into the overweight category. For individuals with significant muscle mass, BMI can overstate body fatness; better proxies include waist circumference, progress photos, and body weight trend.",
+  "goal": "build muscle",
+  "experience_level": "Intermediate (2 years of consistent training)",
+  "days_per_week": 4,
+  "session_length_hours": 1,
+  "gym_time": "Evenings (assumed)",
+  "average_daily_steps": 5000,
+  "bmr_kcal": 1805,
+  "bmr_equation": "Mifflin-St Jeor (Male): 10 x 84 kg + 6.25 x 180 cm - 5 x 33 years + 5 = 1805 kcal",
+  "activity_factor": 1.5,
+  "activity_factor_note": "Calculated from an assumed average of 5000 steps per day (base factor 1.4) plus 0.025 for each of your 4 training days (0.10), totaling 1.50.",
+  "tdee_kcal": 2710,
+  "calorie_target_kcal": 2960,
+  "calorie_adjustment_note": "For muscle gain as an intermediate lifter, a surplus of 200 to 300 kcal is prescribed to support muscle protein synthesis. This targets a monthly scale-weight gain of 0.4 to 0.6 percent of body weight. Adjust calories by 100 to 150 kcal every 2 weeks based on your 7-day average weight trend.",
+  "assumptions": [
+   "Assumed 5000 average daily steps for activity factor calculation.",
+   "Assumed 7 hours of sleep per night for recovery estimation.",
+   "Assumed moderate stress level for recovery estimation.",
+   "Assumed non-vegetarian diet preference for macro and sample meal planning.",
+   "Assumed 4 meals per day for meal scheduling.",
+   "Assumed 'evenings' for gym timings to structure pre/post-workout nutrition."
+  ]
+ },
+ "weekly_split": {
+  "split_name": "Upper/Lower x 2",
+  "frequency_rationale": "An Upper/Lower split trains each major muscle group twice per week, which is supported by meta-analytic evidence (Schoenfeld et al. 2016) as optimal for hypertrophy compared to once-per-week frequency at matched volume.",
+  "scheduling_note": "Schedule your training days to allow at least one rest day between repeats of the same session type. For example, Upper A, Rest, Lower A, Rest, Upper B, Rest, Lower B, Rest. You can shift days to fit your personal schedule.",
+  "days": [
+   {
+    "day": "Monday",
+    "focus": "Upper Body A"
+   },
+   {
+    "day": "Tuesday",
+    "focus": "Lower Body A"
+   },
+   {
+    "day": "Wednesday",
+    "focus": "Rest"
+   },
+   {
+    "day": "Thursday",
+    "focus": "Upper Body B"
+   },
+   {
+    "day": "Friday",
+    "focus": "Lower Body B"
+   },
+   {
+    "day": "Saturday",
+    "focus": "Rest"
+   },
+   {
+    "day": "Sunday",
+    "focus": "Rest"
+   }
+  ]
+ },
+ "workout_days": [
+  {
+   "day_label": "Upper Body A",
+   "estimated_duration_minutes": 58,
+   "warmup": "5 minutes light cardio (e.g., jumping jacks, marching in place), followed by 5 minutes dynamic stretches (e.g., arm circles, torso twists, cat-cow, band pull-aparts if available).",
+   "exercises": [
+    {
+     "name": "Dumbbell Floor Press",
+     "sets": 4,
+     "rep_range": "6-10",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 2",
+     "tempo_or_notes": "Control the lowering for 2 seconds. Find a weight where you can complete 6-10 reps with good form, stopping 2 reps short of failure.",
+     "substitution": "Push-ups (adjust difficulty with hand/feet elevation)"
+    },
+    {
+     "name": "Single-Arm Dumbbell Row",
+     "sets": 3,
+     "rep_range": "8-12 per arm",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1",
+     "tempo_or_notes": "Brace core, keep back flat. Focus on pulling with your back muscles, not just your arm. Find a weight where you can complete 8-12 reps per arm with good form, stopping 1 rep short of failure.",
+     "substitution": "Two-Arm Dumbbell Row"
+    },
+    {
+     "name": "Dumbbell Overhead Press (Standing)",
+     "sets": 3,
+     "rep_range": "6-10",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 2",
+     "tempo_or_notes": "Maintain a stable core, press dumbbells directly overhead. Control the lowering for 2 seconds. Find a weight where you can complete 6-10 reps with good form, stopping 2 reps short of failure.",
+     "substitution": "Kneeling Single-Arm Dumbbell Overhead Press"
+    },
+    {
+     "name": "Inverted Rows (under sturdy table)",
+     "sets": 3,
+     "rep_range": "8-15",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1",
+     "tempo_or_notes": "Use a sturdy table or desk. Adjust feet position (closer to table = easier, further = harder) to hit the rep range. Pull your chest towards the table. If no suitable table, do more single-arm dumbbell rows.",
+     "substitution": "Additional Single-Arm Dumbbell Rows"
+    },
+    {
+     "name": "Dumbbell Bicep Curl",
+     "sets": 2,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Keep elbows tucked, focus on squeezing the bicep at the top. Avoid swinging. Find a weight where you can complete 10-15 reps with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Dumbbell Hammer Curl"
+    },
+    {
+     "name": "Dumbbell Overhead Triceps Extension (Two Hands)",
+     "sets": 2,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Keep elbows pointing forward, extend fully at the top. Control the stretch at the bottom. Find a weight where you can complete 10-15 reps with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Dumbbell Floor Skullcrushers"
+    }
+   ],
+   "session_notes": "Focus on controlled movements and feeling the target muscles work. As your dumbbells may become light for some exercises, prioritize perfect form, slower tempos, and squeezing the muscle hard."
+  },
+  {
+   "day_label": "Lower Body A",
+   "estimated_duration_minutes": 59,
+   "warmup": "5 minutes light cardio (e.g., marching in place, butt kicks), followed by 5 minutes dynamic stretches (e.g., leg swings, hip circles, bodyweight squats, glute bridges).",
+   "exercises": [
+    {
+     "name": "Goblet Squat",
+     "sets": 3,
+     "rep_range": "8-15",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 2",
+     "tempo_or_notes": "Hold one dumbbell vertically against your chest. Squat as deep as comfortable while maintaining a neutral spine. Control the lowering for 2 seconds. Find a weight where you can complete 8-15 reps with good form, stopping 2 reps short of failure. As dumbbells get light, focus on tempo and pauses at the bottom.",
+     "substitution": "Dumbbell Front Squat (holding dumbbells in front rack position)"
+    },
+    {
+     "name": "Dumbbell Romanian Deadlift (RDL)",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 2",
+     "tempo_or_notes": "Keep a slight bend in your knees, push your hips back, and lower the dumbbells along your legs until you feel a strong stretch in your hamstrings. Maintain a flat back. Find a weight where you can complete 8-12 reps with good form, stopping 2 reps short of failure.",
+     "substitution": "Single-Leg Dumbbell RDL"
+    },
+    {
+     "name": "Dumbbell Reverse Lunge",
+     "sets": 3,
+     "rep_range": "8-12 per leg",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1",
+     "tempo_or_notes": "Step back with one leg, lower until both knees are bent at 90 degrees. Push through the front heel to return to standing. Find a weight where you can complete 8-12 reps per leg with good form, stopping 1 rep short of failure.",
+     "substitution": "Dumbbell Split Squat (stationary lunge)"
+    },
+    {
+     "name": "Standing Single-Leg Dumbbell Calf Raise",
+     "sets": 3,
+     "rep_range": "12-20 per leg",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Hold a dumbbell in one hand, use the other for balance if needed. Go for a full stretch at the bottom and a strong squeeze at the top. Find a weight where you can complete 12-20 reps per leg with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Standing Two-Leg Dumbbell Calf Raise"
+    },
+    {
+     "name": "Plank",
+     "sets": 2,
+     "rep_range": "30-60 second hold",
+     "rest_seconds": 60,
+     "rpe_or_rir": "Hold until form breaks",
+     "tempo_or_notes": "Keep your body in a straight line from head to heels, brace your core. Do not let your hips sag or pike up. Focus on quality of hold, not just duration.",
+     "substitution": "Side Plank"
+    }
+   ],
+   "session_notes": "Lower body exercises with dumbbells can be challenging for progressive overload. When you max out the weight, increase reps, slow down the tempo, add pauses, or transition to single-leg variants to keep progressing."
+  },
+  {
+   "day_label": "Upper Body B",
+   "estimated_duration_minutes": 60,
+   "warmup": "5 minutes light cardio (e.g., jumping jacks, arm circles), followed by 5 minutes dynamic stretches (e.g., torso twists, cat-cow, light dumbbell presses without weight).",
+   "exercises": [
+    {
+     "name": "Push-ups (Feet Elevated)",
+     "sets": 3,
+     "rep_range": "8-15",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 2",
+     "tempo_or_notes": "Place your feet on a low stable surface (e.g., chair, step) to increase difficulty. Lower your chest until it nearly touches the floor. Control the lowering for 2 seconds. If too hard, perform standard push-ups or on knees. If too easy, add a pause at the bottom.",
+     "substitution": "Dumbbell Floor Press"
+    },
+    {
+     "name": "Two-Arm Dumbbell Row",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1",
+     "tempo_or_notes": "Hinge at the hips, keeping your back flat and core braced. Pull both dumbbells towards your hips, squeezing your shoulder blades. Find a weight where you can complete 8-12 reps with good form, stopping 1 rep short of failure.",
+     "substitution": "Single-Arm Dumbbell Row"
+    },
+    {
+     "name": "Dumbbell Lateral Raise",
+     "sets": 3,
+     "rep_range": "12-20",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Keep a slight bend in your elbows, raise dumbbells out to the sides until arms are parallel to the floor. Focus on using the side deltoids, not momentum. Find a weight where you can complete 12-20 reps with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Single-Arm Dumbbell Lateral Raise"
+    },
+    {
+     "name": "Dumbbell Pullover",
+     "sets": 2,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Lie on your back (e.g., on the floor or across a low bench if you have one) with one dumbbell held in both hands. Lower the dumbbell behind your head, feeling a stretch in your lats and chest, then pull it back over your chest. Focus on a deep stretch. Find a weight where you can complete 10-15 reps with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Close-Grip Push-ups"
+    },
+    {
+     "name": "Dumbbell Hammer Curl",
+     "sets": 2,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Hold dumbbells with a neutral grip (palms facing each other). Keep elbows tucked, focus on squeezing the bicep and brachialis. Avoid swinging. Find a weight where you can complete 10-15 reps with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Dumbbell Bicep Curl"
+    },
+    {
+     "name": "Dumbbell Floor Skullcrushers",
+     "sets": 2,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Lie on your back on the floor, hold dumbbells with arms extended straight up. Bend only at the elbows, lowering the dumbbells towards your head. Extend to squeeze the triceps. Find a weight where you can complete 10-15 reps with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Close-Grip Push-ups"
+    }
+   ],
+   "session_notes": "Pay close attention to form on isolation exercises like lateral raises and curls to ensure the target muscle is working effectively. If time is tight, superset the bicep and tricep exercises."
+  },
+  {
+   "day_label": "Lower Body B",
+   "estimated_duration_minutes": 59,
+   "warmup": "5 minutes light cardio (e.g., high knees, butt kicks), followed by 5 minutes dynamic stretches (e.g., leg swings, hip circles, bodyweight lunges, bird-dog).",
+   "exercises": [
+    {
+     "name": "Dumbbell Front Squat",
+     "sets": 3,
+     "rep_range": "6-10",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 2",
+     "tempo_or_notes": "Hold dumbbells in a 'front rack' position (on your shoulders, elbows up). Squat deep while keeping your torso upright. Control the lowering for 2 seconds. Find a weight where you can complete 6-10 reps with good form, stopping 2 reps short of failure.",
+     "substitution": "Goblet Squat"
+    },
+    {
+     "name": "Single-Leg Dumbbell Romanian Deadlift (RDL)",
+     "sets": 3,
+     "rep_range": "8-12 per leg",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 2",
+     "tempo_or_notes": "Balance on one leg, holding a dumbbell in the opposite hand (or both hands). Hinge at the hip, extending the free leg straight back. Maintain a flat back and slight bend in the standing knee. Find a weight where you can complete 8-12 reps per leg with good form, stopping 2 reps short of failure.",
+     "substitution": "Two-Leg Dumbbell RDL"
+    },
+    {
+     "name": "Dumbbell Bulgarian Split Squat",
+     "sets": 3,
+     "rep_range": "8-12 per leg",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1",
+     "tempo_or_notes": "Place one foot on a stable elevated surface (e.g., chair, step) behind you. Hold dumbbells at your sides. Lower until the front thigh is parallel to the floor or slightly below. Find a weight where you can complete 8-12 reps per leg with good form, stopping 1 rep short of failure.",
+     "substitution": "Dumbbell Reverse Lunge"
+    },
+    {
+     "name": "Dumbbell Glute Bridge/Hip Thrust",
+     "sets": 2,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Lie on your back, knees bent, feet flat. Place a dumbbell across your hips. Drive through your heels, lifting your hips until your body forms a straight line from shoulders to knees. Squeeze your glutes hard at the top. Find a weight where you can complete 10-15 reps with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Single-Leg Glute Bridge"
+    },
+    {
+     "name": "Standing Two-Leg Dumbbell Calf Raise",
+     "sets": 2,
+     "rep_range": "15-25",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Hold dumbbells at your sides. Go for a full stretch at the bottom and a strong squeeze at the top. Find a weight where you can complete 15-25 reps with good form, stopping 0-1 reps short of failure.",
+     "substitution": "Single-Leg Dumbbell Calf Raise"
+    },
+    {
+     "name": "Side Plank",
+     "sets": 2,
+     "rep_range": "30-60 second hold per side",
+     "rest_seconds": 60,
+     "rpe_or_rir": "Hold until form breaks",
+     "tempo_or_notes": "Support your body on one forearm and the side of your foot. Keep your body in a straight line, hips elevated. Brace your core. Do not let your hips sag. Perform on both sides.",
+     "substitution": "Plank"
+    }
+   ],
+   "session_notes": "Unilateral exercises (single-leg RDL, Bulgarian split squat) are excellent for increasing the challenge and addressing any strength imbalances when load is limited by dumbbell availability."
+  }
+ ],
+ "progressive_overload": {
+  "method": "Double Progression",
+  "protocol": [
+   "For each exercise, aim to complete all prescribed sets within the upper end of the rep range at the target RIR (Reps In Reserve).",
+   "Once you can consistently hit the top of the rep range for all sets with good form, increase the load by the smallest possible increment for the next session.",
+   "When you increase the load, your reps will likely drop to the lower end of the rep range. Your goal is then to build back up to the top of the rep range at the new, heavier weight."
+  ],
+  "load_increments": "For dumbbell exercises, the smallest increment is typically the next available dumbbell size. For bodyweight exercises like push-ups or inverted rows, increase difficulty by elevating feet, changing leverage, or adding a pause.",
+  "deload": "A planned deload week should occur every 6 to 8 weeks. During a deload, halve your working sets and reduce the load by 15 to 20 percent for that week. This helps dissipate accumulated fatigue and prevents plateaus. An immediate deload is triggered if two or more lifts stall in the same week despite adequate sleep and food, or if you report persistently elevated soreness and falling motivation for two consecutive weeks.",
+  "tracking": "Log every training session, recording the exercises, sets, reps, and weight used. Track your body weight daily (using a 7-day average). Measure your waist circumference and take progress photos every 2 weeks."
+ },
+ "quality_vs_quantity": {
+  "stance": "Quality of work always takes precedence over quantity of sets or reps.",
+  "why": "The primary stimulus for muscle growth comes from hard sets performed with good technique, close to muscular failure (roughly 0 to 3 RIR). Sets performed with poor form, excessive momentum, or stopped far from failure (5+ RIR) are largely 'junk volume' that adds fatigue without providing sufficient growth stimulus.",
+  "practical_rules": [
+   "Prioritize perfect technique: If your form breaks down, stop the set.",
+   "Train close to failure: Aim for the prescribed RIR, even if it means fewer reps or less weight than you initially planned.",
+   "Control the eccentric (lowering) phase: Aim for a 2-second lowering on most exercises unless otherwise noted.",
+   "Rest adequately between sets: Do not cut rest periods short to fit more exercises; this compromises performance and stimulus.",
+   "Focus on the mind-muscle connection: Actively try to feel the target muscle working during each rep.",
+   "If you cannot maintain good form or hit the target RIR, reduce the weight or reps, or use an easier exercise variation."
+  ]
+ },
+ "rationale": {
+  "exercise_selection": "Exercise selection is tailored to your home environment with adjustable dumbbells up to 30 kg and no bench or rack. This means prioritizing dumbbell compound movements (floor press, goblet squat, RDLs, overhead press, rows) and bodyweight progressions (push-ups, inverted rows). High stimulus-to-fatigue exercises are favored where possible, such as single-arm dumbbell rows for back development, and unilateral leg exercises to increase challenge with limited load.",
+  "ordering": "Workouts are structured with compound exercises first when you are freshest, as these provide the most overall stimulus and allow for the heaviest loads. Isolation exercises are placed later in the session to target specific muscles after the main work is done, or to accumulate additional volume with less systemic fatigue.",
+  "volume_analysis": "Your weekly hard sets per muscle group are within the intermediate range (10-16 sets for large muscle groups, 6-10 for smaller groups, 4-8 for calves/abs) to support muscle growth while allowing for recovery. Specifically: Chest 7 sets, Back 11 sets (direct), Shoulders 6 sets (direct), Quads 12 sets, Hamstrings 8 sets, Biceps 4 sets (direct), Triceps 4 sets (direct), Calves 5 sets, Abs 4 sets. Indirect work from compound lifts further contributes to total weekly volume.",
+  "goal_fit": "This program is designed for muscle gain by providing a consistent, progressive stimulus to all major muscle groups with an appropriate frequency (twice per week). The rep ranges are chosen to maximize hypertrophic potential across a broad spectrum of loads, and the progressive overload strategy ensures continuous challenge. The calorie surplus and protein target further support muscle protein synthesis and recovery."
+ },
+ "cardio_and_steps": {
+  "current_average_steps": 5000,
+  "daily_step_target": 6500,
+  "step_rationale": "Your current estimated average steps are 5000 per day. For muscle gain, an increase of 1000 to 2000 steps per day is recommended to support cardiovascular health and recovery without significantly impacting recovery from resistance training. This target of 6500 steps per day equates to approximately 15 minutes of additional walking.",
+  "cardio_sessions": [
+   {
+    "type": "Zone 2 Walking or Light Cycling",
+    "duration_minutes": 25,
+    "intensity": "Conversational pace (you should be able to talk comfortably)",
+    "placement": "2 sessions per week on rest days, or at least 6 hours away from your lifting sessions."
+   }
+  ],
+  "interference_note": "At these prescribed doses, the interference effect of cardio on muscle gain is negligible. Significant interference only becomes a concern with high-volume, high-intensity endurance training."
+ },
+ "diet_plan": {
+  "calorie_target_kcal": 2960,
+  "protein_g": 168,
+  "carbs_g": 421,
+  "fat_g": 67,
+  "macro_rationale": "Protein is set at 2.0 g per kg body weight (168g), aligning with the Morton et al. (2018) meta-analysis which suggests benefits plateau around 1.6 g per kg, with the upper range supporting muscle gain. Fat is set at 0.8 g per kg (67g) for hormonal health and satiety, never dropping below 0.5 g per kg long term. Carbohydrates (421g) fill the remaining calories to fuel training performance and recovery.",
+  "meal_schedule": [
+   {
+    "meal": "Meal 1 (Breakfast)",
+    "time": "8:00 AM (approx)",
+    "target_kcal": 600,
+    "target_protein_g": 30,
+    "timing_note": "Start your day with a balanced meal to fuel your metabolism."
+   },
+   {
+    "meal": "Meal 2 (Lunch)",
+    "time": "1:00 PM (approx)",
+    "target_kcal": 750,
+    "target_protein_g": 55,
+    "timing_note": "A substantial meal to provide sustained energy."
+   },
+   {
+    "meal": "Meal 3 (Pre-Workout)",
+    "time": "5:00 PM (approx)",
+    "target_kcal": 1000,
+    "target_protein_g": 50,
+    "timing_note": "Timed 2-3 hours before your evening workout, this meal provides ample carbohydrates and protein for performance."
+   },
+   {
+    "meal": "Meal 4 (Post-Workout)",
+    "time": "8:00 PM (approx)",
+    "target_kcal": 700,
+    "target_protein_g": 55,
+    "timing_note": "Consumed within 1-2 hours after your workout to aid recovery and muscle repair."
+   }
+  ],
+  "sample_day": [
+   {
+    "meal": "Meal 1 (Breakfast)",
+    "time": "8:00 AM",
+    "foods": [
+     "4 large eggs (scrambled or boiled)",
+     "2 slices whole wheat toast",
+     "2 tbsp peanut butter",
+     "1 cup milk (2% fat)"
+    ],
+    "approx_protein_g": 30,
+    "approx_calories": 600
+   },
+   {
+    "meal": "Meal 2 (Lunch)",
+    "time": "1:00 PM",
+    "foods": [
+     "180g grilled chicken breast",
+     "250g cooked white rice",
+     "1 cup steamed broccoli",
+     "1 tbsp olive oil"
+    ],
+    "approx_protein_g": 55,
+    "approx_calories": 750
+   },
+   {
+    "meal": "Meal 3 (Pre-Workout)",
+    "time": "5:00 PM",
+    "foods": [
+     "180g lean ground beef (cooked)",
+     "300g cooked pasta",
+     "1.5 tbsp olive oil",
+     "1 cup mixed greens with light dressing"
+    ],
+    "approx_protein_g": 50,
+    "approx_calories": 1000
+   },
+   {
+    "meal": "Meal 4 (Post-Workout)",
+    "time": "8:00 PM",
+    "foods": [
+     "1 scoop whey protein (mixed with water)",
+     "1 large banana",
+     "1.5 cups Greek yogurt (plain, 0% fat)",
+     "75g oats (dry weight, cooked with water)"
+    ],
+    "approx_protein_g": 55,
+    "approx_calories": 700
+   }
+  ],
+  "sample_day_totals": {
+   "approx_calories": 3050,
+   "approx_protein_g": 190,
+   "note": "These are approximate values; adjust portions to fit your exact macro targets. Equal-macro food swaps are encouraged to maintain variety and adherence."
+  },
+  "pre_post_workout": "Consume a mixed meal 2 to 3 hours pre-workout, providing roughly 1 to 1.5 g per kg of carbohydrates (84-126g for you) plus a full protein serving. Within 1 to 2 hours post-workout, consume 0.4 to 0.5 g per kg of protein (34-42g for you) plus carbohydrates. The post-workout window is generous when a pre-workout meal has been eaten.",
+  "hydration": "Aim for 30 to 40 ml of water per kg of body weight daily (2520 to 3360 ml for you), plus an additional 500 to 750 ml around your training sessions. A practical check for adequate hydration is pale straw-colored urine.",
+  "diet_preference_note": "Based on your intake, a non-vegetarian diet was assumed for planning your sample day.",
+  "allergy_note": "No allergies were reported."
+ },
+ "supplements": [
+  {
+   "name": "Creatine Monohydrate",
+   "dose": "3-5 g daily",
+   "timing": "Any time of day, no cycling required.",
+   "evidence_level": "strong",
+   "reason": "Creatine is the most-studied ergogenic aid, consistently shown to improve strength, power, and muscle mass by increasing the body's phosphocreatine stores.",
+   "caveat": "A 0.5 to 1 kg increase in water weight is normal. If you have kidney disease or are on related medication, consult your physician before starting creatine."
+  },
+  {
+   "name": "Protein Powder (Whey or plant-based blend)",
+   "dose": "20-40 g per serving",
+   "timing": "As needed to meet daily protein target, particularly useful post-workout or between meals.",
+   "evidence_level": "strong",
+   "reason": "Protein powder is a convenient, high-quality source of protein that helps you reach your daily protein goals, supporting muscle repair and growth. It is a food supplement, not a magic bullet.",
+   "caveat": "Prioritize whole food sources for the majority of your protein intake. If you have dairy allergies, opt for a soy or pea-rice protein blend."
+  },
+  {
+   "name": "Caffeine",
+   "dose": "3-6 mg per kg body weight (250-500 mg for you)",
+   "timing": "30-60 minutes pre-workout. For evening training, cap at 100-150 mg or skip entirely.",
+   "evidence_level": "moderate",
+   "reason": "Caffeine can enhance performance by reducing perceived exertion, improving focus, and increasing strength output.",
+   "caveat": "Caffeine has a half-life of about 5 hours. For evening training, high doses can significantly impair sleep, which is critical for recovery and performance. Sleep quality outranks any pre-workout benefit. Consult a physician if you have heart rhythm issues, anxiety, or are on stimulant-interacting medication."
+  }
+ ],
+ "supplements_excluded_note": "Hormonal compounds (SARMs, prohormones, testosterone boosters), fat burners, BCAAs/EAAs (when daily protein is adequate), glutamine for muscle growth, mass gainers, and proprietary blends are not recommended due to lack of strong evidence, potential side effects, or being WADA-prohibited/unregulated. Your daily protein intake is sufficient, making additional BCAAs/EAAs unnecessary.",
+ "duration_and_paths": {
+  "plan_duration_months": 3,
+  "duration_rationale": "This plan is designed to be run for 3 months (approximately 12 weeks). Consistent application of a progressive stimulus is crucial for adaptation; program hopping before 12 weeks is a common reason for stalled progress. Deload weeks are built into this cadence.",
+  "review_points": "Review your progress every 2 weeks: track your 7-day average body weight (expect 0.4 to 0.6 percent of body weight gain per month), measure your waist circumference, take progress photos, and log your lifts to ensure progressive overload.",
+  "next_paths": [
+   {
+    "name": "Continue Muscle Gain",
+    "when_to_choose": "If you are consistently gaining weight within the target range, making progress on your lifts, and feel good, you can continue this phase.",
+    "what_changes": "Slightly increase calorie target (e.g., +100-150 kcal), consider adding 1-2 sets per week to a lagging muscle group, or explore new exercise variations to maintain stimulus."
+   },
+   {
+    "name": "Shift to Fat Loss",
+    "when_to_choose": "If you feel you have accumulated sufficient muscle mass and now wish to reduce body fat while preserving muscle.",
+    "what_changes": "Reduce calorie target by 400-500 kcal (creating a deficit), increase daily step target by 2000-4000 steps, maintain high protein intake (2.0-2.2 g/kg), and keep resistance training intensity high to retain muscle."
+   },
+   {
+    "name": "Focus on Strength",
+    "when_to_choose": "If your primary goal shifts from hypertrophy to maximizing absolute strength, perhaps for specific lifts.",
+    "what_changes": "Adjust rep ranges for primary lifts to 3-6 reps, increase rest periods (3-5 minutes), maintain calorie intake at maintenance or a slight surplus, and potentially reduce overall volume slightly to prioritize recovery from heavier loads."
+   }
+  ]
+ },
+ "safety_notes": {
+  "flagged_issues": [],
+  "exercise_modifications": [
+   "Your training plan is specifically designed for a home environment with adjustable dumbbells up to 30 kg, no bench, and no rack. Exercises like dumbbell floor press, goblet squats, and various dumbbell rows are selected to maximize stimulus within these equipment constraints.",
+   "You may find that some exercises, particularly lower body compounds like goblet squats, will reach the limit of your 30 kg dumbbells relatively quickly; at that point, focus on increasing reps, slowing tempo, adding pauses, or performing unilateral variations to continue progression."
+  ],
+  "medical_disclaimer": "This plan is for educational purposes and is not medical advice. Consult your physician before beginning any new exercise or nutrition program, especially if you have pre-existing health conditions or are taking medication. Stop exercise immediately and seek medical attention if you experience chest pain, dizziness, unusual shortness of breath, or any other concerning symptoms."
+ }
+}

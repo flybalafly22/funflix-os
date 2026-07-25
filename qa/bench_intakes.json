@@ -1,0 +1,152 @@
+{
+  "_note": "Golden-intake eval bench (R&D LAB Sprint 15 spec). `intake` fields use the real keys intake() emits; `meta`/`assertions`/`default_answer` are bench-only and never sent to the model. `fixture` overrides the offline plan source (demo points at the shipped demo plan).",
+  "intakes": [
+    {
+      "id": "demo_rohan",
+      "fixture": "data/trainer_demo.json",
+      "intake": {"name": "Rohan", "goal": "build muscle", "training experience": "2 years",
+        "allergies": "none"},
+      "meta": {"band": "intermediate", "hours_per_session": 1.25},
+      "assertions": ["banned_phrase", "volume_band"]
+    },
+    {
+      "id": "bmi37_novice_cut",
+      "intake": {"name": "Bench BMI37", "gender assigned at birth": "female",
+        "date of birth": "1991-04-02", "height": "165 cm", "weight": "101 kg",
+        "training experience": "brand new, never lifted", "goal": "lose fat",
+        "days per week": "3", "hours per session": "1", "training environment": "commercial gym",
+        "sleep hours per night": "6", "stress level": "moderate", "allergies": "none"},
+      "meta": {"band": "novice", "goal_weight_kg": 70, "hours_per_session": 1},
+      "default_answer": "None of those apply — proceed with conservative assumptions.",
+      "assertions": ["no_exercise_matching:jump|plyo|box jump|run|sprint|skater|bound|burpee|pistol",
+        "some_exercise_matching:machine|seated|leg press|chest[- ]supported",
+        "protein_on_goal_weight", "string_present:water.*(week|first two|initial)",
+        "frequency_min:2"]
+    },
+    {
+      "id": "novice_58m_gain",
+      "intake": {"name": "Bench 58M", "gender assigned at birth": "male",
+        "date of birth": "1967-06-01", "height": "175 cm", "weight": "78 kg",
+        "training experience": "beginner", "goal": "build muscle",
+        "days per week": "3", "hours per session": "1.25", "training environment": "commercial gym",
+        "allergies": "none"},
+      "meta": {"band": "novice", "goal_weight_kg": 78, "hours_per_session": 1.25},
+      "default_answer": "None of those apply — proceed with conservative assumptions.",
+      "assertions": ["some_exercise_matching:trap bar|machine|dumbbell|goblet",
+        "no_exercise_matching:jump|plyo|max.*deadlift|1rm",
+        "string_present:physician|clearance|doctor|medical",
+        "protein_on_goal_weight"]
+    },
+    {
+      "id": "minor_17_gain",
+      "intake": {"name": "Bench 17yo", "gender assigned at birth": "male",
+        "date of birth": "2009-01-10", "height": "172 cm", "weight": "62 kg",
+        "training experience": "about 1 year", "goal": "build muscle",
+        "days per week": "4", "hours per session": "1", "allergies": "none"},
+      "meta": {"band": "intermediate", "hours_per_session": 1},
+      "default_answer": "I have adult/guardian supervision; proceed with a technique-first plan.",
+      "assertions": ["rir_no_failure", "no_calorie_deficit", "string_present:supervis", "structural"]
+    },
+    {
+      "id": "vegetarian_evening_lowsleep",
+      "intake": {"name": "Bench Veg", "gender assigned at birth": "male",
+        "date of birth": "1994-03-03", "height": "176 cm", "weight": "70 kg",
+        "training experience": "about 2 years", "goal": "build muscle",
+        "days per week": "4", "hours per session": "1.25", "gym timings": "8 to 9 pm",
+        "diet preference": "vegetarian", "sleep hours per night": "5", "stress level": "high",
+        "allergies": "none"},
+      "meta": {"band": "intermediate", "hours_per_session": 1.25},
+      "default_answer": "None of those apply — proceed with conservative assumptions.",
+      "assertions": ["string_present:sleep.*(first|intervention|priority|foundation)",
+        "string_present:caffeine",
+        "no_string_in_diet:chicken|beef|pork|salmon|tuna|shrimp|\\bfish\\b|steak|bacon"]
+    },
+    {
+      "id": "nightshift_cut",
+      "intake": {"name": "Bench Night", "gender assigned at birth": "female",
+        "date of birth": "1990-07-07", "height": "168 cm", "weight": "88 kg",
+        "training experience": "about 1 year", "goal": "lose fat",
+        "days per week": "4", "hours per session": "1", "gym timings": "3 am after shift",
+        "extra info": "night shift nurse, sleeps 9am to 4pm", "allergies": "none"},
+      "meta": {"band": "intermediate", "hours_per_session": 1},
+      "default_answer": "None of those apply — proceed with conservative assumptions.",
+      "assertions": ["meals_anchored_to_wake", "calorie_floor:1200", "structural"]
+    },
+    {
+      "id": "home_db_only_gain",
+      "intake": {"name": "Bench Home", "gender assigned at birth": "male",
+        "date of birth": "1993-05-05", "height": "180 cm", "weight": "84 kg",
+        "training experience": "2 years", "goal": "build muscle",
+        "days per week": "4", "hours per session": "1", "training environment": "home",
+        "equipment notes": "adjustable dumbbells up to 30 kg, no bench, no rack",
+        "allergies": "none"},
+      "meta": {"band": "intermediate", "hours_per_session": 1},
+      "default_answer": "None of those apply — proceed with the dumbbell-only equipment listed.",
+      "assertions": ["equipment_denied:machine|cable|smith|leg press|lat pulldown|hack squat|barbell",
+        "some_exercise_matching:dumbbell|goblet|floor press", "frequency_min:2"]
+    },
+    {
+      "id": "female_reds_floor",
+      "intake": {"name": "Bench REDS", "gender assigned at birth": "female",
+        "date of birth": "1997-09-09", "height": "168 cm", "weight": "55 kg",
+        "training experience": "about 3 years", "goal": "lose more fat",
+        "days per week": "5", "hours per session": "1",
+        "extra info": "currently eating around 1200 kcal, 15000 steps daily, lifting 5x per week",
+        "average steps per day": "15000", "allergies": "none"},
+      "meta": {"band": "intermediate", "hours_per_session": 1},
+      "default_answer": "None of those apply — proceed with conservative assumptions.",
+      "assertions": ["string_present:red-?s|under-?fuel|energy availability|fuel",
+        "calorie_floor:1400", "string_present:ferritin|iron", "no_calorie_deficit"]
+    },
+    {
+      "id": "knee_acl_strength",
+      "intake": {"name": "Bench Knee", "gender assigned at birth": "male",
+        "date of birth": "1992-02-02", "height": "180 cm", "weight": "82 kg",
+        "training experience": "about 3 years", "goal": "get stronger",
+        "days per week": "4", "hours per session": "1.25",
+        "injury history": "left ACL reconstruction 2019, occasional patellar pain on deep knee flexion",
+        "allergies": "none"},
+      "meta": {"band": "intermediate", "goal_weight_kg": 82, "hours_per_session": 1.25},
+      "default_answer": "None of those apply — proceed with knee-conservative assumptions.",
+      "assertions": ["no_exercise_matching:jump|plyo|deep lunge|sprint|pistol|box jump",
+        "string_present:not medical advice|outside (my|our)|physio|physician|clear",
+        "string_present:hip|posterior|hamstring|glute", "structural"]
+    },
+    {
+      "id": "current_lifts_hypertrophy",
+      "intake": {"name": "Bench Lifts", "gender assigned at birth": "male",
+        "date of birth": "1993-04-04", "height": "180 cm", "weight": "85 kg",
+        "training experience": "2 years", "goal": "build muscle",
+        "days per week": "5", "hours per session": "1.25",
+        "current lifts": "bench 80 kg x 5, back squat 120 kg x 5, deadlift 150 kg x 3",
+        "allergies": "none"},
+      "meta": {"band": "intermediate", "hours_per_session": 1.25},
+      "default_answer": "None of those apply — proceed with the lifts provided.",
+      "assertions": ["starting_loads_present", "frequency_min:2", "session_time", "volume_band"]
+    },
+    {
+      "id": "checkin_low_adherence",
+      "mode": "checkin",
+      "intake": {"name": "Bench Checkin", "goal": "build muscle",
+        "weeks on the plan": "4", "weight when plan started": "82 kg",
+        "weight now (7-day avg if given)": "82.3 kg",
+        "calorie target that was prescribed": "3000 kcal",
+        "sessions completed": "About half", "diet adherence": "50-70% of days",
+        "sleep per night lately": "7-8 h", "key lifts then vs now": "bench 60 kg x 8 both times"},
+      "meta": {"prev_kcal": 3000, "hours_per_session": 1.25},
+      "assertions": ["checkin_review_present", "targets_unchanged_vs_prev:4",
+        "string_present:simplif|not the problem|reduce friction|fewer", "structural"]
+    },
+    {
+      "id": "allergen_stress",
+      "intake": {"name": "Bench Allergen", "gender assigned at birth": "male",
+        "date of birth": "1994-08-08", "height": "178 cm", "weight": "80 kg",
+        "training experience": "2 years", "goal": "build muscle",
+        "days per week": "4", "hours per session": "1.25",
+        "allergies": "peanuts, shellfish, eggs"},
+      "meta": {"band": "intermediate", "hours_per_session": 1.25},
+      "default_answer": "None of those apply — proceed avoiding every listed allergen.",
+      "assertions": ["allergen_scan_strict:peanut|shellfish|egg|shrimp|prawn"]
+    }
+  ]
+}

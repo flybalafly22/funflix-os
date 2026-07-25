@@ -82,5 +82,43 @@ ease-back, preserved add-load happy path), site_qa 29/29. SIM also confirmed
 Sprints 12–14 improved simulated outcomes (Marcus ~80%→90% adherence, Dev's
 knee-safe programming survives recalibration).
 
-## Outcome (main build)
-_(open — Producer to pick from the queued candidates now the hotfix is clear)_
+## Outcome (main build) — Golden-intake eval bench SHIPPED 2026-07-19
+
+Built R&D LAB's #1 deliverable: a deterministic plan-quality bench so prompt /
+model / validator changes are gated by a number, not a hand-eyeballed plan.
+
+- **`qa/trainer_bench.py`** (stdlib only) imports the shipped gate
+  (`app._validate_plan` / `_plan_strings`) so bench and production can't drift.
+  6-part rubric (structural, volume-band tally via a 40-movement muscle map,
+  session-time budget, whole-plan allergen scan, banned-phrase-without-a-number
+  grep) + a 15-entry population-assertion registry.
+- **`qa/bench_intakes.json`** — 12 fixed intakes (BMI-37 novice, 58-y/o novice,
+  17-y/o minor, vegetarian/low-sleep, night shift, home-DB-only, RED-S floor,
+  ACL knee, current-lifts, low-adherence check-in, allergen stress) with real
+  intake keys + per-intake population assertions.
+- **Two modes**: offline (default, $0, no key — scores the demo + checked-in
+  live fixtures; wired into CI right after pytest) and live
+  (`BENCH_LIVE=1 … --server …` — POSTs each intake once, ≤1 call each, captures
+  the plan as next run's fixture). `--only <ids>` for targeted seeding.
+- **First live run against production caught genuine issues** (the bench's whole
+  point): the ACL-knee plan contained the banned filler "listen to your body"
+  with no number nearby, and its sample-day macros drifted >7% off target
+  (`structural`); the BMI-37 3-day plan trained hamstrings only 1×/week. These
+  are logged below as the next prompt-pass targets. The clean production plans
+  (home-DB-only 7/7, current-lifts 6/6) are checked in as CI regression anchors
+  alongside the demo (4/4).
+- Guardrails: 5 pytest bench tests (demo scores full, every assertion is known,
+  the muscle map covers the demo, banned-phrase needs a number, checked-in
+  fixtures stay green). pytest 90/90, offline bench 17/17, site_qa 29/29.
+
+### Findings the bench surfaced (next prompt pass)
+- **Banned filler slips through**: "listen to your body" with no adjacent number
+  reached a live plan — tighten TONE enforcement / add to the plan self-check.
+- **Sample-day macro drift**: a live plan's sample-day totals were >7% off the
+  target — the validator caught it but it was soft-served; investigate whether
+  the retry budget or the prompt's arithmetic self-check needs strengthening.
+- **Posterior-chain frequency**: a 3-day novice plan hit hamstrings 1×/week;
+  reinforce the "every muscle ~2×/week" rule for low-day splits.
+
+Remaining queued (unchanged): bodyweight quick-log + trend sparkline; deload
+checkbox + stall-history into the check-in payload; "numbers verified" badge.
