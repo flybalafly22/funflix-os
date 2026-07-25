@@ -188,24 +188,33 @@ CORE_CHECKS = [check_structural, check_volume_band, check_session_time,
 
 # ─────────────────────── population assertion registry ───────────────────────
 
+def _wb(arg):
+    # word-boundary the whole alternation so "run" can't match "cRUNch" and
+    # "row" can't match "eyebROW"
+    return r"\b(?:" + arg + r")\b"
+
+
 def _a_no_exercise_matching(plan, entry, arg):
+    pat = _wb(arg)
     for ex in _all_exercises(plan):
         for field in ("name", "substitution", "tempo_or_notes"):
-            if re.search(arg, str(ex.get(field, "")), re.I):
-                return False, f"matched '{ex.get('name')}'"
+            if re.search(pat, str(ex.get(field, "")), re.I):
+                return False, f"matched '{ex.get('name')}' ({field})"
     return True, "none matched"
 
 
 def _a_some_exercise_matching(plan, entry, arg):
+    pat = _wb(arg)
     for ex in _all_exercises(plan):
-        if re.search(arg, str(ex.get("name", "")), re.I):
+        if re.search(pat, str(ex.get("name", "")), re.I):
             return True, f"matched '{ex.get('name')}'"
     return False, "no exercise matched"
 
 
 def _a_equipment_denied(plan, entry, arg):
+    pat = _wb(arg)
     for ex in _all_exercises(plan):
-        if re.search(arg, str(ex.get("name", "")), re.I):
+        if re.search(pat, str(ex.get("name", "")), re.I):
             return False, f"banned equipment: '{ex.get('name')}'"
     return True, "equipment respected"
 

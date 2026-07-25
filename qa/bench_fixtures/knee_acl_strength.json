@@ -1,0 +1,534 @@
+{
+ "type": "plan",
+ "profile_summary": {
+  "name": "Bench Knee",
+  "age_years": 34,
+  "gender_assigned_at_birth": "male",
+  "height_cm": 180,
+  "weight_kg": 82,
+  "bmi": 25.3,
+  "bmi_note": "A BMI of 25.3 is on the higher end of the 'normal' range. For trained individuals, BMI can overstate body fatness; waist circumference, body composition scans, or progress photos are better indicators of body composition.",
+  "goal": "get stronger",
+  "experience_level": "intermediate",
+  "days_per_week": 4,
+  "session_length_hours": 1.25,
+  "gym_time": "flexible within the day",
+  "average_daily_steps": 5000,
+  "bmr_kcal": 1780,
+  "bmr_equation": "Mifflin-St Jeor (Male): 10 x 82 kg + 6.25 x 180 cm - 5 x 34 years + 5 = 1780 kcal",
+  "activity_factor": 1.5,
+  "activity_factor_note": "Based on an assumed average of 5000 steps per day (as none were reported) and 4 training days per week (1.4 base + 4 x 0.025).",
+  "tdee_kcal": 2670,
+  "calorie_target_kcal": 2670,
+  "calorie_adjustment_note": "For a strength goal, calories are set at maintenance (2670 kcal) to support performance and recovery without significant body composition changes. Adjust by 100 to 150 kcal every 2 weeks based on your 7-day average weight trend.",
+  "assumptions": [
+   "Average daily steps assumed to be 5000 steps as none were reported.",
+   "Gym timings assumed to be flexible within the day as none were reported.",
+   "Sleep hours assumed to be 7 hours as none were reported.",
+   "Stress level assumed to be moderate as none were reported.",
+   "Diet preference assumed to be non-vegetarian as none were reported.",
+   "Food preferences assumed to be general/varied as none were reported.",
+   "Meals per day assumed to be 3 as none were reported.",
+   "Training environment assumed to be a commercial gym as none were reported.",
+   "Equipment notes assumed to be standard commercial gym equipment as none were reported."
+  ]
+ },
+ "weekly_split": {
+  "split_name": "Upper/Lower x 2",
+  "frequency_rationale": "An Upper/Lower split, performed twice per week, ensures each major muscle group is trained with sufficient frequency (twice per week) for optimal strength and hypertrophy, aligning with meta-analytic evidence (Schoenfeld et al. 2016).",
+  "scheduling_note": "Aim to keep at least one rest day between repeats of the same session type (e.g., Upper, then rest, then Lower, then rest). You can shift the days to fit your schedule, as long as the weekly frequency is maintained.",
+  "days": [
+   {
+    "day": "Monday",
+    "focus": "Upper Body A"
+   },
+   {
+    "day": "Tuesday",
+    "focus": "Lower Body A"
+   },
+   {
+    "day": "Wednesday",
+    "focus": "Rest"
+   },
+   {
+    "day": "Thursday",
+    "focus": "Upper Body B"
+   },
+   {
+    "day": "Friday",
+    "focus": "Lower Body B"
+   },
+   {
+    "day": "Saturday",
+    "focus": "Rest / Zone 2 Cardio"
+   },
+   {
+    "day": "Sunday",
+    "focus": "Rest / Zone 2 Cardio"
+   }
+  ]
+ },
+ "workout_days": [
+  {
+   "day_label": "Upper Body A",
+   "estimated_duration_minutes": 75,
+   "warmup": "12 minutes: 5 minutes light cardio (bike or elliptical), followed by dynamic stretches (arm circles, thoracic rotations, cat-cow, band pull-aparts) and specific warm-ups for the first exercise (2-3 sets of 5-8 reps with light weight).",
+   "exercises": [
+    {
+     "name": "Barbell Bench Press",
+     "sets": 3,
+     "rep_range": "5-8",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 2-3",
+     "tempo_or_notes": "Control the eccentric (lowering phase) for 2 seconds. Find your working weight at the target RIR.",
+     "substitution": "Dumbbell Bench Press"
+    },
+    {
+     "name": "Chest Supported Row",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 1-2",
+     "tempo_or_notes": "Maintain chest contact with the pad throughout the movement. Squeeze shoulder blades at the top. Control the eccentric for 2 seconds.",
+     "substitution": "Single-Arm Dumbbell Row"
+    },
+    {
+     "name": "Barbell Overhead Press (Standing)",
+     "sets": 3,
+     "rep_range": "5-8",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 2-3",
+     "tempo_or_notes": "Keep core braced. Press vertically overhead without excessive lean back. Control the eccentric for 2 seconds.",
+     "substitution": "Seated Dumbbell Shoulder Press"
+    },
+    {
+     "name": "Lat Pulldown",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 1-2",
+     "tempo_or_notes": "Initiate pull with the lats, driving elbows down. Lean back slightly (10-15 degrees). Control the eccentric for 2 seconds.",
+     "substitution": "Assisted Pull-ups or Band Pulldowns"
+    },
+    {
+     "name": "Dumbbell Lateral Raise",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Raise dumbbells out to the sides, leading with elbows, to shoulder height. Avoid shrugging. Control the eccentric for 2 seconds.",
+     "substitution": "Cable Lateral Raise"
+    },
+    {
+     "name": "Triceps Pushdown (Rope Attachment)",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Keep elbows tucked and fixed. Fully extend arms, squeezing triceps. Control the eccentric for 2 seconds.",
+     "substitution": "Dumbbell Overhead Triceps Extension"
+    }
+   ],
+   "session_notes": "Focus on controlled movements and maintaining tension on the target muscles. Ensure adequate rest between sets to maximize strength performance."
+  },
+  {
+   "day_label": "Lower Body A",
+   "estimated_duration_minutes": 63,
+   "warmup": "12 minutes: 5 minutes light cardio (bike or elliptical), followed by dynamic stretches (leg swings, hip circles, glute bridges) and specific warm-ups for the first exercise (2-3 sets of 5-8 reps with light weight).",
+   "exercises": [
+    {
+     "name": "Trap Bar Deadlift",
+     "sets": 3,
+     "rep_range": "5-8",
+     "rest_seconds": 240,
+     "rpe_or_rir": "RIR 2-3",
+     "tempo_or_notes": "Maintain a neutral spine and drive through the heels. Focus on hip hinge. Control the eccentric for 2 seconds. Never go below RIR 2.",
+     "substitution": "Rack Pulls (from just below knee height)"
+    },
+    {
+     "name": "Box Squat to Parallel",
+     "sets": 3,
+     "rep_range": "6-10",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 2-3",
+     "tempo_or_notes": "Use a box or bench to ensure consistent depth (parallel or pain-free range). Sit back onto the box, maintain tension, and drive up. Control the eccentric for 2 seconds.",
+     "substitution": "Goblet Squat (to pain-free depth)"
+    },
+    {
+     "name": "Leg Press",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 1-2",
+     "tempo_or_notes": "Perform within a pain-free range of motion. Do not allow lower back to round. Control the eccentric for 2 seconds.",
+     "substitution": "Dumbbell Goblet Squat (to pain-free depth)"
+    },
+    {
+     "name": "Seated Leg Curl",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Focus on squeezing hamstrings. Ensure full range of motion. Control the eccentric for 2 seconds.",
+     "substitution": "Stability Ball Leg Curl"
+    },
+    {
+     "name": "Standing Calf Raise",
+     "sets": 3,
+     "rep_range": "12-20",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Achieve full stretch at the bottom and full contraction at the top. Hold peak contraction for 1 second.",
+     "substitution": "Seated Calf Raise"
+    }
+   ],
+   "session_notes": "Pay close attention to knee comfort during all lower body movements. Stop immediately if any sharp pain occurs. Prioritize form over load."
+  },
+  {
+   "day_label": "Upper Body B",
+   "estimated_duration_minutes": 75,
+   "warmup": "12 minutes: 5 minutes light cardio (bike or elliptical), followed by dynamic stretches (arm circles, thoracic rotations, cat-cow, band pull-aparts) and specific warm-ups for the first exercise (2-3 sets of 5-8 reps with light weight).",
+   "exercises": [
+    {
+     "name": "Incline Dumbbell Press",
+     "sets": 3,
+     "rep_range": "6-10",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 2-3",
+     "tempo_or_notes": "Set bench to a 30-45 degree incline. Control the eccentric for 2 seconds. Press dumbbells up and slightly together.",
+     "substitution": "Incline Barbell Press"
+    },
+    {
+     "name": "Pull-ups (or Assisted Pull-ups)",
+     "sets": 3,
+     "rep_range": "6-10",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 1-2",
+     "tempo_or_notes": "Use an overhand grip, slightly wider than shoulder-width. Pull chest towards the bar. Control the eccentric for 2 seconds. If needed, use an assisted machine or resistance bands.",
+     "substitution": "Lat Pulldown"
+    },
+    {
+     "name": "Seated Dumbbell Shoulder Press",
+     "sets": 3,
+     "rep_range": "6-10",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 1-2",
+     "tempo_or_notes": "Keep back supported and core braced. Press dumbbells overhead without arching lower back. Control the eccentric for 2 seconds.",
+     "substitution": "Machine Shoulder Press"
+    },
+    {
+     "name": "Single-Arm Dumbbell Row",
+     "sets": 3,
+     "rep_range": "8-12 per arm",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1-2",
+     "tempo_or_notes": "Support yourself with one hand on a bench. Pull the dumbbell towards your hip, squeezing your shoulder blade. Control the eccentric for 2 seconds.",
+     "substitution": "Cable Row"
+    },
+    {
+     "name": "Face Pulls (Rope Attachment)",
+     "sets": 3,
+     "rep_range": "12-15",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Set cable at chest height. Pull the rope towards your face, externally rotating shoulders. Focus on rear delts and upper back. Control the eccentric for 2 seconds.",
+     "substitution": "Band Pull-Aparts"
+    },
+    {
+     "name": "Dumbbell Bicep Curl",
+     "sets": 3,
+     "rep_range": "10-15",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Keep elbows tucked and stable. Fully extend arms at the bottom and squeeze biceps at the top. Control the eccentric for 2 seconds.",
+     "substitution": "Cable Bicep Curl"
+    }
+   ],
+   "session_notes": "Ensure proper form and mind-muscle connection, especially for isolation exercises. Avoid using momentum to lift the weight."
+  },
+  {
+   "day_label": "Lower Body B",
+   "estimated_duration_minutes": 63,
+   "warmup": "12 minutes: 5 minutes light cardio (bike or elliptical), followed by dynamic stretches (leg swings, hip circles, glute bridges) and specific warm-ups for the first exercise (2-3 sets of 5-8 reps with light weight).",
+   "exercises": [
+    {
+     "name": "Barbell Romanian Deadlift (RDL)",
+     "sets": 3,
+     "rep_range": "6-10",
+     "rest_seconds": 180,
+     "rpe_or_rir": "RIR 2-3",
+     "tempo_or_notes": "Keep a slight bend in the knees, pushing hips back. Lower the bar until a strong stretch is felt in the hamstrings, typically mid-shin. Maintain a neutral spine. Control the eccentric for 2 seconds.",
+     "substitution": "Dumbbell RDL"
+    },
+    {
+     "name": "Bulgarian Split Squat",
+     "sets": 3,
+     "rep_range": "8-12 per leg",
+     "rest_seconds": 120,
+     "rpe_or_rir": "RIR 1-2",
+     "tempo_or_notes": "Elevate the back foot on a bench. Maintain an upright torso and lower until the front thigh is parallel to the floor, or within a pain-free range. Control the eccentric for 2 seconds.",
+     "substitution": "Reverse Lunge"
+    },
+    {
+     "name": "Glute Ham Raise (or Reverse Hyperextension)",
+     "sets": 3,
+     "rep_range": "8-12",
+     "rest_seconds": 90,
+     "rpe_or_rir": "RIR 1-2",
+     "tempo_or_notes": "If no GHR/Reverse Hyper machine, perform stability ball leg curls or a second set of seated leg curls. Focus on hamstring and glute contraction. Control the eccentric for 2 seconds.",
+     "substitution": "Good Mornings (light weight)"
+    },
+    {
+     "name": "Seated Calf Raise",
+     "sets": 3,
+     "rep_range": "12-20",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Achieve full stretch at the bottom and full contraction at the top. Hold peak contraction for 1 second.",
+     "substitution": "Dumbbell Calf Raise (holding dumbbell on lap)"
+    },
+    {
+     "name": "Plank",
+     "sets": 3,
+     "rep_range": "30-60 seconds hold",
+     "rest_seconds": 60,
+     "rpe_or_rir": "RIR 0-1",
+     "tempo_or_notes": "Maintain a straight line from head to heels. Brace core tightly, avoiding hip sag or excessive arching. Focus on controlled breathing.",
+     "substitution": "Dead Bug"
+    }
+   ],
+   "session_notes": "Ensure thorough warm-up for hamstrings and glutes. Monitor knee comfort, especially during split squats. Form is paramount for injury prevention."
+  }
+ ],
+ "progressive_overload": {
+  "method": "Double Progression",
+  "protocol": [
+   "For each exercise, aim to complete all prescribed sets within the top end of the rep range at the target RIR.",
+   "Once you can successfully complete all sets at the top of the rep range for two consecutive sessions, increase the load for the next session.",
+   "When increasing load, reps will likely drop to the bottom of the prescribed range. Work to build reps back up."
+  ],
+  "load_increments": "Increase load by 2.5 kg for upper body barbell exercises, 5 kg for lower body barbell and machine exercises, and the smallest available jump for dumbbells.",
+  "deload": "A planned deload week will occur every 6 weeks. During this week, reduce all working sets by half and reduce the load by 15 to 20 percent. This helps dissipate accumulated fatigue and prevents overtraining. An immediate deload is triggered if two or more lifts stall in the same week despite adequate sleep and food, or if you report persistently elevated soreness and falling motivation for two consecutive weeks.",
+  "tracking": "Log every training session, including exercises, sets, reps, and load. Track your body weight daily, averaging it over 7 days. Take waist measurements and progress photos every 2 weeks to monitor body composition changes."
+ },
+ "quality_vs_quantity": {
+  "stance": "Quality of execution and honest proximity to failure are more important than simply adding more sets or reps.",
+  "why": "The primary stimulus for muscle growth and strength adaptation comes from hard sets performed with good technique, close to muscular failure (roughly 0 to 3 RIR). Sets stopped too far from failure or performed with poor form are 'junk volume' that adds fatigue without providing adequate stimulus.",
+  "practical_rules": [
+   "Every repetition should be performed with control; avoid bouncing or using momentum.",
+   "Focus on the muscle being worked; establish a mind-muscle connection.",
+   "Control the eccentric (lowering) phase of each lift, typically taking 2 seconds.",
+   "Ensure you are hitting the prescribed RIR (Reps In Reserve); if a set feels easier than prescribed, increase the load or reps.",
+   "Prioritize technique over lifting heavier weight; if form breaks down, the set is over.",
+   "Rest adequately between sets (120-300 seconds for compounds, 60-90 seconds for isolation) to ensure performance on subsequent sets."
+  ]
+ },
+ "rationale": {
+  "exercise_selection": "Exercises were selected to cover all major movement patterns: horizontal press, horizontal pull, vertical press, vertical pull, squat, hip hinge, and single-leg work. Priority was given to exercises with a high stimulus-to-fatigue ratio (SFR), which effectively stimulate target muscles without excessive systemic fatigue. Modifications were made for knee health.",
+  "ordering": "Compound exercises are placed at the beginning of each workout when you are freshest, allowing for maximal effort and progressive overload on these key movements. Isolation exercises are placed later in the session to target specific muscles after the main compound work is completed.",
+  "volume_analysis": "This plan provides 6-8 direct hard sets per week for chest, 12-16 direct hard sets for back, 12-16 direct hard sets for shoulders, 9-12 direct hard sets for quads, and 12-16 direct hard sets for hamstrings/glutes. This volume falls within the recommended 10-16 hard sets per week for an intermediate lifter, ensuring sufficient stimulus for strength and hypertrophy while allowing for adequate recovery.",
+  "goal_fit": "The program is structured as an Upper/Lower split, training each muscle group twice per week, which is optimal for strength development. Rep ranges are primarily in the 5-10 range for compounds and 8-15 for accessories, targeting strength and hypertrophy. The progressive overload scheme ensures consistent challenge and adaptation over time."
+ },
+ "cardio_and_steps": {
+  "current_average_steps": 5000,
+  "daily_step_target": 7000,
+  "step_rationale": "Increasing daily steps to 7000 (an increase of 2000 steps, roughly 20 minutes of walking) supports cardiovascular health and recovery without significantly impacting strength training performance.",
+  "cardio_sessions": [
+   {
+    "type": "Zone 2 Steady State",
+    "duration_minutes": 25,
+    "intensity": "Conversational pace (you should be able to hold a conversation, roughly 60-70% of max heart rate)",
+    "placement": "2 sessions per week, preferably on rest days or at least 6 hours away from lifting sessions."
+   }
+  ],
+  "interference_note": "At these doses, cardiovascular training has negligible interference with strength and muscle gain. Interference only becomes meaningful with high-volume endurance training."
+ },
+ "diet_plan": {
+  "calorie_target_kcal": 2670,
+  "protein_g": 164,
+  "carbs_g": 355,
+  "fat_g": 66,
+  "macro_rationale": "Protein is set at 2.0 g per kg of body weight (164 g) to support muscle repair and growth, aligning with evidence that benefits plateau around 1.6-2.2 g per kg (Morton et al. 2018). Fat is set at 0.8 g per kg (66 g) for hormonal health and satiety, staying above the 0.5 g per kg minimum. Carbohydrates (355 g) fill the remaining calories to fuel training performance and recovery.",
+  "meal_schedule": [
+   {
+    "meal": "Breakfast",
+    "time": "07:00",
+    "target_kcal": 620,
+    "target_protein_g": 47,
+    "timing_note": "Anchor your first meal to your wake time."
+   },
+   {
+    "meal": "Snack 1",
+    "time": "10:00",
+    "target_kcal": 300,
+    "target_protein_g": 20,
+    "timing_note": "Small meal to bridge to lunch."
+   },
+   {
+    "meal": "Lunch / Pre-workout",
+    "time": "13:00",
+    "target_kcal": 845,
+    "target_protein_g": 60,
+    "timing_note": "Consume 2-3 hours before your workout."
+   },
+   {
+    "meal": "Dinner / Post-workout",
+    "time": "19:00",
+    "target_kcal": 650,
+    "target_protein_g": 30,
+    "timing_note": "Consume within 1-2 hours after your workout."
+   },
+   {
+    "meal": "Snack 2",
+    "time": "21:00",
+    "target_kcal": 280,
+    "target_protein_g": 21,
+    "timing_note": "Evening snack to support recovery."
+   }
+  ],
+  "sample_day": [
+   {
+    "meal": "Breakfast",
+    "time": "07:00",
+    "foods": [
+     "Oats (80g dry)",
+     "Milk (250ml, 2%)",
+     "Whey Protein Powder (30g)",
+     "Mixed Berries (150g)"
+    ],
+    "approx_protein_g": 47,
+    "approx_calories": 620
+   },
+   {
+    "meal": "Snack 1",
+    "time": "10:00",
+    "foods": [
+     "Greek Yogurt (200g, plain, 0% fat)",
+     "Banana (1 medium)"
+    ],
+    "approx_protein_g": 20,
+    "approx_calories": 300
+   },
+   {
+    "meal": "Lunch / Pre-workout",
+    "time": "13:00",
+    "foods": [
+     "Cooked Chicken Breast (200g)",
+     "Cooked White Rice (250g)",
+     "Mixed Vegetables (200g)",
+     "Olive Oil (15g)"
+    ],
+    "approx_protein_g": 60,
+    "approx_calories": 845
+   },
+   {
+    "meal": "Dinner / Post-workout",
+    "time": "19:00",
+    "foods": [
+     "Cooked Salmon Fillet (150g)",
+     "Cooked Sweet Potato (300g)",
+     "Green Beans (150g)"
+    ],
+    "approx_protein_g": 30,
+    "approx_calories": 650
+   },
+   {
+    "meal": "Snack 2",
+    "time": "21:00",
+    "foods": [
+     "Cottage Cheese (150g, 2%)",
+     "Walnuts (20g)"
+    ],
+    "approx_protein_g": 21,
+    "approx_calories": 280
+   }
+  ],
+  "sample_day_totals": {
+   "approx_calories": 2695,
+   "approx_protein_g": 178,
+   "note": "These totals are approximate and within 5% of your daily targets. You can swap foods with similar macronutrient profiles to maintain variety."
+  },
+  "pre_post_workout": "Consume a mixed meal 2 to 3 hours pre-workout, providing roughly 1 to 1.5 g per kg of carbohydrates (82-123 g) and a full protein serving (around 50-60 g). Within 1 to 2 hours post-workout, consume another protein (0.4 to 0.5 g per kg, 33-41 g) and carbohydrate-rich meal. The post-workout window is generous if a pre-workout meal was consumed.",
+  "hydration": "Aim for 30 to 40 ml of water per kg of body weight per day (2460 to 3280 ml), plus an additional 500 to 750 ml around training. A practical check is pale straw-colored urine.",
+  "diet_preference_note": "Diet preference was not reported, so a general non-vegetarian diet is assumed.",
+  "allergy_note": "No allergies were reported, so no dietary exclusions have been made."
+ },
+ "supplements": [
+  {
+   "name": "Creatine Monohydrate",
+   "dose": "3 to 5 g daily",
+   "timing": "Any time of day, no cycling required.",
+   "evidence_level": "strong",
+   "reason": "Increases strength, power, and muscle mass by enhancing the body's ability to produce ATP during high-intensity exercise.",
+   "caveat": "A 0.5 to 1 kg water-weight increase is normal. If you have pre-existing kidney disease or are on related medication, consult your physician before use."
+  },
+  {
+   "name": "Protein Powder (Whey)",
+   "dose": "20 to 40 g per serving",
+   "timing": "As needed to meet daily protein target, especially convenient post-workout or between meals.",
+   "evidence_level": "strong",
+   "reason": "A convenient and efficient way to increase daily protein intake, supporting muscle repair and growth. Food-first approach is always preferred.",
+   "caveat": "Not a substitute for whole foods. If you have dairy allergies or sensitivities, opt for a soy or pea-rice blend."
+  },
+  {
+   "name": "Caffeine",
+   "dose": "3 to 6 mg per kg of body weight (246 to 492 mg)",
+   "timing": "30 to 60 minutes pre-workout.",
+   "evidence_level": "moderate",
+   "reason": "Can enhance performance, reduce perceived exertion, and improve focus during training.",
+   "caveat": "Caffeine has a half-life of about 5 hours. If you train in the evening, limit intake to 100-150 mg or skip it to avoid disrupting sleep. Sleep quality is paramount for recovery and outranks any pre-workout stimulant. Consult a physician if you have heart rhythm issues, anxiety, or take stimulant-interacting medication."
+  },
+  {
+   "name": "Vitamin D",
+   "dose": "1000 to 2000 IU daily",
+   "timing": "With a fat-containing meal.",
+   "evidence_level": "context-dependent",
+   "reason": "Important for bone health, immune function, and may play a role in muscle function. Recommended if sun exposure is limited.",
+   "caveat": "It is advisable to get a 25(OH)D blood test from your physician to confirm deficiency before supplementing."
+  },
+  {
+   "name": "Omega-3 Fatty Acids",
+   "dose": "1 to 2 g combined EPA and DHA",
+   "timing": "Daily with a meal.",
+   "evidence_level": "moderate",
+   "reason": "Supports cardiovascular health and may aid in reducing inflammation and improving recovery. Aim for 2-3 servings of fatty fish per week; supplement if intake is low.",
+   "caveat": "If you are taking anticoagulant medication, consult your physician before supplementing with omega-3s."
+  }
+ ],
+ "supplements_excluded_note": "The following supplements are not recommended due to lack of strong evidence for efficacy, potential safety concerns, or being unnecessary with adequate protein intake: SARMs, prohormones, testosterone boosters, fat burners, thermogenics, BCAAs and EAAs (when daily protein is adequate), glutamine (for muscle growth), mass gainers, and proprietary blends. These are either unproven, potentially harmful, or offer no additional benefit over a well-structured diet.",
+ "duration_and_paths": {
+  "plan_duration_months": 3,
+  "duration_rationale": "This plan is designed to be run for 3 months. Consistent application of a progressive stimulus is essential for adaptation; program hopping before 12 weeks is a common reason for stalled progress. Deloads are already scheduled within this period to manage fatigue.",
+  "review_points": "At the end of 3 months, review your progress by comparing your starting and current lift numbers, tracking your 7-day average body weight trend, and observing changes in waist circumference and progress photos.",
+  "next_paths": [
+   {
+    "name": "Continue Strength Focus",
+    "when_to_choose": "If you are still making consistent strength gains and enjoy the current training style.",
+    "what_changes": "Slightly increase overall volume (1-2 sets per muscle group per week), potentially shift to lower rep ranges (e.g., 3-6 reps for primary compounds), and maintain or slightly increase calorie intake (e.g., +100-200 kcal)."
+   },
+   {
+    "name": "Shift to Hypertrophy Focus",
+    "when_to_choose": "If your primary goal shifts to maximizing muscle growth, or if strength gains have plateaued for an extended period.",
+    "what_changes": "Increase overall training volume (e.g., 2-4 more sets per muscle group per week), shift rep ranges to moderate (e.g., 8-15 reps for most exercises), and aim for a slight calorie surplus (e.g., +200-300 kcal above maintenance)."
+   },
+   {
+    "name": "Fat Loss Phase",
+    "when_to_choose": "If you have achieved your strength goals and now wish to reduce body fat while maintaining muscle mass.",
+    "what_changes": "Reduce calorie intake to a deficit (e.g., -400 to -500 kcal below TDEE), maintain high protein intake (1.8-2.2 g per kg), increase daily steps (e.g., to 9000-10000), and potentially add more Zone 2 cardio sessions (e.g., 3-4 sessions per week)."
+   }
+  ]
+ },
+ "safety_notes": {
+  "flagged_issues": [
+   "Left ACL reconstruction (2019): While this surgery was several years ago, it is crucial that your physician or physiotherapist has cleared you for strength training. Occasional patellar pain on deep knee flexion: This issue is outside the scope of a strength coach. A physician or physiotherapist should clear you for strength training, especially regarding deep knee flexion. The following are conservative suggestions only.",
+   "Age 34: While not a 'special population' in the typical sense, a slightly longer warm-up (12 minutes) and conservative progression are prudent to minimize injury risk and support joint health over the long term."
+  ],
+  "exercise_modifications": [
+   "For occasional patellar pain on deep knee flexion, squatting depth will be limited to a pain-free range, typically parallel or slightly above (e.g., Box Squats).",
+   "Exercises like the Leg Press will be performed within a comfortable, pain-free range of motion.",
+   "Lunges will be performed with a reduced range or substituted with split squats focusing on hip drive, to control knee flexion.",
+   "Conventional deadlifts are replaced with Trap Bar Deadlifts or Rack Pulls to reduce spinal loading and allow for a more upright torso, which may be more knee-friendly."
+  ],
+  "medical_disclaimer": "This plan is for educational purposes and is not medical advice. Consult with a qualified healthcare professional or physician before beginning any new exercise or nutrition program, especially if you have any pre-existing health conditions, injuries, or concerns. Stop exercising immediately and seek medical attention if you experience chest pain, dizziness, unusual shortness of breath, or any other concerning symptoms."
+ }
+}

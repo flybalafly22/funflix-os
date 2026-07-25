@@ -122,3 +122,33 @@ model / validator changes are gated by a number, not a hand-eyeballed plan.
 
 Remaining queued (unchanged): bodyweight quick-log + trend sparkline; deload
 checkbox + stall-history into the check-in payload; "numbers verified" badge.
+
+## Prompt pass — SHIPPED 2026-07-19 (bench-gated, measured live)
+
+The rules the bench caught being violated already existed — they weren't
+salient enough, so the model treated the self-check as passive. Made them
+active verifications (full + compact kept in parity, R&D cadence item 2):
+banned-filler phrases now banned OUTRIGHT and re-scanned in self-check 9; the
+diet section + self-check 4 now require ACTUALLY SUMMING the written sample day
+and re-adjusting until within 5%; the split rules + self-check 2 require
+verifying hamstrings/glutes/rear delts are each trained 2×/week.
+
+**Live before → after (same intakes, production, non-deterministic single
+sample):**
+- `knee_acl_strength` **5/7 → 7/7 ✓** — both findings fixed: the banned
+  "listen to your body" is gone, and the sample-day macros now reconcile
+  (structural passes). Frozen as a checked-in CI regression anchor.
+- `bmi37_novice_cut` — hamstring-2×/week frequency **still missed** in this
+  sample (reinforced but not resolved; the bench keeps it visible), and the
+  bench surfaced a genuine new finding: protein 180 g ≈ 2.57 g/goal-kg, above
+  the prompt's own 2.2 g/goal-kg ceiling for BMI≥30. Both carried to the next
+  pass; fixture not checked in.
+
+**Bench refinement found along the way:** `no_exercise_matching` matched "run"
+inside "Crunch" — added word boundaries to the exercise-match assertions (+1
+pytest guard). Offline anchors now demo 4/4 + home-DB 7/7 + current-lifts 6/6 +
+knee 7/7 = 24/24. pytest 91/91.
+
+**Still open for the next prompt pass:** hamstring/posterior-chain 2× frequency
+on 3-day splits; goal-weight protein ceiling for BMI≥30. The bench will prove
+the fix (or its absence) next run.

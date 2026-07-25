@@ -60,6 +60,15 @@ def test_banned_phrase_needs_a_number_to_pass():
     assert B.check_banned_phrase(bad, {})[1] is False
 
 
+def test_exercise_match_is_word_bounded():
+    # "run" must not match inside "Crunch"; a real "Box Jump" must match
+    crunch = {"workout_days": [{"exercises": [
+        {"name": "Cable Crunch", "substitution": "Abdominal Crunch Machine"}]}]}
+    jump = {"workout_days": [{"exercises": [{"name": "Box Jump", "substitution": ""}]}]}
+    assert B._a_no_exercise_matching(crunch, {}, "jump|run|sprint")[0] is True
+    assert B._a_no_exercise_matching(jump, {}, "jump|run|sprint")[0] is False
+
+
 def test_checked_in_fixtures_still_pass():
     # the live-captured regression anchors must stay green offline
     fx = os.path.join(QA, "bench_fixtures")
