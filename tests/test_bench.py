@@ -69,6 +69,24 @@ def test_exercise_match_is_word_bounded():
     assert B._a_no_exercise_matching(jump, {}, "jump|run|sprint")[0] is False
 
 
+def test_muscle_map_ignores_superset_parenthetical():
+    # the superset partner in "(Superset with Lateral Raises)" must not decide
+    # this exercise's muscle
+    prim, _ = B.muscles_for("Cable Triceps Pushdowns (Superset with Lateral Raises)")
+    assert prim == ["triceps"]
+    prim2, _ = B.muscles_for("Dumbbell Bicep Curls (Superset with Face Pulls)")
+    assert prim2 == ["biceps"]
+
+
+def test_allergen_scan_skips_the_allergy_note():
+    plan = {"diet_plan": {"allergy_note": "peanuts and eggs excluded",
+                          "sample_day": [{"foods": ["200 g chicken"]}]}}
+    entry = {"intake": {"allergies": "peanuts, eggs"}}
+    assert B.check_allergen_scan(plan, entry)[1] is True
+    plan["diet_plan"]["sample_day"] = [{"foods": ["3 eggs"]}]
+    assert B.check_allergen_scan(plan, entry)[1] is False
+
+
 def test_rir_no_failure_ignores_philosophy_prose():
     # "to failure" in the quality_vs_quantity stance is fine; in an effort cue is not
     ok = {"workout_days": [{"exercises": [{"name": "Squat", "rpe_or_rir": "RIR 2"}]}],

@@ -698,7 +698,12 @@ def _validate_plan(data, intake=None):
     words = [(w[:-1] if w.endswith("s") and len(w) > 3 else w)
              for w in re.split(r"[^a-z]+", alg) if len(w) >= 3 and w not in stop]
     if words and isinstance(dp, dict):
-        hay = " ".join(_plan_strings(dp)).lower()
+        # scan the FOODS, not the notes that legitimately name the avoided
+        # allergens ("peanuts, shellfish and eggs have been excluded") — those
+        # would false-positive on every allergic client and force needless retries
+        food = {k: v for k, v in dp.items()
+                if k not in ("allergy_note", "diet_preference_note")}
+        hay = " ".join(_plan_strings(food)).lower()
         if any(re.search(r"\b" + re.escape(w) + r"s?\b", hay) for w in words):
             fails.append("allergen_in_diet")
     return fails

@@ -212,3 +212,39 @@ retried server-side, not shipped. (+3 pytest tests; 94/94.)
 - Pending re-seed (rate-limited this session): `allergen_stress`,
   `female_reds_floor` (the latter will be clean once the new server gate
   retries its filler).
+
+## Prompt pass 3 + re-seed — SHIPPED 2026-07-19 (posterior chain closed, more bugs found)
+
+Closed the upper/lower posterior-chain finding: on upper/lower and any
+multi-leg-day split, the prompt now says treat hamstrings like quads — EVERY
+lower/leg day includes direct hamstring work (hinge or leg curl), never a
+"hamstring day" + a "quad day". Full + compact parity.
+
+**Verified live:** `nightshift_cut` **5/6 → 6/6 ✓** (hamstrings now in-band on
+the upper/lower plan) — added as the **9th anchor** (offline 59/59).
+`minor_17`'s volume_band passes now too.
+
+**The re-seed found two more bench rubric bugs AND a real production
+regression:**
+- *Bench:* the muscle map read the superset partner in a parenthetical
+  ("Cable Triceps Pushdowns (Superset with Lateral Raises)" → counted as
+  delts), inflating female_reds delts to 25.5 — now strips "(…)" before
+  matching. And the bench allergen scan flagged the `allergy_note` itself.
+- *Production (real regression I introduced in the deload hotfix):*
+  `_validate_plan`'s allergen check scanned the whole diet plan including the
+  `allergy_note` — which every allergic client's plan uses to NAME the excluded
+  allergens ("peanuts, shellfish and eggs have been excluded"). So since that
+  hotfix, **every allergic client's plan was being needlessly retried and
+  soft-served.** Fixed: the scan now excludes the note fields and reads only the
+  actual foods. (+3 pytest tests; 97/97.)
+
+### Finding for the next prompt pass (real, safety)
+- **RED-S calorie floor not held.** `female_reds_floor` (already eating ~1200
+  kcal, 15k steps, lifting 5×, BMI ~19.5) was prescribed **1300 kcal** — a
+  further deficit for an under-fueled client, when the rule is to hold/raise
+  the floor. The RED-S handling needs to refuse a deficit and set a floor
+  (≥ maintenance-ish) for these presentations. Bench-tracked via
+  `calorie_floor` + `no_calorie_deficit`.
+- Generation-variance (not systematic): occasional `macro_math` /
+  `sample_day_totals_off` on hard cases (minor_17, allergen_stress) — the
+  validator catches and soft-serves; not anchored.

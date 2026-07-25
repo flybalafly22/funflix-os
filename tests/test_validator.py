@@ -88,6 +88,18 @@ def test_allergen_word_boundary_no_false_positive():
     assert A._validate_plan(p, {"allergies": "nut"}) == []
 
 
+def test_allergen_note_naming_avoided_foods_is_not_flagged():
+    # the allergy_note legitimately names what's excluded — must NOT false-flag,
+    # or every allergic client's plan would be needlessly retried
+    p = _good()
+    p["diet_plan"]["allergy_note"] = "Peanuts, shellfish and eggs have been excluded."
+    p["diet_plan"]["sample_day"] = [{"meal": "M1", "foods": ["200 g chicken", "rice"]}]
+    assert "allergen_in_diet" not in A._validate_plan(p, {"allergies": "peanuts, shellfish, eggs"})
+    # but an allergen in an actual food is still caught
+    p["diet_plan"]["sample_day"] = [{"meal": "M1", "foods": ["3 boiled eggs"]}]
+    assert "allergen_in_diet" in A._validate_plan(p, {"allergies": "eggs"})
+
+
 def test_banned_filler_is_rejected():
     # the prompt bans these outright; the gate enforces it so a slip is retried
     p = _good()

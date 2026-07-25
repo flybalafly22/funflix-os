@@ -61,7 +61,9 @@ EXERCISE_MUSCLE = [
 
 
 def muscles_for(name):
-    n = str(name).lower()
+    # strip "(Superset with Lateral Raises)" etc. — the superset partner in a
+    # parenthetical must not decide THIS exercise's muscle
+    n = re.sub(r"\(.*?\)", " ", str(name)).lower()
     for pat, prim, sec in EXERCISE_MUSCLE:
         if re.search(pat, n):
             return prim, sec
@@ -158,12 +160,19 @@ def _allergen_words(raw):
             for w in re.split(r"[^a-z]+", str(raw).lower()) if len(w) >= 3 and w not in stop]
 
 
+def _diet_food_text(plan):
+    # diet strings EXCEPT the notes that legitimately name avoided allergens
+    dp = plan.get("diet_plan") or {}
+    food = {k: v for k, v in dp.items() if k not in ("allergy_note", "diet_preference_note")}
+    return " ".join(_plan_strings(food)).lower()
+
+
 def check_allergen_scan(plan, entry):
     alg = (entry.get("intake") or {}).get("allergies", "")
     words = _allergen_words(alg)
     if not words:
         return None
-    hay = _plan_text(plan)
+    hay = _diet_food_text(plan)
     hits = [w for w in words if re.search(r"\b" + re.escape(w) + r"s?\b", hay)]
     return ("allergen_scan", not hits, "found: " + ", ".join(hits) if hits else "clean")
 
@@ -344,7 +353,7 @@ def _a_targets_unchanged_vs_prev(plan, entry, arg):
 
 
 def _a_allergen_scan_strict(plan, entry, arg):
-    hay = _plan_text(plan)
+    hay = _diet_food_text(plan)
     hits = [w for w in re.split(r"\|", arg) if re.search(r"\b" + w + r"s?\b", hay, re.I)]
     return (not hits), ("found: " + ", ".join(hits) if hits else "clean")
 
