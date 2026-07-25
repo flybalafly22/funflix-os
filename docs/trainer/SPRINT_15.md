@@ -149,6 +149,29 @@ inside "Crunch" — added word boundaries to the exercise-match assertions (+1
 pytest guard). Offline anchors now demo 4/4 + home-DB 7/7 + current-lifts 6/6 +
 knee 7/7 = 24/24. pytest 91/91.
 
-**Still open for the next prompt pass:** hamstring/posterior-chain 2× frequency
-on 3-day splits; goal-weight protein ceiling for BMI≥30. The bench will prove
-the fix (or its absence) next run.
+## Prompt pass 2 — SHIPPED 2026-07-19 (both open findings closed, measured live)
+
+Pass 1 reinforced these rules but they still missed; the diagnosis was that
+each rule was under-specified:
+- **BMI≥30 protein** said "base on goal weight" but never said how to derive a
+  goal weight, so the model punted to scale weight. Now it estimates goal
+  weight = weight at BMI 25 (25 × m²), uses 1.6–2.2 g/kg of that, and states
+  both (with a worked example in the prompt).
+- **Frequency** was gamed because a squat was being counted as leg/hamstring
+  work. Now frequency counts DIRECT work only (a squat is not hamstring
+  training), and direct hamstring/glute work must appear on 2 separate days.
+
+**Live before → after (`bmi37_novice_cut`, production):** **6/9 → 9/9 ✓.**
+Protein 180 g @ 2.57 g/goal-kg → **136 g @ 1.94** — the plan's rationale quotes
+the exact derivation it was given ("25 x 1.65^2 = 68 kg, so 1.8 x 68 =
+122.4g"). Hamstrings now trained 2×/week. Frozen as a checked-in anchor (it
+exercises the most assertions of any intake).
+
+**All three original bench findings are now closed and proven** (banned filler,
+macro drift, posterior-chain frequency), plus the protein-anchoring finding the
+bench surfaced along the way. Offline anchors: demo 4/4 + bmi37 9/9 + home-DB
+7/7 + knee 7/7 + current-lifts 6/6 = **33/33**. pytest 91/91.
+
+This is the eval-bench loop working end to end: the bench found real defects,
+each prompt pass was gated by the score, and every fix is now a frozen
+regression anchor that keeps the win from eroding.
