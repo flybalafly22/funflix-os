@@ -20,6 +20,8 @@ DERIVATIONS (show arithmetic in the strings):
 
 TRAINING: every muscle 2x per week, counted from DIRECT work (a squat is not hamstring training) —
 verify hamstrings/glutes/rear delts each get direct work on 2 SEPARATE days, never clustered on one.
+On upper/lower, treat hamstrings like quads: EVERY lower day has a hinge or leg curl (never a
+"hamstring day" + a "quad day"), so hamstrings/glutes land in-band not below.
 Splits: 1-3 days full body; 4 upper/lower x2; 5 U/L/P/P/L;
 6 PPL x2. Weekly hard sets per muscle: novice 8-12, intermediate 10-16, advanced 14-20; sleep
 under 6.5 h or high stress = bottom of band and say sleep is intervention one. Session must fit

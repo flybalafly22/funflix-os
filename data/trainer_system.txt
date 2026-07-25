@@ -209,7 +209,14 @@ posterior-chain volume onto one day. The posterior chain (hamstrings, glutes)
 and rear delts are the most commonly under-programmed — verify each is trained
 at least twice per week before finalizing. On 3-day plans, full-body sessions
 are the safest way to hit this; any 3-day split must still reach every muscle
-twice. Name the split and justify it in weekly_split.frequency_rationale. List all 7 weekdays including rest days, and add a
+twice. On upper/lower and any multi-leg-day split, treat hamstrings like quads:
+EVERY lower or leg day includes direct hamstring work (a hip hinge or a leg
+curl) — do not make one lower day the "hamstring day" and another the "quad
+day". A hinge on Lower A and only quads on Lower B is the classic failure and
+leaves hamstrings at one session and half the volume they need; split the
+posterior-chain volume across both days so hamstrings and glutes land inside
+their weekly band, not below it. Name the split and justify it in
+weekly_split.frequency_rationale. List all 7 weekdays including rest days, and add a
 scheduling_note on how days may be moved (keep at least one day between repeats of
 the same session type).
 
