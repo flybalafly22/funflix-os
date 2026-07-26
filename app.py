@@ -38,6 +38,9 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),
     PERMANENT_SESSION_LIFETIME=timedelta(days=90),
+    # cap request bodies (largest legit payload is a ~1.3 MB combined sync) so a
+    # multi-MB body can't be buffered as a memory-DoS lever (RED TEAM RT-3)
+    MAX_CONTENT_LENGTH=3 * 1024 * 1024,
 )
 
 
@@ -411,10 +414,16 @@ def _client_ip():
 
 
 def _rate_limited(ip, bucket="plan", limit=None):
-    # Localhost stays exempt: local dev and the test suite hit the API freely,
-    # while real clients behind Render's proxy arrive via X-Forwarded-For.
-    if ip in ("127.0.0.1", "::1", ""):
+    # Exemption is gated on the REAL TCP peer (request.remote_addr — a client
+    # cannot spoof it), NOT the X-Forwarded-For-derived `ip`. Otherwise sending
+    # "X-Forwarded-For: 127.0.0.1" would hit the loopback exemption and disable
+    # every limit (RED TEAM RT-1). Local dev + the test suite connect from
+    # loopback and stay exempt; behind Render the peer is the proxy, never
+    # loopback, so real traffic is always limited.
+    if request.remote_addr in ("127.0.0.1", "::1", None, ""):
         return False
+    if not ip:
+        ip = request.remote_addr or "unknown"
     limit = limit or TRAINER_RL_MAX
     key = f"{bucket}|{ip}"
     now = time.time()
@@ -497,14 +506,23 @@ def sync():
         blobs = STORE.get_blobs(uid)
         return jsonify({"plan": blobs.get("plan"), "logs": blobs.get("logs"),
                         "weights": blobs.get("weights")})
-    p = request.json or {}
+    p = request.json if isinstance(request.json, dict) else {}
+    now_ms = int(time.time() * 1000)
     for kind, cap in (("plan", 300_000), ("logs", 800_000), ("weights", 200_000)):
         item = p.get(kind)
         if not isinstance(item, dict) or "value" not in item:
             continue
         if len(json_mod.dumps(item["value"])) > cap:
             return jsonify({"error": f"{kind} too large to sync."}), 413
-        STORE.put_blob(uid, kind, item["value"], item.get("at") or int(time.time() * 1000))
+        # coerce + clamp the client-supplied timestamp: a non-numeric value must
+        # not 500 (RT-5) and a far-future value must not pin updated_at and
+        # freeze all later syncs (RT-4); never trust it beyond ~1 day ahead
+        try:
+            at = int(item.get("at") or now_ms)
+        except (ValueError, TypeError):
+            at = now_ms
+        at = max(0, min(at, now_ms + 86_400_000))
+        STORE.put_blob(uid, kind, item["value"], at)
     blobs = STORE.get_blobs(uid)
     return jsonify({"plan_at": (blobs.get("plan") or {}).get("at"),
                     "logs_at": (blobs.get("logs") or {}).get("at"),
@@ -714,7 +732,7 @@ def _validate_plan(data, intake=None):
 
 @app.route("/api/trainer", methods=["POST"])
 def trainer_api():
-    payload = request.json or {}
+    payload = request.json if isinstance(request.json, dict) else {}
 
     # keyless demo: lets the document view + PDF be exercised without an API key.
     # demo=stream exercises the streamed text path the real API uses.
@@ -730,7 +748,9 @@ def trainer_api():
             return Response(stream_with_context(demo_gen()), mimetype="text/plain")
         return jsonify(TRAINER_DEMO)
 
-    intake = payload.get("intake") or {}
+    intake = payload.get("intake")
+    if not isinstance(intake, dict):  # hostile/malformed body must not 500 (RT-2)
+        intake = {}
     if not str(intake.get("name", "")).strip() or not str(intake.get("goal", "")).strip():
         return jsonify({"error": "Please fill in at least your name and goal."}), 400
 
@@ -753,10 +773,13 @@ def trainer_api():
         if v:
             lines.append(f"- {k}: {v}")
     lines.append(f"- current_date: {date.today().isoformat()}")
-    followups = payload.get("followup_answers") or []
+    followups = payload.get("followup_answers")
+    followups = followups if isinstance(followups, list) else []
     if followups:
         lines.append("\nFOLLOW-UP ANSWERS (you asked, the client answered — do NOT ask again; produce the plan):")
         for qa in followups[:8]:
+            if not isinstance(qa, dict):
+                continue
             lines.append(f"- Q: {str(qa.get('q','')).strip()}\n  A: {str(qa.get('a','')).strip()}")
     if payload.get("mode") == "checkin":
         # the stateful check-in: the plan the client actually ran + their logged
@@ -984,12 +1007,13 @@ personal."""
 
 @app.route("/api/trainer/ask", methods=["POST"])
 def trainer_ask():
-    payload = request.json or {}
+    payload = request.json if isinstance(request.json, dict) else {}
     plan = payload.get("plan")
     messages = payload.get("messages") or []
     if not isinstance(plan, dict) or plan.get("type") != "plan":
         return jsonify({"error": "No program attached — build or restore a plan first."}), 400
-    if not isinstance(messages, list) or not any(m.get("role") == "user" for m in messages):
+    if not isinstance(messages, list) or not any(
+            isinstance(m, dict) and m.get("role") == "user" for m in messages):
         return jsonify({"error": "Ask a question."}), 400
     if not GEMINI_API_KEY:
         return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
@@ -999,6 +1023,8 @@ def trainer_ask():
 
     contents = []
     for m in messages[-12:]:
+        if not isinstance(m, dict):
+            continue
         role = "model" if m.get("role") == "assistant" else "user"
         text = str(m.get("content") or "").strip()
         if text:

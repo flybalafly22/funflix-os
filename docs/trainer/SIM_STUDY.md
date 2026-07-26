@@ -699,3 +699,128 @@ to create a free sync account or use the export button.
 `data/trainer_system.txt`; every remaining failure assumes a prompt-compliant model, so
 each is a design gap, not a model-quality one. Re-runs and new subjects follow the same
 desk-simulation method and physiological baselines documented at the top of this file.*
+
+---
+
+## End-to-end sweep (Sprint 15)
+
+**Team:** SIMULATION · **Date:** 2026-07-26 · **Status:** complete · **Code changed: none**
+(read-only sweep; the only edit is this appended section).
+
+### Method & a note on churn
+
+This is a code-path audit, not a subject simulation: every user-facing flow (intake →
+follow-up → plan → PDF; the server model chain and `_validate_plan`; the stateful
+check-in; Coach Mode; the logger + Stall Watch + Deload autopilot; accounts / sync /
+isolation; share / PWA / hash links) was traced against the actual source. The app was
+booted locally (`python3 app.py`, port 5000) and the keyless paths exercised
+(`POST /api/trainer {"demo":1}` → a full plan; `/api/auth/me`, `/api/sync` degrade
+correctly with no `DATABASE_URL`). Account-only paths were reasoned from code.
+
+**Important:** during this sweep `templates/trainer.html` and `app.py` were being edited
+concurrently (the file grew ~2091 → ~2250 lines mid-read; a **bodyweight log + `weights`
+sync blob** was wired end-to-end — client `loadWeights/saveWeights/weightTrendPerWeek/
+renderBw/pushWeights` and server `/api/sync` kind `"weights"` cap 200 KB + `/api/export`).
+That closes the long-standing "no bodyweight log" gap (old F4/S10). Because line numbers
+shifted under me, findings below cite **function names + approximate current line**; anchor
+on the function name if the line has moved. Every discrepancy was re-confirmed against the
+*current* file at the moment of writing.
+
+### What the current code has ALREADY fixed (do not re-report)
+
+The Sprint-13/14 code on disk is newer than this doc's earlier Sprint-15 section assumed.
+Verified fixed in the live source: **S1/S7 detrained-user handling** — `deloadInfo()`
+returns null when the last logged session is >14 days old (welcome-back, no deload), and
+`coProgressCue()` emits a "start ~10% below, 2–3 RIR, rebuild" cue instead of "add load"
+on a >14-day gap; **S2 (partial)** — `stallWatch()` widens the window to 4 for
+advanced/elite and treats sessions >21 days apart as non-contiguous (a layoff is no longer
+a stall); **F4 window math** — the computed elapsed-weeks field is live; **bodyweight log**
+— now present. New discrepancies below are all confirmed still-open or newly introduced.
+
+---
+
+### FINDINGS (ranked by impact)
+
+#### E1. Allergen defence-in-depth is absent in check-in mode and never covers supplements — [data] (safety)
+**Flow:** (a) Week-4 check-in → revised plan. (b) Any plan's Supplements section.
+**Where:** `_validate_plan()` allergen scan, `app.py:695-708` — `alg = str((intake or {}).get("allergies",""))` and `food = {k:v for k,v in dp.items() ...}` (scans `diet_plan` only).
+**Why it's wrong:** The check-in intake object (`intake()`, checkin branch, `templates/trainer.html:~846`) has **no `allergies` key** (only the plan intake at `:~876` does), and `planDigest()` never carries allergies. So on a check-in, `alg` is empty → the allergen scan is **skipped entirely**, and the model is only told allergens implicitly (if they happen to sit in `safety_notes`). A revised diet that reintroduces a client's allergen ships unchecked. Separately, even in plan mode the scan only walks `diet_plan`; the top-level `supplements[]` array is never scanned — so a **fish**-allergic client's omega-3 "fatty fish / fish oil", or a **dairy/whey** slip for a milk allergy, passes the gate. This is the one class of error where "better a flawed plan than an error page" is the wrong call.
+**$0 fix:** carry `allergies` (and `diet_preference`) in `planDigest()` and re-inject them as the `intake` passed to `_validate_plan()` in the check-in path; extend the scan's `hay` to include `data.get("supplements")` and `supplements_excluded_note`. Both are a few lines against existing helpers (`_plan_strings`).
+
+#### E2. Viewing the sample program seeds it as the user's "saved plan" — and it can sync into a real account — [data] [user-friendliness]
+**Flow:** Welcome → "See a sample program" (or `?sample`, `?demo=1`, the peek link) → later "Create account".
+**Where:** demo seed in `submit()`, `templates/trainer.html:945-948` (`else if (!savedPlan()) { localStorage.setItem(PLAN_KEY, {at, plan: data}); refreshRestore(); }`) + guest-adopt in `pullMerge()`, `:~1644` (`else if (localAt && (!d.plan || ...)) pushPlan()`).
+**Why it's wrong:** The stated invariant (comment at `:944`) is "demo-sourced plans must never … reach sync." But the seed writes the demo into `PLAN_KEY` with the **same shape as a real plan and no `demo` marker**. For a fresh visitor this immediately lights up **Restore last plan**, the **Log** tab, **Coach Mode**, and check-in autofill — all pointing at Rohan's sample (24M intermediate). Worse, if that visitor then registers into an empty account, the guest-adopt path calls `pushPlan()` and the **sample program is uploaded as their real plan**, directly violating the "never pushed" promise.
+**$0 fix:** tag the seed `{demo:true, at, plan}`; have `savedPlan()`/`pushPlan()`/`refreshRestore()` treat a `demo` plan as "no real plan" (so Restore/Log/Coach stay hidden and it never syncs), or seed a separate `PLAN_DEMO_KEY` that only feeds the on-screen render.
+
+#### E3. Guest data adopts UP into an empty account on a shared browser — cross-account bleed — [data]
+**Flow:** Person A builds/uses a plan as a guest (never signs in) on a shared browser → Person B signs into (or registers) an account that has no plan yet.
+**Where:** `OS_ACCT.on` handler `:~1660` (`if (owner && owner !== st.user) deviceReset()`) + `pullMerge({adoptGuest: !owner})` → `:~1644` `pushPlan()`.
+**Why it's wrong:** Device isolation only fires when a **different owner** was previously stamped. A guest never stamps `trainerOwner`, so `owner` is null, `deviceReset()` is skipped, and `adoptGuest` is true. If B's account is empty, the fallthrough `pushPlan()` **uploads A's guest plan (and merges A's logs) into B's account.** The isolation guard protects only accounts that *already* hold data. On any shared/kiosk browser a guest's program silently becomes the next empty-account signer's program.
+**$0 fix:** stamp `trainerOwner = "guest"` (or a random guest id) whenever guest data is first written; then a real sign-in always sees a mismatching owner and `deviceReset()`s before pulling, so guest data is only ever adopted by the very session that created it (or gate adopt on "this browser registered in the last N minutes").
+
+#### E4. The Week-4 check-in tab is never gated — a no-plan check-in becomes a stateless from-scratch plan — [user-friendliness] [accuracy]
+**Flow:** New visitor (or anyone with no saved plan) clicks **Week-4 check-in** and fills it in.
+**Where:** `#tabCheckin` has no `display:none` and `refreshRestore()` toggles only `#tabLog`; `submit()` checkin branch guards `planDigest()`/`qaLogDigest()` with `if (dg)`/`if (ld)`.
+**Why it's wrong:** With no saved plan, `planDigest()`/`qaLogDigest()` return null, `prevForDiff` is null, and the "recalibration" is sent with only the 14 form fields and an empty computed-weeks field — i.e. the exact stateless behavior the stateful check-in was built to kill, but now **mislabeled as a recalibration** with no diff and no continuity. The autofill also silently no-ops.
+**$0 fix:** gate `#tabCheckin` on `savedPlan()` exactly like `#tabLog` in `refreshRestore()`; if a user reaches it with no plan, show "Build or restore a plan first — the check-in recalibrates an existing program."
+
+#### E5. A stall-escalation deload logged by hand is counted as a *deeper stall*; the two deload pathways share no clock — [reliability] [accuracy]
+**Flow:** Stall Watch (Log tab or Coach summary) says "take the deload," the user deloads and logs it via the **manual Log form** (not Coach Mode).
+**Where:** only Coach Mode tags `sess.deload = true` (`coFinish()`, `:~1492`); the manual `logForm` submit has **no deload checkbox** and never sets `.deload`. `stallWatch()` skips `s.deload` sessions (`:~1233`); `deloadInfo()` keys its clock off `DL_KEY`, which only the "I've done my deload ✓" card writes.
+**Why it's wrong:** The escalated deload's deliberately reduced loads land as an untagged session → `stallWatch()` reads them as a further e1RM drop → it re-flags the lift, often as the deeper (`s.deep`) stall, telling the user to deload *again*. And because the stall-escalation path never writes `DL_KEY`, a calendar `deloadInfo()` card can still fire a week later → **risk of a double deload** (exactly Subject D month 9). The advice and the detector actively contradict each other.
+**$0 fix:** add a "this was a deload week" checkbox to the manual Log form (set `sess.deload`); and whenever the `s.deep` escalation is shown *or* any deload is logged/dismissed, write `DL_KEY = Date.now()` so `stallWatch` and `deloadInfo` read one shared timestamp.
+
+#### E6. Fat-loss stall copy is still deficit-blind — [accuracy]
+**Flow:** Any cutting client whose lift merely *holds* for 3 sessions.
+**Where:** `stallHTML()`, `:~1259-1269` — the non-deep branch always emits "reduce 10% … and rebuild — if sleep and food are in order," with no goal branch (`stallWatch()`/`savedPlan()` already expose the goal).
+**Why it's wrong:** In a deficit, food is *deliberately* not "in order," so the caveat can never land; holding strength while cutting is a **win**, not a loading error, yet the banner prescribes a reset. (Subjects A & E.)
+**$0 fix:** branch the copy on `savedPlan().plan.profile_summary.goal`: for fat-loss/recomp, "holding strength in a deficit is winning — only reset if a lift *drops* two sessions running."
+
+#### E7. Periodization triggers still live only in prose: the check-in payload omits deload history, and the loop has no aggregate stall trigger — [accuracy]
+**Flow:** Advanced/intermediate lifter; check-in and multi-lift plateaus.
+**Where:** `qaLogDigest()` sends `sessions`, `stalls`, `plan_age_days`, `bodyweight` — but **no weeks-since-deload / deload timestamp**; nothing computes an aggregate "≥2 lifts stalled in 7 days → deload now" in the loop (`stallWatch()` returns the list but no caller checks `list.length >= 2`).
+**Why it's wrong:** `trainer_system.txt:124-126, 322-326` gives the model two real rules — "deload if 6+ weeks since the last one" and "immediate deload when 2+ lifts stall" — but the check-in can't evaluate the first (it never learns when the last deload was) and the interactive loop never fires the second (the one advanced plateau-lifters need most; Subject D month 11). `deloadInfo` is calendar/train-week only.
+**$0 fix:** add `weeks_since_deload` (from `DL_KEY`) and `lifts_stalled_this_week` to `qaLogDigest()`; in `renderLgHist()`, if `stallWatch()` returns ≥2 distinct lifts flagged within the last 7 log-days, surface the existing `deloadHTML` card immediately, independent of the calendar.
+
+#### E8. `age_years` is frozen at plan time and blanked after the first check-in; no original intake is persisted — [accuracy] (safety-adjacent)
+**Flow:** Any multi-check-in client, especially 50+/60+ or joint-condition (Subject C).
+**Where:** `planDigest()` sends `profile: p.profile_summary` from the *saved plan only*; `trainer_system.txt:144-149` instructs the model to **null** profile fields not re-collected at check-in (height, DOB → hence `age_years` becomes null in the revised plan). No `INTAKE_KEY` is ever written (grep: none).
+**Why it's wrong:** Because the digest reads the *last* plan's `profile_summary`, and check-in mode nulls DOB/age, `age_years` degrades to null after the first check-in — so the special-population rules (50+/60+ joint-friendly defaults, power/balance work) can't reliably re-fire for a continuing client, and a client who *crosses* a 50+/60+ boundary mid-journey never triggers them at all. The client's original DOB/height/allergies/equipment exist nowhere durable.
+**$0 fix:** persist the original intake once (`localStorage INTAKE_KEY`) and include DOB (or a stable `age_years`), height, allergies and equipment in `planDigest()`; add one prompt line: "carry age/DOB, height, allergies and equipment forward from the digest — do not null them at check-in."
+
+#### E9. Soft-serve can ship an allergen- or macro-failing plan as the last resort — [reliability] [data]
+**Flow:** Every Gemini attempt + Groq fail their quality gate but one parsed plan-shaped.
+**Where:** `run_model_chain()` keeps `soft["text"] = soft["text"] or text` on a `_validate_plan` failure (`app.py:903`); `groq_fallback()`/`generate()` finally emit `soft["text"]` (`:828, 867`).
+**Why it's wrong:** The retained "soft" plan may have failed on `allergen_in_diet`, `macro_math`, or `missing_macros` — and it is then served silently as though valid. For allergen or broken-macro failures specifically, an error page is safer than a wrong plan.
+**$0 fix:** don't retain a soft plan whose fail-set includes `allergen_in_diet`/`missing_macros`/`macro_math`; for those, fall through to the friendly error instead of serving the bad payload.
+
+#### E10. Durability & silent sync failures: 200-log cap, `weights` cap, and only 401 is handled on push — [reliability]
+**Flow:** ~4×/week for a year; or a large log/weights blob.
+**Where:** `logs.slice(0, 200)` in `logForm` submit, `coFinish()`, and the `pullMerge` union (three sites); `pushLogs()/pushPlan()/pushWeights()` handle only `r.status === 401`.
+**Why it's wrong:** The cap silently evicts the oldest sessions (moving the all-time-first autofill/adopt baseline), and any non-401 sync failure — notably a **413** when logs exceed 800 KB or weights exceed the new 200 KB cap — is swallowed, so the user believes they are backed up when they are not. No 90% warning, no post-session-5 sync/export nudge exists.
+**$0 fix:** raise the log cap to ~1000 and trim to best-set-per-exercise before dropping whole sessions; surface a toast on any non-2xx sync PUT; one-time nudge after the 5th logged session to create a free account or use Export.
+
+#### E11. Lower-severity but real
+- **[accuracy] `?demo` in the URL turns a check-in into the static sample.** `trainer_api()` checks `payload.get("demo")` *before* `mode` (`app.py:721`), and the client sets `body.demo` from the URL param for any submit (`:907`). A user on `/trainer?demo=1` who runs a check-in gets Rohan's demo plan back, not a recalibration. Gate `demo` off `mode !== "checkin"` client-side.
+- **[data] Same-day backdated logs collide on sync.** The union key is `s.at + '|' + s.day` and a backdated entry's `at` is deterministic noon-of-date (`logForm` submit); two sessions of the same day-type backdated to the same date dedupe to one on the next `pullMerge`. Include an index or entry-hash in the merge key.
+- **[accuracy] New bodyweight log anchors `cWeightStart` to the all-time-first weigh-in.** `autofillCheckin()` prefills `cWeightStart` from `loadWeights()[0].kg` (`:~1568`) — the earliest entry ever, not the weight at the current plan's start — so a continuing client's trend divides whole-history weight change by current-block weeks (inflated rate). And `qaLogDigest().bodyweight.measured_trend_kg_per_week` (a 28-day window) can disagree with the form-derived trend, sending the model two conflicting numbers. Anchor `cWeightStart` to the weigh-in nearest `savedPlan().at`.
+- **[accuracy] Deload cadence parsing is brittle.** `deloadInfo()`'s regex `/every\s+(\d+)\s*(?:to|-|–|or)?\s*\d*\s*weeks?/i` does **not** match "every 6th week" (the demo's own wording) → falls back to the default 6; "every 4th to 6th week" also misses. Usually harmless (default is sane) but the parse rarely reads the plan's real number. Match `(\d+)(?:st|nd|rd|th)?` and `week` too.
+- **[accuracy] Plate math assumes a 20 kg bar** (`BAR_KG = 20`), wrong for 15 kg women's bars, 45 lb (20.4 kg) bars, or fixed/EZ bars — no way to set bar weight in Coach Mode.
+
+### Top 8 to fix for a solid base
+
+1. **E1 — Allergen safety net in check-in mode + over supplements.** Carry `allergies` in `planDigest`, pass it to `_validate_plan` on check-ins, and scan `supplements[]`. Silent, safety-adjacent, cheap.
+2. **E2 — Stop the sample program masquerading as a real saved plan / syncing up.** Tag the demo seed and exclude it from Restore/Log/Coach/`pushPlan`.
+3. **E3 — Close the guest→empty-account bleed.** Stamp guest data with an owner so a real sign-in resets before pulling; only the creating session adopts guest data.
+4. **E5 — Coordinate the two deload pathways and let manual deloads be tagged.** One shared `DL_KEY`; a "deload week" checkbox on the Log form. Stops the deload→deeper-stall→double-deload loop.
+5. **E4 — Gate the check-in tab on a saved plan.** A recalibration with nothing to recalibrate is a UX trap and a stateless regression.
+6. **E7 — Put the periodization triggers into the loop and the payload.** `weeks_since_deload` + `lifts_stalled_this_week` in the digest; an aggregate ≥2-lift deload card.
+7. **E8 — Persist the original intake; keep age/allergies/equipment across check-ins.** Special-population and continuity rules depend on facts that currently evaporate after check-in 1.
+8. **E6 — Make the fat-loss stall copy deficit-aware.** One goal branch in `stallHTML` removes a recurring wrong-and-discouraging banner for every cutting client.
+
+*Grounded in the current `templates/trainer.html`, `app.py`, `data/trainer_system.txt` and
+`static/os.js` (and `static/trainer/sw.js`, `manifest.json`) as read on 2026-07-26 while
+those files were under active concurrent edit; findings assume a prompt-compliant model, so
+each is a design/logic gap, not a model-quality one. Line numbers are approximate — anchor on
+the named functions.*

@@ -63,15 +63,18 @@ def test_answers_grounded_in_plan(_setup):
 
 def test_qa_rate_bucket_is_separate_from_plan_bucket(monkeypatch):
     ip = {"X-Forwarded-For": "203.0.113.77"}
+    # rate limiting now keys off the REAL peer (RT-1) — simulate a non-loopback one
+    env = {"REMOTE_ADDR": "203.0.113.77"}
     c = _c()
     # exhaust the plan bucket (limit 6)
     for _ in range(7):
-        c.post("/api/trainer", json={"intake": {"name": "R", "goal": "x"}}, headers=ip)
-    r = c.post("/api/trainer", json={"intake": {"name": "R", "goal": "x"}}, headers=ip)
+        c.post("/api/trainer", json={"intake": {"name": "R", "goal": "x"}}, headers=ip, environ_base=env)
+    r = c.post("/api/trainer", json={"intake": {"name": "R", "goal": "x"}}, headers=ip, environ_base=env)
     assert r.status_code == 429
     # qa bucket must still be open
     r = c.post("/api/trainer/ask",
-               json={"plan": PLAN, "messages": [{"role": "user", "content": "hello"}]}, headers=ip)
+               json={"plan": PLAN, "messages": [{"role": "user", "content": "hello"}]},
+               headers=ip, environ_base=env)
     assert r.status_code == 200
 
 

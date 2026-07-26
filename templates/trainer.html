@@ -1074,6 +1074,16 @@
     if (days < 3) return null;
     return ((weightAvg7() - base.kg) / days) * 7;
   }
+  function weightAtPlanStart() {
+    // the weigh-in AROUND when the current plan started — not the all-time first
+    // entry (which would inflate the check-in's start→now trend)
+    const ws = loadWeights();
+    if (!ws.length) return null;
+    const sp = savedPlan();
+    if (!sp) return ws[0];
+    const after = ws.find(w => _wat(w.d) >= sp.at - 86400000);
+    return after || ws[ws.length - 1];
+  }
   function logBodyweight(kg, dateStr) {
     const d = /^\d{4}-\d\d-\d\d$/.test(dateStr || '') ? dateStr : new Date().toISOString().slice(0, 10);
     saveWeights(loadWeights().concat([{ d, kg, at: Date.now() }]));
@@ -1565,8 +1575,8 @@
       // measured beats memory: fill "weight now" from the 7-day average
       const avg = weightAvg7();
       if (!$('cWeightNow').value && avg != null) $('cWeightNow').value = avg.toFixed(1) + ' kg (7-day avg)';
-      const ws = loadWeights();
-      if (!$('cWeightStart').value && ws.length) $('cWeightStart').value = ws[0].kg + ' kg';
+      const wStart = weightAtPlanStart();
+      if (!$('cWeightStart').value && wStart) $('cWeightStart').value = wStart.kg + ' kg';
       const weeks = Math.max(1, Math.round((Date.now() - saved.at) / 604800000));
       const opts = [...$('cWeeks').options].map(o => +o.value);
       $('cWeeks').value = String(opts.reduce((b, o) => Math.abs(o - weeks) < Math.abs(b - weeks) ? o : b, opts[0]));
@@ -1824,7 +1834,11 @@
     }
   })();
 
-  function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
+  // also escape quotes: esc() output is interpolated into double-quoted
+  // attributes (follow-up placeholders, Coach set inputs) — unescaped " allows
+  // attribute-breakout (RED TEAM RT-7)
+  function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s);
+    return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
   /* ── ask the trainer: plan-grounded Q&A, streamed live ── */
   let qaMsgs = [], qaBusy = false;
@@ -1886,11 +1900,14 @@
       plan_age_days: sp ? Math.max(0, Math.round((Date.now() - sp.at) / 86400000)) : null,
     };
     if (ws.length) {
-      const a7 = weightAvg7(), tr = weightTrendPerWeek();
+      // give the model consistent inputs (start weight anchored to plan start,
+      // current 7-day average) and let it compute ONE trend — don't also send a
+      // separate recent-window trend that could disagree
+      const a7 = weightAvg7(), wStart = weightAtPlanStart();
       digest.bodyweight = {
+        start_weight_kg: wStart ? wStart.kg : null,
         latest_kg: ws[ws.length - 1].kg,
         avg_7day_kg: a7 != null ? +a7.toFixed(1) : null,
-        measured_trend_kg_per_week: tr != null ? +tr.toFixed(2) : null,
         entries: ws.length,
         span_days: Math.round((_wat(ws[ws.length - 1].d) - _wat(ws[0].d)) / 86400000),
       };

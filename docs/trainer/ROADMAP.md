@@ -49,6 +49,40 @@ from this file directly.
   shared-browser cross-account bleed (owner-stamped device storage);
   multi-user isolation now a permanent server+browser test dimension
 
+## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
+## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
+
+**Shipped this sprint (hardening pass):** RT-1 rate-limit exemption gated on the
+real peer (X-Forwarded-For spoof no longer disables limits); RT-2 malformed
+input 4xx-not-500 (intake/payload/messages/follow-ups); RT-3 3 MB body cap;
+RT-4/RT-5 sync timestamp coerced + clamped (no permanent freeze, no 500 on
+non-numeric); RT-7 esc() escapes quotes (attribute-breakout XSS); plus the
+bodyweight cWeightStart plan-anchoring fix the sweep caught.
+
+**Security/robustness still open (RED TEAM):**
+- RT-6 decompression bomb via `#p=` share fragment — cap encoded + inflated size.
+- RT-8 `app.run(debug=True)` — gate on `FLASK_DEBUG` (prod uses gunicorn; latent).
+- Watch-list: unbounded `_trainer_hits` growth; XFF IP-rotation evading the
+  quota key (per-account auth limit would help); unbounded password length.
+
+**Correctness/data still open (SIMULATION e2e):**
+- **Allergen defence-in-depth gaps** (highest): check-in mode carries no
+  `allergies`, so the validator's allergen scan is skipped on every check-in;
+  and the scan never covers `supplements[]` (whey/dairy, fish-oil slips).
+- **Sample program seeds a real saved plan** (`?sample`/peek writes PLAN_KEY
+  with no demo marker) → can be pushed into a fresh account; verify + gate.
+- **Guest data adopts up into an empty account** on a shared browser (known
+  owner-stamp residual) — only adopt on register, or confirm.
+- **Manual (Log-form) deload isn't tagged** → double-deload / false deeper
+  stall; add a deload checkbox + shared clock with Coach Mode.
+- **Check-in tab isn't gated on a saved plan** → a no-plan "recalibration" is
+  a stateless from-scratch plan with no diff.
+- **age_years frozen/blanked after the first check-in**; persist original
+  intake (age, injuries, equipment) so special-population rules survive.
+- Aggregate "≥2 lifts stalled → deload now" trigger; weeks-since-deload into
+  the check-in payload; deficit-blind fat-loss stall copy; same-day backdated
+  log collision on sync; brittle deload-cadence regex; hardcoded 20 kg bar.
+
 ## Next up (high value, roughly ordered — groomed from the R&D LAB and
 ## SIMULATION studies, 2026-07-19; details in RND_LAB.md + SIM_STUDY.md)
 - **Stateful check-in** (both teams' #1): the recalibration request must carry
