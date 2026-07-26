@@ -248,3 +248,21 @@ regression:**
 - Generation-variance (not systematic): occasional `macro_math` /
   `sample_day_totals_off` on hard cases (minor_17, allergen_stress) — the
   validator catches and soft-serves; not anchored.
+
+## Bodyweight quick-log + two new team runs — SHIPPED 2026-07-19
+
+- **Bodyweight quick-log** (the last missing measured-data source): a daily
+  weight field on the Log tab → localStorage `trainerWeights` (owner-stamped,
+  wiped by deviceReset, synced as a new `weights` blob in /api/sync + export),
+  one entry per calendar day (latest wins). Shows latest · 7-day average ·
+  measured trend/week, plus an inline-SVG trend sparkline. The Week-4 check-in
+  now autofills "weight now" from the 7-day average (measured, not memory) and
+  seeds the start weight; the bodyweight trend also rides along in the check-in
+  digest sent to the model. Verified: log/overwrite/validation, sparkline,
+  autofill, isolation wipe on foreign login, 390px clean, no console errors.
+  Server: +2 pytest (weights round-trip + size guard); pytest 99/99, bench
+  59/59, site_qa 29/29.
+- **New standing RED TEAM** chartered (TEAMS.md) and ran its first hunt →
+  `docs/trainer/REDTEAM.md` (severity-ranked ledger). 8 findings incl. a HIGH
+  rate-limiter bypass via X-Forwarded-For; groomed into the hardening pass.
+- **SIMULATION** running a thorough end-to-end discrepancy sweep (in flight).

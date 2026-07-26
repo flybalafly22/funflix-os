@@ -495,9 +495,10 @@ def sync():
         return jsonify({"error": "Sign in to sync."}), 401
     if request.method == "GET":
         blobs = STORE.get_blobs(uid)
-        return jsonify({"plan": blobs.get("plan"), "logs": blobs.get("logs")})
+        return jsonify({"plan": blobs.get("plan"), "logs": blobs.get("logs"),
+                        "weights": blobs.get("weights")})
     p = request.json or {}
-    for kind, cap in (("plan", 300_000), ("logs", 800_000)):
+    for kind, cap in (("plan", 300_000), ("logs", 800_000), ("weights", 200_000)):
         item = p.get(kind)
         if not isinstance(item, dict) or "value" not in item:
             continue
@@ -506,7 +507,8 @@ def sync():
         STORE.put_blob(uid, kind, item["value"], item.get("at") or int(time.time() * 1000))
     blobs = STORE.get_blobs(uid)
     return jsonify({"plan_at": (blobs.get("plan") or {}).get("at"),
-                    "logs_at": (blobs.get("logs") or {}).get("at")})
+                    "logs_at": (blobs.get("logs") or {}).get("at"),
+                    "weights_at": (blobs.get("weights") or {}).get("at")})
 
 
 @app.route("/api/history")
@@ -574,6 +576,7 @@ def export_data():
            "account": {"email": acct["email"], "since": acct["since"]},
            "plan": blobs.get("plan"),
            "logs": blobs.get("logs"),
+           "weights": blobs.get("weights"),
            "history": [{"id": hid, "saved_at": at, "plan": plan}
                        for hid, plan, at in STORE.get_history(uid)]}
     resp = jsonify(doc)

@@ -48,7 +48,24 @@ exercise-science expectations; divergences between what the app WOULD do and
 what SHOULD happen are findings, tagged [accuracy]/[user-friendliness]/[reliability].
 **Rule:** simulations are honest about being simulations; every finding names the
 simulated moment that exposed it and a $0 fix. Re-run after major coaching-logic
-changes.
+changes. **Every sprint** it also runs a thorough end-to-end pass across ALL
+live systems (intake → plan → check-in → coach → log → deload/stall →
+accounts/sync/isolation → export/delete → PWA/share/profile) hunting for
+discrepancies, so the base stays solid as features accrete.
+
+## RED TEAM — adversarial bug hunting
+**Lives in:** `docs/trainer/REDTEAM.md` (a running, severity-ranked bug ledger).
+**What it does:** every sprint, actively tries to BREAK the app rather than use
+it — malformed/hostile inputs and fuzzing, endpoint abuse, auth + cross-account
+isolation attacks, injection/XSS/HTML in user-controlled strings, rate-limit
+bypass, oversized/edge payloads, concurrency/races on sync, client-state
+(localStorage) tampering, offline/PWA and bfcache edge cases, error-path and
+soft-serve behaviour. Authorized security testing of our OWN app.
+**Rule:** every bug is a concrete, reproducible finding (exact steps/inputs →
+wrong result) ranked by severity; verified findings are fixed this sprint or
+queued in ROADMAP with a reason. Never run destructive load/DoS against
+production and never damage real data — probe locally or with throwaway
+accounts. It hunts bugs; the Producer schedules the fixes.
 
 ## Operational facts every team needs
 - Live site: `https://funflix-os.onrender.com` (Render auto-deploys `main`).

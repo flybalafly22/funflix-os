@@ -351,6 +351,28 @@
     .stall.deload p { color: #2A3A26; }
     .stall.deload .btn-again { margin-top: 8px; }
 
+    /* ── bodyweight quick-log ── */
+    .bw-card { border: 1px solid var(--rule); border-radius: 16px; padding: 20px 22px 18px;
+      margin-bottom: 26px; background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+    .bw-top { display: flex; align-items: flex-end; gap: 14px; }
+    .bw-in { flex: 1; margin: 0; }
+    .bw-log { width: auto; padding: 12px 24px; white-space: nowrap; }
+    .bw-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 18px;
+      background: var(--rule); border: 1px solid var(--rule); border-radius: 13px; overflow: hidden; }
+    .bw-stat { background: #fff; padding: 12px 8px 10px; text-align: center; }
+    .bw-stat b { display: block; font-family: var(--serif); font-weight: 400; font-size: 22px; color: var(--black); }
+    .bw-stat.up b { color: #A0602A; } .bw-stat.down b { color: var(--accD); }
+    .bw-stat span { display: block; margin-top: 3px; font-family: var(--monoX); font-size: 8.5px;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--gray-2); }
+    .bw-spark { margin-top: 16px; }
+    .bw-spark svg { display: block; width: 100%; height: 64px; overflow: visible; }
+    .bw-spark .sp-line { fill: none; stroke: var(--accD); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .bw-spark .sp-avg { fill: none; stroke: var(--black); stroke-width: 1.25; stroke-dasharray: 3 3; opacity: .5; }
+    .bw-spark .sp-dot { fill: var(--accD); }
+    .bw-spark .sp-lbl { font-family: var(--monoX); font-size: 9px; fill: var(--gray-2); }
+    .bw-note { margin-top: 14px; font-family: var(--sans); font-size: 12px; line-height: 1.55; color: var(--gray-2); }
+    @media (max-width: 560px) { .bw-top { flex-direction: column; align-items: stretch; } .bw-log { width: 100%; } }
+
     .coach-cta { width: 100%; background: var(--black); color: #fff; border: none; border-radius: 12px;
       font-family: var(--sans); font-size: 13.5px; font-weight: 600; padding: 13px 18px; cursor: pointer;
       box-shadow: 0 8px 24px rgba(17,17,16,.16); transition: transform .2s, box-shadow .2s; }
@@ -611,6 +633,23 @@
     <!-- ── SESSION LOG ── -->
     <form class="intake" id="logForm" autocomplete="off" style="display:none">
       <div class="intake-inner">
+        <div class="bw-card">
+          <div class="sec" style="margin-top:0">Bodyweight</div>
+          <div class="bw-top">
+            <div class="field bw-in"><label class="os-label" for="bwKg">Today’s weight (kg)</label>
+              <input class="os-input" id="bwKg" inputmode="decimal" placeholder="e.g. 82.4"></div>
+            <button type="button" class="os-btn-primary bw-log" id="bwLog">Log weight</button>
+          </div>
+          <div class="bw-stats" id="bwStats" hidden>
+            <div class="bw-stat"><b id="bwNow">—</b><span>latest</span></div>
+            <div class="bw-stat"><b id="bwAvg">—</b><span>7-day avg</span></div>
+            <div class="bw-stat"><b id="bwTrend">—</b><span>trend / wk</span></div>
+          </div>
+          <div class="bw-spark" id="bwSpark" hidden></div>
+          <div class="bw-note" id="bwNote">Log your weight daily — the Trainer averages it over 7 days
+            and feeds the trend straight into your Week-4 check-in, so recalibration runs on the
+            scale, not on memory. Stays on this device unless you sync.</div>
+        </div>
         <div class="sec">Log a session</div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="lDay">Which session?</label>
@@ -995,7 +1034,95 @@
     if (!$('lDate').value) $('lDate').value = new Date().toISOString().slice(0, 10);
     renderLgList();
     renderLgHist();
+    renderBw();
   }
+
+  /* ── bodyweight quick-log (device-only unless synced; owner-isolated) ── */
+  const WEIGHT_KEY = 'trainerWeights';
+  const _wat = d => new Date(d + 'T00:00:00').getTime();
+  function loadWeights() {
+    try { const w = JSON.parse(localStorage.getItem(WEIGHT_KEY)); return Array.isArray(w) ? w : []; }
+    catch (e) { return []; }
+  }
+  function saveWeights(arr) {
+    // one entry per calendar day (latest wins), oldest→newest, capped ~2 years
+    const byDay = {};
+    (arr || []).forEach(w => {
+      const kg = parseFloat(w && w.kg);
+      if (w && /^\d{4}-\d\d-\d\d$/.test(w.d) && !isNaN(kg) && kg > 0 && kg <= 500) {
+        const cur = byDay[w.d];
+        if (!cur || (w.at || 0) >= (cur.at || 0)) byDay[w.d] = { d: w.d, kg: +kg.toFixed(1), at: w.at || Date.now() };
+      }
+    });
+    const out = Object.values(byDay).sort((a, b) => a.d < b.d ? -1 : 1).slice(-730);
+    try { localStorage.setItem(WEIGHT_KEY, JSON.stringify(out)); } catch (e) {}
+    return out;
+  }
+  function weightAvg7() {
+    const ws = loadWeights();
+    if (!ws.length) return null;
+    const cutoff = _wat(ws[ws.length - 1].d) - 6 * 86400000;
+    const win = ws.filter(w => _wat(w.d) >= cutoff);
+    return win.reduce((s, w) => s + w.kg, 0) / win.length;
+  }
+  function weightTrendPerWeek() {
+    const ws = loadWeights();
+    if (ws.length < 2) return null;
+    const last = ws[ws.length - 1];
+    const base = ws.find(w => _wat(w.d) >= _wat(last.d) - 28 * 86400000) || ws[0];
+    const days = (_wat(last.d) - _wat(base.d)) / 86400000;
+    if (days < 3) return null;
+    return ((weightAvg7() - base.kg) / days) * 7;
+  }
+  function logBodyweight(kg, dateStr) {
+    const d = /^\d{4}-\d\d-\d\d$/.test(dateStr || '') ? dateStr : new Date().toISOString().slice(0, 10);
+    saveWeights(loadWeights().concat([{ d, kg, at: Date.now() }]));
+    if (typeof pushWeights === 'function') pushWeights();
+    renderBw();
+  }
+  function bwSparkline(ws) {
+    const pts = ws.slice(-60);
+    if (pts.length < 2) return '';
+    const xs = pts.map(p => _wat(p.d)), ys = pts.map(p => p.kg);
+    const x0 = xs[0], x1 = xs[xs.length - 1];
+    let lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys);
+    if (hi - lo < 0.6) { hi += 0.4; lo -= 0.4; }
+    const W = 300, H = 56, P = 5;
+    const X = t => P + (x1 === x0 ? 0 : (t - x0) / (x1 - x0)) * (W - 2 * P);
+    const Y = v => P + (1 - (v - lo) / (hi - lo)) * (H - 2 * P);
+    const line = pts.map((p, i) => (i ? 'L' : 'M') + X(_wat(p.d)).toFixed(1) + ' ' + Y(p.kg).toFixed(1)).join(' ');
+    const last = pts[pts.length - 1];
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="bodyweight trend, last ' + pts.length + ' entries">' +
+      '<path class="sp-line" d="' + line + '"/>' +
+      '<circle class="sp-dot" cx="' + X(_wat(last.d)).toFixed(1) + '" cy="' + Y(last.kg).toFixed(1) + '" r="2.6"/>' +
+      '<text class="sp-lbl" x="' + P + '" y="11">' + hi.toFixed(1) + '</text>' +
+      '<text class="sp-lbl" x="' + P + '" y="' + (H - 3) + '">' + lo.toFixed(1) + '</text></svg>';
+  }
+  function renderBw() {
+    const ws = loadWeights(), stats = $('bwStats'), spark = $('bwSpark');
+    if (!ws.length) { stats.hidden = true; spark.hidden = true; return; }
+    const now = ws[ws.length - 1].kg, avg = weightAvg7(), tr = weightTrendPerWeek();
+    $('bwNow').textContent = now.toFixed(1) + ' kg';
+    $('bwAvg').textContent = avg != null ? avg.toFixed(1) + ' kg' : '—';
+    const trEl = $('bwTrend').parentElement;
+    trEl.classList.remove('up', 'down');
+    if (tr == null) { $('bwTrend').textContent = '—'; }
+    else {
+      $('bwTrend').textContent = (tr >= 0 ? '+' : '') + tr.toFixed(2) + ' kg';
+      if (tr > 0.05) trEl.classList.add('up'); else if (tr < -0.05) trEl.classList.add('down');
+    }
+    stats.hidden = false;
+    spark.innerHTML = bwSparkline(ws);
+    spark.hidden = ws.length < 2;
+  }
+  $('bwLog').addEventListener('click', () => {
+    const v = parseFloat($('bwKg').value);
+    if (isNaN(v) || v <= 0 || v > 500) { $('bwKg').focus(); return; }
+    logBodyweight(v, $('lDate').value);
+    $('bwKg').value = '';
+    const b = $('bwLog'), old = b.textContent; b.textContent = 'Logged ✓';
+    setTimeout(() => { b.textContent = old; }, 1400);
+  });
   function renderLgList() {
     const saved = savedPlan();
     if (!saved) return;
@@ -1435,6 +1562,11 @@
       });
       const kcal = (saved.plan.diet_plan || {}).calorie_target_kcal;
       if (!$('cCalTarget').value && kcal != null) $('cCalTarget').value = kcal + ' kcal';
+      // measured beats memory: fill "weight now" from the 7-day average
+      const avg = weightAvg7();
+      if (!$('cWeightNow').value && avg != null) $('cWeightNow').value = avg.toFixed(1) + ' kg (7-day avg)';
+      const ws = loadWeights();
+      if (!$('cWeightStart').value && ws.length) $('cWeightStart').value = ws[0].kg + ' kg';
       const weeks = Math.max(1, Math.round((Date.now() - saved.at) / 604800000));
       const opts = [...$('cWeeks').options].map(o => +o.value);
       $('cWeeks').value = String(opts.reduce((b, o) => Math.abs(o - weeks) < Math.abs(b - weeks) ? o : b, opts[0]));
@@ -1493,9 +1625,10 @@
       if (opts.adoptGuest && d.plan) {
         try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: d.plan.at, plan: d.plan.value })); } catch (e) {}
         try { localStorage.setItem(LOG_KEY, JSON.stringify((d.logs && d.logs.value) || [])); } catch (e) {}
+        saveWeights((d.weights && d.weights.value) || []);
         try { localStorage.removeItem(DL_KEY); } catch (e) {}
         if (planWrap.classList.contains('show')) renderPlan(d.plan.value);
-        refreshRestore();
+        refreshRestore(); renderBw();
         return;
       }
       const localAt = (savedPlan() || {}).at || 0;
@@ -1520,7 +1653,12 @@
       const capped = merged.slice(0, 200);
       try { localStorage.setItem(LOG_KEY, JSON.stringify(capped)); } catch (e) {}
       if (capped.length !== remote.length) pushLogs();
-      refreshRestore();
+      // weights: union by calendar day (newer entry wins), then push if changed
+      const rW = (d.weights && d.weights.value) || [];
+      const mergedW = saveWeights(rW.concat(loadWeights()));
+      const wsig = a => a.map(x => x.d + ':' + x.kg).join(',');
+      if (wsig(mergedW) !== wsig(rW)) pushWeights();
+      refreshRestore(); renderBw();
     } catch (e) {}
   }
   async function pushPlan() {
@@ -1537,6 +1675,14 @@
     try {
       const r = await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ logs: { value: loadLogs(), at: Date.now() } }) });
+      if (r.status === 401) syncAuthLost();
+    } catch (e) {}
+  }
+  async function pushWeights() {
+    if (!SYNC.user) return;
+    try {
+      const r = await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weights: { value: loadWeights(), at: Date.now() } }) });
       if (r.status === 401) syncAuthLost();
     } catch (e) {}
   }
@@ -1569,7 +1715,9 @@
       localStorage.removeItem(PLAN_KEY);
       localStorage.removeItem(LOG_KEY);
       localStorage.removeItem(DL_KEY);
+      localStorage.removeItem(WEIGHT_KEY);
     } catch (e) {}
+    if (typeof renderBw === 'function') renderBw();
     checkinForm.dataset.prefilled = '';
     lastPlan.d = null;
     prevForDiff = null;
@@ -1721,7 +1869,8 @@
 
   function qaLogDigest() {
     const logs = loadLogs();
-    if (!logs.length) return null;
+    const ws = loadWeights();
+    if (!logs.length && !ws.length) return null;
     const sessions = logs.slice(0, 10).map(s => ({
       date: new Date(s.at).toISOString().slice(0, 10),
       day: s.day || '',
@@ -1731,11 +1880,22 @@
       }).filter(Boolean),
     }));
     const sp = savedPlan();
-    return {
+    const digest = {
       sessions,
       stalls: stallWatch().map(s => s.name + ' stalled at ' + fmtSet(s.last)),
       plan_age_days: sp ? Math.max(0, Math.round((Date.now() - sp.at) / 86400000)) : null,
     };
+    if (ws.length) {
+      const a7 = weightAvg7(), tr = weightTrendPerWeek();
+      digest.bodyweight = {
+        latest_kg: ws[ws.length - 1].kg,
+        avg_7day_kg: a7 != null ? +a7.toFixed(1) : null,
+        measured_trend_kg_per_week: tr != null ? +tr.toFixed(2) : null,
+        entries: ws.length,
+        span_days: Math.round((_wat(ws[ws.length - 1].d) - _wat(ws[0].d)) / 86400000),
+      };
+    }
+    return digest;
   }
   async function qaSend(text) {
     text = String(text || '').trim();

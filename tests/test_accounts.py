@@ -180,6 +180,27 @@ def test_older_plan_write_does_not_archive(client):
     assert client.get("/api/history").get_json()["history"] == []
 
 
+def test_weights_sync_roundtrip_and_export(client):
+    _reg(client)
+    w = [{"d": "2026-07-01", "kg": 82.4, "at": 1000}, {"d": "2026-07-02", "kg": 82.1, "at": 1001}]
+    r = client.put("/api/sync", json={"weights": {"value": w, "at": 2000}})
+    assert r.status_code == 200 and r.get_json()["weights_at"] == 2000
+    d = client.get("/api/sync").get_json()
+    assert d["weights"]["value"] == w
+    # weights ride along in the export
+    exp = client.get("/api/export").get_json()
+    assert exp["weights"]["value"] == w
+    # older weights write must not clobber
+    client.put("/api/sync", json={"weights": {"value": [{"d": "x", "kg": 1}], "at": 1000}})
+    assert client.get("/api/sync").get_json()["weights"]["at"] == 2000
+
+
+def test_weights_size_guard(client):
+    _reg(client)
+    huge = [{"d": str(i), "kg": 80.0} for i in range(50000)]
+    assert client.put("/api/sync", json={"weights": {"value": huge, "at": 1}}).status_code == 413
+
+
 def test_profile_requires_auth(client):
     assert client.get("/api/profile").status_code == 401
     assert client.get("/api/export").status_code == 401
