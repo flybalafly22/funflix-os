@@ -638,6 +638,21 @@ def trainer_sw():
     return app.send_static_file("trainer/sw.js")
 
 
+_ALLERGEN_STOP = {"none", "nothing", "known", "food", "mild", "severe", "and", "the",
+                  "any", "all", "nil", "free", "allergy", "allergies", "intolerance",
+                  "excluded", "avoids", "avoid", "reported", "were", "been", "have",
+                  "not", "has", "with", "this", "plan"}
+
+
+def _allergen_tokens(s):
+    """Allergen words from a free-text string (intake allergies OR a plan's
+    allergy_note). len>=3 keeps egg/soy/nut/fish; trailing 's' stemmed so the
+    word-boundary scan catches singular and plural."""
+    return {(w[:-1] if w.endswith("s") and len(w) > 3 else w)
+            for w in re.split(r"[^a-z]+", str(s).lower())
+            if len(w) >= 3 and w not in _ALLERGEN_STOP}
+
+
 def _plan_strings(o):
     if isinstance(o, dict):
         for v in o.values():
@@ -708,23 +723,19 @@ def _validate_plan(data, intake=None):
     hay_all = " ".join(_plan_strings(data)).lower()
     if any(b in hay_all for b in _banned):
         fails.append("banned_filler")
-    # Allergen scan (defence-in-depth behind the prompt). Scan the WHOLE diet
-    # plan, not just the sample day, and keep short allergen words (egg, soy,
-    # nut, fish) which the old len>=4 floor silently dropped. Word-boundary
-    # match with an optional trailing 's' so "peanut" catches "peanut butter"
-    # and "peanuts" without false-hitting "eggplant"/"nutrition".
-    alg = str((intake or {}).get("allergies", "")).lower()
-    stop = {"none", "nothing", "known", "food", "mild", "severe", "and", "the",
-            "any", "all", "nil", "free", "allergy", "allergies", "intolerance"}
-    words = [(w[:-1] if w.endswith("s") and len(w) > 3 else w)
-             for w in re.split(r"[^a-z]+", alg) if len(w) >= 3 and w not in stop]
-    if words and isinstance(dp, dict):
-        # scan the FOODS, not the notes that legitimately name the avoided
-        # allergens ("peanuts, shellfish and eggs have been excluded") — those
-        # would false-positive on every allergic client and force needless retries
-        food = {k: v for k, v in dp.items()
+    # Allergen scan (defence-in-depth behind the prompt). Word-boundary match
+    # with an optional trailing 's' so "peanut" catches "peanut butter" and
+    # "peanuts" without false-hitting "eggplant"/"nutrition". The allergies come
+    # from the intake — on a check-in the client now carries them forward from
+    # the saved plan's safety (SIMULATION finding: check-ins forgot allergies).
+    # Scan supplements[] too: a whey/fish-oil can carry a dairy/fish allergen the
+    # diet-only scan missed.
+    words = _allergen_tokens((intake or {}).get("allergies", ""))
+    if words:
+        food = {k: v for k, v in (dp.items() if isinstance(dp, dict) else [])
                 if k not in ("allergy_note", "diet_preference_note")}
-        hay = " ".join(_plan_strings(food)).lower()
+        supps = data.get("supplements") if isinstance(data.get("supplements"), list) else []
+        hay = (" ".join(_plan_strings(food)) + " " + " ".join(_plan_strings(supps))).lower()
         if any(re.search(r"\b" + re.escape(w) + r"s?\b", hay) for w in words):
             fails.append("allergen_in_diet")
     return fails

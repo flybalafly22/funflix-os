@@ -843,8 +843,15 @@
 
   function intake() {
     if (mode === 'checkin') {
+      // carry the original safety context forward so the recalibration re-applies
+      // allergies/injuries/equipment (the check-in form never re-collects them)
+      const sf = (savedPlan() || {}).safety || {};
       return {
         name: $('cName').value, goal: $('cGoal').value,
+        allergies: sf.allergies || '',
+        'health issues and injuries': sf.injuries || '',
+        'training environment and equipment': sf.equipment || '',
+        'diet preference': sf.diet || '',
         'weeks on the plan': $('cWeeks').value,
         'weight when plan started': $('cWeightStart').value,
         'weight now (7-day avg if given)': $('cWeightNow').value,
@@ -941,10 +948,11 @@
         setState('followup');
       } else if (data.type === 'plan') {
         // Demo-sourced plans must never clobber a real saved plan or reach sync.
-        // A fresh visitor's demo may seed local state (never pushed).
-        if (!isDemo) savePlan(data);
+        // A fresh visitor's demo may seed local state (marked demo:true so it is
+        // never pushed or adopted into an account).
+        if (!isDemo) savePlan(data, mode === 'checkin' ? null : captureSafety());
         else if (!savedPlan()) {
-          try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: Date.now(), plan: data })); } catch (e) {}
+          try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: Date.now(), plan: data, demo: true })); } catch (e) {}
           refreshRestore();
         }
         renderPlan(data);
@@ -996,8 +1004,23 @@
 
   /* ── plan persistence (device-only; nothing leaves the browser) ── */
   const PLAN_KEY = 'trainerLastPlan';
-  function savePlan(d) {
-    try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: Date.now(), plan: d })); } catch (e) {}
+  // the safety context the model must never forget across check-ins (allergies,
+  // injuries, equipment) — the intake collects it once; we persist it with the
+  // plan so recalibration re-applies it
+  function captureSafety() {
+    return {
+      allergies: $('fAllergy').value.trim(),
+      injuries: [$('fHealth').value.trim(), $('fInjury').value.trim()].filter(Boolean).join('; '),
+      equipment: [$('fEnv').value.trim(), $('fEquip').value.trim()].filter(Boolean).join(' — '),
+      diet: $('fDiet').value === 'Other' ? 'Other — ' + $('fDietOther').value.trim() : $('fDiet').value,
+    };
+  }
+  function savePlan(d, safety) {
+    const prev = savedPlan();
+    const wrap = { at: Date.now(), plan: d };
+    const s = safety || (prev && prev.safety);  // carry safety forward on check-in / make-current
+    if (s) wrap.safety = s;
+    try { localStorage.setItem(PLAN_KEY, JSON.stringify(wrap)); } catch (e) {}
     refreshRestore();
     if (typeof pushPlan === 'function') pushPlan();
   }
@@ -1673,7 +1696,9 @@
   }
   async function pushPlan() {
     const s = savedPlan();
-    if (!SYNC.user || !s) return;
+    // a sample/peek plan (demo:true) is exploratory — it must never be pushed
+    // into or adopted by a real account (SIMULATION finding: demo-never-pushed)
+    if (!SYNC.user || !s || s.demo) return;
     try {
       const r = await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: { value: s.plan, at: s.at } }) });
@@ -1871,6 +1896,7 @@
         fat_g: p.diet_plan.fat_g,
       } : null,
       safety_notes: p.safety_notes || null,
+      original_safety: sp.safety || null,
       days: (p.workout_days || []).map(d => ({
         day: d.day_label || '',
         exercises: (d.exercises || []).slice(0, 12).map(x =>

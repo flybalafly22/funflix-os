@@ -67,6 +67,37 @@ queued in ROADMAP with a reason. Never run destructive load/DoS against
 production and never damage real data — probe locally or with throwaway
 accounts. It hunts bugs; the Producer schedules the fixes.
 
+## THE REFINERS — competitive benchmarking & craft
+**Lives in:** `docs/trainer/REFINERS.md` (a running competitive-analysis +
+improvement ledger).
+**What it does:** every sprint, studies the best fitness/training apps in the
+world — their onboarding, workflow, coaching mechanics, progression models,
+logging UX, nutrition tooling, retention loops, monetisation, visual craft.
+It doesn't just catalogue features: it asks WHY each app made a choice (what
+problem it solves, what it trades away), where those apps themselves fall
+short, and then compares against The Trainer to surface discrepancies,
+loopholes, errors, minor mistakes, and concrete improvement opportunities.
+**Rule:** every finding names the app + the specific choice, the WHY behind it,
+whether it beats or loses to us, and a concrete $0 change for The Trainer (or a
+reason to deliberately differ). No copying UI/branding/assets (licensing);
+learn the mechanism, not the pixels. Findings feed ROADMAP via the Producer.
+
+## Cross-team communication — the round table
+**Lives in:** `docs/trainer/ROUNDTABLE.md` (standing cross-team thread log).
+Teams must talk to each other, not work in silos. The protocol, every sprint:
+- **Read receipts:** each team opens its deliverable by noting what it read in
+  the other teams' latest docs (RND_LAB / SIM_STUDY / REDTEAM / REFINERS) and
+  where it agrees, disagrees, or overlaps.
+- **Directed questions & handoffs:** a team posts open questions to a specific
+  team in ROUNDTABLE.md (e.g. "@RED TEAM: is the soft-serve path exploitable?"
+  "@REFINERS: how does app X gate its check-in?"); the addressed team answers
+  in the same thread next time it runs.
+- **The Producer facilitates:** synthesises the threads each sprint, resolves
+  or escalates open questions, and turns cross-team agreement into ROADMAP
+  items. A finding corroborated by two teams is ranked higher.
+Rule: threads are concrete and closed when resolved; the goal is shared
+objectives and plans that ultimately benefit The Trainer.
+
 ## Operational facts every team needs
 - Live site: `https://funflix-os.onrender.com` (Render auto-deploys `main`).
 - Live commit check: `GET /api/version`.

@@ -100,6 +100,23 @@ def test_allergen_note_naming_avoided_foods_is_not_flagged():
     assert "allergen_in_diet" in A._validate_plan(p, {"allergies": "eggs"})
 
 
+def test_allergen_in_supplements_is_caught():
+    # a whey/fish-oil supplement can carry an allergen the diet-only scan missed
+    p = _good()
+    p["supplements"] = [{"name": "Whey protein isolate", "dose": "30 g", "reason": "hit protein"}]
+    assert "allergen_in_diet" in A._validate_plan(p, {"allergies": "whey"})
+
+
+def test_checkin_allergies_carried_are_scanned():
+    # the client now carries allergies into the check-in intake; the validator
+    # scans them (a check-in used to forget allergies entirely)
+    p = _good()
+    p["diet_plan"]["sample_day"] = [{"meal": "M1", "foods": ["20 g peanut butter"]}]
+    assert "allergen_in_diet" in A._validate_plan(p, {"goal": "x", "allergies": "peanuts"})
+    # no allergies carried (legacy plan) → no scan, no false positive
+    assert "allergen_in_diet" not in A._validate_plan(p, {"goal": "x"})
+
+
 def test_banned_filler_is_rejected():
     # the prompt bans these outright; the gate enforces it so a slip is retried
     p = _good()
