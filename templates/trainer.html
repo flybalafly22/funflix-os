@@ -90,6 +90,7 @@
     .lg-ex:last-child { border-bottom: none; }
     .lg-name { font-family: var(--sans); font-weight: 600; font-size: 14px; color: var(--black); }
     .lg-rx { font-family: var(--monoX); font-size: 10px; letter-spacing: .08em; color: var(--accD); margin-left: 10px; }
+    .lg-last { margin-top: 7px; font-family: var(--monoX); font-size: 10.5px; letter-spacing: .04em; color: var(--gray-2); }
     .lg-sets { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
     .lg-set { display: flex; align-items: center; gap: 5px; }
     .lg-set input { width: 62px; text-align: center; }
@@ -100,6 +101,30 @@
     .lg-hrow .hd { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
     .lg-hrow .hb { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: #2A2A26; }
     .lg-hrow .hb b { color: var(--black); }
+
+    /* ── volume tune-up ── */
+    .vol-card { border: 1px solid var(--rule); border-radius: 16px; padding: 6px 20px 16px; margin-top: 22px;
+      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+    .vol-intro { font-family: var(--sans); font-size: 12px; line-height: 1.55; color: var(--gray-2); margin: 4px 0 14px; }
+    .vol-row { padding: 13px 0; border-bottom: 1px solid var(--rule); }
+    .vol-row:last-child { border-bottom: none; }
+    .vol-top { display: flex; justify-content: space-between; align-items: baseline; }
+    .vol-m { font-family: var(--sans); font-weight: 600; font-size: 13.5px; color: var(--black); text-transform: capitalize; }
+    .vol-n { font-family: var(--monoX); font-size: 11px; color: var(--black); }
+    .vol-band { color: var(--gray-2); }
+    .vol-bar { position: relative; height: 5px; border-radius: 3px; margin: 9px 0 8px;
+      background: linear-gradient(90deg, #EDEDE9 0 8%, #E7EFE0 8% 92%, #EDEDE9 92% 100%); }
+    .vol-dot { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 999px; background: var(--accD);
+      border: 2px solid #fff; transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+    .vol-up .vol-dot { background: var(--accD); } .vol-down .vol-dot { background: #A0602A; } .vol-hold .vol-dot { background: #6D6D66; }
+    .vol-rec { font-family: var(--sans); font-size: 12.5px; line-height: 1.5; color: #2A2A26; }
+    .vol-up .vol-rec b, .vol-rec b { color: var(--accD); }
+    .vol-fb { margin-top: 9px; display: flex; align-items: center; gap: 7px; font-family: var(--monoX);
+      font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--gray-2); flex-wrap: wrap; }
+    .vf { font-family: var(--sans); font-size: 11.5px; text-transform: none; letter-spacing: 0; padding: 4px 12px;
+      border: 1px solid var(--rule-2); border-radius: 999px; background: #fff; color: var(--gray); cursor: pointer; }
+    .vf:hover { border-color: var(--black); color: var(--black); }
+    .vf.on { background: var(--black); color: #fff; border-color: var(--black); }
 
     /* ── check-in diff ── */
     .diff { border: 1px solid var(--rule); border-radius: 14px; padding: 6px 18px; margin: 10px 0 6px;
@@ -666,6 +691,12 @@
           <div class="go-note">Logs live only in this browser. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
         </div>
         <div id="lgStall"></div>
+        <div class="vol-card" id="volCard" hidden>
+          <div class="sec">Volume tune-up</div>
+          <div class="vol-intro">Direct weekly sets per muscle vs your experience band (MEV→MRV). The Trainer
+            reads your stalls and recovery and recommends the next week’s sets — tap how a muscle felt to refine it.</div>
+          <div id="volBody"></div>
+        </div>
         <div class="sec" id="lgHistHead" style="display:none">Previous sessions</div>
         <div id="lgHist"></div>
       </div>
@@ -1163,14 +1194,24 @@
     if (!day) { $('lgList').innerHTML = ''; return; }
     $('lgList').innerHTML = (day.exercises || []).map((ex, ei) => {
       const n = Math.max(1, Math.min(8, +ex.sets || 3));
+      // Strong's mechanic: show what you did last time as reference + as the
+      // input placeholders, so "beat last week" is one glance, not memory
+      const last = lastEntryFor(ex.name);
+      const prev = last ? last.sets : [];
       let sets = '';
       for (let s = 0; s < n; s++) {
-        sets += '<span class="lg-set"><input class="os-input" inputmode="decimal" placeholder="kg" data-ex="' + ei + '" data-set="' + s + '" data-k="kg">' +
+        const ph = prev[s] || {};
+        sets += '<span class="lg-set"><input class="os-input" inputmode="decimal" placeholder="' + esc(ph.kg || 'kg') + '" data-ex="' + ei + '" data-set="' + s + '" data-k="kg">' +
           '<span class="x">×</span>' +
-          '<input class="os-input" inputmode="numeric" placeholder="reps" data-ex="' + ei + '" data-set="' + s + '" data-k="reps"></span>';
+          '<input class="os-input" inputmode="numeric" placeholder="' + esc(ph.reps || 'reps') + '" data-ex="' + ei + '" data-set="' + s + '" data-k="reps"></span>';
       }
+      const lastLine = last && prev.length
+        ? '<div class="lg-last">Last · ' + new Date(last.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
+          ': ' + prev.map(x => esc((x.kg || '?') + '×' + (x.reps || '?'))).join(',  ') + '</div>'
+        : '';
       return '<div class="lg-ex"><div class="lg-name">' + esc(ex.name) +
         '<span class="lg-rx">' + esc(ex.sets) + ' × ' + esc(ex.rep_range || '') + (ex.rpe_or_rir ? ' · ' + esc(ex.rpe_or_rir) : '') + '</span></div>' +
+        lastLine +
         '<div class="lg-sets">' + sets + '</div></div>';
     }).join('');
   }
@@ -1193,7 +1234,9 @@
   function renderLgHist() {
     const logs = loadLogs();
     const dl = deloadInfo();
-    $('lgStall').innerHTML = (dl ? deloadHTML(dl) : '') + stallHTML(stallWatch());
+    const fd = dl ? null : fatigueDeload();
+    $('lgStall').innerHTML = (dl ? deloadHTML(dl) : fd ? fatigueDeloadHTML(fd) : '') + stallHTML(stallWatch());
+    renderVolume();
     $('lgHistHead').style.display = logs.length ? '' : 'none';
     $('lgHist').innerHTML = logs.slice(0, 6).map(s => {
       const dt = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -1201,6 +1244,10 @@
       return '<div class="lg-hrow"><span class="hd">' + esc(dt) + '</span><span class="hb">' + esc(s.day || '') + ' — ' + bits.join(' · ') + '</span></div>';
     }).join('');
   }
+  $('volBody').addEventListener('click', e => {
+    const btn = e.target.closest('.vf');
+    if (btn) setVolFb(btn.dataset.m, btn.dataset.v);
+  });
   $('lgStall').addEventListener('click', e => {
     if (e.target && e.target.id === 'dlDone') {
       try { localStorage.setItem(DL_KEY, String(Date.now())); } catch (e2) {}
@@ -1333,6 +1380,123 @@
       'Resist adding work — this week is what makes next month’s PRs possible.</p>' +
       '<button type="button" class="btn-again" id="dlDone">I’ve done my deload ✓</button></div>';
   }
+  // fatigue-triggered deload: 2+ different lifts stalling in the same week is a
+  // systemic-fatigue signal (RP/Juggernaut mechanism), so deload NOW rather than
+  // waiting for the calendar cadence. Suppressed for a week after a deload.
+  function fatigueDeload() {
+    let doneAt = 0;
+    try { doneAt = +localStorage.getItem(DL_KEY) || 0; } catch (e) {}
+    if (Date.now() - doneAt < 7 * DAY_MS) return null;
+    const recent = stallWatch().filter(s => s.last && s.last.at && Date.now() - s.last.at <= 7 * DAY_MS);
+    return recent.length >= 2 ? { lifts: recent.map(s => s.name) } : null;
+  }
+  function fatigueDeloadHTML(fd) {
+    return '<div class="stall deload"><div class="st-h">Deload now — fatigue signal</div>' +
+      '<p><b>' + fd.lifts.length + ' lifts stalled in the same week</b> (' + esc(fd.lifts.join(', ')) +
+      ') — that’s systemic fatigue, not one plateau. Don’t wait for the calendar: <b>halve the sets, ' +
+      '−15–20% load</b> this week, keep the movements, then rebuild.</p>' +
+      '<button type="button" class="btn-again" id="dlDone">I’ve done my deload ✓</button></div>';
+  }
+
+  /* ── volume autoregulation (RP MEV→MRV mechanism, deterministic + $0) ──
+     The plan already encodes per-muscle set targets and the experience band;
+     this runs the weekly loop the plan never ran — count direct sets per muscle,
+     read the recovery signals we already have (stalls, deload state) plus an
+     optional one-tap feel, and recommend ±1–2 sets clamped to the band. */
+  const MUSCLE_MAP = [
+    [/romanian deadlift|\brdl\b|leg curl/, ['hamstrings'], []],
+    [/conventional deadlift|\bdeadlift\b|rack pull/, ['hamstrings'], ['back', 'glutes']],
+    [/hip thrust|glute bridge/, ['glutes'], ['hamstrings']],
+    [/bulgarian|split squat|lunge|step[- ]?up/, ['quads'], ['glutes']],
+    [/back squat|front squat|hack squat|leg press|goblet|\bsquat\b|leg extension/, ['quads'], ['glutes']],
+    [/calf/, ['calves'], []],
+    [/crunch|leg raise|plank|ab wheel|hanging|sit[- ]?up|rollout/, ['abs'], []],
+    [/bench press|chest press|floor press|incline (dumbbell|barbell) press|dumbbell press|pec deck|cable fly|\bfly\b|push[- ]?up|\bdip\b/, ['chest'], ['triceps', 'delts']],
+    [/overhead press|shoulder press|\bohp\b|military|arnold/, ['delts'], ['triceps']],
+    [/lateral raise|\blateral\b|rear delt|reverse fly|face pull|upright row/, ['delts'], []],
+    [/pulldown|pull-?up|chin-?up|\brow\b|pullover/, ['back'], ['biceps']],
+    [/triceps|pressdown|pushdown|skull|kickback|close[- ]grip|overhead (cable|dumbbell) (triceps )?extension/, ['triceps'], []],
+    [/curl/, ['biceps'], []],
+  ];
+  function musclesFor(name) {
+    const n = String(name).replace(/\(.*?\)/g, ' ').toLowerCase();  // drop "(superset with …)"
+    for (const [re, prim, sec] of MUSCLE_MAP) if (re.test(n)) return [prim, sec];
+    return [null, null];
+  }
+  function weeklyVolume() {
+    const sp = savedPlan();
+    if (!sp || !sp.plan) return null;
+    const tally = {};
+    (sp.plan.workout_days || []).forEach(d => (d.exercises || []).forEach(ex => {
+      const sets = Math.max(0, +ex.sets || 0);
+      const [prim, sec] = musclesFor(ex.name);
+      (prim || []).forEach(m => tally[m] = (tally[m] || 0) + sets);
+      (sec || []).forEach(m => tally[m] = (tally[m] || 0) + sets * 0.5);
+    }));
+    return tally;
+  }
+  function volumeBand() {
+    const e = planExperience();
+    if (/advanced|elite/.test(e)) return [14, 20];
+    if (/beginner|novice|new/.test(e)) return [8, 12];
+    return [10, 16];  // intermediate default
+  }
+  const VOL_KEY = 'trainerVolFeedback';
+  function loadVolFb() { try { return JSON.parse(localStorage.getItem(VOL_KEY)) || {}; } catch (e) { return {}; } }
+  function freshFb(f) { return f && (Date.now() - (f.at || 0) < 10 * DAY_MS) ? f : null; }
+  function setVolFb(m, v) {
+    const f = loadVolFb();
+    if (f[m] && f[m].v === v) delete f[m]; else f[m] = { v, at: Date.now() };  // tap again to clear
+    try { localStorage.setItem(VOL_KEY, JSON.stringify(f)); } catch (e) {}
+    if (typeof pushWeights === 'function') { /* feedback is device-local, not synced */ }
+    renderVolume();
+  }
+  function volRec(sets, band, muscleStalled, deloadNow, fb) {
+    const lo = band[0], hi = band[1], r = Math.round(sets);
+    if (deloadNow) return { t: 'hold', s: 'Deload week — hold volume, don’t add.' };
+    if (muscleStalled || (fb && fb.v === 'much')) {
+      return r > lo
+        ? { t: 'down', s: 'Pull back to ' + Math.max(lo, r - 2) + ' next week, recover, then rebuild.' }
+        : { t: 'hold', s: 'Already at your floor (' + lo + ') — fix sleep/food before cutting more.' };
+    }
+    if (fb && fb.v === 'easy') {
+      return r < hi
+        ? { t: 'up', s: 'Room to grow — add 1 set next week (→ ' + (r + 1) + '), up to ' + hi + '.' }
+        : { t: 'hold', s: 'Top of your band (' + hi + ') — progress by load and reps.' };
+    }
+    if (r < lo) return { t: 'up', s: 'Below the effective floor (' + lo + ') — add ' + (lo - r) + ' set' + (lo - r > 1 ? 's' : '') + '.' };
+    if (r >= hi) return { t: 'hold', s: 'Top of your band (' + hi + ') — progress by load and reps, not more sets.' };
+    return { t: 'hold', s: 'In range (' + lo + '–' + hi + ') — hold; add only when it feels easy and recovers well.' };
+  }
+  const MUSCLE_ORDER = ['chest', 'back', 'quads', 'hamstrings', 'glutes', 'delts', 'biceps', 'triceps', 'calves', 'abs'];
+  function renderVolume() {
+    const card = $('volCard');
+    if (!card) return;
+    const sp = savedPlan(), vol = weeklyVolume();
+    if (!sp || sp.demo || !vol || !Object.keys(vol).length) { card.hidden = true; return; }
+    const band = volumeBand(), lo = band[0], hi = band[1];
+    const stalled = new Set();
+    stallWatch().forEach(s => { const [prim] = musclesFor(s.name); (prim || []).forEach(m => stalled.add(m)); });
+    const deloadNow = !!(deloadInfo() || fatigueDeload());
+    const fb = loadVolFb();
+    const rows = MUSCLE_ORDER.filter(m => vol[m] != null && vol[m] > 0).map(m => {
+      const sets = vol[m], r = Math.round(sets);
+      const rec = volRec(sets, band, stalled.has(m), deloadNow, freshFb(fb[m]));
+      const loP = 8, hiP = 92, pos = Math.max(0, Math.min(100, loP + (hiP - loP) * (sets - lo) / (hi - lo)));
+      const f = freshFb(fb[m]);
+      const tap = (v, lbl) => '<button type="button" class="vf' + (f && f.v === v ? ' on' : '') + '" data-m="' + m + '" data-v="' + v + '">' + lbl + '</button>';
+      return '<div class="vol-row vol-' + rec.t + '">' +
+        '<div class="vol-top"><span class="vol-m">' + m + '</span>' +
+          '<span class="vol-n">' + r + ' sets<span class="vol-band"> · band ' + lo + '–' + hi + '</span></span></div>' +
+        '<div class="vol-bar"><span class="vol-fill"></span><span class="vol-dot" style="left:' + pos.toFixed(0) + '%"></span></div>' +
+        '<div class="vol-rec">' + esc(rec.s) + '</div>' +
+        '<div class="vol-fb">felt: ' + tap('easy', 'easy') + tap('right', 'right') + tap('much', 'too much') + '</div>' +
+        '</div>';
+    });
+    if (!rows.length) { card.hidden = true; return; }
+    $('volBody').innerHTML = rows.join('');
+    card.hidden = false;
+  }
 
   /* ── coach mode: the plan's rules, executed live ── */
   const BAR_KG = 20, PLATE_SIZES = [25, 20, 15, 10, 5, 2.5, 1.25];
@@ -1368,7 +1532,7 @@
     const iso = x => (+x.ex.rest_seconds || 120) < 105;
     const notes = [];
     CO.rir3 = sleepBad || sore;
-    CO.deload = !!deloadInfo();
+    CO.deload = !!(deloadInfo() || fatigueDeload());
     if (CO.deload) {
       exs = exs.map(x => ({ ...x, sets: Math.max(1, Math.ceil(x.sets / 2)), note: 'deload' }));
       notes.push('Deload week: sets halved, take 15–20% off your usual loads. Same movements, easy quality reps — this week is what makes next month’s PRs possible.');
@@ -1751,8 +1915,10 @@
       localStorage.removeItem(LOG_KEY);
       localStorage.removeItem(DL_KEY);
       localStorage.removeItem(WEIGHT_KEY);
+      localStorage.removeItem(VOL_KEY);
     } catch (e) {}
     if (typeof renderBw === 'function') renderBw();
+    if (typeof renderVolume === 'function') renderVolume();
     checkinForm.dataset.prefilled = '';
     lastPlan.d = null;
     prevForDiff = null;

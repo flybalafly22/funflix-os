@@ -48,6 +48,16 @@ from this file directly.
 - Sprint 14 — Your Data, Only Yours (SPRINT_14.md): audit + fix of a
   shared-browser cross-account bleed (owner-stamped device storage);
   multi-user isolation now a permanent server+browser test dimension
+- Sprint 15 — the eval bench + hardening + the "run the loop" build:
+  golden-intake eval bench (CI-gated) + 3 bench-gated prompt passes;
+  bodyweight quick-log; RED TEAM security hardening (RT-1..7); allergen
+  defence in check-ins + supplements; sample-plan-never-syncs; and the
+  REFINERS-driven coaching loop — **fatigue-triggered deload** (≥2 lifts
+  stalled in 7d → deload now, three-team corroborated), **inline
+  previous-performance on the Log form** (Strong mechanic), and **volume
+  autoregulation** (per-muscle direct sets vs MEV→MRV band + recovery signals
+  + one-tap feel → ±1–2 sets, all deterministic $0). THE REFINERS chartered;
+  cross-team ROUNDTABLE protocol live.
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
