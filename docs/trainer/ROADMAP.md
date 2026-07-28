@@ -85,6 +85,14 @@ from this file directly.
   on-device data, demo-hidden, shown once there's a month-ish of history. Plus
   **RED TEAM RT-8 closed**: `app.run(debug=…)` now gates on `FLASK_DEBUG`
   (default OFF) so the Werkzeug debugger/reloader can never ship by accident.
+- Sprint 19 — On Your Calendar (feature + RED TEAM round 2): **Add to calendar**
+  — a client-side `.ics` of the week's training days (weekday-named split, rest
+  days skipped, weekly RRULE, uses the reminder time + workout-day durations),
+  built and downloaded entirely on-device, nothing sent anywhere. Pairs with the
+  Sprint-17 reminders. Plus **RED TEAM RT-9**: the `.ics` is a new injection
+  surface (model `focus` text → calendar/CRLF injection) — defended at ship with
+  RFC5545 escaping + control-char strip + line folding (verified: a CRLF payload
+  makes no extra VEVENT), and `estimated_duration_minutes` coerced against NaN.
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")

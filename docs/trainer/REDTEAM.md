@@ -144,6 +144,25 @@ the exact code path, not yet run end-to-end (DB/key gated) · **[THEORETICAL]** 
 
 ---
 
+## Round 2 — threat-hunt on the new surfaces (Sprint 19)
+
+#### RT-9 — iCalendar (`.ics`) injection via the plan's `weekly_split[].focus`  **[✅ DEFENDED at ship]**
+- **Where:** the new `buildICS()` / `icsEscape()` in `templates/trainer.html` (Add-to-calendar).
+- **What:** the exported `.ics` embeds model-generated `focus`/`day_label` text into
+  `SUMMARY`/`DESCRIPTION`. Per RFC 5545, an unescaped CRLF in a TEXT value ends the
+  property and can inject new properties or a whole extra `VEVENT` (calendar injection)
+  into the file the victim imports. The plan text is only quasi-trusted (it's a language
+  model's output, and it round-trips through shareable `#p=` links).
+- **Defence shipped:** `icsEscape()` strips control chars, then escapes `\ ; ,` and folds
+  every real CR/CRLF/LF to a literal `\n`; lines are emitted CRLF-terminated and folded to
+  ≤75 octets. Verified in `qa_ics.py`: a `focus` carrying `\r\nSUMMARY:HACKED\r\nBEGIN:VEVENT…RRULE:FREQ=DAILY`
+  produces **no** extra `VEVENT`, no standalone injected property line — the payload stays
+  inside the escaped `SUMMARY` value as literal `\n`; `;`/`,`/`\` escape correctly.
+- **Bonus hardening (same code):** `estimated_duration_minutes` is now `parseInt`-coerced
+  (was `"85 min"` → `NaN` → an `Invalid Date` `DTEND:NaNNaN…`).
+
+---
+
 ## Checked and found SAFE (no bug — recorded so we don't re-chase)
 - **IDOR on `/api/history/<id>`** — `get_history_item` queries `WHERE user_id=%s AND id=%s` (`app.py:137`); a signed-in user cannot read another user's archived plan by guessing `hid`. Isolation holds.
 - **Stored XSS via synced plan / history** — `os.js:293-296` renders history via `escA()`; `renderPlan` uses `esc()` in text positions. Goal/notes with HTML render inert.

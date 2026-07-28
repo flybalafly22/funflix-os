@@ -904,6 +904,7 @@
         <button class="btn-again" id="againBtn">Start over</button>
         <button class="btn-again" id="keepBtn" style="display:none">Save to this device</button>
         <button class="btn-again" id="shareBtn">Share link</button>
+        <button class="btn-again" id="icsBtn">Add to calendar</button>
         <button class="btn-again" id="exportBtn">Export data</button>
         <button class="btn-dl" id="dlBtn">Download PDF</button>
       </div>
@@ -2553,6 +2554,88 @@
     document.querySelector('.pa-note').textContent =
       'Saved ✓ — the Log tab, Coach Mode and check-ins now work with this program.';
   });
+
+  /* ── add to calendar: a .ics of the week's training days, built and downloaded
+     entirely on-device (nothing sent anywhere). Uses the reminder time if set.
+     SECURITY: every text value is RFC5545-escaped and control-char-stripped so
+     model-generated focus text can't inject calendar properties/events. ── */
+  function icsEscape(s) {
+    return String(s == null ? '' : s)
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')   // drop control chars first
+      .replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,')
+      .replace(/\r\n|\r|\n/g, '\\n');
+  }
+  function foldICS(line) {
+    if (line.length <= 74) return line;
+    let out = line.slice(0, 74), rest = line.slice(74);
+    while (rest.length > 73) { out += '\r\n ' + rest.slice(0, 73); rest = rest.slice(73); }
+    return out + '\r\n ' + rest;
+  }
+  const WD_CODE = { sunday: 'SU', monday: 'MO', tuesday: 'TU', wednesday: 'WE', thursday: 'TH', friday: 'FR', saturday: 'SA' };
+  const WD_IDX = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+  const CODE_WD = { MO: 'monday', TU: 'tuesday', WE: 'wednesday', TH: 'thursday', FR: 'friday', SA: 'saturday', SU: 'sunday' };
+  function isRestFocus(f) { return /^\s*(full\s+)?rest\b/i.test(String(f || '')); }
+  function trainingDays() {
+    const plan = (savedPlan() || {}).plan || lastPlan.d;
+    if (!plan) return [];
+    const days = (plan.weekly_split || {}).days || [];
+    const wds = plan.workout_days || [];
+    const named = [];
+    days.forEach(d => {
+      const wd = String(d.day || '').trim().toLowerCase();
+      if (WD_CODE[wd] && !isRestFocus(d.focus)) named.push({ weekday: wd, code: WD_CODE[wd], label: d.focus || 'Training' });
+    });
+    if (named.length) { named.forEach((o, i) => { o.minutes = (wds[i] || {}).estimated_duration_minutes || null; }); return named; }
+    // fallback: no weekday-named split — spread the workout days across the week
+    const pat = ({ 1: ['MO'], 2: ['MO', 'TH'], 3: ['MO', 'WE', 'FR'], 4: ['MO', 'TU', 'TH', 'FR'],
+                  5: ['MO', 'TU', 'WE', 'FR', 'SA'], 6: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA'] })[Math.min(6, wds.length)] || [];
+    return wds.slice(0, 6).map((wd, i) => ({ weekday: CODE_WD[pat[i]], code: pat[i],
+      label: wd.day_label || ('Day ' + (i + 1)), minutes: wd.estimated_duration_minutes || null }));
+  }
+  const _p2 = n => String(n).padStart(2, '0');
+  function icsFloating(y, mo, da, h, mi) { return y + _p2(mo) + _p2(da) + 'T' + _p2(h) + _p2(mi) + '00'; }
+  function icsStamp() {
+    const d = new Date();
+    return d.getUTCFullYear() + _p2(d.getUTCMonth() + 1) + _p2(d.getUTCDate()) + 'T' +
+           _p2(d.getUTCHours()) + _p2(d.getUTCMinutes()) + _p2(d.getUTCSeconds()) + 'Z';
+  }
+  function buildICS() {
+    const tds = trainingDays();
+    if (!tds.length) return null;
+    const pr = remPrefs(), h = pr.hour == null ? 18 : pr.hour, m = pr.min || 0;
+    const stamp = icsStamp(), now = new Date();
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FUNFLIX//The Trainer//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+    tds.forEach((t, i) => {
+      const delta = (WD_IDX[t.weekday] - now.getDay() + 7) % 7;
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() + delta, h, m, 0);
+      // minutes can arrive as "85" or "85 min" from the model — coerce, never NaN
+      const dur = Math.max(15, Math.min(240, parseInt(t.minutes, 10) || 60));
+      const e = new Date(s.getTime() + dur * 60000);
+      lines.push('BEGIN:VEVENT',
+        'UID:trainer-' + t.code + '-' + i + '-' + stamp.slice(0, 8) + '@funflix',
+        'DTSTAMP:' + stamp,
+        'DTSTART:' + icsFloating(s.getFullYear(), s.getMonth() + 1, s.getDate(), s.getHours(), s.getMinutes()),
+        'DTEND:' + icsFloating(e.getFullYear(), e.getMonth() + 1, e.getDate(), e.getHours(), e.getMinutes()),
+        'RRULE:FREQ=WEEKLY;BYDAY=' + t.code,
+        'SUMMARY:' + icsEscape('Training — ' + t.label),
+        'DESCRIPTION:' + icsEscape('Your session from The Trainer. Open your plan to run it live and log it: ' + location.origin + '/trainer'),
+        'END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    return lines.map(foldICS).join('\r\n') + '\r\n';
+  }
+  $('icsBtn').addEventListener('click', () => {
+    const ics = buildICS();
+    const btn = $('icsBtn'), old = btn.textContent;
+    if (!ics) { btn.textContent = 'No training days'; setTimeout(() => { btn.textContent = old; }, 1600); return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+    a.download = 'the-trainer-week.ics';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    btn.textContent = 'Added ✓'; setTimeout(() => { btn.textContent = old; }, 1600);
+  });
+
   (async () => {
     if (location.hash.indexOf('#p=') === 0 && typeof DecompressionStream !== 'undefined') {
       try {
@@ -2800,6 +2883,7 @@
     lastPlan.d = d;
     qaReset();
     $('keepBtn').style.display = 'none';  // shared-plan and archive views re-show it
+    $('icsBtn').style.display = trainingDays().length ? '' : 'none';
     secN = 0;
     const ps = d.profile_summary || {};
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
