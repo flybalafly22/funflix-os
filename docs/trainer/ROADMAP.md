@@ -93,6 +93,14 @@ from this file directly.
   surface (model `focus` text → calendar/CRLF injection) — defended at ship with
   RFC5545 escaping + control-char strip + line folding (verified: a CRLF payload
   makes no extra VEVENT), and `estimated_duration_minutes` coerced against NaN.
+- Sprint 20 — First Run (conversion funnel): closes the show-don't-tell loop on
+  the already-stepped intake + sample hero. The welcome hero gains a dual CTA
+  ("See a sample" / "or build mine now") and an expectations line (~2 min · 3
+  steps · no account); the sample peek now carries a prominent **"Build my own
+  program →"** CTA that returns to a fresh, focused intake — so a curious visitor
+  can see the output quality first, then convert. The intake form stays visible
+  throughout (site_qa contract), and a real saved plan shows neither hero nor
+  build-own CTA.
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
@@ -153,16 +161,18 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
 - **Bodyweight log + retention safety**: somewhere to log weight (check-in
   asks for 7-day averages it never collects); raise/trim the 200-session log
   cap with a warning; nudge sync/export after the fifth logged session.
-- **Adherence pulse + calendar**: locally computed week strip ("3 of 4
-  sessions · next: Upper A") + .ics download of training days. Zero server.
+- ~~**Adherence pulse + calendar**~~ — the "what's next" strip shipped Sprint 17
+  and the `.ics` download of training days shipped Sprint 19. Zero server.
 - **Trend-fed check-in**: bodyweight/top-set sparklines from logs shown at
   check-in and passed into the recalibration payload.
 - **Plan history for synced accounts**: keep last N plans server-side; browse
   and diff any two — makes Sync materially more valuable than localStorage.
-- **First-run experience**: hero-level sample-program CTA + progressive
-  disclosure of the 20-field intake into ~3 steps.
+- ~~**First-run experience**~~ — SHIPPED across sprints: 3-step stepper + hero
+  sample CTA (earlier), then Sprint 20 added the dual CTA, expectations line and
+  the sample-peek → "Build my own" conversion loop.
 - **Homepage → trainer conversion**: the Trainer card deep-links into the
-  sample-program peek, not the blank form.
+  sample-program peek, not the blank form. (Still open — needs `?sample` to
+  defer to a restored plan for returning users before the card can point at it.)
 - **Password reset via emailed one-time code** — blocked on owner
   mail-provider key (interim honesty line shipped Sprint 7).
 - **Performance pass**: Lighthouse mobile on /trainer; split the inline

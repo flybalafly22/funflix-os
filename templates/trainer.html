@@ -375,7 +375,11 @@
     .w-points span { font-family: var(--sans); font-size: 13.5px; color: var(--gray); }
     .w-points span::before { content: '— '; color: var(--accD); }
     .w-cta { width: auto; padding: 14px 34px; }
-
+    .w-or { display: block; margin: 12px auto 0; background: none; border: none; cursor: pointer;
+      font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--gray); }
+    .w-or:hover { color: var(--black); text-decoration: underline; }
+    .w-meta { margin-top: 14px; font-family: var(--monoX); font-size: 10px; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--gray-2); }
 
     .peek { display: block; margin-top: 10px; background: none; border: none; padding: 0;
       font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--accD);
@@ -539,6 +543,8 @@
         <span>Recalibrates from your measured results, syncs to every device</span>
       </div>
       <button type="button" class="os-btn-primary w-cta" id="welcomePeek">See a sample program — 10 seconds</button>
+      <button type="button" class="w-or" id="welcomeBuild">or build mine now →</button>
+      <div class="w-meta">About 2 minutes · 3 short steps · no account needed</div>
     </div>
 
     <!-- ── MODE TABS ── -->
@@ -906,6 +912,7 @@
         <button class="btn-again" id="shareBtn">Share link</button>
         <button class="btn-again" id="icsBtn">Add to calendar</button>
         <button class="btn-again" id="exportBtn">Export data</button>
+        <button class="btn-dl" id="buildOwnBtn" style="display:none">Build my own program →</button>
         <button class="btn-dl" id="dlBtn">Download PDF</button>
       </div>
       <article id="planDoc" aria-label="Your training program"></article>
@@ -1097,8 +1104,11 @@
         }
         renderPlan(data);
         setState('plan');
-        if (isDemo) document.querySelector('.pa-note').textContent =
-          'A sample program — fill the form to build yours. “Download PDF” uses your browser’s print dialog.';
+        if (isDemo) {
+          document.querySelector('.pa-note').textContent =
+            'A sample program — this is the quality you’ll get. Build yours below; it’s tailored to your body, equipment and goals.';
+          $('buildOwnBtn').style.display = '';
+        }
       } else { fail('The Trainer returned an unexpected reply. Please try again.'); }
     } catch (e) { fail('Could not reach The Trainer: ' + e.message); }
   }
@@ -1128,12 +1138,22 @@
   document.querySelectorAll('.stp').forEach(b =>
     b.addEventListener('click', () => { const n = +b.dataset.step; if (n < step) setStep(n); }));
 
-  let demoOnce = false;
+  let demoOnce = false, introDone = false;
   $('peekBtn').addEventListener('click', () => { demoOnce = true; submit(null); });
   $('welcomePeek').addEventListener('click', () => { demoOnce = true; submit(null); });
+  // reveal the form and drop the reader straight into the first field
+  function startBuilding() {
+    introDone = true;
+    setState('form');
+    $('welcome').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => { const el = $('fName'); if (el) el.focus(); }, 320);
+  }
+  $('welcomeBuild').addEventListener('click', startBuilding);
+  $('buildOwnBtn').addEventListener('click', startBuilding);   // sample → build the real thing
   function updateWelcome() {
     $('welcome').style.display =
-      (!savedPlan() && mode === 'plan' && form.style.display !== 'none') ? '' : 'none';
+      (!introDone && !savedPlan() && mode === 'plan' && form.style.display !== 'none') ? '' : 'none';
   }
   if (new URLSearchParams(location.search).has('sample')) { demoOnce = true; submit(null); }
   $('fuBtn').addEventListener('click', () => {
@@ -2883,6 +2903,7 @@
     lastPlan.d = d;
     qaReset();
     $('keepBtn').style.display = 'none';  // shared-plan and archive views re-show it
+    $('buildOwnBtn').style.display = 'none';  // only a sample peek re-shows it
     $('icsBtn').style.display = trainingDays().length ? '' : 'none';
     secN = 0;
     const ps = d.profile_summary || {};
