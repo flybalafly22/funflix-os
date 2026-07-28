@@ -74,3 +74,16 @@ def test_local_peer_still_exempt(acct_client):
                               json={"email": "no@x.com", "password": "nope12345"}).status_code
              for _ in range(14)]
     assert 429 not in codes
+
+
+# ── RT-8: the Werkzeug debugger/reloader is opt-in, never on by default ──
+
+def test_debug_gated_off_by_default(monkeypatch):
+    monkeypatch.delenv("FLASK_DEBUG", raising=False)
+    assert A._debug_enabled() is False
+    for on in ("1", "true", "TRUE", "yes", "on"):
+        monkeypatch.setenv("FLASK_DEBUG", on)
+        assert A._debug_enabled() is True, on
+    for off in ("0", "false", "no", "", "off"):
+        monkeypatch.setenv("FLASK_DEBUG", off)
+        assert A._debug_enabled() is False, off

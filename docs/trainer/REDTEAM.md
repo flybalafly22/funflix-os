@@ -136,10 +136,11 @@ the exact code path, not yet run end-to-end (DB/key gated) · **[THEORETICAL]** 
 - **Expected:** attribute-safe escaping everywhere `esc()` feeds an attribute.
 - **$0 fix:** extend `esc()` to also replace `"`→`&quot;` and `'`→`&#39;` (safe for text nodes too), or wrap attribute uses in a dedicated `escAttr()`.
 
-#### RT-8 — `app.run(debug=True)` ships in `app.py`  **[CONFIRMED locally]**
-- **Where:** `app.py:1052` — `app.run(debug=True)`.
-- **What:** every local 500 above returned the **Werkzeug interactive debugger** (traceback + `?__debugger__` console). Production runs under gunicorn (`gunicorn.conf.py`, per CLAUDE.md), so the debugger is **not** exposed live — but anyone who runs `python app.py` on a reachable interface exposes an RCE console.
-- **$0 fix:** `app.run(debug=bool(os.environ.get("FLASK_DEBUG")))` (default off).
+#### RT-8 — `app.run(debug=True)` ships in `app.py`  **[✅ FIXED — Sprint 18]**
+- **Fix shipped:** `_debug_enabled()` reads `FLASK_DEBUG` (accepts 1/true/yes/on),
+  and `app.run(debug=_debug_enabled())` now defaults **OFF** — the Werkzeug
+  debugger/reloader is opt-in only. Regression test `test_debug_gated_off_by_default`
+  in `tests/test_hardening.py`. Local dev opts in with `FLASK_DEBUG=1 python app.py`.
 
 ---
 

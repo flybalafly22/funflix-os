@@ -188,6 +188,25 @@
     .nx-toggle[aria-checked="true"] .nx-tk { transform: translateX(19px); }
     .nx-toggle[disabled] { opacity: .4; cursor: not-allowed; }
 
+    /* ── month in review (the look-back capstone) ── */
+    .rev-card { border: 1px solid var(--rule); border-radius: 16px; padding: 18px 22px 16px; margin: 26px 0;
+      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+    .rev-label { font-family: var(--monoX); font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--gray-2); }
+    .rev-head { font-family: var(--serif); font-weight: 400; font-size: 20px; line-height: 1.3; margin: 8px 0 14px; color: var(--black); }
+    .rev-head b { color: var(--accD); font-weight: 400; }
+    .rev-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 1px;
+      background: var(--rule); border: 1px solid var(--rule); border-radius: 13px; overflow: hidden; }
+    .rev-stat { background: #fff; padding: 12px 6px 10px; text-align: center; }
+    .rev-stat b { display: block; font-family: var(--serif); font-weight: 400; font-size: 21px; color: var(--black); }
+    .rev-stat.up b { color: var(--accD); } .rev-stat.down b { color: #A0602A; }
+    .rev-stat span { display: block; margin-top: 3px; font-family: var(--monoX); font-size: 8px;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--gray-2); }
+    .rev-prs { margin-top: 14px; }
+    .rev-prs .rev-pl { font-family: var(--monoX); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--accD); margin-bottom: 7px; }
+    .rev-pr { font-family: var(--sans); font-size: 12.5px; line-height: 1.55; color: #2A2A26; }
+    .rev-pr b { color: var(--black); font-weight: 600; }
+
     /* ── check-in diff ── */
     .diff { border: 1px solid var(--rule); border-radius: 14px; padding: 6px 18px; margin: 10px 0 6px;
       break-inside: avoid; }
@@ -780,6 +799,12 @@
             reads your stalls and recovery and recommends the next week’s sets — tap how a muscle felt to refine it.</div>
           <div id="volBody"></div>
         </div>
+        <div class="rev-card" id="revCard" hidden>
+          <div class="rev-label">Month in review</div>
+          <div class="rev-head" id="revHead"></div>
+          <div class="rev-stats" id="revStats"></div>
+          <div id="revPrs"></div>
+        </div>
         <div class="sec" id="lgHistHead" style="display:none">Previous sessions</div>
         <div id="lgHist"></div>
       </div>
@@ -1324,6 +1349,7 @@
     const fd = dl ? null : fatigueDeload();
     $('lgStall').innerHTML = (dl ? deloadHTML(dl) : fd ? fatigueDeloadHTML(fd) : '') + stallHTML(stallWatch());
     renderVolume();
+    renderReview();
     $('lgHistHead').style.display = logs.length ? '' : 'none';
     $('lgHist').innerHTML = logs.slice(0, 6).map(s => {
       const dt = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -1908,6 +1934,82 @@
     else { await enableReminders(); }
     renderNext();
   });
+
+  /* ── month in review: the look-back capstone that makes all the tracking pay
+     off — sessions, PRs (e1RM vs the prior best), bodyweight and meal adherence
+     over the trailing 30 days, computed entirely from data already on-device. ── */
+  function monthReview() {
+    const sp = savedPlan();
+    if (!sp || sp.demo || !sp.plan) return null;
+    const now = Date.now(), cutoff = now - 30 * DAY_MS;
+    const logs = loadLogs();                       // newest-first
+    const inWin = logs.filter(l => l.at >= cutoff);
+    if (inWin.length < 4) return null;             // not enough of a month yet
+    const spanDays = Math.max(1, Math.round((inWin[0].at - inWin[inWin.length - 1].at) / DAY_MS));
+    if (spanDays < 10) return null;
+    const perWeek = +(inWin.length / (spanDays / 7)).toFixed(1);
+    const targetPerWeek = (sp.plan.workout_days || []).length || null;
+    let setsLogged = 0;
+    inWin.forEach(s => s.entries.forEach(e => { setsLogged += (e.sets || []).length; }));
+    // PRs: best e1RM inside the window vs the best e1RM before it, per exercise
+    const preBest = {}, winBest = {};
+    logs.forEach(s => {
+      const bucket = s.at >= cutoff ? winBest : preBest;
+      s.entries.forEach(e => {
+        const b = bestSet(e.sets);
+        if (!b) return;
+        const v = e1rm(b);
+        if (!bucket[e.name] || v > bucket[e.name].v) bucket[e.name] = { v, kg: b.kg, reps: b.reps };
+      });
+    });
+    const prs = [];
+    Object.keys(winBest).forEach(name => {
+      const pre = preBest[name];
+      if (!pre || winBest[name].v > pre.v + 1e-9) prs.push({ name, to: winBest[name], from: pre || null, gain: winBest[name].v - (pre ? pre.v : 0) });
+    });
+    prs.sort((a, b) => b.gain - a.gain);
+    const ws = loadWeights().filter(w => _wat(w.d) >= cutoff);
+    let weight = null;
+    if (ws.length >= 2) {
+      const from = ws[0].kg, to = ws[ws.length - 1].kg, net = +(to - from).toFixed(1);
+      weight = { from, to, net, dir: net > 0.05 ? 'up' : net < -0.05 ? 'down' : 'flat' };
+    }
+    return { sessions: inWin.length, spanDays, perWeek, targetPerWeek, prs, prCount: prs.length,
+             setsLogged, weight, adherence: mealAdherence(30) };
+  }
+  function reviewHeadline(r) {
+    const bits = [r.sessions + ' session' + (r.sessions === 1 ? '' : 's') + ' in ' + r.spanDays + ' days'];
+    if (r.prCount) bits.push('<b>' + r.prCount + ' PR' + (r.prCount === 1 ? '' : 's') + '</b>');
+    if (r.weight && r.weight.dir !== 'flat') bits.push((r.weight.net > 0 ? '+' : '') + r.weight.net + ' kg');
+    const ratio = r.targetPerWeek ? r.perWeek / r.targetPerWeek : 1;
+    const opener = ratio >= 0.9 ? 'Strong month.' : ratio >= 0.6 ? 'Solid month.' : 'Every session counts.';
+    return opener + ' ' + bits.join(' · ') + '.';
+  }
+  function renderReview() {
+    const card = $('revCard');
+    if (!card) return;
+    const r = monthReview();
+    if (!r) { card.hidden = true; return; }
+    $('revHead').innerHTML = reviewHeadline(r);
+    const stat = (v, l, cls) => '<div class="rev-stat' + (cls ? ' ' + cls : '') + '"><b>' + esc(v) + '</b><span>' + esc(l) + '</span></div>';
+    const cells = [stat(r.perWeek + (r.targetPerWeek ? '/' + r.targetPerWeek : ''), 'sessions / wk')];
+    cells.push(stat(r.prCount, 'PRs', r.prCount ? 'up' : ''));
+    if (r.weight) cells.push(stat((r.weight.net > 0 ? '+' : '') + r.weight.net + ' kg', 'weight Δ', r.weight.dir === 'up' ? 'up' : r.weight.dir === 'down' ? 'down' : ''));
+    if (r.adherence) cells.push(stat(r.adherence.pct + '%', 'meals hit'));
+    cells.push(stat(r.setsLogged, 'sets logged'));
+    $('revStats').innerHTML = cells.join('');
+    if (r.prCount) {
+      const rows = r.prs.slice(0, 3).map(pr => {
+        const to = fmtSet(pr.to);
+        const line = pr.from ? esc(fmtSet(pr.from)) + ' → <b>' + esc(to) + '</b>' : 'new best <b>' + esc(to) + '</b>';
+        return '<div class="rev-pr">' + esc(pr.name) + ' — ' + line + '</div>';
+      }).join('');
+      $('revPrs').innerHTML = '<div class="rev-prs"><div class="rev-pl">New personal records</div>' + rows + '</div>';
+    } else {
+      $('revPrs').innerHTML = '';
+    }
+    card.hidden = false;
+  }
 
   /* ── coach mode: the plan's rules, executed live ── */
   const BAR_KG = 20, PLATE_SIZES = [25, 20, 15, 10, 5, 2.5, 1.25];

@@ -1088,5 +1088,12 @@ def calculate():
     except Exception as exc:
         return jsonify({"error": str(exc)})
 
+def _debug_enabled():
+    # RED TEAM RT-8: never ship the Werkzeug debugger/reloader unless explicitly
+    # asked for. Production runs via gunicorn (which ignores this block), so this
+    # only governs `python app.py`; default OFF, opt in with FLASK_DEBUG=1.
+    return os.environ.get("FLASK_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=_debug_enabled())

@@ -77,6 +77,14 @@ from this file directly.
   demo-hidden. Plus **RED TEAM RT-6 closed**: the `#p=` share fragment is now
   capped at 256 KB encoded and streamed with a 1 MB inflation ceiling, killing
   the decompression-bomb tab-crash (verified: 8 MB bomb rejected, page alive).
+- Sprint 18 — Month in Review & Debug Off (reflection + hardening): the
+  **month-in-review recap** completes the REFINERS' #5 (we shipped the daily
+  "what's next" half Sprint 17) — a look-back card over the trailing 30 days
+  (sessions/wk vs target, PRs by e1RM-vs-prior-best, bodyweight Δ, meal
+  adherence, sets logged, warm honest headline), computed entirely from
+  on-device data, demo-hidden, shown once there's a month-ish of history. Plus
+  **RED TEAM RT-8 closed**: `app.run(debug=…)` now gates on `FLASK_DEBUG`
+  (default OFF) so the Werkzeug debugger/reloader can never ship by accident.
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
@@ -91,7 +99,8 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
 **Security/robustness still open (RED TEAM):**
 - ~~RT-6 decompression bomb via `#p=` share fragment~~ — SHIPPED Sprint 17:
   256 KB encoded cap + streamed 1 MB inflation ceiling in `decompressFromB64`.
-- RT-8 `app.run(debug=True)` — gate on `FLASK_DEBUG` (prod uses gunicorn; latent).
+- ~~RT-8 `app.run(debug=True)`~~ — SHIPPED Sprint 18: `_debug_enabled()` gates it
+  on `FLASK_DEBUG` (default OFF); regression test in `tests/test_hardening.py`.
 - Watch-list: unbounded `_trainer_hits` growth; XFF IP-rotation evading the
   quota key (per-account auth limit would help); unbounded password length.
 
