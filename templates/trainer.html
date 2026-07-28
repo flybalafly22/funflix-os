@@ -126,6 +126,47 @@
     .vf:hover { border-color: var(--black); color: var(--black); }
     .vf.on { background: var(--black); color: #fff; border-color: var(--black); }
 
+    /* ── nutrition tune-up (adaptive TDEE, read off the scale) ── */
+    .nut-card { border: 1px solid var(--rule); border-radius: 16px; padding: 16px 20px 16px; margin-bottom: 26px;
+      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+    .nut-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 4px 0 14px;
+      background: var(--rule); border: 1px solid var(--rule); border-radius: 13px; overflow: hidden; }
+    .nut-stat { background: #fff; padding: 12px 6px 10px; text-align: center; }
+    .nut-stat b { display: block; font-family: var(--serif); font-weight: 400; font-size: 21px; color: var(--black); }
+    .nut-stat span { display: block; margin-top: 3px; font-family: var(--monoX); font-size: 8px;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--gray-2); }
+    .nut-rec { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: #2A2A26; }
+    .nut-rec > b { color: var(--black); }
+    .nut-card.up .nut-rec > b { color: var(--accD); }
+    .nut-card.down .nut-rec > b { color: #A0602A; }
+    .nut-note { margin-top: 11px; font-family: var(--sans); font-size: 11.5px; line-height: 1.55; color: var(--gray-2); }
+    .nut-gather { font-family: var(--sans); font-size: 12.5px; line-height: 1.6; color: var(--gray-2); }
+    .nut-gather b { color: var(--black); }
+
+    /* ── meal adherence checklist (tick the plan's sample day) ── */
+    .meal-card { border: 1px solid var(--rule); border-radius: 16px; padding: 16px 20px 14px; margin-bottom: 26px;
+      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+    .meal-prog { margin-bottom: 12px; }
+    .meal-bar { height: 6px; border-radius: 3px; background: #EDEDE9; overflow: hidden; }
+    .meal-fill { display: block; height: 100%; background: var(--accD); border-radius: 3px; transition: width .25s ease; }
+    .meal-tot2 { margin-top: 7px; font-family: var(--monoX); font-size: 10.5px; letter-spacing: .04em; color: var(--black); }
+    .mc-list { display: flex; flex-direction: column; gap: 6px; }
+    .mc-row { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; cursor: pointer;
+      padding: 10px 12px; border: 1px solid var(--rule); border-radius: 11px; background: #fff; }
+    .mc-row:hover { border-color: var(--rule-2); }
+    .mc-row.on { background: rgba(189,242,63,.10); border-color: rgba(12,138,76,.30); }
+    .mc-check { flex: none; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--rule-2);
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; }
+    .mc-row.on .mc-check { background: var(--accD); border-color: var(--accD); }
+    .mc-name { flex: 1; font-family: var(--sans); font-size: 13px; color: var(--black); }
+    .mc-name b { font-weight: 600; }
+    .mc-t { display: block; margin-top: 1px; font-family: var(--monoX); font-size: 9px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--gray-2); }
+    .mc-mm { flex: none; font-family: var(--monoX); font-size: 10px; color: var(--gray); text-align: right; }
+    .mc-row.on .mc-mm { color: var(--accD); }
+    .meal-adh { margin-top: 11px; font-family: var(--sans); font-size: 11.5px; color: var(--gray-2); }
+    .meal-adh b { color: var(--black); }
+
     /* ── check-in diff ── */
     .diff { border: 1px solid var(--rule); border-radius: 14px; padding: 6px 18px; margin: 10px 0 6px;
       break-inside: avoid; }
@@ -675,6 +716,18 @@
             and feeds the trend straight into your Week-4 check-in, so recalibration runs on the
             scale, not on memory. Stays on this device unless you sync.</div>
         </div>
+        <div class="nut-card" id="nutCard" hidden>
+          <div class="sec" style="margin-top:0">Nutrition tune-up</div>
+          <div class="vol-intro">Your real metabolism, read off the scale — the Trainer estimates the calories you
+            actually burn from your weight trend and steers your target to the plan’s intended pace, between check-ins.</div>
+          <div id="nutBody"></div>
+        </div>
+        <div class="meal-card" id="mealCard" hidden>
+          <div class="sec" style="margin-top:0">Today’s meals</div>
+          <div class="vol-intro">Tick each meal of your sample day as you eat it — adherence you can measure, not
+            guess. Resets daily; feeds your check-in.</div>
+          <div id="mealBody"></div>
+        </div>
         <div class="sec">Log a session</div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="lDay">Which session?</label>
@@ -1087,6 +1140,7 @@
     if (prev && +prev < days.length) sel.value = prev;
     if (!$('lDate').value) $('lDate').value = new Date().toISOString().slice(0, 10);
     renderLgList();
+    renderMeals();
     renderLgHist();
     renderBw();
   }
@@ -1164,6 +1218,7 @@
   }
   function renderBw() {
     const ws = loadWeights(), stats = $('bwStats'), spark = $('bwSpark');
+    renderNutrition();   // the tune-up rides on the scale trend — refresh it with the weight
     if (!ws.length) { stats.hidden = true; spark.hidden = true; return; }
     const now = ws[ws.length - 1].kg, avg = weightAvg7(), tr = weightTrendPerWeek();
     $('bwNow').textContent = now.toFixed(1) + ' kg';
@@ -1247,6 +1302,10 @@
   $('volBody').addEventListener('click', e => {
     const btn = e.target.closest('.vf');
     if (btn) setVolFb(btn.dataset.m, btn.dataset.v);
+  });
+  $('mealBody').addEventListener('click', e => {
+    const row = e.target.closest('.mc-row');
+    if (row) toggleMeal(+row.dataset.mi);
   });
   $('lgStall').addEventListener('click', e => {
     if (e.target && e.target.id === 'dlDone') {
@@ -1495,6 +1554,190 @@
     });
     if (!rows.length) { card.hidden = true; return; }
     $('volBody').innerHTML = rows.join('');
+    card.hidden = false;
+  }
+
+  /* ── nutrition tune-up: MacroFactor's adaptive-TDEE mechanism, adapted to a
+     prescription. We can't weigh every calorie, so we assume you've averaged the
+     prescribed target and read your REAL maintenance off the scale trend, then
+     nudge the target to steer your actual rate onto the plan's intended rate.
+     Deterministic, device-local, $0 — a between-check-ins steering wheel. ── */
+  const KCAL_PER_KG = 7700, KCAL_DAY_PER_KG_WK = KCAL_PER_KG / 7;  // ~1100 kcal/day ≙ 1 kg/wk
+  function dietTarget() {
+    const sp = savedPlan();
+    if (!sp || !sp.plan) return null;
+    const dp = sp.plan.diet_plan || {}, ps = sp.plan.profile_summary || {};
+    const t = parseFloat(dp.calorie_target_kcal != null ? dp.calorie_target_kcal : ps.calorie_target_kcal);
+    return !isNaN(t) && t > 0 ? t : null;
+  }
+  function intendedRatePerWeek(sp, bw) {
+    const ps = (sp.plan || {}).profile_summary || {};
+    const tdee = parseFloat(ps.tdee_kcal), tgt = dietTarget();
+    let kg;
+    if (!isNaN(tdee) && tgt != null) {
+      kg = (tgt - tdee) * 7 / KCAL_PER_KG;                 // the plan's OWN intended rate
+    } else {
+      const g = String(ps.goal || '').toLowerCase();
+      let frac = 0;
+      if (/loss|cut|lean out|shred|deficit/.test(g)) frac = -0.005;
+      else if (/gain|muscle|bulk|mass|surplus/.test(g)) frac = 0.0025;
+      else if (/strength/.test(g)) frac = 0.001;
+      kg = frac * (bw || 80);
+    }
+    const base = bw || 80;
+    return Math.max(-0.012 * base, Math.min(0.006 * base, kg));  // physiological guardrails
+  }
+  function nutritionTune() {
+    const sp = savedPlan();
+    if (!sp || !sp.plan || sp.demo) return null;
+    const tgt = dietTarget();
+    if (tgt == null) return null;                    // no calorie target → nothing to tune
+    const ws = loadWeights(), ps = sp.plan.profile_summary || {};
+    const startW = weightAtPlanStart();
+    const bw = weightAvg7() || (startW && startW.kg) || parseFloat(ps.weight_kg) || null;
+    const entries = ws.length;
+    const span = entries >= 2 ? Math.round((_wat(ws[entries - 1].d) - _wat(ws[0].d)) / DAY_MS) : 0;
+    const trend = weightTrendPerWeek();              // kg/wk (null if <2 entries / <3 days)
+    if (!(trend != null && entries >= 4 && span >= 10)) {
+      return { gathering: true, target: tgt,
+               needDays: Math.max(0, 10 - span), needEntries: Math.max(0, 4 - entries) };
+    }
+    const intended = intendedRatePerWeek(sp, bw);
+    const estTDEE = Math.round(tgt - trend * KCAL_DAY_PER_KG_WK);   // real maintenance estimate
+    const tol = Math.max(0.1, 0.0015 * (bw || 80));  // kg/wk on-track tolerance (≈0.15% BW)
+    const off = trend - intended;
+    const cap = Math.min(400, Math.round(tgt * 0.2));
+    let delta = Math.max(-cap, Math.min(cap, (intended - trend) * KCAL_DAY_PER_KG_WK));
+    delta = Math.round(delta / 25) * 25;
+    const floor = Math.max(parseFloat(ps.bmr_kcal) || 0, 1200);
+    let newTarget = tgt + delta;
+    if (newTarget < floor) { newTarget = Math.round(floor / 25) * 25; delta = newTarget - tgt; }
+    return {
+      target: tgt, trend, intended, estTDEE, delta, newTarget,
+      onTrack: Math.abs(off) <= tol || Math.abs(delta) < 40,
+      bw, bwPctWk: bw ? trend / bw * 100 : null,
+      formulaTDEE: !isNaN(parseFloat(ps.tdee_kcal)) ? parseFloat(ps.tdee_kcal) : null,
+      protein: parseFloat((sp.plan.diet_plan || {}).protein_g) || null,
+      goal: String(ps.goal || '').toLowerCase(),
+    };
+  }
+  const fmtKcal = v => Math.round(v) + ' kcal';
+  function fmtRate(t) {
+    const kg = (t.trend >= 0 ? '+' : '') + t.trend.toFixed(2) + ' kg/wk';
+    return t.bwPctWk != null ? kg + ' (' + (t.bwPctWk >= 0 ? '+' : '') + t.bwPctWk.toFixed(2) + '%)' : kg;
+  }
+  function nutReason(t) {
+    if (t.onTrack) return { head: 'On track — hold at ' + fmtKcal(t.target) + '.',
+      body: 'Your scale trend (' + fmtRate(t) + ') matches the plan’s intended pace. Keep eating as you are.' };
+    const up = t.delta > 0, g = t.goal;
+    let why;
+    if (/loss|cut|deficit/.test(g)) why = up ? 'you’re losing faster than the plan intends' : 'your loss has slowed below the plan’s pace';
+    else if (/gain|muscle|bulk|mass|surplus/.test(g)) why = up ? 'you’re gaining slower than planned' : 'you’re gaining faster than planned — most of that excess is fat, not muscle';
+    else why = up ? 'your trend is under the plan’s pace' : 'your trend is over the plan’s pace';
+    const macro = t.protein ? ' Keep protein at ' + t.protein + ' g; put the change into ' + (up ? 'carbs' : 'carbs and fat') + '.' : '';
+    return {
+      head: (up ? 'Add' : 'Trim') + ' ~' + Math.abs(t.delta) + ' kcal → ' + fmtKcal(t.newTarget) + '.',
+      body: 'Your real maintenance looks like ~' + fmtKcal(t.estTDEE) +
+        (t.formulaTDEE ? ' (the formula guessed ' + fmtKcal(t.formulaTDEE) + ')' : '') +
+        ' — ' + why + ' at ' + fmtRate(t) + '.' + macro,
+    };
+  }
+  function renderNutrition() {
+    const card = $('nutCard');
+    if (!card) return;
+    const t = nutritionTune();
+    if (!t) { card.hidden = true; return; }
+    if (t.gathering) {
+      card.className = 'nut-card';
+      const need = [];
+      if (t.needEntries) need.push(t.needEntries + ' more weigh-in' + (t.needEntries > 1 ? 's' : ''));
+      if (t.needDays) need.push(t.needDays + ' more day' + (t.needDays > 1 ? 's' : ''));
+      $('nutBody').innerHTML = '<div class="nut-gather">Log your weight for a couple of weeks and the Trainer ' +
+        'will read your real metabolism off the scale and auto-tune these calories (target now: <b>' +
+        fmtKcal(t.target) + '</b>). ' + (need.length ? 'Need ' + need.join(' · ') + '.' : 'Keep logging daily.') + '</div>';
+      card.hidden = false;
+      return;
+    }
+    card.className = 'nut-card' + (t.onTrack ? '' : (t.delta > 0 ? ' up' : ' down'));
+    const r = nutReason(t);
+    const stat = (v, l) => '<div class="nut-stat"><b>' + esc(v) + '</b><span>' + esc(l) + '</span></div>';
+    $('nutBody').innerHTML =
+      '<div class="nut-stats">' +
+        stat(Math.round(t.onTrack ? t.target : t.newTarget), t.onTrack ? 'hold · kcal' : 'suggested · kcal') +
+        stat(Math.round(t.estTDEE), 'real maint · est') +
+        stat((t.bwPctWk != null ? (t.bwPctWk >= 0 ? '+' : '') + t.bwPctWk.toFixed(2) : '—') + '%', 'trend / wk') +
+      '</div>' +
+      '<div class="nut-rec"><b>' + esc(r.head) + '</b> ' + esc(r.body) + '</div>' +
+      '<div class="nut-note">Assumes you’ve averaged about ' + fmtKcal(t.target) + '. Tick your meals below to ' +
+        'keep that honest — your Week-4 check-in re-anchors everything from this same scale trend.</div>';
+    card.hidden = false;
+  }
+
+  /* ── meal adherence: tick the plan's sample day — measured, not guessed.
+     Device-local (like volume feedback), owner-isolated, resets each day. ── */
+  const MEAL_KEY = 'trainerMeals';
+  const _today = () => new Date().toISOString().slice(0, 10);
+  function loadMeals() { try { return JSON.parse(localStorage.getItem(MEAL_KEY)) || {}; } catch (e) { return {}; } }
+  function saveMeals(m) {
+    const keys = Object.keys(m).sort();
+    while (keys.length > 60) delete m[keys.shift()];   // keep ~2 months
+    try { localStorage.setItem(MEAL_KEY, JSON.stringify(m)); } catch (e) {}
+  }
+  function sampleDay() {
+    const sp = savedPlan();
+    const sd = sp && sp.plan && (sp.plan.diet_plan || {}).sample_day;
+    return Array.isArray(sd) && sd.length ? sd : null;
+  }
+  function toggleMeal(i) {
+    const sd = sampleDay();
+    if (!sd || i < 0 || i >= sd.length) return;
+    const m = loadMeals(), d = _today(), set = new Set(m[d] || []);
+    if (set.has(i)) set.delete(i); else set.add(i);
+    if (set.size) m[d] = Array.from(set).sort((a, b) => a - b); else delete m[d];
+    saveMeals(m);
+    renderMeals();
+  }
+  function mealAdherence(days) {
+    const sd = sampleDay();
+    if (!sd) return null;
+    const n = sd.length, m = loadMeals(), cutoff = Date.now() - days * DAY_MS;
+    let sum = 0, cnt = 0;
+    Object.keys(m).forEach(d => {
+      if (_wat(d) < cutoff) return;
+      const hit = (m[d] || []).filter(i => i < n).length;
+      if (hit) { sum += hit / n; cnt++; }
+    });
+    return cnt ? { days: cnt, pct: Math.round(sum / cnt * 100) } : null;
+  }
+  function renderMeals() {
+    const card = $('mealCard');
+    if (!card) return;
+    const sp = savedPlan(), sd = sampleDay();
+    if (!sp || sp.demo || !sd) { card.hidden = true; return; }
+    const checked = new Set((loadMeals()[_today()]) || []);
+    let kc = 0, pr = 0, tkc = 0, tpr = 0;
+    const rows = sd.map((meal, i) => {
+      const c = parseFloat(meal.approx_calories) || 0, p = parseFloat(meal.approx_protein_g) || 0;
+      tkc += c; tpr += p;
+      const on = checked.has(i);
+      if (on) { kc += c; pr += p; }
+      return '<button type="button" class="mc-row' + (on ? ' on' : '') + '" data-mi="' + i + '">' +
+        '<span class="mc-check">' + (on ? '✓' : '') + '</span>' +
+        '<span class="mc-name"><b>' + esc(meal.meal || ('Meal ' + (i + 1))) + '</b>' +
+          (meal.time ? '<span class="mc-t">' + esc(meal.time) + '</span>' : '') + '</span>' +
+        '<span class="mc-mm">' + (c ? Math.round(c) + ' kcal' : '') + (c && p ? ' · ' : '') +
+          (p ? Math.round(p) + ' g P' : '') + '</span></button>';
+    }).join('');
+    const pct = tkc ? Math.round(kc / tkc * 100) : Math.round(checked.size / sd.length * 100);
+    const adh = mealAdherence(14);
+    $('mealBody').innerHTML =
+      '<div class="meal-prog"><div class="meal-bar"><span class="meal-fill" style="width:' + pct + '%"></span></div>' +
+        '<div class="meal-tot2">' + checked.size + ' of ' + sd.length + ' meals · ' +
+        Math.round(kc) + ' / ' + Math.round(tkc) + ' kcal' +
+        (tpr ? ' · ' + Math.round(pr) + ' / ' + Math.round(tpr) + ' g P' : '') + '</div></div>' +
+      '<div class="mc-list">' + rows + '</div>' +
+      (adh ? '<div class="meal-adh">Last 14 days: <b>' + adh.pct + '%</b> of meals hit across ' +
+        adh.days + ' logged day' + (adh.days > 1 ? 's' : '') + '.</div>' : '');
     card.hidden = false;
   }
 
@@ -1916,9 +2159,11 @@
       localStorage.removeItem(DL_KEY);
       localStorage.removeItem(WEIGHT_KEY);
       localStorage.removeItem(VOL_KEY);
+      localStorage.removeItem(MEAL_KEY);
     } catch (e) {}
     if (typeof renderBw === 'function') renderBw();
     if (typeof renderVolume === 'function') renderVolume();
+    if (typeof renderMeals === 'function') renderMeals();
     checkinForm.dataset.prefilled = '';
     lastPlan.d = null;
     prevForDiff = null;
@@ -2104,6 +2349,8 @@
         span_days: Math.round((_wat(ws[ws.length - 1].d) - _wat(ws[0].d)) / 86400000),
       };
     }
+    const adh = mealAdherence(14);
+    if (adh) digest.meal_adherence = { pct_of_meals_hit: adh.pct, logged_days: adh.days };
     return digest;
   }
   async function qaSend(text) {

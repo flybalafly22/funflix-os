@@ -58,6 +58,16 @@ from this file directly.
   autoregulation** (per-muscle direct sets vs MEV→MRV band + recovery signals
   + one-tap feel → ±1–2 sets, all deterministic $0). THE REFINERS chartered;
   cross-team ROUNDTABLE protocol live.
+- Sprint 16 — Eat to the Plan (nutrition sprint): the REFINERS' top-two nutrition
+  ideas, both deterministic client-side & $0, owner-isolated, demo-hidden.
+  **Nutrition tune-up** — MacroFactor's adaptive-TDEE mechanism adapted to a
+  prescription: estimate real maintenance from the logged scale trend (assuming
+  the prescribed intake), then steer the calorie target onto the plan's own
+  intended rate (delta capped to ±min(400, 20%), 25-rounded, BMR/1200-floored);
+  on-track "hold" inside tolerance; a "gathering" teaser until ≥4 weigh-ins over
+  ≥10 days. **Meal-adherence checklist** — tick the plan's sample day (per-day
+  reset, 14-day adherence %), fed into the coach/check-in log digest so the model
+  can explain a slow trend with real adherence, not a guess.
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
