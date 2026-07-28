@@ -167,6 +167,27 @@
     .meal-adh { margin-top: 11px; font-family: var(--sans); font-size: 11.5px; color: var(--gray-2); }
     .meal-adh b { color: var(--black); }
 
+    /* ── "what's next" daily hub + opt-in on-device reminders ── */
+    .next-card { border: 1px solid #23231F; border-radius: 16px; padding: 18px 22px 16px; margin-bottom: 26px;
+      background: linear-gradient(157deg, #16160F, #262620); color: #F3F3EE; }
+    .nx-label { font-family: var(--monoX); font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: #9A9A8E; }
+    .nx-cue { font-family: var(--serif); font-weight: 400; font-size: 25px; line-height: 1.16; margin: 7px 0 4px; color: #fff; }
+    .nx-cue b { color: var(--accD); font-weight: 400; }
+    .nx-sub { font-family: var(--sans); font-size: 12.5px; color: #C9C9BE; line-height: 1.5; }
+    .nx-sub b { color: #fff; font-weight: 600; }
+    .nx-rem { display: flex; align-items: center; gap: 14px; margin-top: 15px; padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.10); }
+    .nx-rem-txt { flex: 1; font-family: var(--sans); }
+    .nx-rem-txt b { display: block; font-weight: 600; font-size: 12.5px; color: #fff; margin-bottom: 2px; }
+    .nx-rem-txt span { display: block; color: #9A9A8E; font-size: 11px; line-height: 1.45; }
+    .nx-toggle { flex: none; width: 46px; height: 27px; border-radius: 999px; border: none; cursor: pointer;
+      background: rgba(255,255,255,.18); position: relative; transition: background .18s ease; padding: 0; }
+    .nx-toggle .nx-tk { position: absolute; top: 3px; left: 3px; width: 21px; height: 21px; border-radius: 999px;
+      background: #fff; transition: transform .18s ease; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+    .nx-toggle[aria-checked="true"] { background: var(--accD); }
+    .nx-toggle[aria-checked="true"] .nx-tk { transform: translateX(19px); }
+    .nx-toggle[disabled] { opacity: .4; cursor: not-allowed; }
+
     /* ── check-in diff ── */
     .diff { border: 1px solid var(--rule); border-radius: 14px; padding: 6px 18px; margin: 10px 0 6px;
       break-inside: avoid; }
@@ -699,6 +720,15 @@
     <!-- ── SESSION LOG ── -->
     <form class="intake" id="logForm" autocomplete="off" style="display:none">
       <div class="intake-inner">
+        <div class="next-card" id="nextCard" hidden>
+          <div class="nx-label">What’s next</div>
+          <div class="nx-cue" id="nxCue"></div>
+          <div class="nx-sub" id="nxSub"></div>
+          <div class="nx-rem">
+            <div class="nx-rem-txt"><b>Remind me on training days</b><span id="remStatus"></span></div>
+            <button type="button" class="nx-toggle" id="remToggle" role="switch" aria-checked="false" aria-label="Toggle training-day reminders"><span class="nx-tk"></span></button>
+          </div>
+        </div>
         <div class="bw-card">
           <div class="sec" style="margin-top:0">Bodyweight</div>
           <div class="bw-top">
@@ -1143,6 +1173,7 @@
     renderMeals();
     renderLgHist();
     renderBw();
+    renderNext();
   }
 
   /* ── bodyweight quick-log (device-only unless synced; owner-isolated) ── */
@@ -1197,6 +1228,7 @@
     saveWeights(loadWeights().concat([{ d, kg, at: Date.now() }]));
     if (typeof pushWeights === 'function') pushWeights();
     renderBw();
+    renderNext();
   }
   function bwSparkline(ws) {
     const pts = ws.slice(-60);
@@ -1340,6 +1372,7 @@
     pushLogs();
     renderLgList();
     renderLgHist();
+    renderNext();
     const btn = $('logBtn'), old = btn.textContent;
     btn.textContent = 'Saved ✓';
     setTimeout(() => { btn.textContent = old; }, 1600);
@@ -1740,6 +1773,141 @@
         adh.days + ' logged day' + (adh.days > 1 ? 's' : '') + '.</div>' : '');
     card.hidden = false;
   }
+
+  /* ── "what's next" daily hub + opt-in reminders ──
+     The hub is a zero-permission coaching cue (next session, week progress,
+     weigh-in). Reminders are strictly opt-in and 100% on-device: scheduled via
+     Notification Triggers where the browser supports them, and always backed by
+     an on-open nudge — no push server, no subscription, nothing sent anywhere,
+     so it strengthens rather than dents the privacy promise. ── */
+  const REM_KEY = 'trainerReminders';
+  function remPrefs() { try { return JSON.parse(localStorage.getItem(REM_KEY)) || {}; } catch (e) { return {}; } }
+  function saveRemPrefs(p) { try { localStorage.setItem(REM_KEY, JSON.stringify(p)); } catch (e) {} }
+  const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+  function nextSession() {
+    const sp = savedPlan();
+    const days = sp && sp.plan ? (sp.plan.workout_days || []) : [];
+    if (!days.length) return null;
+    // rotation heuristic: the session AFTER the most recently logged one is up next
+    const logs = loadLogs();
+    let idx = 0;
+    if (logs.length) {
+      const li = days.findIndex(d => (d.day_label || '') === logs[0].day);
+      if (li >= 0) idx = (li + 1) % days.length;
+    }
+    return { day: days[idx], index: idx, total: days.length };
+  }
+  function weekProgress() {
+    const sp = savedPlan();
+    const target = sp && sp.plan ? (sp.plan.workout_days || []).length : 0;
+    const weekAgo = Date.now() - 7 * DAY_MS;
+    return { done: loadLogs().filter(l => l.at >= weekAgo).length, target };
+  }
+  function weighInDueToday() { const t = _today(); return !loadWeights().some(w => w.d === t); }
+  function remState() {
+    if (!('Notification' in window)) return 'unsupported';
+    if (Notification.permission === 'denied') return 'denied';
+    return remPrefs().on && Notification.permission === 'granted' ? 'on' : 'off';
+  }
+  function renderNext() {
+    const card = $('nextCard');
+    if (!card) return;
+    const sp = savedPlan();
+    if (!sp || sp.demo || !sp.plan || !(sp.plan.workout_days || []).length) { card.hidden = true; return; }
+    const ns = nextSession(), wp = weekProgress();
+    const focus = ns ? (ns.day.day_label || ('Day ' + (ns.index + 1))) : '';
+    const loggedToday = loadLogs().some(l => sameDay(l.at, Date.now()));
+    const weigh = weighInDueToday();
+    if (loggedToday) {
+      $('nxCue').innerHTML = 'Logged today ✓';
+      $('nxSub').innerHTML = 'Recovery is where it lands. Up next: <b>' + esc(focus) + '</b>.';
+    } else {
+      $('nxCue').innerHTML = 'Up next: <b>' + esc(focus) + '</b>';
+      $('nxSub').innerHTML = wp.done + ' of ' + wp.target + ' session' + (wp.target === 1 ? '' : 's') +
+        ' this week' + (weigh ? ' · <b>weigh in</b> this morning' : '') + '.';
+    }
+    const st = remState();
+    const tog = $('remToggle');
+    tog.setAttribute('aria-checked', st === 'on' ? 'true' : 'false');
+    tog.disabled = (st === 'unsupported' || st === 'denied');
+    $('remStatus').textContent =
+      st === 'on' ? 'On — scheduled on this device. Nothing is sent anywhere; best with the app installed.'
+      : st === 'denied' ? 'Blocked in your browser settings — allow notifications for this site to enable.'
+      : st === 'unsupported' ? 'Your browser doesn’t support on-device reminders.'
+      : 'Off — a private nudge on training days, scheduled on this device only.';
+    card.hidden = false;
+  }
+  async function enableReminders() {
+    if (!('Notification' in window)) return 'unsupported';
+    let perm = Notification.permission;
+    if (perm === 'default') { try { perm = await Notification.requestPermission(); } catch (e) { perm = Notification.permission; } }
+    if (perm !== 'granted') return perm;
+    const p = remPrefs();
+    p.on = true;
+    if (p.hour == null) { p.hour = 18; p.min = 0; }
+    saveRemPrefs(p);
+    scheduleReminders();
+    return 'granted';
+  }
+  function forEachOurNotif(fn) {
+    if (!navigator.serviceWorker) return Promise.resolve();
+    return navigator.serviceWorker.ready.then(reg =>
+      reg.getNotifications({ includeTriggered: true })
+        .then(ns => ns.forEach(n => { if ((n.tag || '').indexOf('trn-rem') === 0) fn(n, reg); }))
+        .catch(() => {})).catch(() => {});
+  }
+  function scheduleReminders() {
+    const p = remPrefs();
+    if (!p.on || !('Notification' in window) || Notification.permission !== 'granted' || !navigator.serviceWorker) return;
+    // progressive enhancement: real closed-app local notifications where supported
+    if (!('showTrigger' in Notification.prototype) || typeof TimestampTrigger === 'undefined') return;
+    navigator.serviceWorker.ready.then(reg => {
+      forEachOurNotif(n => n.close()).then(() => {
+        const now = new Date(), hour = p.hour == null ? 18 : p.hour, min = p.min || 0;
+        for (let i = 0; i < 10; i++) {
+          const when = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, hour, min, 0);
+          if (when.getTime() <= Date.now()) continue;
+          try {
+            reg.showNotification('The Trainer', {
+              tag: 'trn-rem-' + when.toISOString().slice(0, 10),
+              body: 'Time to train — open your plan and log today’s session.',
+              icon: '/static/trainer/icon-192.png', badge: '/static/trainer/icon-192.png',
+              showTrigger: new TimestampTrigger(when.getTime()), data: { url: '/trainer' },
+            });
+          } catch (e) {}
+        }
+      });
+    }).catch(() => {});
+  }
+  function cancelReminders() { forEachOurNotif(n => n.close()); }
+  function maybeNudge() {
+    // the guaranteed path: when the app is (re)opened after the reminder time on a
+    // training day you haven't logged, fire one nudge — at most once per day
+    const p = remPrefs();
+    if (!p.on || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const sp = savedPlan();
+    if (!sp || sp.demo || !sp.plan || !(sp.plan.workout_days || []).length) return;
+    const t = _today();
+    if (p.nudged === t) return;
+    const hour = p.hour == null ? 18 : p.hour, now = new Date();
+    const past = now.getHours() > hour || (now.getHours() === hour && now.getMinutes() >= (p.min || 0));
+    if (!past || loadLogs().some(l => sameDay(l.at, Date.now()))) return;
+    const ns = nextSession();
+    try {
+      new Notification('The Trainer', {
+        body: 'Time to train — ' + (ns ? (ns.day.day_label || 'today’s session') : 'today’s session') +
+          '. Open your plan to log it.',
+        icon: '/static/trainer/icon-192.png', tag: 'trn-rem-open',
+      });
+      p.nudged = t; saveRemPrefs(p);
+    } catch (e) {}
+  }
+  $('remToggle').addEventListener('click', async () => {
+    const p = remPrefs();
+    if (p.on) { p.on = false; saveRemPrefs(p); cancelReminders(); }
+    else { await enableReminders(); }
+    renderNext();
+  });
 
   /* ── coach mode: the plan's rules, executed live ── */
   const BAR_KG = 20, PLATE_SIZES = [25, 20, 15, 10, 5, 2.5, 1.25];
@@ -2160,10 +2328,13 @@
       localStorage.removeItem(WEIGHT_KEY);
       localStorage.removeItem(VOL_KEY);
       localStorage.removeItem(MEAL_KEY);
+      localStorage.removeItem(REM_KEY);
     } catch (e) {}
+    if (typeof cancelReminders === 'function') cancelReminders();
     if (typeof renderBw === 'function') renderBw();
     if (typeof renderVolume === 'function') renderVolume();
     if (typeof renderMeals === 'function') renderMeals();
+    if (typeof renderNext === 'function') renderNext();
     checkinForm.dataset.prefilled = '';
     lastPlan.d = null;
     prevForDiff = null;
@@ -2197,9 +2368,16 @@
   /* ── PWA: installable, saved plan + logs readable offline at the gym ── */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/trainer-sw.js', { scope: '/trainer' }).catch(() => {});
+      navigator.serviceWorker.register('/trainer-sw.js', { scope: '/trainer' })
+        .then(() => { scheduleReminders(); maybeNudge(); }).catch(() => {});
     });
+  } else {
+    window.addEventListener('load', maybeNudge);
   }
+  // reopening the app (or returning to the tab) is the guaranteed nudge moment
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { maybeNudge(); scheduleReminders(); }
+  });
 
   /* ── share a plan: deflate → base64url in the URL fragment (never sent to a server) ── */
   async function compressToB64(str) {
@@ -2209,12 +2387,30 @@
     new Uint8Array(buf).forEach(b => { s += String.fromCharCode(b); });
     return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
+  // a shared #p= link is attacker-controllable — a tiny deflate stream can inflate
+  // to hundreds of MB (a decompression bomb) and crash the tab. Cap the encoded
+  // fragment AND stream the inflation with a hard byte ceiling (RED TEAM RT-6).
+  const MAX_SHARE_ENCODED = 256 * 1024;     // a real plan compresses to a few KB
+  const MAX_SHARE_INFLATED = 1024 * 1024;   // 1 MB of JSON is already generous
   async function decompressFromB64(b64) {
+    if (typeof b64 !== 'string' || b64.length > MAX_SHARE_ENCODED) throw new Error('shared plan too large');
     const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
     const arr = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
     const ds = new DecompressionStream('deflate-raw');
-    return await new Response(new Blob([arr]).stream().pipeThrough(ds)).text();
+    const reader = new Blob([arr]).stream().pipeThrough(ds).getReader();
+    const chunks = []; let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > MAX_SHARE_INFLATED) { reader.cancel(); throw new Error('shared plan too large'); }
+      chunks.push(value);
+    }
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) { out.set(c, off); off += c.length; }
+    return new TextDecoder().decode(out);
   }
   /* ── export: signed-in → full server document; guest → what this device holds ── */
   $('exportBtn').addEventListener('click', () => {

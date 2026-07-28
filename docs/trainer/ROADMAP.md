@@ -68,6 +68,15 @@ from this file directly.
   ≥10 days. **Meal-adherence checklist** — tick the plan's sample day (per-day
   reset, 14-day adherence %), fed into the coach/check-in log digest so the model
   can explain a slow trend with real adherence, not a guess.
+- Sprint 17 — What's Next & a Safer Front Door (retention + hardening): the
+  **"What's next" daily hub** (zero-permission coaching cue — next session by
+  rotation, week progress, weigh-in due, "logged today" state) atop the Log tab,
+  with an **opt-in on-device reminder** (Notification Triggers where supported +
+  a guaranteed on-open nudge, once/day; no push server, nothing leaves the
+  device — retention that *strengthens* the privacy promise). Owner-isolated,
+  demo-hidden. Plus **RED TEAM RT-6 closed**: the `#p=` share fragment is now
+  capped at 256 KB encoded and streamed with a 1 MB inflation ceiling, killing
+  the decompression-bomb tab-crash (verified: 8 MB bomb rejected, page alive).
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
@@ -80,7 +89,8 @@ non-numeric); RT-7 esc() escapes quotes (attribute-breakout XSS); plus the
 bodyweight cWeightStart plan-anchoring fix the sweep caught.
 
 **Security/robustness still open (RED TEAM):**
-- RT-6 decompression bomb via `#p=` share fragment — cap encoded + inflated size.
+- ~~RT-6 decompression bomb via `#p=` share fragment~~ — SHIPPED Sprint 17:
+  256 KB encoded cap + streamed 1 MB inflation ceiling in `decompressFromB64`.
 - RT-8 `app.run(debug=True)` — gate on `FLASK_DEBUG` (prod uses gunicorn; latent).
 - Watch-list: unbounded `_trainer_hits` growth; XFF IP-rotation evading the
   quota key (per-account auth limit would help); unbounded password length.

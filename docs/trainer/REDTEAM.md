@@ -109,7 +109,14 @@ the exact code path, not yet run end-to-end (DB/key gated) · **[THEORETICAL]** 
 - **Expected:** 400, or coerce to server time.
 - **$0 fix:** `try: at = int(item.get("at")) ... except (TypeError, ValueError): at = int(time.time()*1000)` in `sync()` (also fixes RT-4's clamp cleanly).
 
-#### RT-6 — Decompression-bomb / oversized payload via `#p=` share fragment  **[CODE-CONFIRMED — client-side]**
+#### RT-6 — Decompression-bomb / oversized payload via `#p=` share fragment  **[✅ FIXED — Sprint 17]**
+- **Fix shipped:** `decompressFromB64()` now rejects any encoded fragment > 256 KB
+  up front, and streams the inflation through a reader loop with a hard 1 MB byte
+  ceiling (cancels the stream and throws past it) — so a bomb can never be fully
+  buffered. Verified in `qa_reminders.py`: an 8 MB-inflating fragment (10.6 KB
+  encoded) is rejected with the tab still alive; a 300 KB encoded fragment is
+  rejected by the length gate; a legit small share still renders.
+
 - **Where:** `templates/trainer.html:1618-1624` `decompressFromB64()` and the boot handler at `:1664-1677` (`location.hash.indexOf('#p=')`).
 - **What:** the share fragment is fully attacker-controlled and unauthenticated (it never hits the server). `decompressFromB64` inflates an arbitrary `deflate-raw` blob to a full string with **no size cap** before `JSON.parse` + `renderPlan`. A ~1 KB crafted fragment can inflate to hundreds of MB → victim tab hangs/OOMs on opening the link. The surrounding `try/catch` (`:1666-1675`) cannot save a tab that OOMs mid-inflate.
 - **Repro:** build a URL `…/trainer#p=<deflate-raw of a multi-hundred-MB JSON string>`; opening it stalls/crashes the tab.
