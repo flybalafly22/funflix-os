@@ -493,6 +493,17 @@
     .dur-x { margin-top: 9px; padding: 6px 8px; border: none; background: none; color: var(--gray-2);
       font-family: var(--sans); font-size: 11.5px; cursor: pointer; }
     .dur-x:hover { color: var(--black); text-decoration: underline; }
+    /* ── trend-fed check-in ── */
+    .ct-card { border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px 16px; margin-bottom: 24px;
+      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+    .ct-lead { font-family: var(--sans); font-size: 12.5px; line-height: 1.5; color: var(--gray); margin-bottom: 14px; }
+    .ct-lead b { color: var(--black); }
+    .ct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+    .ct-item .ct-h { font-family: var(--monoX); font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--gray-2); margin-bottom: 6px; }
+    .ct-item .bw-spark { margin-top: 2px; }
+    .ct-n { margin-top: 6px; font-family: var(--monoX); font-size: 11px; color: var(--black); }
+    .ct-n.up { color: #A0602A; } .ct-n.down { color: var(--accD); }
     @media (max-width: 560px) { .bw-top { flex-direction: column; align-items: stretch; } .bw-log { width: 100%; } }
 
     .coach-cta { width: 100%; background: var(--black); color: #fff; border: none; border-radius: 12px;
@@ -695,6 +706,7 @@
     <!-- ── CHECK-IN ── -->
     <form class="intake" id="checkinForm" autocomplete="off" style="display:none">
       <div class="intake-inner">
+        <div class="ct-card" id="cTrend" hidden></div>
         <div class="sec">You</div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="cName">Name</label>
@@ -2380,7 +2392,61 @@
   });
 
   /* ── check-in prefills: the studio fills in what it already knows ── */
+  /* ── trend-fed check-in: show the user the measured trend the recalibration
+     actually reads (it's already in the payload) — bodyweight + top-lift e1RM,
+     sourced from the logs on this device. ── */
+  function _spark(pts, label) {
+    if (pts.length < 2) return '';
+    const xs = pts.map(p => p.t), ys = pts.map(p => p.v);
+    const x0 = xs[0], x1 = xs[xs.length - 1];
+    let lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys);
+    if (hi - lo < 1e-6) { hi += 1; lo -= 1; }
+    const W = 300, H = 56, P = 5;
+    const X = t => P + (x1 === x0 ? 0 : (t - x0) / (x1 - x0)) * (W - 2 * P);
+    const Y = v => P + (1 - (v - lo) / (hi - lo)) * (H - 2 * P);
+    const line = pts.map((p, i) => (i ? 'L' : 'M') + X(p.t).toFixed(1) + ' ' + Y(p.v).toFixed(1)).join(' ');
+    const last = pts[pts.length - 1];
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="' + esc(label) + '">' +
+      '<path class="sp-line" d="' + line + '"/>' +
+      '<circle class="sp-dot" cx="' + X(last.t).toFixed(1) + '" cy="' + Y(last.v).toFixed(1) + '" r="2.6"/></svg>';
+  }
+  function topLiftTrend() {
+    const logs = loadLogs().slice().sort((a, b) => a.at - b.at), by = {};
+    logs.forEach(s => s.entries.forEach(e => {
+      const bset = bestSet(e.sets);
+      if (bset) (by[e.name] = by[e.name] || []).push({ t: s.at, v: e1rm(bset) });
+    }));
+    let best = null;
+    for (const name in by) if (by[name].length >= 2 && (!best || by[name].length > best.pts.length)) best = { name, pts: by[name] };
+    return best ? { name: best.name, pts: best.pts, from: best.pts[0].v, to: best.pts[best.pts.length - 1].v } : null;
+  }
+  function renderCheckinTrend() {
+    const panel = $('cTrend');
+    if (!panel) return;
+    const ws = loadWeights(), sp = savedPlan(), parts = [];
+    if (ws.length >= 2) {
+      const from = ws[0].kg, to = ws[ws.length - 1].kg, net = +(to - from).toFixed(1);
+      const days = Math.round((_wat(ws[ws.length - 1].d) - _wat(ws[0].d)) / DAY_MS);
+      parts.push('<div class="ct-item"><div class="ct-h">Bodyweight</div><div class="bw-spark">' + bwSparkline(ws) +
+        '</div><div class="ct-n ' + (net > 0.05 ? 'up' : net < -0.05 ? 'down' : '') + '">' + from.toFixed(1) + ' → ' +
+        to.toFixed(1) + ' kg · ' + (net > 0 ? '+' : '') + net + ' kg over ' + days + ' days</div></div>');
+    }
+    const lift = topLiftTrend();
+    if (lift) {
+      const g = lift.to - lift.from;
+      parts.push('<div class="ct-item"><div class="ct-h">' + esc(lift.name) + ' — est. 1RM</div><div class="bw-spark">' +
+        _spark(lift.pts, lift.name + ' estimated 1RM trend') + '</div><div class="ct-n ' + (g > 0.5 ? 'down' : g < -0.5 ? 'up' : '') + '">' +
+        Math.round(lift.from) + ' → ' + Math.round(lift.to) + ' kg e1RM · ' + lift.pts.length + ' sessions</div></div>');
+    }
+    if (!parts.length) { panel.hidden = true; return; }
+    const weeks = sp ? Math.max(1, Math.round((Date.now() - sp.at) / WEEK_MS)) : null;
+    panel.innerHTML = '<div class="ct-lead"><b>Your measured trend</b> — this is what the recalibration reads' +
+      (weeks ? ', ' + weeks + ' week' + (weeks === 1 ? '' : 's') + ' in' : '') + '. The scale and the bar beat any form field.</div>' +
+      '<div class="ct-grid">' + parts.join('') + '</div>';
+    panel.hidden = false;
+  }
   function autofillCheckin() {
+    renderCheckinTrend();
     const saved = savedPlan();
     if (saved && !checkinForm.dataset.prefilled) {
       checkinForm.dataset.prefilled = '1';

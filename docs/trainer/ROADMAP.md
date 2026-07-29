@@ -177,8 +177,10 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
   cap with a warning; nudge sync/export after the fifth logged session.
 - ~~**Adherence pulse + calendar**~~ — the "what's next" strip shipped Sprint 17
   and the `.ics` download of training days shipped Sprint 19. Zero server.
-- **Trend-fed check-in**: bodyweight/top-set sparklines from logs shown at
-  check-in and passed into the recalibration payload.
+- ~~**Trend-fed check-in**~~ — SHIPPED Sprint 23: the payload already carried the
+  trend (bodyweight + best-sets digest); the check-in tab now *shows* it — a
+  "Your measured trend" panel with a bodyweight sparkline and the top-logged
+  lift's e1RM sparkline, so the user sees exactly what the recalibration reads.
 - **Plan history for synced accounts**: keep last N plans server-side; browse
   and diff any two — makes Sync materially more valuable than localStorage.
 - ~~**First-run experience**~~ — SHIPPED across sprints: 3-step stepper + hero
