@@ -639,7 +639,12 @@ adding load is most likely to injure or discourage.
 old, suppress the add-load cue, prefill placeholders at −10 % and +1 RIR, and show
 "long gap — rebuild for 1–2 sessions before adding load."
 
-### S8. Fat-loss stall copy is still deficit-blind (F6 still open) — [accuracy]
+### S8. Fat-loss stall copy is still deficit-blind (F6) — ✅ FIXED Sprint 21
+`stallHTML` now branches on `planIsCut()`: for fat-loss plans a held lift reads
+"keeping strength while you lose fat is a win — hold the weight," and only a
+genuine strength *drop* across lifts suggests a diet break. Verified in
+`qa_honest.py` (cut → no "reduce 10%"; muscle-gain → classic reset copy).
+
 **Moment:** Priya month 6 and Lin (any cut) — a lift merely *holding* in a deficit reads
 "reduce 10 % if sleep and food are in order," but in a cut food is deliberately not in
 order, so the caveat can't land.
@@ -647,7 +652,14 @@ order, so the caveat can't land.
 — for fat-loss plans: "holding strength in a deficit is winning; reset only if a lift
 *drops* two sessions running."
 
-### S9. Still no off-ramp at goal completion (F7 still open) — [accuracy] [user-friendliness]
+### S9. Off-ramp at goal completion (F7) — ✅ FIXED Sprint 21
+The nutrition tune-up now surfaces a **maintenance off-ramp** for a cutter who's
+reached their goal weight (new optional goal-weight field, carried in `safety`)
+or is already lean and no longer losing (BMI ≤ 21.5 and flat trend): "Time to
+maintain, not cut deeper — reverse ~100–150 kcal/week." It replaces the "trim"
+recommendation so the app never diets someone indefinitely. Verified in
+`qa_honest.py` (goal + lean fire; still-losing high-BMI does not).
+
 **Moment:** Priya months 11–12 — goal reached, still cutting at ~1,470 kcal; no
 "Goal reached?" field and no maintenance-transition rule.
 **$0 fix:** the first study's one prompt rule (propose the maintenance/reverse-diet

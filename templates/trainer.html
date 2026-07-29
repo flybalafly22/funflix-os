@@ -591,6 +591,8 @@
               <option>Body recomposition</option><option>General fitness</option></select></div></div>
           <div class="field"><label class="os-label" for="fGoalNote">Anything specific about the goal?</label>
             <input class="os-input" id="fGoalNote" placeholder="e.g. bigger arms, first pull-up, wedding in June"></div>
+          <div class="field"><label class="os-label" for="fGoalWeight">Goal weight <span style="opacity:.6">(optional)</span></label>
+            <input class="os-input" id="fGoalWeight" placeholder="e.g. 75 kg — for a maintenance off-ramp"></div>
         </div>
 
         <div class="fstep-nav">
@@ -1173,6 +1175,7 @@
       injuries: [$('fHealth').value.trim(), $('fInjury').value.trim()].filter(Boolean).join('; '),
       equipment: [$('fEnv').value.trim(), $('fEquip').value.trim()].filter(Boolean).join(' — '),
       diet: $('fDiet').value === 'Other' ? 'Other — ' + $('fDietOther').value.trim() : $('fDiet').value,
+      goalWeight: $('fGoalWeight').value.trim(),
     };
   }
   function savePlan(d, safety) {
@@ -1440,6 +1443,10 @@
     const sp = savedPlan();
     return String((((sp || {}).plan || {}).profile_summary || {}).experience_level || '').toLowerCase();
   }
+  function planIsCut() {
+    const g = String((((savedPlan() || {}).plan || {}).profile_summary || {}).goal || '').toLowerCase();
+    return /loss|cut|lean out|shred|deficit/.test(g);
+  }
   function stallWatch() {
     // advanced lifters progress slowly — 3 flat sessions is normal, so widen
     // the window; and sessions more than 3 weeks apart aren't comparable (a
@@ -1477,13 +1484,30 @@
   }
   function stallHTML(list) {
     if (!list.length) return '';
+    // in a fat-loss deficit, holding strength is the WIN — you're keeping muscle
+    // while you lose fat. Never tell a cutter to strip 10% off a lift they're
+    // simply maintaining; only escalate if strength is actually falling (SIM F6).
+    const cut = planIsCut();
     return '<div class="stall"><div class="st-h">Stall watch — your plan’s rule, applied</div>' +
-      list.map(s => s.deep
-        ? '<p><b>' + esc(s.name) + '</b> is still flat after ' + (s.n + 1) + ' sessions — past the reset window. ' +
-          'Your plan’s escalation: take the deload (halve sets, −15–20% load) this week, then rebuild.</p>'
-        : '<p><b>' + esc(s.name) + '</b> has not beaten ' + esc(fmtSet(s.last)) +
-          ' (by estimated 1RM) in ' + s.n + ' sessions. Your plan’s protocol: reduce 10% ' +
-          (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild — if sleep and food are in order.</p>').join('') +
+      list.map(s => {
+        if (cut) {
+          return s.deep
+            ? '<p><b>' + esc(s.name) + '</b> has held at ' + esc(fmtSet(s.last)) + ' for ' + (s.n + 1) +
+              ' sessions. In a cut that’s usually fine — but if strength is <b>dropping</b> across several ' +
+              'lifts, your deficit may be too steep: consider a short diet break (eat at maintenance for a ' +
+              'week) before you push again.</p>'
+            : '<p><b>' + esc(s.name) + '</b> has held at ' + esc(fmtSet(s.last)) + ' for ' + s.n +
+              ' sessions. You’re in a fat-loss phase — <b>keeping</b> strength while you lose fat means you’re ' +
+              'keeping muscle, so this is a win. Hold the weight and aim to keep your reps; only drop load if ' +
+              'form or joints demand it.</p>';
+        }
+        return s.deep
+          ? '<p><b>' + esc(s.name) + '</b> is still flat after ' + (s.n + 1) + ' sessions — past the reset window. ' +
+            'Your plan’s escalation: take the deload (halve sets, −15–20% load) this week, then rebuild.</p>'
+          : '<p><b>' + esc(s.name) + '</b> has not beaten ' + esc(fmtSet(s.last)) +
+            ' (by estimated 1RM) in ' + s.n + ' sessions. Your plan’s protocol: reduce 10% ' +
+            (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild — if sleep and food are in order.</p>';
+      }).join('') +
       '</div>';
   }
 
@@ -1692,8 +1716,19 @@
     const floor = Math.max(parseFloat(ps.bmr_kcal) || 0, 1200);
     let newTarget = tgt + delta;
     if (newTarget < floor) { newTarget = Math.round(floor / 25) * 25; delta = newTarget - tgt; }
+    // F7 off-ramp: a cutter who's reached their goal weight — or is already lean
+    // and has essentially stopped losing — should be moved to MAINTENANCE, not
+    // told to cut deeper. Prevents the "stuck at 1,470 kcal forever" failure.
+    let offRamp = null;
+    if (planIsCut() && bw) {
+      const gw = parseFloat((sp.safety || {}).goalWeight);
+      const h = parseFloat(ps.height_cm);
+      const bmi = h ? bw / Math.pow(h / 100, 2) : null;
+      if (!isNaN(gw) && gw > 0 && bw <= gw + 0.3) offRamp = { reason: 'goal', goalWeight: gw };
+      else if (bmi != null && bmi <= 21.5 && trend >= -0.1) offRamp = { reason: 'lean', bmi: +bmi.toFixed(1) };
+    }
     return {
-      target: tgt, trend, intended, estTDEE, delta, newTarget,
+      target: tgt, trend, intended, estTDEE, delta, newTarget, offRamp,
       onTrack: Math.abs(off) <= tol || Math.abs(delta) < 40,
       bw, bwPctWk: bw ? trend / bw * 100 : null,
       formulaTDEE: !isNaN(parseFloat(ps.tdee_kcal)) ? parseFloat(ps.tdee_kcal) : null,
@@ -1735,6 +1770,21 @@
       $('nutBody').innerHTML = '<div class="nut-gather">Log your weight for a couple of weeks and the Trainer ' +
         'will read your real metabolism off the scale and auto-tune these calories (target now: <b>' +
         fmtKcal(t.target) + '</b>). ' + (need.length ? 'Need ' + need.join(' · ') + '.' : 'Keep logging daily.') + '</div>';
+      card.hidden = false;
+      return;
+    }
+    if (t.offRamp) {
+      card.className = 'nut-card';
+      const reached = t.offRamp.reason === 'goal'
+        ? 'You’ve reached your goal weight (' + t.offRamp.goalWeight + ' kg).'
+        : 'You’re lean now (BMI ' + t.offRamp.bmi + ') and the scale has essentially stopped moving.';
+      $('nutBody').innerHTML =
+        '<div class="nut-rec"><b>Time to maintain, not cut deeper.</b> ' + esc(reached) +
+        ' Reverse the deficit gently: add about <b>100–150 kcal back each week</b> to your current ' +
+        fmtKcal(t.target) + ' until the scale holds steady — that number is your maintenance. Keep training ' +
+        'hard to hold the muscle you built.</div>' +
+        '<div class="nut-note">Dieting indefinitely at a low intake stalls progress and recovery. This is the ' +
+        'win condition — lock it in, then decide your next phase (maintain, or a slow lean gain).</div>';
       card.hidden = false;
       return;
     }

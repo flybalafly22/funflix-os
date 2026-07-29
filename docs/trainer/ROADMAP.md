@@ -101,6 +101,14 @@ from this file directly.
   can see the output quality first, then convert. The intake form stays visible
   throughout (site_qa contract), and a real saved plan shows neither hero nor
   build-own CTA.
+- Sprint 21 — Honest at the Edges (SIMULATION correctness cluster): **F6** the
+  Log-tab stall banner is now deficit-aware — a cutter holding strength is told
+  it's a win (keeping muscle), never "reduce 10%", and a genuine strength drop
+  suggests a diet break. **F7** a goal-reached / already-lean cutter gets a
+  **maintenance off-ramp** in the nutrition tune-up (optional goal-weight field +
+  BMI≤21.5-and-flat detection) instead of "cut deeper" forever. **S5** confirmed
+  already handled (coach eases in and no deload fires after a >14-day layoff) and
+  locked with a regression test.
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
