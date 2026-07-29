@@ -109,6 +109,12 @@ from this file directly.
   BMI≤21.5-and-flat detection) instead of "cut deeper" forever. **S5** confirmed
   already handled (coach eases in and no deload fires after a >14-day layoff) and
   locked with a regression test.
+- Sprint 22 — Durable Data (SIMULATION F5): the on-device session cap is raised
+  from 200 → **400** across all three write paths (log form, Coach Mode, sync
+  merge — the merge path was silently truncating synced history at 200); a **90%
+  cap warning** ("N of 400 saved sessions — export/sync so the oldest aren't
+  dropped"); and a **post-session-5 guest nudge** to create a free account or
+  export a backup (dismissible, auto-hides on sign-in). Zero server.
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")

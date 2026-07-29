@@ -481,6 +481,18 @@
     .bw-spark .sp-dot { fill: var(--accD); }
     .bw-spark .sp-lbl { font-family: var(--monoX); font-size: 9px; fill: var(--gray-2); }
     .bw-note { margin-top: 14px; font-family: var(--sans); font-size: 12px; line-height: 1.55; color: var(--gray-2); }
+    /* ── data durability nudge / cap warning ── */
+    .durable { border: 1px solid var(--rule); border-radius: 14px; padding: 13px 16px; margin: 0 0 22px;
+      font-family: var(--sans); font-size: 12.5px; line-height: 1.6; color: #2A2A26; background: #FCFCFB; }
+    .durable.warn { border-color: rgba(200,140,40,.4); background: rgba(200,140,40,.06); color: #5A4A28; }
+    .durable b { color: var(--black); }
+    .durable.warn b { color: #8a5a1a; }
+    .dur-b { display: inline-block; margin: 9px 8px 0 0; padding: 6px 15px; border: 1px solid var(--black);
+      border-radius: 999px; background: var(--black); color: #fff; font-family: var(--sans); font-size: 11.5px; cursor: pointer; }
+    .dur-b:hover { opacity: .85; }
+    .dur-x { margin-top: 9px; padding: 6px 8px; border: none; background: none; color: var(--gray-2);
+      font-family: var(--sans); font-size: 11.5px; cursor: pointer; }
+    .dur-x:hover { color: var(--black); text-decoration: underline; }
     @media (max-width: 560px) { .bw-top { flex-direction: column; align-items: stretch; } .bw-log { width: 100%; } }
 
     .coach-cta { width: 100%; background: var(--black); color: #fff; border: none; border-radius: 12px;
@@ -773,6 +785,7 @@
             and feeds the trend straight into your Week-4 check-in, so recalibration runs on the
             scale, not on memory. Stays on this device unless you sync.</div>
         </div>
+        <div class="durable" id="lgDurable" hidden></div>
         <div class="nut-card" id="nutCard" hidden>
           <div class="sec" style="margin-top:0">Nutrition tune-up</div>
           <div class="vol-intro">Your real metabolism, read off the scale — the Trainer estimates the calories you
@@ -1205,6 +1218,7 @@
 
   /* ── session log (device-only) ── */
   const LOG_KEY = 'trainerLogs';
+  const LOG_CAP = 400, SYNC_NUDGE_KEY = 'trainerSyncNudged';   // device keeps the newest LOG_CAP sessions
   function loadLogs() {
     try { const l = JSON.parse(localStorage.getItem(LOG_KEY)); return Array.isArray(l) ? l : []; }
     catch (e) { return []; }
@@ -1367,6 +1381,43 @@
     return b;
   }
   function fmtSet(b) { return b.kg ? b.kg + ' kg x ' + (b.reps || '?') : (b.reps || '?') + ' reps'; }
+  // data durability: the device keeps the newest LOG_CAP sessions. Warn before
+  // the cap silently drops the oldest, and nudge a guest to sync/export once
+  // they've built up sessions worth protecting (SIM F5).
+  function renderDurable() {
+    const el = $('lgDurable');
+    if (!el) return;
+    const n = loadLogs().length, synced = !!SYNC.user;
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(SYNC_NUDGE_KEY) === '1'; } catch (e) {}
+    const exportBtn = '<button type="button" class="dur-b" data-act="export">Export a backup</button>';
+    const syncBtn = '<button type="button" class="dur-b" data-act="sync">Create free account</button>';
+    if (n >= Math.floor(LOG_CAP * 0.9)) {
+      el.className = 'durable warn';
+      el.innerHTML = '<b>' + n + ' of ' + LOG_CAP + ' saved sessions.</b> This device keeps only the most recent ' +
+        LOG_CAP + ' — ' + (synced ? 'your account holds the full history, but export a backup for safety. ' : 'export a backup or create an account so the oldest aren’t dropped. ') +
+        exportBtn + (synced ? '' : syncBtn);
+      el.hidden = false;
+      return;
+    }
+    if (!synced && !dismissed && n >= 5) {
+      el.className = 'durable';
+      el.innerHTML = '<b>' + n + ' sessions logged — only in this browser.</b> Create a free account to keep them ' +
+        'safe on every device, or export a backup. ' + syncBtn + exportBtn +
+        '<button type="button" class="dur-x" data-act="dismiss">Not now</button>';
+      el.hidden = false;
+      return;
+    }
+    el.hidden = true;
+  }
+  $('lgDurable').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const act = b.dataset.act;
+    if (act === 'export') $('exportBtn').click();
+    else if (act === 'sync') { if (window.OS_ACCT) OS_ACCT.open(); }
+    else if (act === 'dismiss') { try { localStorage.setItem(SYNC_NUDGE_KEY, '1'); } catch (e2) {} renderDurable(); }
+  });
   function renderLgHist() {
     const logs = loadLogs();
     const dl = deloadInfo();
@@ -1374,6 +1425,7 @@
     $('lgStall').innerHTML = (dl ? deloadHTML(dl) : fd ? fatigueDeloadHTML(fd) : '') + stallHTML(stallWatch());
     renderVolume();
     renderReview();
+    renderDurable();
     $('lgHistHead').style.display = logs.length ? '' : 'none';
     $('lgHist').innerHTML = logs.slice(0, 6).map(s => {
       const dt = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -1418,7 +1470,7 @@
     const at = (!dv || dv === new Date().toISOString().slice(0, 10))
       ? Date.now() : new Date(dv + 'T12:00:00').getTime();
     logs.unshift({ at, day: day.day_label || '', entries });
-    try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 200))); } catch (e2) {}
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, LOG_CAP))); } catch (e2) {}
     pushLogs();
     renderLgList();
     renderLgHist();
@@ -2272,7 +2324,7 @@
       const sess = { at: Date.now(), day: CO.day.day_label || '', entries };
       if (CO.deload) sess.deload = true;
       logs.unshift(sess);
-      try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 200))); } catch (e) {}
+      try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, LOG_CAP))); } catch (e) {}
       pushLogs();
     }
     const setsN = entries.reduce((t, e) => t + e.sets.length, 0);
@@ -2431,7 +2483,7 @@
         if (!seen[k]) { seen[k] = 1; merged.push(s); }
       });
       merged.sort((a, b) => b.at - a.at);
-      const capped = merged.slice(0, 200);
+      const capped = merged.slice(0, LOG_CAP);
       try { localStorage.setItem(LOG_KEY, JSON.stringify(capped)); } catch (e) {}
       if (capped.length !== remote.length) pushLogs();
       // weights: union by calendar day (newer entry wins), then push if changed
@@ -2519,6 +2571,7 @@
     SYNC.user = st.user;
     SYNC.enabled = st.enabled;
     acctPill();
+    renderDurable();   // signing in makes the "only in this browser" nudge moot
     if (st.event === 'authlost') { refreshRestore(); return; }
     if (st.user && (st.event === 'me' || st.event === 'login')) {
       let owner = null;

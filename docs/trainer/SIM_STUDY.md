@@ -390,9 +390,9 @@ now active, and the exact lines that implement them:
 | F2 | Periodization not in the loop | **FIXED (loop) / PARTIAL (check-in)** | Deload autopilot + stall escalation are live and executed. Residuals: deload clock is calendar-only (S1), no aggregate "2 lifts stalled this week" trigger (S3), the two deload pathways don't coordinate (S5), and weeks-since-deload still isn't in the check-in payload. |
 | F3 | Progress judged by kg not e1RM; no cues | **FIXED** | `bestSet`/`stallWatch` are e1RM-based; `coProgressCue` issues add-load/beat-a-rep; ramps on every barbell lift. Residuals: the cue is detraining-blind (S7) and the 3-session window ignores experience/time (S2). |
 | F4 | User-initiated, no BW log, distorted window | **PARTIAL** | FIXED: computed elapsed-weeks kills the ÷8 doubling; disruption field added. STILL OPEN: no bodyweight log, no cadence nudge (loop is **still 100 % user-initiated** — grep finds no reminder banner), autofill still compares all-time first→last (`:1394`), and intermittency silently dilutes the trend (S6). |
-| F5 | Data on borrowed time; 200-log cap | **STILL OPEN** | Cap is still 200 (`:1073`, `:1316`, **and the sync-merge path `:1469`**); no 90 % warning, no post-session-5 sync/export nudge. Sprint 14 shipped isolation, not durability (S11). |
-| F6 | Stall advice ignores deficit context | **STILL OPEN** | `stallHTML` (`:1111`) has no goal branch; a lift merely *holding* in a deficit still reads "reduce 10 % if sleep and food are in order" (S8). |
-| F7 | No off-ramp at goal completion | **STILL OPEN** | No "Goal reached?" field; no maintenance-transition rule in `trainer_system.txt` (S9). |
+| F5 | Data on borrowed time; 200-log cap | **✅ FIXED Sprint 22** | Cap raised 200→400 across all three write paths incl. the sync-merge; 90% cap warning + post-session-5 guest sync/export nudge. |
+| F6 | Stall advice ignores deficit context | **✅ FIXED Sprint 21** | `stallHTML` branches on `planIsCut()`: holding strength in a deficit reads as a win; diet-break only if strength drops (S8). |
+| F7 | No off-ramp at goal completion | **✅ FIXED Sprint 21** | Optional goal-weight field + nutrition-tune maintenance off-ramp at goal / lean-and-flat (S9). |
 | F8 | Readiness/layoffs get token adjustments | **PARTIAL** | FIXED: readiness RIR-3 override + set drop + time-scaled coach adjustments. STILL OPEN: a >14-day mid-plan layoff still shows pre-gap placeholders and an add-load cue (S7). |
 | F9 | No server-side schema validation | **FIXED** | `_validate_plan()` gates both retry legs. |
 
