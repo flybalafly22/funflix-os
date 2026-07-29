@@ -115,6 +115,15 @@ from this file directly.
   cap warning** ("N of 400 saved sessions — export/sync so the oldest aren't
   dropped"); and a **post-session-5 guest nudge** to create a free account or
   export a backup (dismissible, auto-hides on sign-in). Zero server.
+- Sprint 23 — Trend-fed check-in: a "Your measured trend" panel on the check-in
+  tab with a bodyweight sparkline + the top-logged lift's e1RM sparkline (the
+  payload already carried the trend; now the user sees it).
+- Sprint 24 — Plan-history compare: a "Compare with" selector in the archived-
+  plan view diffs any two saved plans (viewed vs current or any other archive).
+- Sprint 25 — Homepage → Sample (conversion): `?sample` deep-links the homepage
+  Trainer card into a live sample for new visitors, but a returning visitor lands
+  on their own saved plan (no demo); the sample view keeps its "Build my own"
+  CTA. Handler deferred past init to dodge a const TDZ.
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
@@ -189,9 +198,11 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
 - ~~**First-run experience**~~ — SHIPPED across sprints: 3-step stepper + hero
   sample CTA (earlier), then Sprint 20 added the dual CTA, expectations line and
   the sample-peek → "Build my own" conversion loop.
-- **Homepage → trainer conversion**: the Trainer card deep-links into the
-  sample-program peek, not the blank form. (Still open — needs `?sample` to
-  defer to a restored plan for returning users before the card can point at it.)
+- ~~**Homepage → trainer conversion**~~ — SHIPPED Sprint 25: `?sample` now defers
+  to a saved plan (returning visitors land on THEIR plan, new visitors get the
+  sample peek), so the homepage Trainer card safely deep-links to `/trainer?sample`
+  — see the quality first, then convert. (`os.js` `MODULES.path` left as `/trainer`
+  since it doubles as app-identity; only the funflix card href changed.)
 - **Password reset via emailed one-time code** — blocked on owner
   mail-provider key (interim honesty line shipped Sprint 7).
 - **Performance pass**: Lighthouse mobile on /trainer; split the inline

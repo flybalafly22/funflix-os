@@ -1188,7 +1188,8 @@
     $('welcome').style.display =
       (!introDone && !savedPlan() && mode === 'plan' && form.style.display !== 'none') ? '' : 'none';
   }
-  if (new URLSearchParams(location.search).has('sample')) { demoOnce = true; submit(null); }
+  // ?sample handling lives later (after PLAN_KEY/savedPlan are initialized) —
+  // see maybeSampleDeepLink() near the boot tail.
   $('fuBtn').addEventListener('click', () => {
     submit(pendingQuestions.map((q, i) => ({ q: q.question, a: $('fuA' + i).value })));
   });
@@ -2698,6 +2699,16 @@
   if (histMatch) {
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => window.TRAINER_VIEW_HISTORY(histMatch[1]), 400);
+  }
+  // ?sample deep-links the homepage card into a live sample — but a RETURNING
+  // visitor (already has a plan) lands on THEIR plan, not a demo. Deferred (like
+  // #history) so every top-level const is initialized before renderPlan runs.
+  if (new URLSearchParams(location.search).has('sample')) {
+    setTimeout(() => {
+      const saved = savedPlan();
+      if (saved) { renderPlan(saved.plan); setState('plan'); }
+      else { demoOnce = true; submit(null); }
+    }, 0);
   }
   /* ── PWA: installable, saved plan + logs readable offline at the gym ── */
   if ('serviceWorker' in navigator) {
