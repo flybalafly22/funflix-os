@@ -1,3 +1,4 @@
+import gzip as _gzip
 import hashlib
 import math
 import os
@@ -1087,6 +1088,40 @@ def calculate():
         return jsonify({"error": "Division by zero"})
     except Exception as exc:
         return jsonify({"error": str(exc)})
+
+_COMPRESSIBLE = {"text/html", "text/css", "text/plain", "text/javascript",
+                 "application/javascript", "application/json", "image/svg+xml",
+                 "application/manifest+json"}
+
+
+@app.after_request
+def _compress(resp):
+    # Text compression — the biggest mobile-load win (Lighthouse "enable text
+    # compression"): /trainer is ~187 KB of HTML/CSS/JS that gzips to ~38 KB.
+    # Stdlib only ($0, no new dep). Streamed/SSE responses are left untouched so
+    # the live plan/demo streams keep flowing.
+    try:
+        if resp.direct_passthrough or resp.is_streamed:
+            return resp
+        if resp.headers.get("Content-Encoding"):
+            return resp
+        if "gzip" not in (request.headers.get("Accept-Encoding") or "").lower():
+            return resp
+        ctype = (resp.content_type or "").split(";")[0].strip().lower()
+        if ctype not in _COMPRESSIBLE:
+            return resp
+        data = resp.get_data()
+        if len(data) < 1024:                      # tiny bodies: not worth the CPU
+            return resp
+        packed = _gzip.compress(data, 6)
+        resp.set_data(packed)
+        resp.headers["Content-Encoding"] = "gzip"
+        resp.headers["Content-Length"] = str(len(packed))
+        resp.headers.add("Vary", "Accept-Encoding")
+    except Exception:
+        pass
+    return resp
+
 
 def _debug_enabled():
     # RED TEAM RT-8: never ship the Werkzeug debugger/reloader unless explicitly

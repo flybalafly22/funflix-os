@@ -205,8 +205,11 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
   since it doubles as app-identity; only the funflix card href changed.)
 - **Password reset via emailed one-time code** — blocked on owner
   mail-provider key (interim honesty line shipped Sprint 7).
-- **Performance pass**: Lighthouse mobile on /trainer; split the inline
-  template's CSS/JS only if it moves the score.
+- ~~**Performance pass**~~ — SHIPPED Sprint 26: measured `/trainer` served
+  **uncompressed at 187 KB**; added a stdlib-gzip `after_request` (no new dep) →
+  **52 KB, a 73% cut** (the Lighthouse "enable text compression" win). Streamed/
+  SSE responses left untouched; graceful fallback for non-gzip clients; regression
+  tests added. Splitting the inline CSS/JS was NOT needed — compression carried it.
 - **Play Store listing (TWA)**: everything is prepared; needs owner's Google
   Play account ($25 one-time) + PWABuilder clicks — see MOBILE_APP.md.
 - **Server-sent email**: only if the share sheet proves insufficient; needs

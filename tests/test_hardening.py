@@ -87,3 +87,27 @@ def test_debug_gated_off_by_default(monkeypatch):
     for off in ("0", "false", "no", "", "off"):
         monkeypatch.setenv("FLASK_DEBUG", off)
         assert A._debug_enabled() is False, off
+
+
+# ── Sprint 26: text compression (gzip) is on for HTML, off for streams ──
+
+def test_gzip_on_html_when_accepted():
+    import gzip as _g
+    c = A.app.test_client()
+    r = c.get("/trainer", headers={"Accept-Encoding": "gzip"})
+    assert r.status_code == 200
+    assert r.headers.get("Content-Encoding") == "gzip"
+    assert b"planWrap" in _g.decompress(r.data)          # decompresses to real HTML
+    assert "Accept-Encoding" in (r.headers.get("Vary") or "")
+
+
+def test_no_gzip_when_not_accepted():
+    c = A.app.test_client()
+    r = c.get("/trainer", headers={"Accept-Encoding": "identity"})
+    assert r.headers.get("Content-Encoding") is None      # graceful fallback
+
+
+def test_streamed_response_not_compressed():
+    c = A.app.test_client()
+    r = c.post("/api/trainer", json={"demo": "stream"}, headers={"Accept-Encoding": "gzip"})
+    assert r.headers.get("Content-Encoding") is None       # SSE/stream left intact
