@@ -111,3 +111,18 @@ def test_streamed_response_not_compressed():
     c = A.app.test_client()
     r = c.post("/api/trainer", json={"demo": "stream"}, headers={"Accept-Encoding": "gzip"})
     assert r.headers.get("Content-Encoding") is None       # SSE/stream left intact
+
+
+# ── Sprint 27: the second (fat-loss) demo is valid and served on ?demo=cut ──
+
+def test_cut_demo_valid_and_served():
+    assert A.TRAINER_DEMO_CUT is not None
+    assert A._validate_plan(A.TRAINER_DEMO_CUT, intake={}) == []      # passes the shipped gate
+    c = A.app.test_client()
+    d = c.post("/api/trainer", json={"demo": "cut"}).get_json()
+    assert d["profile_summary"]["gender_assigned_at_birth"] == "female"
+    assert d["profile_summary"]["goal"].lower().startswith("fat loss")
+    assert d["diet_plan"]["calorie_target_kcal"] == 1650
+    # default demo is unchanged (muscle gain)
+    d0 = c.post("/api/trainer", json={"demo": 1}).get_json()
+    assert d0["profile_summary"]["name"] == "Rohan"

@@ -1,0 +1,150 @@
+{
+  "type": "plan",
+  "profile_summary": {
+    "name": "Meera",
+    "age_years": 32,
+    "gender_assigned_at_birth": "female",
+    "height_cm": 168,
+    "weight_kg": 72,
+    "bmi": 25.5,
+    "bmi_note": "Just over the 25.0 line. For a lifter this overstates fatness; judge progress by the waist tape, the 7-day scale average, and how the lifts hold — not the BMI number alone.",
+    "bmr_kcal": 1470,
+    "tdee_kcal": 2050,
+    "calorie_target_kcal": 1650,
+    "experience_level": "Intermediate",
+    "goal": "Fat loss (keep the muscle)",
+    "current_lifts_note": "Starting loads below are set from what you already lift: goblet squat 20 kg x 10, DB bench 17.5 kg x 10, RDL 40 kg x 8. Each session lists the working weight to open with.",
+    "bmr_equation": "Mifflin-St Jeor for a 32-year-old woman, 168 cm, 72 kg: 10x72 + 6.25x168 - 5x32 - 161 = 1470 kcal.",
+    "activity_factor_note": "BMR x 1.4 for a desk job plus the step target lands maintenance near 2050 kcal.",
+    "calorie_adjustment_note": "A 400 kcal deficit targets about 0.5 percent of bodyweight lost per week - fast enough to see, slow enough to keep strength and muscle.",
+    "assumptions": [
+      "You can train three days a week with dumbbells, a barbell and a bench.",
+      "No injuries or dietary restrictions were reported, so nothing is excluded."
+    ]
+  },
+  "weekly_split": {
+    "split_name": "3-day full-body strength on a cut",
+    "frequency_rationale": "Three full-body days beat a bro-split on a deficit: every muscle is trained often enough to signal 'keep me' while total fatigue stays low, which is what protects muscle while you lose fat.",
+    "days": [
+      { "day": "Monday", "focus": "Full body A - squat and press emphasis" },
+      { "day": "Tuesday", "focus": "Rest, plus a 25 minute walk and the daily step target" },
+      { "day": "Wednesday", "focus": "Full body B - hinge and pull emphasis" },
+      { "day": "Thursday", "focus": "Rest, plus a 25 minute walk and the daily step target" },
+      { "day": "Friday", "focus": "Full body C - lunge and upper emphasis" },
+      { "day": "Saturday", "focus": "Optional easy cardio and steps" },
+      { "day": "Sunday", "focus": "Full rest" }
+    ],
+    "scheduling_note": "Keep a day between sessions so each one is fresh. If a day slips, train Mon-Thu-Sat instead - never two hard days back to back."
+  },
+  "workout_days": [
+    {
+      "day_label": "Full body A - squat and press (Monday)",
+      "estimated_duration_minutes": 55,
+      "warmup": "5 minutes easy cardio, then 2 light ramp sets of the goblet squat and the press.",
+      "exercises": [
+        { "name": "Goblet squat", "sets": 3, "rep_range": "8-12", "rest_seconds": 90, "rpe_or_rir": "RIR 2", "tempo_or_notes": "Open at 20 kg. Add 2.5 kg once you hit 12 reps on every set with clean depth.", "substitution": "Leg press or dumbbell box squat" },
+        { "name": "Dumbbell bench press", "sets": 3, "rep_range": "8-12", "rest_seconds": 90, "rpe_or_rir": "RIR 2", "tempo_or_notes": "Open at 17.5 kg per hand, 2 second lowering, no bounce.", "substitution": "Machine chest press or push-up" },
+        { "name": "Chest-supported row", "sets": 3, "rep_range": "10-15", "rest_seconds": 75, "rpe_or_rir": "RIR 1-2", "tempo_or_notes": "Open at 12.5 kg per hand. Squeeze the shoulder blades, no torso swing.", "substitution": "Seated cable row" },
+        { "name": "Seated dumbbell shoulder press", "sets": 2, "rep_range": "10-15", "rest_seconds": 75, "rpe_or_rir": "RIR 2", "tempo_or_notes": "Open at 10 kg per hand. Stop one rep short of a grinder.", "substitution": "Machine shoulder press" },
+        { "name": "Plank", "sets": 3, "rep_range": "30-45 seconds", "rest_seconds": 45, "rpe_or_rir": "hard but steady", "tempo_or_notes": "Ribs down, glutes tight. Add time before adding load.", "substitution": "Dead bug" }
+      ],
+      "session_notes": "This is the heaviest day - it comes first while you are fresh."
+    },
+    {
+      "day_label": "Full body B - hinge and pull (Wednesday)",
+      "estimated_duration_minutes": 55,
+      "warmup": "5 minutes easy cardio, then 2 light ramp sets of the RDL.",
+      "exercises": [
+        { "name": "Romanian deadlift", "sets": 3, "rep_range": "8-12", "rest_seconds": 90, "rpe_or_rir": "RIR 2", "tempo_or_notes": "Open at 40 kg. Hips back, soft knees, feel the hamstrings - not the lower back.", "substitution": "Dumbbell RDL or hip thrust" },
+        { "name": "Lat pulldown", "sets": 3, "rep_range": "10-15", "rest_seconds": 75, "rpe_or_rir": "RIR 1-2", "tempo_or_notes": "Open at a weight you control for 12. Lead with the elbows.", "substitution": "Assisted pull-up or band pulldown" },
+        { "name": "Walking lunge", "sets": 3, "rep_range": "10-12 per leg", "rest_seconds": 75, "rpe_or_rir": "RIR 2", "tempo_or_notes": "Bodyweight to start, then hold 5 kg per hand. Long stride, tall torso.", "substitution": "Reverse lunge or split squat" },
+        { "name": "Dumbbell incline curl", "sets": 2, "rep_range": "10-15", "rest_seconds": 60, "rpe_or_rir": "RIR 1", "tempo_or_notes": "Open at 6 kg per hand. Slow lowering, no swing.", "substitution": "Cable curl" },
+        { "name": "Hanging or lying leg raise", "sets": 3, "rep_range": "10-15", "rest_seconds": 45, "rpe_or_rir": "RIR 1-2", "tempo_or_notes": "Control the way down. Stop when the lower back wants to arch.", "substitution": "Reverse crunch" }
+      ],
+      "session_notes": "Posterior-chain focus balances the pressing from Monday."
+    },
+    {
+      "day_label": "Full body C - lunge and upper (Friday)",
+      "estimated_duration_minutes": 50,
+      "warmup": "5 minutes easy cardio, then 2 light ramp sets of the split squat.",
+      "exercises": [
+        { "name": "Bulgarian split squat", "sets": 3, "rep_range": "8-12 per leg", "rest_seconds": 90, "rpe_or_rir": "RIR 2", "tempo_or_notes": "Bodyweight to start, then hold 7.5 kg per hand. Front foot flat, drive through the heel.", "substitution": "Static lunge or leg press" },
+        { "name": "Incline dumbbell press", "sets": 3, "rep_range": "10-15", "rest_seconds": 75, "rpe_or_rir": "RIR 2", "tempo_or_notes": "Open at 12.5 kg per hand on a low incline.", "substitution": "Incline machine press" },
+        { "name": "Single-arm dumbbell row", "sets": 3, "rep_range": "10-15 per arm", "rest_seconds": 60, "rpe_or_rir": "RIR 1-2", "tempo_or_notes": "Open at 15 kg. Brace on the bench, pull to the hip.", "substitution": "Cable row" },
+        { "name": "Lateral raise", "sets": 3, "rep_range": "12-20", "rest_seconds": 45, "rpe_or_rir": "RIR 1", "tempo_or_notes": "Open at 5 kg per hand. Lead with the elbows, no shrug.", "substitution": "Cable lateral raise" },
+        { "name": "Triceps rope pushdown", "sets": 2, "rep_range": "12-20", "rest_seconds": 45, "rpe_or_rir": "RIR 1", "tempo_or_notes": "Open light, full lockout, slow return.", "substitution": "Overhead dumbbell extension" }
+      ],
+      "session_notes": "Lighter and quicker - the week ends on a pump, not a grind."
+    }
+  ],
+  "progressive_overload": {
+    "method": "Double progression inside a deficit: add reps first, load only when the top of the range is clean.",
+    "protocol": [
+      "Hit the top of the rep range on every set of an exercise before adding weight.",
+      "When you do, add the smallest jump (2.5 kg lower body, 1-2.5 kg upper) and rebuild the reps.",
+      "On a cut, holding your loads week to week already counts as winning - you are keeping muscle while losing fat."
+    ],
+    "load_increments": "Lower body 2.5 kg, upper body 1 to 2.5 kg, isolation 1 kg or one more rep.",
+    "deload": "Every 6 weeks, or sooner if two lifts stall in the same week: halve the sets and take 15 to 20 percent off the loads for one week.",
+    "tracking": "Log the working weight and reps each session so the check-in can read the trend, not your memory."
+  },
+  "quality_vs_quantity": {
+    "stance": "On a cut, less is more.",
+    "why": "Recovery is lower when you eat less, so the goal is the least training that keeps muscle - not the most you can survive.",
+    "practical_rules": [
+      "Leave 1 to 2 reps in reserve on the compounds; the deficit is the fat-loss driver, not gym punishment.",
+      "Protect sleep and protein first; they decide whether the scale drop is fat or muscle.",
+      "If a session feels awful, cut a set or two rather than skipping - showing up keeps the habit."
+    ]
+  },
+  "rationale": {
+    "goal_fit": "Three full-body days give high training frequency at low weekly fatigue, which is the muscle-sparing setup for a cut.",
+    "exercise_selection": "Compounds first for the biggest muscle signal per minute, then a little targeted arm and shoulder work so the parts you see in the mirror hold up.",
+    "ordering": "Heaviest day Monday while fresh; posterior chain Wednesday; a lighter, quicker session Friday.",
+    "volume_analysis": "Weekly direct sets land near the lower-middle of the intermediate band - about 8 to 11 per muscle - which is the right dose to keep muscle on a deficit rather than chase growth you cannot fuel."
+  },
+  "cardio_and_steps": {
+    "current_average_steps": 5000,
+    "daily_step_target": 8500,
+    "step_rationale": "Steps burn fat without eating into gym recovery the way hard cardio does. Nudging from 5000 to 8500 adds a meaningful daily deficit you barely feel.",
+    "cardio_sessions": [
+      { "type": "Brisk walk", "duration_minutes": 25, "intensity": "conversational, zone 2", "placement": "on rest days or after a session" }
+    ],
+    "interference_note": "Keep hard cardio minimal on a cut - walking and steps do the job without stealing recovery from the lifts."
+  },
+  "diet_plan": {
+    "calorie_target_kcal": 1650,
+    "protein_g": 140,
+    "carbs_g": 160,
+    "fat_g": 50,
+    "macro_rationale": "Protein is set high at about 1.9 g per kg to protect muscle in the deficit. Fat sits at a healthy floor for hormones; carbs take the rest and fuel the sessions.",
+    "meal_schedule": [
+      { "time": "8:00", "meal": "Breakfast", "timing_note": "protein-forward to blunt hunger", "target_kcal": 400, "target_protein_g": 35 },
+      { "time": "13:00", "meal": "Lunch", "timing_note": "biggest carb portion around training", "target_kcal": 500, "target_protein_g": 40 },
+      { "time": "16:30", "meal": "Snack", "timing_note": "keeps the afternoon steady", "target_kcal": 250, "target_protein_g": 25 },
+      { "time": "20:00", "meal": "Dinner", "timing_note": "protein plus vegetables to finish full", "target_kcal": 500, "target_protein_g": 40 }
+    ],
+    "sample_day": [
+      { "time": "8:00", "meal": "Breakfast", "foods": ["3 egg whites plus 1 whole egg scramble", "1 slice wholegrain toast", "an apple"], "approx_calories": 400, "approx_protein_g": 35 },
+      { "time": "13:00", "meal": "Lunch", "foods": ["150 g grilled chicken", "150 g cooked rice", "a big mixed salad with 1 tsp olive oil"], "approx_calories": 500, "approx_protein_g": 42 },
+      { "time": "16:30", "meal": "Snack", "foods": ["200 g low-fat Greek yogurt", "a handful of berries"], "approx_calories": 250, "approx_protein_g": 24 },
+      { "time": "20:00", "meal": "Dinner", "foods": ["150 g white fish or paneer", "roasted vegetables", "100 g potato"], "approx_calories": 500, "approx_protein_g": 39 }
+    ],
+    "sample_day_totals": { "approx_calories": 1650, "approx_protein_g": 140, "note": "Hit protein and calories; swap foods you dislike for ones you enjoy with the same numbers." },
+    "pre_post_workout": "No special timing needed - just make sure lunch or a protein snack lands within a few hours of training.",
+    "hydration": "Aim for 2 to 2.5 litres of water a day; hunger is often thirst on a cut.",
+    "diet_preference_note": "Vegetarian swaps: paneer, tofu, dal and Greek yogurt cover the protein targets easily.",
+    "allergy_note": "No allergies were reported, so nothing is excluded. Adjust if that changes."
+  },
+  "supplements": [
+    { "name": "Creatine monohydrate", "dose": "5 g a day", "why": "Helps hold strength and muscle in a deficit; timing does not matter." },
+    { "name": "Whey or a plant protein", "dose": "as needed to hit 140 g", "why": "A convenience tool, not magic - real food first." }
+  ],
+  "supplements_excluded_note": "Fat burners and detox teas are skipped - they do nothing a deficit and steps do not already do.",
+  "duration_and_paths": {
+    "review_points": "Run the check-in every 4 weeks. Expect about 0.5 percent of bodyweight lost per week averaged over the block.",
+    "path_if_ahead": "Losing faster than 1 percent a week or strength dropping? Add 100 to 150 kcal back - that is too aggressive.",
+    "path_if_behind": "Scale flat for two weeks with good adherence? Trim about 150 kcal or add 1000 steps."
+  },
+  "safety_notes": "This is general fitness guidance, not medical advice. Stop and see a professional if a movement causes sharp pain. Very low intake plus heavy training is not the goal here - the deficit is moderate on purpose."
+}

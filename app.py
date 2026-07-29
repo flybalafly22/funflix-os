@@ -381,6 +381,15 @@ try:
 except FileNotFoundError:
     TRAINER_DEMO = None
 
+# a second sample (?demo=cut): a female fat-loss program, so the "see a sample"
+# door speaks to cutters too, and shows off concrete starting loads
+_TRAINER_DEMO_CUT_PATH = os.path.join(os.path.dirname(__file__), "data", "trainer_demo_cut.json")
+try:
+    with open(_TRAINER_DEMO_CUT_PATH) as _f:
+        TRAINER_DEMO_CUT = json_mod.load(_f)
+except FileNotFoundError:
+    TRAINER_DEMO_CUT = None
+
 TRAINER_SYSTEM = ""  # populated below (see data/trainer_system.txt)
 _TRAINER_SYS_PATH = os.path.join(os.path.dirname(__file__), "data", "trainer_system.txt")
 try:
@@ -749,6 +758,10 @@ def trainer_api():
     # keyless demo: lets the document view + PDF be exercised without an API key.
     # demo=stream exercises the streamed text path the real API uses.
     if payload.get("demo"):
+        if payload["demo"] in ("cut", "fatloss"):
+            if TRAINER_DEMO_CUT is None:
+                return jsonify({"error": "Demo plan is unavailable on the server."}), 500
+            return jsonify(TRAINER_DEMO_CUT)
         if TRAINER_DEMO is None:
             return jsonify({"error": "Demo plan is unavailable on the server."}), 500
         if payload["demo"] == "stream":

@@ -124,6 +124,13 @@ from this file directly.
   Trainer card into a live sample for new visitors, but a returning visitor lands
   on their own saved plan (no demo); the sample view keeps its "Build my own"
   CTA. Handler deferred past init to dodge a const TDZ.
+- Sprint 26 — Performance: stdlib-gzip `after_request` — `/trainer` 187 KB → 52 KB
+  (-73%, the Lighthouse text-compression win), streamed/SSE untouched, graceful
+  fallback, regression tests. No CSS/JS split needed.
+- Sprint 27 — A Second Door (demo): a female fat-loss sample (`?demo=cut` /
+  `?sample=cut` / a "Cutting? See a fat-loss sample" welcome switcher) so the
+  "see a sample" door speaks to cutters too, showcasing concrete starting loads;
+  validated against the shipped gate; marked demo (never synced).
 
 ## Solid-base backlog (groomed from the RED TEAM + SIMULATION e2e sweep,
 ## 2026-07-19; full detail in REDTEAM.md + SIM_STUDY.md "End-to-end sweep")
@@ -178,9 +185,12 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
 - **Groq parity patch**: apply RND_LAB's ~330-token compact-prompt additions
   (stall rule, special populations, consistent surplus numbers) so fallback
   plans stop being second-class.
-- **Prompt consistency + demo upgrade**: reconcile the muscle-gain-rate
-  contradiction (section 4 vs check-in bands); give trainer_demo.json
-  current_lifts (shows off starting-loads) and fix its volume_analysis claim.
+- **Prompt consistency + demo upgrade**: the muscle-gain-rate contradiction was
+  reconciled Sprint 12. Sprint 27 shipped a **second demo** — `?demo=cut` /
+  `?sample=cut` / a welcome switcher serve a female fat-loss program (`Meera`,
+  1650 kcal) with concrete **starting loads** (the current_lifts showcase),
+  validated against the shipped `_validate_plan` gate. (The original demo's
+  `volume_analysis` was checked and is internally consistent — no fix needed.)
 - **Bodyweight log + retention safety**: somewhere to log weight (check-in
   asks for 7-day averages it never collects); raise/trim the 200-session log
   cap with a warning; nudge sync/export after the fifth logged session.

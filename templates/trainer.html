@@ -572,6 +572,7 @@
         <span>Recalibrates from your measured results, syncs to every device</span>
       </div>
       <button type="button" class="os-btn-primary w-cta" id="welcomePeek">See a sample program — 10 seconds</button>
+      <button type="button" class="w-or" id="welcomePeekCut">Cutting? See a fat-loss sample →</button>
       <button type="button" class="w-or" id="welcomeBuild">or build mine now →</button>
       <div class="w-meta">About 2 minutes · 3 short steps · no account needed</div>
     </div>
@@ -1090,10 +1091,11 @@
       }
       if (followupAnswers) body.followup_answers = followupAnswers;
       const demoParam = new URLSearchParams(location.search).get('demo');
-      if (demoParam !== null) body.demo = demoParam === 'stream' ? 'stream' : 1;
+      if (demoParam !== null) body.demo = (demoParam === 'stream' || demoParam === 'cut') ? demoParam : 1;
       const peek = demoOnce;
       demoOnce = false;
-      if (peek) body.demo = 1;
+      if (peek) body.demo = demoVariant || 1;
+      demoVariant = null;
       const isDemo = !!body.demo;
       const r = await fetch('/api/trainer', { method: 'POST',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -1171,9 +1173,10 @@
   document.querySelectorAll('.stp').forEach(b =>
     b.addEventListener('click', () => { const n = +b.dataset.step; if (n < step) setStep(n); }));
 
-  let demoOnce = false, introDone = false;
+  let demoOnce = false, introDone = false, demoVariant = null;
   $('peekBtn').addEventListener('click', () => { demoOnce = true; submit(null); });
   $('welcomePeek').addEventListener('click', () => { demoOnce = true; submit(null); });
+  $('welcomePeekCut').addEventListener('click', () => { demoVariant = 'cut'; demoOnce = true; submit(null); });
   // reveal the form and drop the reader straight into the first field
   function startBuilding() {
     introDone = true;
@@ -2703,12 +2706,15 @@
   // ?sample deep-links the homepage card into a live sample — but a RETURNING
   // visitor (already has a plan) lands on THEIR plan, not a demo. Deferred (like
   // #history) so every top-level const is initialized before renderPlan runs.
-  if (new URLSearchParams(location.search).has('sample')) {
-    setTimeout(() => {
-      const saved = savedPlan();
-      if (saved) { renderPlan(saved.plan); setState('plan'); }
-      else { demoOnce = true; submit(null); }
-    }, 0);
+  {
+    const sp = new URLSearchParams(location.search);
+    if (sp.has('sample')) {
+      setTimeout(() => {
+        const saved = savedPlan();
+        if (saved) { renderPlan(saved.plan); setState('plan'); }
+        else { demoVariant = sp.get('sample') === 'cut' ? 'cut' : null; demoOnce = true; submit(null); }
+      }, 0);
+    }
   }
   /* ── PWA: installable, saved plan + logs readable offline at the gym ── */
   if ('serviceWorker' in navigator) {
