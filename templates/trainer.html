@@ -504,6 +504,12 @@
     .ct-item .bw-spark { margin-top: 2px; }
     .ct-n { margin-top: 6px; font-family: var(--monoX); font-size: 11px; color: var(--black); }
     .ct-n.up { color: #A0602A; } .ct-n.down { color: var(--accD); }
+    /* ── plan-history compare ── */
+    .hist-cmp { border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; margin: 0 0 22px; background: #FCFCFB; }
+    .hc-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .hc-l { font-family: var(--monoX); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--gray-2); }
+    .hc-row .os-select-wrap { flex: 1; min-width: 180px; }
+    #hcDiff { margin-top: 6px; }
     @media (max-width: 560px) { .bw-top { flex-direction: column; align-items: stretch; } .bw-log { width: 100%; } }
 
     .coach-cta { width: 100%; background: var(--black); color: #fff; border: none; border-radius: 12px;
@@ -2587,19 +2593,55 @@
       if (r.status === 401) syncAuthLost();
     } catch (e) {}
   }
-  // shared modal (os.js) calls this to open an archived plan in place
+  // shared modal (os.js) calls this to open an archived plan in place, with a
+  // "compare with" selector so any two saved plans can be diffed — not just
+  // archive-vs-current (plan-history: diff any two).
+  let histViewed = null;
+  function histCmpLabel(h) {
+    const dt = new Date(h.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return dt + ' · ' + (h.goal || 'Program') + (h.kcal ? ' · ' + h.kcal + ' kcal' : '') + (h.days ? ' · ' + h.days + ' days/wk' : '');
+  }
+  async function fetchHistPlan(hid) {
+    try { const d = await (await fetch('/api/history/' + hid)).json(); return d.plan || null; }
+    catch (e) { return null; }
+  }
+  async function renderHcDiff() {
+    const sel = $('hcSel'), out = $('hcDiff');
+    if (!sel || !out || !histViewed) return;
+    const v = sel.value;
+    const planB = v === 'current' ? ((savedPlan() || {}).plan || null) : await fetchHistPlan(v.slice(1));
+    out.innerHTML = planB
+      ? DIFF(histViewed.plan, planB, 'This archived plan → ' + (v === 'current' ? 'your current' : 'the selected plan'))
+      : '';
+  }
+  async function buildHistCompare() {
+    if (!histViewed) return;
+    let list = [];
+    try { list = ((await (await fetch('/api/history')).json()).history) || []; } catch (e) {}
+    const cur = savedPlan();
+    let opts = cur ? '<option value="current">your current plan</option>' : '';
+    list.filter(h => String(h.id) !== String(histViewed.id))
+        .forEach(h => { opts += '<option value="h' + h.id + '">' + esc(histCmpLabel(h)) + '</option>'; });
+    if (!opts) return;   // nothing else to compare against
+    $('planDoc').insertAdjacentHTML('afterbegin',
+      '<div class="hist-cmp"><div class="hc-row"><span class="hc-l">Compare with</span>' +
+      '<div class="os-select-wrap"><select class="os-select" id="hcSel">' + opts + '</select></div></div>' +
+      '<div id="hcDiff"></div></div>');
+    $('hcSel').addEventListener('change', renderHcDiff);
+    await renderHcDiff();
+  }
   window.TRAINER_VIEW_HISTORY = async id => {
     try {
       const d = await (await fetch('/api/history/' + id)).json();
       if (!d.plan) return;
+      histViewed = { id: id, plan: d.plan };
       renderPlan(d.plan);
-      const cur = savedPlan();
-      if (cur) $('planDoc').insertAdjacentHTML('afterbegin', DIFF(d.plan, cur.plan, 'This plan → your current'));
       setState('plan');
       document.querySelector('.pa-note').textContent = 'From your archive. Make it current to train and log against it again.';
       const kb = $('keepBtn');
       kb.textContent = 'Make this my current plan';
       kb.style.display = '';
+      await buildHistCompare();
     } catch (e) {}
   };
   $('tabAcct').addEventListener('click', () => { if (window.OS_ACCT) OS_ACCT.open(); });

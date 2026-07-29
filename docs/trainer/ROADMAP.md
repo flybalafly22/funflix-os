@@ -181,8 +181,11 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
   trend (bodyweight + best-sets digest); the check-in tab now *shows* it — a
   "Your measured trend" panel with a bodyweight sparkline and the top-logged
   lift's e1RM sparkline, so the user sees exactly what the recalibration reads.
-- **Plan history for synced accounts**: keep last N plans server-side; browse
-  and diff any two — makes Sync materially more valuable than localStorage.
+- ~~**Plan history for synced accounts**~~ — SHIPPED: server keeps the last 10
+  (`trainer_plan_history`), the account modal browses them, and Sprint 24 added
+  **compare any two** — a "Compare with" selector in the archived-plan view diffs
+  the viewed plan against your current plan or any other archived one (macros,
+  steps, training days, weekly sets).
 - ~~**First-run experience**~~ — SHIPPED across sprints: 3-step stepper + hero
   sample CTA (earlier), then Sprint 20 added the dual CTA, expectations line and
   the sample-peek → "Build my own" conversion loop.
