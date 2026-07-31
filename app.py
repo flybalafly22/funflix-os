@@ -114,6 +114,11 @@ class PgStore:
             row = cur.fetchone()
             return row[0] if row else None
 
+    def set_password(self, uid, pw_hash):
+        with self._cur() as (conn, cur):
+            cur.execute("UPDATE trainer_users SET pw_hash = %s WHERE id = %s", (pw_hash, uid))
+            return cur.rowcount > 0
+
     def put_blob(self, uid, kind, value, at):
         from psycopg2.extras import Json
         with self._cur() as (conn, cur):
@@ -572,6 +577,15 @@ def _otp_email_html(code):
             "no account is created until the code is entered.</p></div>")
 
 
+def _otp_reset_html(code):
+    return ("<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:440px;"
+            "margin:0 auto;padding:8px\"><p style=\"font-size:15px;color:#111\">Reset your <b>The Trainer</b> password.</p>"
+            "<p style=\"font-size:14px;color:#333\">Enter this code to set a new password:</p>"
+            "<p style=\"font-size:30px;letter-spacing:8px;font-weight:700;color:#0C8A4C;margin:12px 0\">" + code + "</p>"
+            "<p style=\"font-size:12.5px;color:#666\">It expires in 10 minutes. If you didn't request this, ignore this "
+            "email — your password stays unchanged.</p></div>")
+
+
 def _valid_reg(p):
     email = str(p.get("email", "")).strip().lower()
     pw = str(p.get("password", ""))
@@ -678,6 +692,68 @@ def auth_login():
     session.permanent = True
     session["uid"] = row[0]
     return jsonify({"user": email})
+
+
+@app.route("/api/auth/reset/start", methods=["POST"])
+def auth_reset_start():
+    # forgot-password: emails a one-time code to the account's inbox. Needs a
+    # configured mail provider (Gmail SMTP or Resend — see EMAIL_SETUP.md).
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    if _rate_limited(_client_ip(), bucket="auth", limit=10):
+        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+    if not _mail_configured():
+        # a global capability fact, not a per-email answer → no enumeration leak
+        return jsonify({"error": "Password reset by email isn't set up on this server yet."}), 503
+    email = str((request.json or {}).get("email", "")).strip().lower()
+    if not _EMAIL_RE.match(email):
+        return jsonify({"error": "That doesn't look like an email address."}), 400
+    row = STORE.get_user(email)
+    # anti-enumeration: identical success response whether or not the account
+    # exists; only arm the session + send when it actually does.
+    if row:
+        code = "%06d" % secrets.randbelow(1_000_000)
+        session.permanent = True
+        session["pwr"] = {"uid": row[0], "email": email,
+                          "ch": generate_password_hash(code),
+                          "exp": int(time.time()) + 600, "n": 0}
+        if not _send_email(email, "Your Trainer password-reset code", _otp_reset_html(code)):
+            session.pop("pwr", None)
+            return jsonify({"error": "Couldn't send the reset email just now — please try again."}), 502
+    else:
+        session.pop("pwr", None)
+    return jsonify({"ok": True, "email": email})
+
+
+@app.route("/api/auth/reset/verify", methods=["POST"])
+def auth_reset_verify():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    if _rate_limited(_client_ip(), bucket="auth", limit=10):
+        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+    pwr = session.get("pwr")
+    if not isinstance(pwr, dict) or pwr.get("exp", 0) < int(time.time()):
+        session.pop("pwr", None)
+        return jsonify({"error": "That code expired — start again to get a new one."}), 400
+    if pwr.get("n", 0) >= 6:
+        session.pop("pwr", None)
+        return jsonify({"error": "Too many wrong codes — start again."}), 429
+    pwr["n"] = pwr.get("n", 0) + 1
+    session["pwr"] = pwr
+    p = request.json or {}
+    code = str(p.get("code", "")).strip()
+    pw = str(p.get("password", ""))
+    if not code or not check_password_hash(pwr["ch"], code):
+        return jsonify({"error": "That code isn't right — check the email and try again."}), 400
+    if len(pw) < 8:
+        return jsonify({"error": "Password needs at least 8 characters."}), 400
+    if not STORE.set_password(pwr["uid"], generate_password_hash(pw)):
+        session.pop("pwr", None)
+        return jsonify({"error": "That account no longer exists."}), 404
+    session.pop("pwr", None)
+    session.permanent = True
+    session["uid"] = pwr["uid"]   # a successful reset signs them straight in
+    return jsonify({"user": pwr["email"]})
 
 
 @app.route("/api/auth/logout", methods=["POST"])

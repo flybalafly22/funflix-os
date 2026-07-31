@@ -30,6 +30,13 @@ class MemStore:
                 return e
         return None
 
+    def set_password(self, uid, pw_hash):
+        email = self.get_email(uid)
+        if email is None:
+            return False
+        self.users[email] = (uid, pw_hash)
+        return True
+
     def put_blob(self, uid, kind, value, at):
         cur = self.blobs.get((uid, kind))
         if cur and cur["at"] > at:

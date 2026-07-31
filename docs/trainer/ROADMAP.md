@@ -218,8 +218,12 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
   recipient, no domain to buy), Resend kept as fallback. Removes the "verify a
   domain costs money" blocker on OTP for real users. Owner action = the free
   5-min `docs/trainer/EMAIL_SETUP.md` runbook.
-- **Password reset via emailed one-time code** — UNBLOCKED by Sprint 29's free
-  mail path; interim honesty line shipped Sprint 7. Build next (Sprint 30).
+- ~~**Password reset via emailed one-time code**~~ — SHIPPED Sprint 30:
+  `/api/auth/reset/start` (anti-enumeration, mail-gated, rate-limited) +
+  `/reset/verify` (≤6 attempts, ≥8-char new pw, signs straight in); a "Forgot your
+  password?" flow in the account modal; `set_password` on both stores. pytest
+  test_reset.py (6) + qa_reset_client.py e2e. Also fixed a latent `.ac-btns[hidden]`
+  CSS bug that showed all step buttons at once. Emails need the free Gmail SMTP key.
 - ~~**Performance pass**~~ — SHIPPED Sprint 26: measured `/trainer` served
   **uncompressed at 187 KB**; added a stdlib-gzip `after_request` (no new dep) →
   **52 KB, a 73% cut** (the Lighthouse "enable text compression" win). Streamed/

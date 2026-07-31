@@ -111,8 +111,14 @@
       padding: 10px 2px; font-family: inherit; font-size: 15px; color: #111110; outline: none; }
     .osacct input:focus { border-bottom-color: #0C8A4C; }
     .osacct .ac-hint { margin-top: 7px; font-size: 11.5px; color: #6D6D66; }
+    .osacct .ac-link { background: none; border: none; padding: 0; font: inherit; font-size: 11.5px;
+      color: #0C8A4C; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+    .osacct .ac-link:hover { color: #0a6f3d; }
     .osacct .ac-err { margin-top: 12px; font-size: 13px; color: #A03428; }
     .osacct .ac-btns { display: flex; gap: 10px; margin-top: 26px; align-items: center; }
+    /* the display:flex above outranks the UA [hidden] rule, so hidden button rows
+       (OTP / reset steps) would otherwise all show at once — re-hide them */
+    .osacct .ac-btns[hidden] { display: none; }
     .osacct .ac-primary { flex: 1; background: #111110; color: #fff; border: none; border-radius: 999px;
       font-family: inherit; font-size: 14px; font-weight: 600; padding: 14px 26px; cursor: pointer;
       box-shadow: 0 10px 30px rgba(17,17,16,.20); transition: transform .2s; }
@@ -183,12 +189,19 @@
             <input id="acEmail" type="email" autocomplete="email"></div>
           <div class="ac-field"><label for="acPw">Password &mdash; 8+ characters</label>
             <input id="acPw" type="password" autocomplete="current-password">
-            <div class="ac-hint">No password reset exists yet &mdash; keep it in a password manager.</div></div>
+            <div class="ac-hint"><button type="button" class="ac-link" id="acForgot">Forgot your password?</button></div></div>
         </div>
         <div id="acOtp" hidden>
           <div class="ac-sub" id="acOtpMsg"></div>
           <div class="ac-field"><label for="acCode">6-digit code</label>
             <input id="acCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
+        </div>
+        <div id="acReset" hidden>
+          <div class="ac-sub" id="acRsMsg"></div>
+          <div class="ac-field"><label for="acRsCode">6-digit code</label>
+            <input id="acRsCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
+          <div class="ac-field"><label for="acRsPw">New password &mdash; 8+ characters</label>
+            <input id="acRsPw" type="password" autocomplete="new-password"></div>
         </div>
         <div class="ac-err" id="acErr"></div>
         <div class="ac-ok" id="acNote"></div>
@@ -199,6 +212,10 @@
         <div class="ac-btns" id="acOtpBtns" hidden>
           <button class="ac-primary" id="acVerify" type="button">Verify &amp; create account</button>
           <button class="ac-ghost" id="acOtpBack" type="button">Back</button>
+        </div>
+        <div class="ac-btns" id="acRsBtns" hidden>
+          <button class="ac-primary" id="acRsVerify" type="button">Set new password</button>
+          <button class="ac-ghost" id="acRsBack" type="button">Back</button>
         </div>
       </div>
       <div id="acIn" hidden>
@@ -318,7 +335,9 @@
     ACCT.user = d.user;
     $a('acPw').value = '';
     if ($a('acCode')) $a('acCode').value = '';
-    hideOtpStep();
+    if ($a('acRsCode')) $a('acRsCode').value = '';
+    if ($a('acRsPw')) $a('acRsPw').value = '';
+    hideOtpStep(); hideResetStep();
     acctPanels(); acctHistory(); acctProfile(); refreshCtas(); ACCT._emit('login');
   }
   function showOtpStep(email) {
@@ -332,6 +351,19 @@
   function hideOtpStep() {
     if (!$a('acOtp')) return;
     $a('acOtp').hidden = true; $a('acOtpBtns').hidden = true;
+    $a('acForm').hidden = false; $a('acFormBtns').hidden = false;
+  }
+  function showResetStep(email) {
+    $a('acErr').textContent = '';
+    $a('acForm').hidden = true; $a('acFormBtns').hidden = true;
+    $a('acReset').hidden = false; $a('acRsBtns').hidden = false;
+    $a('acRsMsg').innerHTML = 'If <b>' + (email || 'that address') + '</b> has an account, we emailed ' +
+      'it a 6-digit code. Enter it with a new password to sign back in.';
+    $a('acRsCode').focus();
+  }
+  function hideResetStep() {
+    if (!$a('acReset')) return;
+    $a('acReset').hidden = true; $a('acRsBtns').hidden = true;
     $a('acForm').hidden = false; $a('acFormBtns').hidden = false;
   }
   async function acctPost(path, body) {
@@ -358,12 +390,26 @@
     const d = await acctPost('/api/auth/register/verify', { code: $a('acCode').value });
     if (d) finishLogin(d);
   }
-  $a('acClose').addEventListener('click', () => { hideOtpStep(); acctClose(); });
-  acctEl.addEventListener('click', e => { if (e.target === acctEl) { hideOtpStep(); acctClose(); } });
+  async function resetStart() {
+    const email = ($a('acEmail').value || '').trim();
+    if (!email) { $a('acErr').textContent = 'Enter your email first, then tap “Forgot your password?”.'; return; }
+    const d = await acctPost('/api/auth/reset/start', { email: email });
+    if (d) showResetStep(email);   // same step whether or not the address has an account
+  }
+  async function resetVerify() {
+    const d = await acctPost('/api/auth/reset/verify',
+      { code: $a('acRsCode').value, password: $a('acRsPw').value });
+    if (d) finishLogin(d);
+  }
+  $a('acClose').addEventListener('click', () => { hideOtpStep(); hideResetStep(); acctClose(); });
+  acctEl.addEventListener('click', e => { if (e.target === acctEl) { hideOtpStep(); hideResetStep(); acctClose(); } });
   $a('acRegister').addEventListener('click', registerStart);
   $a('acLogin').addEventListener('click', () => acctCall('/api/auth/login'));
   $a('acVerify').addEventListener('click', verifyOtp);
   $a('acOtpBack').addEventListener('click', () => { hideOtpStep(); $a('acErr').textContent = ''; });
+  $a('acForgot').addEventListener('click', resetStart);
+  $a('acRsVerify').addEventListener('click', resetVerify);
+  $a('acRsBack').addEventListener('click', () => { hideResetStep(); $a('acErr').textContent = ''; });
   $a('acLogout').addEventListener('click', async () => {
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
     ACCT.user = null;
