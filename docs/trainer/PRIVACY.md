@@ -68,6 +68,20 @@ account. Regression coverage in `qa_privacy.py` + `site_qa.py`
 
 ---
 
+## Audit — S3 isolation proof (2026-07-31)
+
+Ran the full checklist. **Server-side isolation holds** and is proven by
+`tests/test_accounts.py` (two users' plans/logs/history stay separate; the
+history-item route is `WHERE user_id AND id` so IDOR fails; one user's write never
+touches another; deleting one account leaves the other intact; every data endpoint
+rejects the anonymous). **Browser cross-user proof added** (`qa_isolation_e2e.py`):
+A registers via OTP and syncs a plan; A logs out; **B registers on the same
+browser** → B's `/api/sync` is empty of A's data, B is B (not A), **A's device
+localStorage is wiped** on B's login (owner-stamp), and B cannot read A's history
+item by id. **Email-OTP** (S2) further ties each account to a verified inbox.
+Result: a logged-in user's data is theirs alone, preserved in their profile, and
+never leaks to a guest or a second account on a shared browser.
+
 ## Standing checklist (run cold, every sprint)
 
 - [ ] Open `/trainer` in a fresh, signed-out browser — is anything shown that
