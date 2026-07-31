@@ -82,6 +82,20 @@ whether it beats or loses to us, and a concrete $0 change for The Trainer (or a
 reason to deliberately differ). No copying UI/branding/assets (licensing);
 learn the mechanism, not the pixels. Findings feed ROADMAP via the Producer.
 
+## THE GUARDIANS — data privacy & trust
+**Lives in:** `docs/trainer/PRIVACY.md` (charter, per-sprint audit log, retros).
+**Why hired (2026-07-31):** a user found a signed-out visitor being shown
+"Restore last plan" — a peeked sample masquerading as their own saved data —
+and **every existing team had missed it**. See the retro in PRIVACY.md.
+**What it does:** every sprint, audits The Trainer from the **logged-out,
+shared-device** perspective first — what persists to `localStorage` and whether
+it should, what a not-logged-in visitor sees, whether any affordance implies
+ownership/safety it lacks — and proves **server-side per-user isolation** with
+tests (sync / history / export / profile). Owns the promise "your data is yours
+alone," made literally and visibly true.
+**Rule:** open it cold and signed out before anything else; every finding ships
+with a privacy/isolation regression test so the class of bug can't recur.
+
 ## Cross-team communication — the round table
 **Lives in:** `docs/trainer/ROUNDTABLE.md` (standing cross-team thread log).
 Teams must talk to each other, not work in silos. The protocol, every sprint:

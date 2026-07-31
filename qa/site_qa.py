@@ -144,7 +144,17 @@ with sync_playwright() as p:
             pg2.close()
 
         # ── sprint 2: workout logger + check-in autofill ──
+        # seed a REAL saved plan (samples no longer persist — privacy fix) so the
+        # Log tab has a program to log against
+        REAL_PLAN = {"type": "plan", "profile_summary": {"name": "QA", "goal": "Muscle gain"},
+                     "workout_days": [{"day_label": "Day 1", "exercises": [
+                        {"name": "Bench press", "sets": 3, "rep_range": "5-8", "rest_seconds": 120, "rpe_or_rir": "RIR 2"},
+                        {"name": "Barbell row", "sets": 3, "rep_range": "8-12", "rest_seconds": 90, "rpe_or_rir": "RIR 2"},
+                        {"name": "Back squat", "sets": 3, "rep_range": "5-8", "rest_seconds": 150, "rpe_or_rir": "RIR 2"}]}],
+                     "diet_plan": {"calorie_target_kcal": 2800}}
         pg.goto(BASE + "/trainer", wait_until="networkidle", timeout=30000)
+        pg.evaluate("(p) => localStorage.setItem('trainerLastPlan', JSON.stringify({at: Date.now(), plan: p}))", REAL_PLAN)
+        pg.reload(wait_until="networkidle", timeout=30000)
         check("log_tab_visible_with_saved_plan",
               pg.evaluate("() => document.getElementById('tabLog').style.display !== 'none'"))
         pg.click("#tabLog"); pg.wait_for_timeout(300)
@@ -170,16 +180,22 @@ with sync_playwright() as p:
         pg.wait_for_selector(".plan-wrap.show", timeout=45000)
         check("demo_never_clobbers_saved_plan",
               pg.evaluate("() => JSON.parse(localStorage.getItem('trainerLastPlan')).plan.profile_summary.goal === 'REAL'"))
-        # fresh visitor's demo DOES seed local state (downstream logger checks rely on it)
+        # PRIVACY: a sample/demo is exploratory and must NEVER persist as a saved
+        # plan or raise a "Restore last plan" tab — it used to, so a peeked sample
+        # masqueraded as the visitor's own data on a shared browser (GUARDIANS bug).
         pg.evaluate("localStorage.removeItem('trainerLastPlan')")
         pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
         pg.fill("#fName", "QA"); pg.fill("#fDob", "2002-05-01")
         pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82")
         pg.click("#next1"); pg.click("#next2"); pg.click("#buildBtn")
         pg.wait_for_selector(".plan-wrap.show", timeout=45000)
-        check("demo_seeds_fresh_visitor",
-              pg.evaluate("() => !!localStorage.getItem('trainerLastPlan')"))
-        pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
+        check("demo_peek_does_not_persist",
+              pg.evaluate("() => localStorage.getItem('trainerLastPlan') === null"))
+        check("demo_peek_no_restore_tab",
+              pg.evaluate("() => document.getElementById('tabRestore').style.display === 'none'"))
+        # re-seed the real plan for the coach-mode checks below
+        pg.evaluate("(p) => localStorage.setItem('trainerLastPlan', JSON.stringify({at: Date.now(), plan: p}))", REAL_PLAN)
+        pg.goto(BASE + "/trainer", wait_until="networkidle", timeout=30000)
 
         # ── sprint 6: Q&A panel + account surfaces exist ──
         check("qa_panel_present",

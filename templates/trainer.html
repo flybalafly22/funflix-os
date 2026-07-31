@@ -493,6 +493,13 @@
     .dur-x { margin-top: 9px; padding: 6px 8px; border: none; background: none; color: var(--gray-2);
       font-family: var(--sans); font-size: 11.5px; cursor: pointer; }
     .dur-x:hover { color: var(--black); text-decoration: underline; }
+    /* ── guest 'clear this device' privacy control ── */
+    .dev-clear { max-width: 620px; margin: -6px auto 18px; text-align: center; font-family: var(--sans);
+      font-size: 12px; line-height: 1.5; color: var(--gray-2); }
+    .dev-clear b { color: var(--gray); }
+    #devClearBtn { border: none; background: none; padding: 0 2px; cursor: pointer; font: inherit;
+      color: #A0602A; font-weight: 600; text-decoration: underline; }
+    #devClearBtn:hover { color: #8a5a1a; }
     /* ── trend-fed check-in ── */
     .ct-card { border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px 16px; margin-bottom: 24px;
       background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
@@ -585,6 +592,8 @@
       <button class="mtab sync" id="tabAcct" type="button" style="display:none">Sync</button>
       <button class="mtab restore" id="tabRestore" type="button" style="display:none">Restore last plan</button>
     </div>
+    <div class="dev-clear" id="devClear" hidden>Saved only on <b>this browser</b>, no account attached.
+      Not your device? <button type="button" id="devClearBtn">Clear this data</button></div>
 
     <!-- ── INTAKE ── -->
     <form class="intake fade-rise-d1" id="intakeForm" autocomplete="off">
@@ -1129,14 +1138,11 @@
           (data.note ? '<div class="fu-note">' + esc(data.note) + '</div>' : '');
         setState('followup');
       } else if (data.type === 'plan') {
-        // Demo-sourced plans must never clobber a real saved plan or reach sync.
-        // A fresh visitor's demo may seed local state (marked demo:true so it is
-        // never pushed or adopted into an account).
+        // A sample/demo is exploratory: render it in memory only, NEVER write it
+        // to localStorage. Persisting it used to leave a phantom "Restore last
+        // plan" that looked like the visitor's own saved data (privacy/trust bug).
+        // Only a real, intentionally-built plan is saved.
         if (!isDemo) savePlan(data, mode === 'checkin' ? null : captureSafety());
-        else if (!savedPlan()) {
-          try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: Date.now(), plan: data, demo: true })); } catch (e) {}
-          refreshRestore();
-        }
         renderPlan(data);
         setState('plan');
         if (isDemo) {
@@ -1201,6 +1207,11 @@
 
   /* ── plan persistence (device-only; nothing leaves the browser) ── */
   const PLAN_KEY = 'trainerLastPlan';
+  // PRIVACY cleanup: older builds persisted a peeked SAMPLE here (demo:true),
+  // which then surfaced as a misleading "Restore last plan · <date>" — a sample
+  // masquerading as the visitor's own saved data. A sample is never saved data,
+  // so purge any lingering demo entry on load. (savedPlan() also ignores it.)
+  try { const _s0 = JSON.parse(localStorage.getItem(PLAN_KEY)); if (_s0 && _s0.demo) localStorage.removeItem(PLAN_KEY); } catch (e) {}
   // the safety context the model must never forget across check-ins (allergies,
   // injuries, equipment) — the intake collects it once; we persist it with the
   // plan so recalibration re-applies it
@@ -1223,9 +1234,12 @@
     if (typeof pushPlan === 'function') pushPlan();
   }
   function savedPlan() {
-    try { const s = JSON.parse(localStorage.getItem(PLAN_KEY)); return s && s.plan ? s : null; }
+    // a peeked sample (demo:true) is exploratory, NOT the visitor's saved plan —
+    // it must never drive "Restore last plan", the Log tab, or sync (privacy).
+    try { const s = JSON.parse(localStorage.getItem(PLAN_KEY)); return s && s.plan && !s.demo ? s : null; }
     catch (e) { return null; }
   }
+  function isGuest() { try { return !SYNC.user; } catch (e) { return true; } }  // SYNC may be in TDZ early
   function refreshRestore() {
     const saved = savedPlan();
     const btn = $('tabRestore');
@@ -1235,8 +1249,16 @@
       btn.style.display = '';
     } else { btn.style.display = 'none'; }
     $('tabLog').style.display = saved && Array.isArray(saved.plan.workout_days) && saved.plan.workout_days.length ? '' : 'none';
+    // give a guest an obvious way to wipe device-local data (e.g. a shared machine)
+    const dc = $('devClear');
+    if (dc) dc.hidden = !(saved && isGuest());
     if (typeof updateWelcome === 'function') updateWelcome();
   }
+  $('devClearBtn').addEventListener('click', () => {
+    if (confirm('Remove this program, logs and weigh-ins from THIS browser? This only clears local data on this device and cannot be undone.')) {
+      deviceReset();
+    }
+  });
 
   /* ── session log (device-only) ── */
   const LOG_KEY = 'trainerLogs';
@@ -2684,6 +2706,7 @@
     SYNC.enabled = st.enabled;
     acctPill();
     renderDurable();   // signing in makes the "only in this browser" nudge moot
+    refreshRestore();  // and hides the guest "clear this device" control
     if (st.event === 'authlost') { refreshRestore(); return; }
     if (st.user && (st.event === 'me' || st.event === 'login')) {
       let owner = null;
