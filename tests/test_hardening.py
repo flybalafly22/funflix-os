@@ -113,6 +113,14 @@ def test_streamed_response_not_compressed():
     assert r.headers.get("Content-Encoding") is None       # SSE/stream left intact
 
 
+def test_text_plain_never_compressed():
+    # every streaming endpoint (live plan gen, demo=stream, Ask) is text/plain, and
+    # under gunicorn `is_streamed` did NOT catch them → the plan stream got buffered
+    # and gzipped, so the browser saw an "incomplete reply" (prod outage 2026-07-31).
+    # text/plain must be permanently OUT of the compressible set.
+    assert "text/plain" not in A._COMPRESSIBLE
+
+
 # ── Sprint 27: the second (fat-loss) demo is valid and served on ?demo=cut ──
 
 def test_cut_demo_valid_and_served():

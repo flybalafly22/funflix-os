@@ -1102,7 +1102,13 @@ def calculate():
     except Exception as exc:
         return jsonify({"error": str(exc)})
 
-_COMPRESSIBLE = {"text/html", "text/css", "text/plain", "text/javascript",
+# NOTE: text/plain is deliberately EXCLUDED. Every streaming endpoint (live plan
+# generation, demo=stream, Ask-the-Trainer) returns text/plain, and under gunicorn
+# `resp.is_streamed` does NOT reliably flag those — so compressing text/plain
+# buffered+gzipped the whole plan stream and the browser saw an "incomplete reply"
+# (prod outage 2026-07-31). Excluding text/plain keeps every stream flowing while
+# the real win (text/html for /trainer, JSON, CSS/JS) is untouched.
+_COMPRESSIBLE = {"text/html", "text/css", "text/javascript",
                  "application/javascript", "application/json", "image/svg+xml",
                  "application/manifest+json"}
 
@@ -1110,9 +1116,9 @@ _COMPRESSIBLE = {"text/html", "text/css", "text/plain", "text/javascript",
 @app.after_request
 def _compress(resp):
     # Text compression — the biggest mobile-load win (Lighthouse "enable text
-    # compression"): /trainer is ~187 KB of HTML/CSS/JS that gzips to ~38 KB.
-    # Stdlib only ($0, no new dep). Streamed/SSE responses are left untouched so
-    # the live plan/demo streams keep flowing.
+    # compression"): /trainer is ~187 KB of HTML/CSS/JS that gzips to ~52 KB.
+    # Stdlib only ($0, no new dep). Streamed/SSE responses (all text/plain, now
+    # excluded above) are left untouched so the live plan/demo streams keep flowing.
     try:
         if resp.direct_passthrough or resp.is_streamed:
             return resp
