@@ -180,6 +180,9 @@
     .nx-dot { width: 9px; height: 9px; border-radius: 999px; background: rgba(255,255,255,.18); }
     .nx-dot.on { background: var(--accD); }
     .nx-streak { font-family: var(--monoX); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--accD); }
+    .lg-pr { border: 1px solid rgba(12,138,76,.30); background: rgba(189,242,63,.10); border-radius: 12px;
+      padding: 12px 15px; margin: 14px 0 0; font-family: var(--sans); font-size: 13px; line-height: 1.5; color: #2A3A26; }
+    .lg-pr b { color: var(--accD); }
     .nx-rem { display: flex; align-items: center; gap: 14px; margin-top: 15px; padding-top: 14px;
       border-top: 1px solid rgba(255,255,255,.10); }
     .nx-rem-txt { flex: 1; font-family: var(--sans); }
@@ -847,6 +850,7 @@
           <button type="submit" class="os-btn-primary" id="logBtn">Save session</button>
           <div class="go-note">Logs live only in this browser. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
         </div>
+        <div class="lg-pr" id="lgPR" hidden></div>
         <div id="lgStall"></div>
         <div class="vol-card" id="volCard" hidden>
           <div class="sec">Volume tune-up</div>
@@ -1513,6 +1517,12 @@
     });
     if (!entries.length) { errBox.textContent = 'Enter at least one set before saving.'; errBox.classList.add('show'); return; }
     errBox.classList.remove('show');
+    // all-time PR detection: did any set beat this lift's best-ever e1RM? (only
+    // celebrate beating an EXISTING best — the first time you log a lift isn't a PR)
+    const bestBefore = {};
+    loadLogs().forEach(s => s.entries.forEach(e => { const b = bestSet(e.sets); if (b) bestBefore[e.name] = Math.max(bestBefore[e.name] || 0, e1rm(b)); }));
+    const prs = [];
+    entries.forEach(e => { const b = bestSet(e.sets); if (b && (bestBefore[e.name] || 0) > 0 && e1rm(b) > bestBefore[e.name] + 1e-6) prs.push({ name: e.name, set: b }); });
     const logs = loadLogs();
     // same-day sessions must keep their real order: use the current time when
     // logging for today, noon of the chosen day otherwise
@@ -1525,6 +1535,11 @@
     renderLgList();
     renderLgHist();
     renderNext();
+    if (prs.length) {
+      $('lgPR').innerHTML = '🎉 <b>New PR' + (prs.length > 1 ? 's' : '') + '!</b> ' +
+        prs.map(pr => esc(pr.name) + ' — ' + esc(fmtSet(pr.set))).join(' · ') + ' — your best yet.';
+      $('lgPR').hidden = false;
+    } else { $('lgPR').hidden = true; }
     const btn = $('logBtn'), old = btn.textContent;
     btn.textContent = 'Saved ✓';
     setTimeout(() => { btn.textContent = old; }, 1600);
