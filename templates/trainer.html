@@ -2475,6 +2475,27 @@
     for (const name in by) if (by[name].length >= 2 && (!best || by[name].length > best.pts.length)) best = { name, pts: by[name] };
     return best ? { name: best.name, pts: best.pts, from: best.pts[0].v, to: best.pts[best.pts.length - 1].v } : null;
   }
+  // strength standards: where an e1RM sits as a multiple of bodyweight, by lift.
+  // Thresholds are approximate community consensus (male e1RM/BW); women scaled ~0.72.
+  const STRENGTH_STD = [
+    [/bench|chest press/, [0.75, 1.0, 1.5, 2.0]],
+    [/squat/, [1.0, 1.5, 2.0, 2.5]],
+    [/deadlift|rdl|romanian/, [1.25, 1.75, 2.5, 3.0]],
+    [/overhead press|ohp|shoulder press|military/, [0.45, 0.65, 0.9, 1.2]],
+    [/\brow\b/, [0.7, 1.0, 1.35, 1.75]],
+  ];
+  function strengthLevel(name, e1, bw, gender) {
+    if (!e1 || !bw) return null;
+    const n = String(name).toLowerCase();
+    let std = null;
+    for (const [re, s] of STRENGTH_STD) if (re.test(n)) { std = s; break; }
+    if (!std) return null;
+    const scale = /female|woman/.test(String(gender || '').toLowerCase()) ? 0.72 : 1;
+    const ratio = e1 / bw, labels = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Elite'];
+    let lvl = 0;
+    std.forEach((x, i) => { if (ratio >= x * scale) lvl = i + 1; });
+    return { level: labels[lvl], ratio: +ratio.toFixed(2) };
+  }
   function renderCheckinTrend() {
     const panel = $('cTrend');
     if (!panel) return;
@@ -2489,9 +2510,13 @@
     const lift = topLiftTrend();
     if (lift) {
       const g = lift.to - lift.from;
+      const psx = (sp && sp.plan && sp.plan.profile_summary) || {};
+      const bw = weightAvg7() || parseFloat(psx.weight_kg) || null;
+      const sl = strengthLevel(lift.name, lift.to, bw, psx.gender_assigned_at_birth);
       parts.push('<div class="ct-item"><div class="ct-h">' + esc(lift.name) + ' — est. 1RM</div><div class="bw-spark">' +
         _spark(lift.pts, lift.name + ' estimated 1RM trend') + '</div><div class="ct-n ' + (g > 0.5 ? 'down' : g < -0.5 ? 'up' : '') + '">' +
-        Math.round(lift.from) + ' → ' + Math.round(lift.to) + ' kg e1RM · ' + lift.pts.length + ' sessions</div></div>');
+        Math.round(lift.from) + ' → ' + Math.round(lift.to) + ' kg e1RM · ' + lift.pts.length + ' sessions' +
+        (sl ? ' · <b>' + sl.level + '</b> (' + sl.ratio + '× BW)' : '') + '</div></div>');
     }
     if (!parts.length) { panel.hidden = true; return; }
     const weeks = sp ? Math.max(1, Math.round((Date.now() - sp.at) / WEEK_MS)) : null;
