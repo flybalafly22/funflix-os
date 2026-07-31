@@ -76,6 +76,23 @@ with sync_playwright() as p:
 
         vis0 = form_visibility()
         check("trainer_default_shows_intake", vis0["intake"] and not vis0["checkin"], vis0)
+        # S28: the check-in tab is gated on a saved plan (a no-plan "recalibration"
+        # is a stateless from-scratch plan — a bug). Hidden cold; shown once a plan
+        # exists. Seed one to exercise the toggle.
+        checkin_hidden_cold = not pg.is_visible("#tabCheckin")
+        check("trainer_checkin_tab_gated_cold", checkin_hidden_cold, "hidden with no plan")
+        pg.evaluate("""() => localStorage.setItem('trainerLastPlan', JSON.stringify({
+            at: Date.now(), plan: { type:'plan',
+              workout_days:[{day_label:'Full body', exercises:[
+                {name:'Squat', sets:3, rest_seconds:120},
+                {name:'Bench Press', sets:3, rest_seconds:120},
+                {name:'Row', sets:3, rest_seconds:90}]}],
+              diet_plan:{calorie_target_kcal:2500, protein_g:180, carbs_g:250, fat_g:78} },
+            safety:{ allergies:'', injuries:'', equipment:'full gym', diet:'omnivore',
+              dob:'1995-01-01', sex:'Male' } })); """)
+        pg.reload(wait_until="networkidle", timeout=30000)
+        pg.wait_for_timeout(300)
+        check("trainer_checkin_tab_shown_with_plan", pg.is_visible("#tabCheckin"), "shown with a plan")
         pg.click("#tabCheckin")
         pg.wait_for_timeout(250)
         vis1 = form_visibility()
@@ -84,6 +101,7 @@ with sync_playwright() as p:
         pg.wait_for_timeout(250)
         vis2 = form_visibility()
         check("trainer_tab_switch_back_to_plan", vis2["intake"] and not vis2["checkin"], vis2)
+        pg.evaluate("() => localStorage.clear()")
         pg.screenshot(path=os.path.join(SHOTS, "site_trainer_form.png"))
         pg.close()
 

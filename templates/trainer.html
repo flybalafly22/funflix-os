@@ -45,6 +45,10 @@
 
     .go-row { margin-top: 36px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
     .go-note { font-family: var(--sans); font-size: 12px; color: var(--gray-2); max-width: 380px; line-height: 1.5; }
+    .lg-deload { margin-top: 18px; display: flex; align-items: flex-start; gap: 9px; cursor: pointer;
+      font-family: var(--sans); font-size: 12.5px; color: var(--gray-1); line-height: 1.45; }
+    .lg-deload input { margin-top: 1px; width: 15px; height: 15px; accent-color: var(--accD); flex: none; cursor: pointer; }
+    .lg-deload b { color: var(--accD); font-weight: 600; }
     #buildBtn { width: auto; padding: 15px 34px; }
 
     /* ── thinking state ── */
@@ -609,7 +613,7 @@
     <!-- ── MODE TABS ── -->
     <div class="mode-tabs fade-rise-d1" id="modeTabs" role="tablist">
       <button class="mtab on" id="tabPlan" type="button">New program</button>
-      <button class="mtab" id="tabCheckin" type="button">Week-4 check-in</button>
+      <button class="mtab" id="tabCheckin" type="button" style="display:none">Week-4 check-in</button>
       <button class="mtab" id="tabLog" type="button" style="display:none">Log a session</button>
       <button class="mtab sync" id="tabAcct" type="button" style="display:none">Sync</button>
       <button class="mtab restore" id="tabRestore" type="button" style="display:none">Restore last plan</button>
@@ -860,6 +864,8 @@
             <div class="hintline">Rest timers, plate math, and set-by-set logging, straight from your plan.</div></div>
         </div>
         <div id="lgList"></div>
+        <label class="lg-deload" for="lgDeload"><input type="checkbox" id="lgDeload">
+          <span>This was a <b>deload</b> week — reduced sets/loads on purpose. Don’t count it as a stall.</span></label>
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="logBtn">Save session</button>
           <div class="go-note">Logs live only in this browser. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
@@ -1023,6 +1029,8 @@
 
   let mode = 'plan';
   function setMode(m) {
+    // a check-in / log needs a saved plan to act on — never land there without one
+    if ((m === 'checkin' || m === 'log') && !savedPlan()) m = 'plan';
     mode = m;
     $('tabPlan').classList.toggle('on', m === 'plan');
     $('tabCheckin').classList.toggle('on', m === 'checkin');
@@ -1072,6 +1080,9 @@
       return {
         name: $('cName').value, goal: $('cGoal').value,
         allergies: sf.allergies || '',
+        // age + gender carried forward so special-population rules survive (S28)
+        'date of birth': sf.dob || '',
+        'gender assigned at birth': sf.sex || '',
         'health issues and injuries': sf.injuries || '',
         'training environment and equipment': sf.equipment || '',
         'diet preference': sf.diet || '',
@@ -1255,6 +1266,11 @@
       equipment: [$('fEnv').value.trim(), $('fEquip').value.trim()].filter(Boolean).join(' — '),
       diet: $('fDiet').value === 'Other' ? 'Other — ' + $('fDietOther').value.trim() : $('fDiet').value,
       goalWeight: $('fGoalWeight').value.trim(),
+      // age + gender must survive check-ins too, or special-population rules
+      // (50+/60+ recovery, 16–17, women's RED-S floor) silently expire at the
+      // first recalibration (SIMULATION finding, Sprint 28)
+      dob: $('fDob').value.trim(),
+      sex: $('fSex').value,
     };
   }
   function savePlan(d, safety) {
@@ -1281,7 +1297,12 @@
       btn.textContent = 'Restore last plan · ' + dt;
       btn.style.display = '';
     } else { btn.style.display = 'none'; }
-    $('tabLog').style.display = saved && Array.isArray(saved.plan.workout_days) && saved.plan.workout_days.length ? '' : 'none';
+    const hasWorkout = saved && Array.isArray(saved.plan.workout_days) && saved.plan.workout_days.length;
+    $('tabLog').style.display = hasWorkout ? '' : 'none';
+    // a check-in recalibrates a plan you've been running — hide it until one
+    // exists, or a first-time visitor gets a stateless "recalibration" (S28)
+    $('tabCheckin').style.display = hasWorkout ? '' : 'none';
+    if (!hasWorkout && mode === 'checkin') setMode('plan');
     // give a guest an obvious way to wipe device-local data (e.g. a shared machine)
     const dc = $('devClear');
     if (dc) dc.hidden = !(saved && isGuest());
@@ -1569,8 +1590,18 @@
     const dv = $('lDate').value;
     const at = (!dv || dv === new Date().toISOString().slice(0, 10))
       ? Date.now() : new Date(dv + 'T12:00:00').getTime();
-    logs.unshift({ at, day: day.day_label || '', entries });
+    const isDeload = !!($('lgDeload') && $('lgDeload').checked);
+    const sess = { at, day: day.day_label || '', entries };
+    if (isDeload) {
+      // tag it so stall-watch / previous-performance ignore the reduced week,
+      // and share the deload clock with Coach Mode so no redundant deload is
+      // prescribed on top of it (never moved backward by a backdated entry)
+      sess.deload = true;
+      try { const prev = +localStorage.getItem(DL_KEY) || 0; localStorage.setItem(DL_KEY, String(Math.max(prev, at))); } catch (e3) {}
+    }
+    logs.unshift(sess);
     try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, LOG_CAP))); } catch (e2) {}
+    if ($('lgDeload')) $('lgDeload').checked = false;
     pushLogs();
     renderLgList();
     renderLgHist();
