@@ -486,8 +486,13 @@ def _send_email(to, subject, html):
         return False
     try:
         body = json_mod.dumps({"from": _MAIL_FROM, "to": [to], "subject": subject, "html": html}).encode()
+        # Resend's API is behind Cloudflare, which blocks the default urllib
+        # User-Agent with "error code: 1010". A normal UA (like curl/SDKs send)
+        # clears it.
         req = urllib.request.Request("https://api.resend.com/emails", data=body, headers={
-            "Authorization": "Bearer " + _RESEND_KEY, "Content-Type": "application/json"})
+            "Authorization": "Bearer " + _RESEND_KEY, "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; TheTrainer/1.0; +https://funflix-os.onrender.com)"})
         ctx = ssl.create_default_context(cafile=certifi.where())
         with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
             return 200 <= r.status < 300
