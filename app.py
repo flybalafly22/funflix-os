@@ -573,8 +573,9 @@ def auth_register_start():
                        "ch": generate_password_hash(code), "exp": int(time.time()) + 600, "n": 0}
     if not _send_email(email, "Your Trainer verification code", _otp_email_html(code)):
         session.pop("preg", None)
-        return jsonify({"error": "Couldn't send the verification email just now — please try again.",
-                        "detail": _last_mail_err}), 502
+        # the reason is captured in _last_mail_err for server-side diagnosis; not
+        # exposed to the caller (could reveal provider internals)
+        return jsonify({"error": "Couldn't send the verification email just now — please try again."}), 502
     return jsonify({"otp": True, "email": email})
 
 
