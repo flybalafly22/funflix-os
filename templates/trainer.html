@@ -183,6 +183,20 @@
     .lg-pr { border: 1px solid rgba(12,138,76,.30); background: rgba(189,242,63,.10); border-radius: 12px;
       padding: 12px 15px; margin: 14px 0 0; font-family: var(--sans); font-size: 13px; line-height: 1.5; color: #2A3A26; }
     .lg-pr b { color: var(--accD); }
+    .calc-card { border: 1px solid var(--rule); border-radius: 16px; padding: 16px 20px 16px; margin: 22px 0 0;
+      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+    .calc-in { display: flex; align-items: center; gap: 10px; max-width: 320px; }
+    .calc-in .os-input { text-align: center; }
+    .calc-x { font-family: var(--serif); font-size: 18px; color: var(--gray-2); }
+    .calc-out { margin-top: 14px; }
+    .calc-hint { font-family: var(--sans); font-size: 12.5px; color: var(--gray-2); }
+    .calc-orm { font-family: var(--sans); font-size: 14px; color: #2A2A26; margin-bottom: 10px; }
+    .calc-orm b { font-family: var(--serif); font-weight: 400; font-size: 22px; color: var(--accD); }
+    .calc-tbl { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 1px;
+      background: var(--rule); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
+    .calc-cell { background: #fff; padding: 9px 4px; text-align: center; }
+    .calc-cell b { display: block; font-family: var(--monoX); font-size: 13px; color: var(--black); }
+    .calc-cell span { display: block; margin-top: 2px; font-family: var(--monoX); font-size: 9px; color: var(--gray-2); }
     .nx-rem { display: flex; align-items: center; gap: 14px; margin-top: 15px; padding-top: 14px;
       border-top: 1px solid rgba(255,255,255,.10); }
     .nx-rem-txt { flex: 1; font-family: var(--sans); }
@@ -851,6 +865,15 @@
           <div class="go-note">Logs live only in this browser. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
         </div>
         <div class="lg-pr" id="lgPR" hidden></div>
+        <div class="calc-card" id="calcCard">
+          <div class="sec" style="margin-top:0">1RM &amp; load calculator</div>
+          <div class="calc-in">
+            <input class="os-input" id="calcKg" inputmode="decimal" placeholder="weight (kg)">
+            <span class="calc-x">×</span>
+            <input class="os-input" id="calcReps" inputmode="numeric" placeholder="reps">
+          </div>
+          <div class="calc-out" id="calcOut"></div>
+        </div>
         <div id="lgStall"></div>
         <div class="vol-card" id="volCard" hidden>
           <div class="sec">Volume tune-up</div>
@@ -1501,6 +1524,23 @@
       renderLgHist();
     }
   });
+  // 1RM & training-load calculator (Epley): a quick tool every lifter reaches for
+  function renderCalc() {
+    const out = $('calcOut');
+    if (!out) return;
+    const w = parseFloat($('calcKg').value), r = parseInt($('calcReps').value, 10);
+    if (!w || !r || w <= 0 || r <= 0 || r > 20) {
+      out.innerHTML = '<span class="calc-hint">Enter a weight and reps (1–20) to estimate your 1RM and working loads.</span>';
+      return;
+    }
+    const orm = w * (1 + r / 30), round = v => Math.round(v / 2.5) * 2.5;
+    out.innerHTML = '<div class="calc-orm">Estimated 1RM <b>' + Math.round(orm) + ' kg</b></div>' +
+      '<div class="calc-tbl">' + [95, 90, 85, 80, 75, 70].map(p =>
+        '<span class="calc-cell"><b>' + round(orm * p / 100) + '</b><span>' + p + '%</span></span>').join('') + '</div>';
+  }
+  $('calcKg').addEventListener('input', renderCalc);
+  $('calcReps').addEventListener('input', renderCalc);
+  renderCalc();
   $('logForm').addEventListener('submit', e => {
     e.preventDefault();
     const saved = savedPlan();
