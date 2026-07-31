@@ -178,16 +178,27 @@
         <div class="ac-sub">One free account keeps your program, workout logs and check-ins in sync
           between this browser and your phone. Without one, everything stays on this device &mdash;
           that promise doesn't change.</div>
-        <div class="ac-field"><label for="acEmail">Email</label>
-          <input id="acEmail" type="email" autocomplete="email"></div>
-        <div class="ac-field"><label for="acPw">Password &mdash; 8+ characters</label>
-          <input id="acPw" type="password" autocomplete="current-password">
-          <div class="ac-hint">No password reset exists yet &mdash; keep it in a password manager.</div></div>
+        <div id="acForm">
+          <div class="ac-field"><label for="acEmail">Email</label>
+            <input id="acEmail" type="email" autocomplete="email"></div>
+          <div class="ac-field"><label for="acPw">Password &mdash; 8+ characters</label>
+            <input id="acPw" type="password" autocomplete="current-password">
+            <div class="ac-hint">No password reset exists yet &mdash; keep it in a password manager.</div></div>
+        </div>
+        <div id="acOtp" hidden>
+          <div class="ac-sub" id="acOtpMsg"></div>
+          <div class="ac-field"><label for="acCode">6-digit code</label>
+            <input id="acCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
+        </div>
         <div class="ac-err" id="acErr"></div>
         <div class="ac-ok" id="acNote"></div>
-        <div class="ac-btns">
+        <div class="ac-btns" id="acFormBtns">
           <button class="ac-primary" id="acRegister" type="button">Create account</button>
           <button class="ac-ghost" id="acLogin" type="button">Sign in</button>
+        </div>
+        <div class="ac-btns" id="acOtpBtns" hidden>
+          <button class="ac-primary" id="acVerify" type="button">Verify &amp; create account</button>
+          <button class="ac-ghost" id="acOtpBack" type="button">Back</button>
         </div>
       </div>
       <div id="acIn" hidden>
@@ -303,21 +314,56 @@
     if (typeof window.TRAINER_VIEW_HISTORY === 'function') window.TRAINER_VIEW_HISTORY(row.dataset.id);
     else nav('/trainer#history=' + row.dataset.id);
   });
-  async function acctCall(path) {
+  function finishLogin(d) {
+    ACCT.user = d.user;
+    $a('acPw').value = '';
+    if ($a('acCode')) $a('acCode').value = '';
+    hideOtpStep();
+    acctPanels(); acctHistory(); acctProfile(); refreshCtas(); ACCT._emit('login');
+  }
+  function showOtpStep(email) {
+    $a('acErr').textContent = '';
+    $a('acForm').hidden = true; $a('acFormBtns').hidden = true;
+    $a('acOtp').hidden = false; $a('acOtpBtns').hidden = false;
+    $a('acOtpMsg').innerHTML = 'Enter the 6-digit code we emailed to <b>' + (email || 'your inbox') +
+      '</b>. Your account is created only once the code is verified.';
+    $a('acCode').focus();
+  }
+  function hideOtpStep() {
+    if (!$a('acOtp')) return;
+    $a('acOtp').hidden = true; $a('acOtpBtns').hidden = true;
+    $a('acForm').hidden = false; $a('acFormBtns').hidden = false;
+  }
+  async function acctPost(path, body) {
     $a('acErr').textContent = '';
     try {
       const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: $a('acEmail').value, password: $a('acPw').value }) });
+        body: JSON.stringify(body) });
       const d = await r.json();
-      if (!r.ok || d.error) { $a('acErr').textContent = d.error || 'Something went wrong.'; return; }
-      ACCT.user = d.user; $a('acPw').value = '';
-      acctPanels(); acctHistory(); acctProfile(); refreshCtas(); ACCT._emit('login');
-    } catch (e) { $a('acErr').textContent = 'Could not reach the server.'; }
+      if (!r.ok || d.error) { $a('acErr').textContent = d.error || 'Something went wrong.'; return null; }
+      return d;
+    } catch (e) { $a('acErr').textContent = 'Could not reach the server.'; return null; }
   }
-  $a('acClose').addEventListener('click', acctClose);
-  acctEl.addEventListener('click', e => { if (e.target === acctEl) acctClose(); });
-  $a('acRegister').addEventListener('click', () => acctCall('/api/auth/register'));
+  async function acctCall(path) {   // sign in
+    const d = await acctPost(path, { email: $a('acEmail').value, password: $a('acPw').value });
+    if (d) finishLogin(d);
+  }
+  async function registerStart() {
+    const d = await acctPost('/api/auth/register/start',
+      { email: $a('acEmail').value, password: $a('acPw').value });
+    if (!d) return;
+    if (d.otp) showOtpStep(d.email); else finishLogin(d);   // OTP required, or direct-signup fallback
+  }
+  async function verifyOtp() {
+    const d = await acctPost('/api/auth/register/verify', { code: $a('acCode').value });
+    if (d) finishLogin(d);
+  }
+  $a('acClose').addEventListener('click', () => { hideOtpStep(); acctClose(); });
+  acctEl.addEventListener('click', e => { if (e.target === acctEl) { hideOtpStep(); acctClose(); } });
+  $a('acRegister').addEventListener('click', registerStart);
   $a('acLogin').addEventListener('click', () => acctCall('/api/auth/login'));
+  $a('acVerify').addEventListener('click', verifyOtp);
+  $a('acOtpBack').addEventListener('click', () => { hideOtpStep(); $a('acErr').textContent = ''; });
   $a('acLogout').addEventListener('click', async () => {
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
     ACCT.user = null;

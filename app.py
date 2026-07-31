@@ -3,6 +3,7 @@ import hashlib
 import math
 import os
 import re
+import secrets
 import ssl
 import threading
 import time
@@ -461,25 +462,128 @@ def auth_me():
                     "user": STORE.get_email(uid) if uid else None})
 
 
-@app.route("/api/auth/register", methods=["POST"])
-def auth_register():
-    if STORE is None:
-        return jsonify({"error": "Accounts are not enabled on this server."}), 503
-    if _rate_limited(_client_ip(), bucket="auth", limit=10):
-        return jsonify({"error": "Too many attempts — try again in a while."}), 429
-    p = request.json or {}
+# ── email OTP: account creation is verified against a real, owned inbox ──
+# Uses Resend's HTTP API via stdlib (no dep, $0 free tier). Enforced ONLY when
+# RESEND_API_KEY is set — without it we fall back to direct signup so the product
+# is never bricked; add the key on Render to make email verification mandatory.
+_RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
+_MAIL_FROM = os.environ.get("MAIL_FROM", "The Trainer <onboarding@resend.dev>")
+
+
+def _mail_configured():
+    return bool(_RESEND_KEY)
+
+
+def _send_email(to, subject, html):
+    if not _RESEND_KEY:
+        return False
+    try:
+        body = json_mod.dumps({"from": _MAIL_FROM, "to": [to], "subject": subject, "html": html}).encode()
+        req = urllib.request.Request("https://api.resend.com/emails", data=body, headers={
+            "Authorization": "Bearer " + _RESEND_KEY, "Content-Type": "application/json"})
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+            return 200 <= r.status < 300
+    except Exception:
+        return False
+
+
+def _otp_email_html(code):
+    return ("<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:440px;"
+            "margin:0 auto;padding:8px\"><p style=\"font-size:15px;color:#111\">Welcome to <b>The Trainer</b>.</p>"
+            "<p style=\"font-size:14px;color:#333\">Your verification code is:</p>"
+            "<p style=\"font-size:30px;letter-spacing:8px;font-weight:700;color:#0C8A4C;margin:12px 0\">" + code + "</p>"
+            "<p style=\"font-size:12.5px;color:#666\">It expires in 10 minutes. If you didn't request this, ignore this email — "
+            "no account is created until the code is entered.</p></div>")
+
+
+def _valid_reg(p):
     email = str(p.get("email", "")).strip().lower()
     pw = str(p.get("password", ""))
     if not _EMAIL_RE.match(email):
-        return jsonify({"error": "That doesn't look like an email address."}), 400
+        return None, None, ("That doesn't look like an email address.", 400)
     if len(pw) < 8:
-        return jsonify({"error": "Password needs at least 8 characters."}), 400
+        return None, None, ("Password needs at least 8 characters.", 400)
+    return email, pw, None
+
+
+@app.route("/api/auth/register", methods=["POST"])
+def auth_register():
+    # direct signup — the no-mail fallback, and what the test suite exercises.
+    # When email verification IS configured, this path is closed: clients must
+    # use the start/verify OTP flow so every account maps to a verified inbox.
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    if _mail_configured():
+        return jsonify({"error": "Email verification is required — request a code to create your account."}), 400
+    if _rate_limited(_client_ip(), bucket="auth", limit=10):
+        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+    email, pw, err = _valid_reg(request.json or {})
+    if err:
+        return jsonify({"error": err[0]}), err[1]
     uid = STORE.create_user(email, generate_password_hash(pw))
     if uid is None:
         return jsonify({"error": "That email already has an account — sign in instead."}), 409
     session.permanent = True
     session["uid"] = uid
     return jsonify({"user": email})
+
+
+@app.route("/api/auth/register/start", methods=["POST"])
+def auth_register_start():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    if _rate_limited(_client_ip(), bucket="auth", limit=10):
+        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+    email, pw, err = _valid_reg(request.json or {})
+    if err:
+        return jsonify({"error": err[0]}), err[1]
+    if STORE.get_user(email):
+        return jsonify({"error": "That email already has an account — sign in instead."}), 409
+    if not _mail_configured():
+        # no mail provider → don't brick signup; create the account directly
+        uid = STORE.create_user(email, generate_password_hash(pw))
+        if uid is None:
+            return jsonify({"error": "That email already has an account — sign in instead."}), 409
+        session.permanent = True
+        session["uid"] = uid
+        return jsonify({"user": email, "otp": False})
+    code = "%06d" % secrets.randbelow(1_000_000)
+    session.permanent = True
+    session["preg"] = {"email": email, "pwh": generate_password_hash(pw),
+                       "ch": generate_password_hash(code), "exp": int(time.time()) + 600, "n": 0}
+    if not _send_email(email, "Your Trainer verification code", _otp_email_html(code)):
+        session.pop("preg", None)
+        return jsonify({"error": "Couldn't send the verification email just now — please try again."}), 502
+    return jsonify({"otp": True, "email": email})
+
+
+@app.route("/api/auth/register/verify", methods=["POST"])
+def auth_register_verify():
+    if STORE is None:
+        return jsonify({"error": "Accounts are not enabled on this server."}), 503
+    if _rate_limited(_client_ip(), bucket="auth", limit=10):
+        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+    preg = session.get("preg")
+    if not isinstance(preg, dict) or preg.get("exp", 0) < int(time.time()):
+        session.pop("preg", None)
+        return jsonify({"error": "That code expired — start again to get a new one."}), 400
+    if preg.get("n", 0) >= 6:
+        session.pop("preg", None)
+        return jsonify({"error": "Too many wrong codes — start again."}), 429
+    preg["n"] = preg.get("n", 0) + 1
+    session["preg"] = preg
+    code = str((request.json or {}).get("code", "")).strip()
+    if not code or not check_password_hash(preg["ch"], code):
+        return jsonify({"error": "That code isn't right — check the email and try again."}), 400
+    uid = STORE.create_user(preg["email"], preg["pwh"])
+    if uid is None:
+        session.pop("preg", None)
+        return jsonify({"error": "That email already has an account — sign in instead."}), 409
+    session.pop("preg", None)
+    session.permanent = True
+    session["uid"] = uid
+    return jsonify({"user": preg["email"]})
 
 
 @app.route("/api/auth/login", methods=["POST"])
