@@ -13,6 +13,7 @@ from queue import Empty, Queue
 
 from werkzeug.security import check_password_hash, generate_password_hash
 import urllib.request
+import urllib.error
 import json as json_mod
 import certifi
 from google import genai
@@ -474,8 +475,14 @@ def _mail_configured():
     return bool(_RESEND_KEY)
 
 
+_last_mail_err = ""
+
+
 def _send_email(to, subject, html):
+    global _last_mail_err
+    _last_mail_err = ""
     if not _RESEND_KEY:
+        _last_mail_err = "no RESEND_API_KEY"
         return False
     try:
         body = json_mod.dumps({"from": _MAIL_FROM, "to": [to], "subject": subject, "html": html}).encode()
@@ -484,7 +491,14 @@ def _send_email(to, subject, html):
         ctx = ssl.create_default_context(cafile=certifi.where())
         with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
             return 200 <= r.status < 300
-    except Exception:
+    except urllib.error.HTTPError as e:
+        try:
+            _last_mail_err = "HTTP %s: %s" % (e.code, (e.read() or b"").decode("utf-8", "replace")[:400])
+        except Exception:
+            _last_mail_err = "HTTP %s" % getattr(e, "code", "?")
+        return False
+    except Exception as e:
+        _last_mail_err = (type(e).__name__ + ": " + str(e))[:300]
         return False
 
 
@@ -554,7 +568,8 @@ def auth_register_start():
                        "ch": generate_password_hash(code), "exp": int(time.time()) + 600, "n": 0}
     if not _send_email(email, "Your Trainer verification code", _otp_email_html(code)):
         session.pop("preg", None)
-        return jsonify({"error": "Couldn't send the verification email just now — please try again."}), 502
+        return jsonify({"error": "Couldn't send the verification email just now — please try again.",
+                        "detail": _last_mail_err}), 502
     return jsonify({"otp": True, "email": email})
 
 
