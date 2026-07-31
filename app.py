@@ -4,6 +4,7 @@ import math
 import os
 import re
 import secrets
+import smtplib
 import ssl
 import threading
 import time
@@ -14,6 +15,7 @@ from queue import Empty, Queue
 from werkzeug.security import check_password_hash, generate_password_hash
 import urllib.request
 import urllib.error
+from email.message import EmailMessage
 import json as json_mod
 import certifi
 from google import genai
@@ -463,27 +465,66 @@ def auth_me():
                     "user": STORE.get_email(uid) if uid else None})
 
 
-# ── email OTP: account creation is verified against a real, owned inbox ──
-# Uses Resend's HTTP API via stdlib (no dep, $0 free tier). Enforced ONLY when
-# RESEND_API_KEY is set — without it we fall back to direct signup so the product
-# is never bricked; add the key on Render to make email verification mandatory.
+# ── transactional email: account-creation OTP + password-reset codes ──
+# Two $0 providers, no paid plan and no owned domain required:
+#   1. Gmail SMTP (preferred) — stdlib smtplib, sends to ANY recipient, ~500/day
+#      free. Needs GMAIL_USER + GMAIL_APP_PASSWORD (a 16-char Google app password;
+#      requires 2-Step Verification on the Google account). This is the path that
+#      lets real strangers verify — no domain to buy.
+#   2. Resend HTTP API (fallback) — free tier, but its default onboarding@resend.dev
+#      sender only reaches the Resend account owner until a domain is verified.
+# Email is ENFORCED only when at least one provider is configured; with neither,
+# signup falls back to direct (the product is never bricked). Gmail is tried
+# first; Resend is a backstop if Gmail send fails and a key is present.
 _RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
+_GMAIL_USER = os.environ.get("GMAIL_USER", "").strip()
+# app passwords are displayed grouped as "abcd efgh ijkl mnop" — tolerate spaces
+_GMAIL_PW = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "")
 _MAIL_FROM = os.environ.get("MAIL_FROM", "The Trainer <onboarding@resend.dev>")
 
 
+def _gmail_configured():
+    return bool(_GMAIL_USER and _GMAIL_PW)
+
+
 def _mail_configured():
-    return bool(_RESEND_KEY)
+    return _gmail_configured() or bool(_RESEND_KEY)
+
+
+def _smtp_from():
+    # Gmail rewrites the From to the authenticated account, so keep the address
+    # equal to GMAIL_USER; a display name is still honoured.
+    return "The Trainer <%s>" % _GMAIL_USER
 
 
 _last_mail_err = ""
 
 
-def _send_email(to, subject, html):
+def _send_via_gmail(to, subject, html):
     global _last_mail_err
-    _last_mail_err = ""
-    if not _RESEND_KEY:
-        _last_mail_err = "no RESEND_API_KEY"
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = _smtp_from()
+        msg["To"] = to
+        msg.set_content("Your verification code is in this message — open it in an "
+                        "HTML-capable email client to view it.")
+        msg.add_alternative(html, subtype="html")
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as s:
+            s.ehlo()
+            s.starttls(context=ctx)
+            s.ehlo()
+            s.login(_GMAIL_USER, _GMAIL_PW)
+            s.send_message(msg)
+        return True
+    except Exception as e:
+        _last_mail_err = ("smtp " + type(e).__name__ + ": " + str(e))[:300]
         return False
+
+
+def _send_via_resend(to, subject, html):
+    global _last_mail_err
     try:
         body = json_mod.dumps({"from": _MAIL_FROM, "to": [to], "subject": subject, "html": html}).encode()
         # Resend's API is behind Cloudflare, which blocks the default urllib
@@ -505,6 +546,21 @@ def _send_email(to, subject, html):
     except Exception as e:
         _last_mail_err = (type(e).__name__ + ": " + str(e))[:300]
         return False
+
+
+def _send_email(to, subject, html):
+    global _last_mail_err
+    _last_mail_err = ""
+    # Gmail first — it reaches any recipient for free. Fall through to Resend
+    # only if Gmail isn't configured or its send failed and a key exists.
+    if _gmail_configured():
+        if _send_via_gmail(to, subject, html):
+            return True
+    if _RESEND_KEY:
+        return _send_via_resend(to, subject, html)
+    if not _last_mail_err:
+        _last_mail_err = "no mail provider configured"
+    return False
 
 
 def _otp_email_html(code):

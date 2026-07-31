@@ -213,8 +213,13 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
   sample peek), so the homepage Trainer card safely deep-links to `/trainer?sample`
   — see the quality first, then convert. (`os.js` `MODULES.path` left as `/trainer`
   since it doubles as app-identity; only the funflix card href changed.)
-- **Password reset via emailed one-time code** — blocked on owner
-  mail-provider key (interim honesty line shipped Sprint 7).
+- ~~**Free transactional email (no domain)**~~ — SHIPPED Sprint 29: **Gmail SMTP**
+  via stdlib `smtplib` (`GMAIL_USER` + `GMAIL_APP_PASSWORD`, ~500/day free, any
+  recipient, no domain to buy), Resend kept as fallback. Removes the "verify a
+  domain costs money" blocker on OTP for real users. Owner action = the free
+  5-min `docs/trainer/EMAIL_SETUP.md` runbook.
+- **Password reset via emailed one-time code** — UNBLOCKED by Sprint 29's free
+  mail path; interim honesty line shipped Sprint 7. Build next (Sprint 30).
 - ~~**Performance pass**~~ — SHIPPED Sprint 26: measured `/trainer` served
   **uncompressed at 187 KB**; added a stdlib-gzip `after_request` (no new dep) →
   **52 KB, a 73% cut** (the Lighthouse "enable text compression" win). Streamed/
