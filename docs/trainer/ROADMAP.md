@@ -147,8 +147,14 @@ bodyweight cWeightStart plan-anchoring fix the sweep caught.
   256 KB encoded cap + streamed 1 MB inflation ceiling in `decompressFromB64`.
 - ~~RT-8 `app.run(debug=True)`~~ — SHIPPED Sprint 18: `_debug_enabled()` gates it
   on `FLASK_DEBUG` (default OFF); regression test in `tests/test_hardening.py`.
-- Watch-list: unbounded `_trainer_hits` growth; XFF IP-rotation evading the
-  quota key (per-account auth limit would help); unbounded password length.
+- ~~Watch-list: unbounded `_trainer_hits` growth; XFF IP-rotation evading the
+  quota key (per-account auth limit would help); unbounded password length.~~ —
+  ALL CLOSED Sprint 31: `_trainer_hits` hard-bounded (`_RL_MAX_KEYS`=5000 + stale
+  sweep + fail-open on a new key when full); `_rate_limited_account` per-email cap
+  (20/hr) on login + reset so IP rotation can't brute-force one account; password
+  length capped (`_PW_MAX`=128 when set, 1024 DoS ceiling at login); and all auth
+  endpoints coerce non-dict JSON via `_req_json()` (no more `.get` 500s). Tests in
+  `tests/test_hardening.py` (Sprint 31 block).
 
 **Correctness/data still open (SIMULATION e2e):**
 - **Allergen defence-in-depth gaps** (highest): check-in mode carries no

@@ -169,8 +169,27 @@ the exact code path, not yet run end-to-end (DB/key gated) · **[THEORETICAL]** 
 - **CSRF** — `SESSION_COOKIE_SAMESITE="Lax"` (`app.py:37`) blocks cross-site POST/PUT with cookies; `/api/export` is a GET but its response is cross-origin-unreadable, so no data exfil.
 - **Foreign-account data bleed on shared browser (happy path)** — owner-stamp (`OWNER_KEY`) wipe on identity change (`trainer.html:1586-1596`) plus server-side uid scoping prevent one account's plan/logs reaching another *when localStorage writes succeed and the user actually logs out*.
 
-## Theoretical / watch-list (not yet demonstrated)
-- **`_trainer_hits` unbounded growth** (`app.py:404`): keys are trimmed per-key on access but never evicted; RT-1's IP rotation grows the dict without bound → slow memory leak. Fixing RT-1 removes the amplifier; a periodic sweep of empty buckets is the belt-and-suspenders.
-- **Sync log lost-update race**: the union-merge is client-side (`trainer.html:1512-1522`); two devices that pull→merge→push concurrently can each overwrite the other's `logs` blob (server does a wholesale newer-wins overwrite, `app.py:122`). Window is small; worst case a just-logged session is dropped on one device until its next push.
-- **Long-password hashing cost**: register/login enforce `len(pw) >= 8` (`app.py:456`) but **no upper bound**; a multi-MB password makes `generate_password_hash`/`check_password_hash` burn CPU. Harmless alone (10/hr) but a CPU-DoS lever once RT-1 removes the cap. Add `len(pw) <= 256`.
+## Theoretical / watch-list
+- ~~**`_trainer_hits` unbounded growth**~~ — **CLOSED Sprint 31.** `_rate_limited`
+  now hard-bounds the map: once it exceeds `_RL_MAX_KEYS` (5000) it sweeps
+  stale/empty keys and, if still full, fails open for a brand-new key rather than
+  growing memory. An IP-rotation flood can no longer leak memory.
+- ~~**XFF IP-rotation brute-forces one account past the per-IP cap**~~ — **CLOSED
+  Sprint 31.** `_rate_limited_account` adds a per-email cap (`AUTH_ACCT_LIMIT`=20/hr)
+  on login + reset/start, independent of source IP, so rotating `X-Forwarded-For`
+  no longer multiplies password/code guesses against a targeted account. Kept
+  generous so an attacker can at worst lock one account for an hour (documented
+  tradeoff), never the whole site.
+- ~~**Long-password hashing cost**~~ — **CLOSED Sprint 31.** `_PW_MAX`=128 caps the
+  password wherever it's *set* (register, reset); login rejects anything over a
+  1024-char DoS ceiling before the KDF runs, so no conceivable real password is
+  locked out while a multi-MB string can't burn CPU.
+- **Non-dict JSON on auth endpoints** — **CLOSED Sprint 31.** `_req_json()` coerces
+  a list/string/number/malformed body to `{}` so `.get(...)` can't `AttributeError`
+  → 500 on register/login/reset (previously only `/api/trainer` guarded this).
+- **Sync log lost-update race**: the union-merge is client-side (`trainer.html`);
+  two devices that pull→merge→push concurrently can each overwrite the other's
+  `logs` blob (server does a wholesale newer-wins overwrite). Window is small;
+  worst case a just-logged session is dropped on one device until its next push.
+  *(Still open — a server-side per-kind merge would close it; queued.)*
 - **Session secret derivation** (`app.py:34-35`): when `SECRET_KEY` is unset, the signing key is `sha256("funflix-trainer::" + DATABASE_URL)`. With a DB present this depends on the secret DB URL (acceptable); with no DB the key is a public constant, but accounts are disabled then so no session is trusted. Recommend an explicit `SECRET_KEY` env var on Render regardless.

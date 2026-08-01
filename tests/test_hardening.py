@@ -123,6 +123,67 @@ def test_text_plain_never_compressed():
 
 # ── Sprint 27: the second (fat-loss) demo is valid and served on ?demo=cut ──
 
+# ── Sprint 31: auth-surface hardening ──
+
+def test_password_length_capped_on_register(acct_client):
+    long_pw = "a" * (A._PW_MAX + 1)
+    r = acct_client.post("/api/auth/register/start", json={"email": "a@x.com", "password": long_pw})
+    assert r.status_code == 400 and "128" in r.get_json()["error"]
+
+
+def test_login_rejects_absurd_password_without_500(acct_client):
+    _reg(acct_client)   # creates a real account
+    huge = "z" * (A._PW_LOGIN_CEILING + 10)
+    r = acct_client.post("/api/auth/login", json={"email": "a@x.com", "password": huge},
+                         environ_base={"REMOTE_ADDR": "203.0.113.4"})
+    assert r.status_code == 401     # rejected fast, never 500 / never hashed
+
+
+def test_per_account_limit_survives_ip_rotation(acct_client):
+    # each request uses a DISTINCT real peer, so the per-IP auth limit (10) never
+    # trips — only the per-account cap can stop a distributed brute force.
+    A._trainer_hits.clear()
+    codes = []
+    for i in range(A.AUTH_ACCT_LIMIT + 5):
+        codes.append(acct_client.post(
+            "/api/auth/login", json={"email": "victim@x.com", "password": "guess%05d" % i},
+            environ_base={"REMOTE_ADDR": "198.51.100.%d" % (i % 250)}).status_code)
+    assert 429 in codes, "per-account limit must catch an X-Forwarded-For rotation flood"
+
+
+def test_hits_map_bounded_under_fresh_ip_flood():
+    A._trainer_hits.clear()
+    now = time.time()
+    for i in range(A._RL_MAX_KEYS + 50):        # pre-fill past the ceiling, all FRESH
+        A._trainer_hits["plan|10.0.%d.%d" % (i // 256, i % 256)] = [now]
+    before = len(A._trainer_hits)
+    with A.app.test_request_context(environ_base={"REMOTE_ADDR": "203.0.113.7"}):
+        assert A._rate_limited("203.0.113.7", bucket="plan") is False   # fail-open, new key
+    assert "plan|203.0.113.7" not in A._trainer_hits                    # not stored
+    assert len(A._trainer_hits) <= before                              # never grew
+
+
+def test_hits_map_sweeps_stale_keys():
+    A._trainer_hits.clear()
+    old = time.time() - (A.TRAINER_RL_WINDOW_S + 100)
+    for i in range(A._RL_MAX_KEYS + 50):        # past the ceiling, all STALE
+        A._trainer_hits["plan|10.1.%d.%d" % (i // 256, i % 256)] = [old]
+    with A.app.test_request_context(environ_base={"REMOTE_ADDR": "203.0.113.8"}):
+        A._rate_limited("203.0.113.8", bucket="plan")
+    assert len(A._trainer_hits) <= 5            # stale keys swept, only the fresh one left
+
+
+def test_auth_endpoints_survive_nondict_json(acct_client, monkeypatch):
+    monkeypatch.setattr(A, "_mail_configured", lambda: True)
+    monkeypatch.setattr(A, "_send_email", lambda *a: True)
+    peer = {"REMOTE_ADDR": "203.0.113.20"}
+    # a JSON list / string body must 4xx, never 500 (AttributeError on .get)
+    assert acct_client.post("/api/auth/register/start", json=[1, 2, 3], environ_base=peer).status_code < 500
+    assert acct_client.post("/api/auth/login", json="nope", environ_base=peer).status_code < 500
+    assert acct_client.post("/api/auth/reset/start", json=[1], environ_base=peer).status_code < 500
+    assert acct_client.post("/api/auth/reset/verify", json="x", environ_base=peer).status_code < 500
+
+
 def test_cut_demo_valid_and_served():
     assert A.TRAINER_DEMO_CUT is not None
     assert A._validate_plan(A.TRAINER_DEMO_CUT, intake={}) == []      # passes the shipped gate

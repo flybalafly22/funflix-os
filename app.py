@@ -335,7 +335,7 @@ def analyst_api():
     if ANALYSIS is None:
         return jsonify({"error": "Analysis data is unavailable on the server."}), 500
 
-    payload = request.json or {}
+    payload = _req_json()
     messages = payload.get("messages", [])
     if not isinstance(messages, list) or not messages:
         return jsonify({"error": "Please ask a question."}), 400
@@ -423,6 +423,9 @@ except FileNotFoundError:
 # (2 workers → effective ceiling up to 2x the number below; fine at this scale).
 TRAINER_RL_MAX = int(os.environ.get("TRAINER_RL_MAX", "6"))
 TRAINER_RL_WINDOW_S = 3600
+# hard ceiling on distinct rate-limit keys, so an X-Forwarded-For IP-rotation
+# flood can't grow the map without bound (memory-DoS, RED TEAM watch-list).
+_RL_MAX_KEYS = 5000
 _trainer_hits = {}
 _trainer_rl_lock = threading.Lock()
 
@@ -447,6 +450,19 @@ def _rate_limited(ip, bucket="plan", limit=None):
     key = f"{bucket}|{ip}"
     now = time.time()
     with _trainer_rl_lock:
+        # bound memory: once the map is large, sweep out keys whose hits are all
+        # stale; if it's still at the ceiling and this key is new, don't grow it
+        # (fail open for a brand-new IP — the per-account limit still guards the
+        # actual brute-force target).
+        if len(_trainer_hits) > _RL_MAX_KEYS:
+            for k in list(_trainer_hits.keys()):
+                fresh = [t for t in _trainer_hits[k] if now - t < TRAINER_RL_WINDOW_S]
+                if fresh:
+                    _trainer_hits[k] = fresh
+                else:
+                    del _trainer_hits[k]
+            if len(_trainer_hits) >= _RL_MAX_KEYS and key not in _trainer_hits:
+                return False
         hits = [t for t in _trainer_hits.get(key, []) if now - t < TRAINER_RL_WINDOW_S]
         if len(hits) >= limit:
             _trainer_hits[key] = hits
@@ -454,6 +470,27 @@ def _rate_limited(ip, bucket="plan", limit=None):
         hits.append(now)
         _trainer_hits[key] = hits
         return False
+
+
+# per-account auth limit: an attacker rotating X-Forwarded-For gets a fresh
+# per-IP bucket each request, so a per-IP cap alone can't stop a distributed
+# password brute-force against ONE account. Keying on the email caps guesses per
+# targeted account regardless of source IP. Kept generous (a real user's typos
+# never reach it) so a malicious login flood can at worst lock one account for an
+# hour — never the whole site — while still capping guesses far below what any
+# 8+ char password needs.
+AUTH_ACCT_LIMIT = 20
+
+
+def _rate_limited_account(email, limit=AUTH_ACCT_LIMIT):
+    return bool(email) and _rate_limited("acct:" + email, bucket="authacct", limit=limit)
+
+
+def _req_json():
+    # a JSON body that isn't an object (a list, string, number, or malformed) must
+    # not reach `.get(...)` and 500 the endpoint — coerce it to an empty dict.
+    j = request.get_json(silent=True)
+    return j if isinstance(j, dict) else {}
 
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -586,6 +623,14 @@ def _otp_reset_html(code):
             "email — your password stays unchanged.</p></div>")
 
 
+# Cap the password length we ever hash. Werkzeug's KDF processes the whole
+# input, so an unbounded password is a CPU-DoS lever; 128 is far above any real
+# password. Enforced wherever a password is SET (register, reset). At sign-in we
+# guard at a higher ceiling so no conceivable existing password is locked out.
+_PW_MAX = 128
+_PW_LOGIN_CEILING = 1024
+
+
 def _valid_reg(p):
     email = str(p.get("email", "")).strip().lower()
     pw = str(p.get("password", ""))
@@ -593,6 +638,8 @@ def _valid_reg(p):
         return None, None, ("That doesn't look like an email address.", 400)
     if len(pw) < 8:
         return None, None, ("Password needs at least 8 characters.", 400)
+    if len(pw) > _PW_MAX:
+        return None, None, ("Password can be at most %d characters." % _PW_MAX, 400)
     return email, pw, None
 
 
@@ -607,7 +654,7 @@ def auth_register():
         return jsonify({"error": "Email verification is required — request a code to create your account."}), 400
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
         return jsonify({"error": "Too many attempts — try again in a while."}), 429
-    email, pw, err = _valid_reg(request.json or {})
+    email, pw, err = _valid_reg(_req_json())
     if err:
         return jsonify({"error": err[0]}), err[1]
     uid = STORE.create_user(email, generate_password_hash(pw))
@@ -624,7 +671,7 @@ def auth_register_start():
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
         return jsonify({"error": "Too many attempts — try again in a while."}), 429
-    email, pw, err = _valid_reg(request.json or {})
+    email, pw, err = _valid_reg(_req_json())
     if err:
         return jsonify({"error": err[0]}), err[1]
     if STORE.get_user(email):
@@ -664,7 +711,7 @@ def auth_register_verify():
         return jsonify({"error": "Too many wrong codes — start again."}), 429
     preg["n"] = preg.get("n", 0) + 1
     session["preg"] = preg
-    code = str((request.json or {}).get("code", "")).strip()
+    code = str((_req_json()).get("code", "")).strip()
     if not code or not check_password_hash(preg["ch"], code):
         return jsonify({"error": "That code isn't right — check the email and try again."}), 400
     uid = STORE.create_user(preg["email"], preg["pwh"])
@@ -683,11 +730,17 @@ def auth_login():
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
         return jsonify({"error": "Too many attempts — try again in a while."}), 429
-    p = request.json or {}
+    p = _req_json()
     email = str(p.get("email", "")).strip().lower()
     pw = str(p.get("password", ""))
+    # per-account cap so an X-Forwarded-For IP-rotation flood can't brute-force
+    # one account past the per-IP limit
+    if _rate_limited_account(email):
+        return jsonify({"error": "Too many sign-in attempts for this account — try again in a while."}), 429
     row = STORE.get_user(email)
-    if not row or not check_password_hash(row[1], pw):
+    # length guard before the (expensive) KDF: no real password is this long, so
+    # reject rather than burn CPU hashing an attacker's megabyte string
+    if len(pw) > _PW_LOGIN_CEILING or not row or not check_password_hash(row[1], pw):
         return jsonify({"error": "Email or password is wrong."}), 401
     session.permanent = True
     session["uid"] = row[0]
@@ -705,9 +758,13 @@ def auth_reset_start():
     if not _mail_configured():
         # a global capability fact, not a per-email answer → no enumeration leak
         return jsonify({"error": "Password reset by email isn't set up on this server yet."}), 503
-    email = str((request.json or {}).get("email", "")).strip().lower()
+    email = str((_req_json()).get("email", "")).strip().lower()
     if not _EMAIL_RE.match(email):
         return jsonify({"error": "That doesn't look like an email address."}), 400
+    # per-account cap so IP rotation can't spam a victim's inbox with reset codes
+    # (checked before the existence lookup so it doesn't leak whether they exist)
+    if _rate_limited_account(email):
+        return jsonify({"error": "Too many reset requests for this account — try again in a while."}), 429
     row = STORE.get_user(email)
     # anti-enumeration: identical success response whether or not the account
     # exists; only arm the session + send when it actually does.
@@ -740,13 +797,15 @@ def auth_reset_verify():
         return jsonify({"error": "Too many wrong codes — start again."}), 429
     pwr["n"] = pwr.get("n", 0) + 1
     session["pwr"] = pwr
-    p = request.json or {}
+    p = _req_json()
     code = str(p.get("code", "")).strip()
     pw = str(p.get("password", ""))
     if not code or not check_password_hash(pwr["ch"], code):
         return jsonify({"error": "That code isn't right — check the email and try again."}), 400
     if len(pw) < 8:
         return jsonify({"error": "Password needs at least 8 characters."}), 400
+    if len(pw) > _PW_MAX:
+        return jsonify({"error": "Password can be at most %d characters." % _PW_MAX}), 400
     if not STORE.set_password(pwr["uid"], generate_password_hash(pw)):
         session.pop("pwr", None)
         return jsonify({"error": "That account no longer exists."}), 404
@@ -879,7 +938,7 @@ def auth_delete():
     if not uid:
         return jsonify({"error": "Sign in first."}), 401
     acct = STORE.get_account(uid)
-    pw = str((request.json or {}).get("password", ""))
+    pw = str((_req_json()).get("password", ""))
     if not acct or not check_password_hash(acct["pw_hash"], pw):
         return jsonify({"error": "Password is wrong — account not deleted."}), 401
     STORE.delete_user(uid)
