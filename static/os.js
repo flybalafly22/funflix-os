@@ -596,9 +596,26 @@
     });
   };
 
+  // ── scroll-reveal for .rv elements (UI overhaul foundation) ──
+  // adds .in as an element scrolls into view; under reduced-motion (or no
+  // IntersectionObserver) everything is shown immediately.
+  OS.reveal = function (root) {
+    const els = (root || document).querySelectorAll('.rv:not(.in)');
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !('IntersectionObserver' in window)) {
+      els.forEach(el => el.classList.add('in'));
+      return;
+    }
+    const io = new IntersectionObserver((entries, obs) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    els.forEach(el => io.observe(el));
+  };
+
   window.addEventListener('load', () => {
     document.querySelectorAll('.decode').forEach((el, i) =>
       setTimeout(() => OS.decode(el), 150 + i * 120));
     document.querySelectorAll('.tilt').forEach(el => OS.tilt(el));
+    OS.reveal();
   });
 })();

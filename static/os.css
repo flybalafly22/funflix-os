@@ -25,6 +25,15 @@
   --accD:  #0C8A4C;
   --accH:  #D3FF66;
 
+  /* ── motion + elevation system (UI overhaul, 2026-08-03) ── */
+  --ease:        cubic-bezier(0.22, 1, 0.36, 1);    /* signature ease-out */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-1: 0.5s;
+  --dur-2: 0.8s;
+  --shadow-1: 0 2px 10px rgba(17,17,16,0.05);
+  --shadow-2: 0 14px 44px rgba(17,17,16,0.09);
+  --shadow-3: 0 40px 120px rgba(17,17,16,0.14);
+
   /* ── legacy tokens (the games' interiors depend on these) ── */
   --void:        #030308;
   --panel:       rgba(255,255,255,0.018);
@@ -337,6 +346,14 @@ html { scrollbar-width: thin; scrollbar-color: rgba(17,17,16,0.35) transparent; 
 .fade-rise-d2 { animation-delay: 0.4s; }
 .fade-rise-d3 { animation-delay: 0.6s; }
 
+/* ── reusable scroll-reveal (UI overhaul) — inert until .rv is used; os.js adds
+   .in as elements enter view, or immediately under reduced-motion ── */
+.rv { opacity: 0; transform: translateY(24px); will-change: opacity, transform;
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); }
+.rv.in { opacity: 1; transform: none; }
+.rv.d1 { transition-delay: 0.08s; } .rv.d2 { transition-delay: 0.16s; }
+.rv.d3 { transition-delay: 0.24s; } .rv.d4 { transition-delay: 0.32s; }
+
 /* legacy motion (still referenced by inner pages) */
 @keyframes osFadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 .fade-up { opacity: 0; animation: osFadeUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
@@ -347,4 +364,5 @@ html { scrollbar-width: thin; scrollbar-color: rgba(17,17,16,0.35) transparent; 
   .fade-rise, .fade-rise-d1, .fade-rise-d2, .fade-rise-d3, .fade-up, .rise {
     animation: none; opacity: 1;
   }
+  .rv { opacity: 1; transform: none; transition: none; }
 }
