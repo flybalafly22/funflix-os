@@ -127,6 +127,17 @@ from this file directly.
 - Sprint 26 — Performance: stdlib-gzip `after_request` — `/trainer` 187 KB → 52 KB
   (-73%, the Lighthouse text-compression win), streamed/SSE untouched, graceful
   fallback, regression tests. No CSS/JS split needed.
+- Sprints 28–31 — Trust & recovery batch: honest-at-check-in (age/gender survive
+  recalibration, check-in gated on a plan, manual deload tagged); **free Gmail SMTP
+  email** (no domain, $0); **password reset** via emailed code (full sign-in
+  recovery); auth hardening (bounded rate-limit map, per-account cap, password
+  length cap, non-dict-JSON guard).
+- Sprints 32–38 — Loop & durability batch: **server-side union merge** for
+  logs/weights (lossless multi-device, same-day collision fixed); **next-session
+  double-progression targets** on the Log form; **periodization block banner** (R2);
+  **check-in payload** now carries the deload clock + stall history; **configurable
+  bar + unit** in Coach Mode plate math (hardcoded-20 kg fix); **interactive
+  exercise swap** + hardened deload-cadence parse; Producer review + luxury sweep.
 - Sprint 27 — A Second Door (demo): a female fat-loss sample (`?demo=cut` /
   `?sample=cut` / a "Cutting? See a fat-loss sample" welcome switcher) so the
   "see a sample" door speaks to cutters too, showcasing concrete starting loads;

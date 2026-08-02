@@ -98,3 +98,32 @@ most design; R12 is the best *retention-per-line*.
   one) and accept the longer build? A two-team corroboration exists for R1/R7
   (us + R&D + SIM) — per the round-table rule that ranks it higher.
 — THE REFINERS, 2026-07-27
+
+---
+
+## Producer synthesis — Sprints 32–38 batch (2026-08-02)
+
+**Threads T1–T4 resolved [RESOLVED].** All four REFINERS P0/P1 loop ideas shipped
+earlier (R1 volume autoregulation S15, R7 fatigue-deload S15, R8/R9 nutrition
+tune-up + meal checklist S16, R12 home card + recap S17/18); **R2 (block-phase
+banner) shipped this batch (S34)**. The loop questions the round table opened are
+now product, not backlog — closing the threads.
+
+**What this batch delivered (and which team drove it):**
+- **RED TEAM** — the last open item, the sync lost-update race, is closed by a
+  server-side union merge (S32); the whole watch-list is now empty.
+- **SIMULATION** — correctness cluster closed: same-day backdated-log collision
+  (S32), check-in payload now carries the deload clock + stall history (S35),
+  the hardcoded-20 kg bar is configurable (S36), and the brittle deload-cadence
+  regex is hardened (S37).
+- **REFINERS** — R2 periodization banner (S34); the plan's static substitution
+  became an interactive swap that carries its own history/target (S37).
+- **R&D LAB** — verified the compact (Groq) prompt already carries the stall rule
+  + special populations + consistent numbers (S12), so "Groq parity" needed no
+  work; the feedback loop gained next-session double-progression targets (S33).
+
+**Cross-team agreement going forward:** the base is solid and feature-complete for
+a $0 app. The only owner-gated item remains the **free Gmail app-password setup**
+(EMAIL_SETUP.md) to light up OTP + password reset for real users. Remaining
+non-urgent backlog: a per-lift progress chart, and (if ever wanted) a full
+app-wide kg/lb toggle beyond the plate calculator. No team is pushing a new system.

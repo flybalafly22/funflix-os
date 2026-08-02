@@ -1,6 +1,6 @@
 {
   "base_url": "http://127.0.0.1:5099",
-  "generated": "2026-08-02T02:45:24",
+  "generated": "2026-08-02T02:47:00",
   "passed": 32,
   "failed": 0,
   "checks": [
@@ -8,193 +8,193 @@
       "name": "home_1280_console_clean",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:02"
+      "ts": "2026-08-02T02:46:39"
     },
     {
       "name": "home_1280_no_h_overflow",
       "pass": true,
       "detail": "scrollW=1280 clientW=1280",
-      "ts": "2026-08-02T02:45:02"
+      "ts": "2026-08-02T02:46:39"
     },
     {
       "name": "home_390_console_clean",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:03"
+      "ts": "2026-08-02T02:46:40"
     },
     {
       "name": "home_390_no_h_overflow",
       "pass": true,
       "detail": "scrollW=391 clientW=390",
-      "ts": "2026-08-02T02:45:03"
+      "ts": "2026-08-02T02:46:40"
     },
     {
       "name": "trainer_loads",
       "pass": true,
       "detail": "The Trainer \u2014 FUNFLIX",
-      "ts": "2026-08-02T02:45:04"
+      "ts": "2026-08-02T02:46:41"
     },
     {
       "name": "trainer_has_mode_tabs",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:04"
+      "ts": "2026-08-02T02:46:41"
     },
     {
       "name": "trainer_default_shows_intake",
       "pass": true,
       "detail": "{'intake': True, 'checkin': False}",
-      "ts": "2026-08-02T02:45:04"
+      "ts": "2026-08-02T02:46:41"
     },
     {
       "name": "trainer_checkin_tab_gated_cold",
       "pass": true,
       "detail": "hidden with no plan",
-      "ts": "2026-08-02T02:45:04"
+      "ts": "2026-08-02T02:46:41"
     },
     {
       "name": "trainer_checkin_tab_shown_with_plan",
       "pass": true,
       "detail": "shown with a plan",
-      "ts": "2026-08-02T02:45:05"
+      "ts": "2026-08-02T02:46:42"
     },
     {
       "name": "trainer_tab_switch_to_checkin",
       "pass": true,
       "detail": "{'intake': False, 'checkin': True}",
-      "ts": "2026-08-02T02:45:06"
+      "ts": "2026-08-02T02:46:42"
     },
     {
       "name": "trainer_tab_switch_back_to_plan",
       "pass": true,
       "detail": "{'intake': True, 'checkin': False}",
-      "ts": "2026-08-02T02:45:06"
+      "ts": "2026-08-02T02:46:43"
     },
     {
       "name": "demo_plan_appears",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:08"
+      "ts": "2026-08-02T02:46:44"
     },
     {
       "name": "demo_plan_sections_gte_8",
       "pass": true,
       "detail": "10 .pd-h sections",
-      "ts": "2026-08-02T02:45:08"
+      "ts": "2026-08-02T02:46:45"
     },
     {
       "name": "demo_plan_no_undefined",
       "pass": true,
       "detail": "23870 chars of plan text",
-      "ts": "2026-08-02T02:45:08"
+      "ts": "2026-08-02T02:46:45"
     },
     {
       "name": "demo_flow_console_clean",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:08"
+      "ts": "2026-08-02T02:46:45"
     },
     {
       "name": "share_link_copied",
       "pass": true,
       "detail": "13384 chars",
-      "ts": "2026-08-02T02:45:11"
+      "ts": "2026-08-02T02:46:48"
     },
     {
       "name": "shared_link_renders_plan",
       "pass": true,
       "detail": "10 sections",
-      "ts": "2026-08-02T02:45:12"
+      "ts": "2026-08-02T02:46:48"
     },
     {
       "name": "shared_link_console_clean",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:12"
+      "ts": "2026-08-02T02:46:48"
     },
     {
       "name": "log_tab_visible_with_saved_plan",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:13"
+      "ts": "2026-08-02T02:46:49"
     },
     {
       "name": "log_form_has_exercises",
       "pass": true,
       "detail": "3 exercise blocks",
-      "ts": "2026-08-02T02:45:14"
+      "ts": "2026-08-02T02:46:51"
     },
     {
       "name": "log_history_two_sessions",
       "pass": true,
       "detail": "2 history rows",
-      "ts": "2026-08-02T02:45:16"
+      "ts": "2026-08-02T02:46:52"
     },
     {
       "name": "checkin_autofill_from_logs",
       "pass": true,
       "detail": "Bench press: 60 kg x 8 -> 65 kg x 8\n(from my session log)",
-      "ts": "2026-08-02T02:45:16"
+      "ts": "2026-08-02T02:46:52"
     },
     {
       "name": "demo_never_clobbers_saved_plan",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:19"
+      "ts": "2026-08-02T02:46:54"
     },
     {
       "name": "demo_peek_does_not_persist",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:21"
+      "ts": "2026-08-02T02:46:57"
     },
     {
       "name": "demo_peek_no_restore_tab",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:21"
+      "ts": "2026-08-02T02:46:57"
     },
     {
       "name": "qa_panel_present",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:21"
+      "ts": "2026-08-02T02:46:57"
     },
     {
       "name": "account_surfaces_present",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:21"
+      "ts": "2026-08-02T02:46:57"
     },
     {
       "name": "coach_opens_readiness",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:23"
+      "ts": "2026-08-02T02:46:59"
     },
     {
       "name": "coach_shows_exercise",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:23"
+      "ts": "2026-08-02T02:46:59"
     },
     {
       "name": "coach_rest_timer_runs",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:24"
+      "ts": "2026-08-02T02:46:59"
     },
     {
       "name": "coach_session_saved_to_log",
       "pass": true,
       "detail": "",
-      "ts": "2026-08-02T02:45:24"
+      "ts": "2026-08-02T02:47:00"
     },
     {
       "name": "pwa_assets_served",
       "pass": true,
       "detail": "{'manifest_link': True, 'sw': 200, 'manifest': 200, 'icon192': 200, 'icon512': 200, 'start_url': '/trainer'}",
-      "ts": "2026-08-02T02:45:24"
+      "ts": "2026-08-02T02:47:00"
     }
   ]
 }
