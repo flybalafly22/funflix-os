@@ -123,11 +123,54 @@
   [data-rv]{opacity:0;transform:translateY(20px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
   [data-rv].on{opacity:1;transform:none}
 
+  /* ── the flagship band — The Trainer as the MSP ── */
+  .flagship{padding:92px max(72px,calc((100vw - 1360px)/2));
+    background:radial-gradient(120% 130% at 15% 0%,#FFFFFF 0%,var(--paper) 62%);
+    border-top:1px solid rgba(0,0,0,.06);border-bottom:1px solid rgba(0,0,0,.06)}
+  .fl-inner{max-width:1360px;margin:0 auto;display:grid;grid-template-columns:1.02fr .98fr;gap:64px;align-items:center}
+  @media (max-width:940px){.fl-inner{grid-template-columns:1fr;gap:44px}}
+  .fl-h{font:600 clamp(31px,4.4vw,50px)/1.05 var(--sans);letter-spacing:-.04em;margin-top:16px;text-wrap:balance}
+  .fl-h em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--accD);letter-spacing:-.01em}
+  .fl-sub{margin-top:20px;max-width:520px;font:400 16.5px/1.62 var(--sans);color:var(--ink2);text-wrap:pretty}
+  .fl-list{list-style:none;margin:26px 0 0;display:flex;flex-direction:column;gap:13px}
+  .fl-list li{position:relative;padding-left:22px;font:400 14.5px/1.5 var(--sans);color:var(--ink2)}
+  .fl-list li::before{content:'';position:absolute;left:0;top:8px;width:9px;height:9px;border-radius:50%;
+    background:var(--acc);box-shadow:0 0 0 3px rgba(189,242,63,.22)}
+  .fl-list li span{color:var(--ink);font-weight:600}
+  .fl-cta-row{margin-top:32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .fl-note{margin-top:18px;font:500 10.5px var(--mono);letter-spacing:.2em;color:var(--ink3)}
+  /* the product mock */
+  .fl-mock{position:relative}
+  .flm-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:20px;padding:24px 26px 22px;
+    box-shadow:var(--shadow-2)}
+  .flm-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
+  .flm-eyebrow{font:500 9px var(--mono);letter-spacing:.2em;color:var(--ink3)}
+  .flm-day{font:400 22px var(--serif);color:var(--ink)}
+  .flm-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:baseline;
+    padding:11px 0;border-top:1px solid rgba(0,0,0,.06)}
+  .flm-row .nm{font:600 14px var(--sans);color:var(--ink)}
+  .flm-row .rx{font:500 10.5px var(--mono);color:var(--ink3);letter-spacing:.04em}
+  .flm-row .ld{font:500 11px var(--mono);color:var(--accD);min-width:52px;text-align:right}
+  .flm-foot{margin-top:16px;padding-top:14px;border-top:1px solid rgba(0,0,0,.06);
+    font:500 10px var(--mono);letter-spacing:.14em;color:var(--accD)}
+  .flm-chip{position:absolute;background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:14px;
+    box-shadow:var(--shadow-3)}
+  .flm-chip-coach{right:-16px;bottom:-22px;padding:13px 16px;min-width:150px}
+  .flm-chip-label{font:500 8.5px var(--mono);letter-spacing:.18em;color:var(--ink3)}
+  .flm-chip-big{margin-top:5px;font:600 19px var(--sans);letter-spacing:-.02em;color:var(--ink)}
+  .flm-chip-big span{font:400 11px var(--sans);color:var(--ink3)}
+  .flm-chip-sub{margin-top:5px;font:500 8.5px var(--mono);color:var(--ink3);letter-spacing:.02em}
+  .flm-chip-sync{left:-22px;top:-18px;padding:9px 14px;display:flex;align-items:center;gap:8px;
+    font:500 9.5px var(--mono);letter-spacing:.16em;color:var(--ink2)}
+  @media (max-width:520px){.flm-chip-coach{right:-6px;bottom:-14px}.flm-chip-sync{left:6px}}
+
   .apps-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px}
   .apps-status{display:flex;align-items:center;gap:8px;font:500 11px var(--mono);letter-spacing:.14em;color:var(--ink3)}
   .apps-layout{display:grid;grid-template-columns:1fr 500px;gap:56px;align-items:start;margin-top:38px}
   @media (max-width:980px){.apps-layout{grid-template-columns:1fr}}
   .apps-list{border-top:1px solid rgba(0,0,0,.09)}
+  .flag-tag{display:inline-block;margin-left:10px;vertical-align:middle;padding:2px 8px;border-radius:999px;
+    background:var(--acc);color:var(--ink);font:600 8.5px var(--mono);letter-spacing:.14em}
   .app-row{display:grid;grid-template-columns:52px 96px 1fr 26px;gap:16px;align-items:center;padding:21px 10px;
     border-bottom:1px solid rgba(0,0,0,.07);cursor:pointer;transition:background .3s;text-decoration:none;color:inherit}
   .app-row .num{font:500 12px var(--mono);color:var(--ink3);transition:color .3s}
@@ -331,7 +374,7 @@
   <div id="heroGlow" aria-hidden="true"></div>
   <div class="ffx-pill"><span class="ffx-dot"></span><span style="font:500 11px var(--mono);letter-spacing:.16em;color:var(--ink2)">ALL EIGHT APPS ONLINE</span></div>
   <h1 class="ffx-h1"><span class="w">Finally, something</span><br><span class="w2">to <span id="heroWord" style="color:var(--accD)">play</span>.</span></h1>
-  <p class="ffx-sub">Eight original web apps &mdash; a scientific calculator, a joke-writing studio, an automated newsroom, a personal training studio, and four playable worlds. One tab, nothing to install, <b style="color:var(--accD)">$0</b>.</p>
+  <p class="ffx-sub">Eight original web apps &mdash; headlined by <b style="color:var(--ink)">The Trainer</b>, an AI coach that writes your program and runs every session &mdash; plus a scientific calculator, a joke-writing studio, an automated newsroom, and four playable worlds. One tab, nothing to install, <b style="color:var(--accD)">$0</b>.</p>
   <div class="ffx-cta-row">
     <a class="ffx-cta big" href="#apps">Open FUNFLIX</a>
     <a class="ffx-ghost" href="#apps">Browse the apps &rarr;</a>
@@ -371,6 +414,42 @@
   <span>Web Audio</span>
   <span>PWA</span>
 </div>
+
+<section class="flagship" id="flagship" aria-label="The Trainer — the flagship app">
+  <div class="fl-inner">
+    <div class="fl-copy">
+      <div class="eyebrow" data-rv>THE FLAGSHIP &middot; INSTRUMENT NO. VIII</div>
+      <h2 class="fl-h" data-rv data-delay="80">The one you'll keep <em>coming back to.</em></h2>
+      <p class="fl-sub" data-rv data-delay="140">The Trainer writes an evidence-based program for your body, equipment and recovery &mdash; then coaches every session and recalibrates from what you actually lift. A real coach's brain, free, on every device.</p>
+      <ul class="fl-list" data-rv data-delay="200">
+        <li><span>An evidence-based plan</span> &mdash; built for your gear, sleep and injuries, every number justified.</li>
+        <li><span>A live coach in the gym</span> &mdash; rest timers, plate math, set-by-set logging, next-set targets.</li>
+        <li><span>It learns you</span> &mdash; reads your measured trend, deloads on time, syncs to every device.</li>
+      </ul>
+      <div class="fl-cta-row" data-rv data-delay="260">
+        <a class="ffx-cta big" href="/trainer?sample" data-nav>See a sample program &rarr;</a>
+        <a class="ffx-ghost" href="/trainer" data-nav>Build mine &rarr;</a>
+      </div>
+      <div class="fl-note" data-rv data-delay="320">FREE &middot; NO ACCOUNT NEEDED &middot; ~2 MIN &middot; 3 STEPS</div>
+    </div>
+    <div class="fl-mock" data-rv data-delay="180" aria-hidden="true">
+      <div class="flm-card">
+        <div class="flm-head"><span class="flm-eyebrow">YOUR PROGRAM &middot; WEEK 1</span><span class="flm-day">Upper A</span></div>
+        <div class="flm-row"><span class="nm">Bench press</span><span class="rx">4 &times; 6&ndash;8</span><span class="ld">60 kg</span></div>
+        <div class="flm-row"><span class="nm">Barbell row</span><span class="rx">4 &times; 8&ndash;10</span><span class="ld">70 kg</span></div>
+        <div class="flm-row"><span class="nm">Incline DB press</span><span class="rx">3 &times; 10&ndash;12</span><span class="ld">24 kg</span></div>
+        <div class="flm-row"><span class="nm">Lat pulldown</span><span class="rx">3 &times; 10&ndash;12</span><span class="ld">55 kg</span></div>
+        <div class="flm-foot">REST 2&ndash;3 MIN &middot; RIR 1&ndash;2 &middot; ~52 MIN</div>
+      </div>
+      <div class="flm-chip flm-chip-coach">
+        <div class="flm-chip-label">COACH &middot; PLATES</div>
+        <div class="flm-chip-big">20 + 15 <span>per side</span></div>
+        <div class="flm-chip-sub">bar &times; 10 &middot; 40 &times; 8 &middot; 60 &times; 5 &middot; 80 &times; 3</div>
+      </div>
+      <div class="flm-chip flm-chip-sync"><span class="ffx-dot"></span> SYNCS TO EVERY DEVICE</div>
+    </div>
+  </div>
+</section>
 
 <section class="pad" id="apps">
   <div class="eyebrow" data-rv>THE APPS</div>
@@ -740,7 +819,8 @@
     row.setAttribute('data-nav', '');
     row.innerHTML = '<span class="num">0' + (i + 1) + '</span>' +
       '<span class="cat">' + a.cat + '</span>' +
-      '<span><span class="name">' + a.name + '</span><div class="role">' + a.role + '</div></span>' +
+      '<span><span class="name">' + a.name + (a.slug === 'trainer' ? '<span class="flag-tag">FLAGSHIP</span>' : '') +
+      '</span><div class="role">' + a.role + '</div></span>' +
       '<span class="arrow">&rarr;</span>';
     row.addEventListener('mouseenter', () => setActive(i, true));
     appsList.appendChild(row);
