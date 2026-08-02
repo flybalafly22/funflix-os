@@ -1108,6 +1108,15 @@
         'weeks since the plan was generated (computed, trust over the select)':
           (() => { const sp = savedPlan();
                    return sp ? String(Math.max(1, Math.round((Date.now() - sp.at) / 604800000))) : ''; })(),
+        // measured training state so the recalibration can apply its OWN rules
+        // (deload if 6+ weeks since the last; a stalled lift → 10% reset) instead
+        // of guessing — the deload clock and stall watch, straight from the logs
+        'weeks since last deload (computed)':
+          (() => { const bp = blockPhase(); return bp ? String(Math.max(0, bp.weekInBlock - 1)) : ''; })(),
+        'deload currently due (computed)': (deloadInfo() || fatigueDeload()) ? 'yes' : 'no',
+        'lifts stalled 2+ sessions by e1RM (computed)':
+          (() => { const s = stallWatch();
+                   return s.length ? s.map(x => x.name + (x.deep ? ' (deepening)' : '')).join(', ') : 'none'; })(),
       };
     }
     return {
