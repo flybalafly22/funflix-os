@@ -143,7 +143,9 @@
   /* the product mock */
   .fl-mock{position:relative}
   .flm-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:20px;padding:24px 26px 22px;
-    box-shadow:var(--shadow-2)}
+    box-shadow:var(--shadow-2);transition:transform .45s var(--ease),box-shadow .45s var(--ease)}
+  .fl-mock:hover .flm-card{transform:translateY(-5px);box-shadow:0 32px 74px rgba(17,17,16,.13)}
+  @media (prefers-reduced-motion:reduce){.flm-card{transition:none}.fl-mock:hover .flm-card{transform:none}}
   .flm-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
   .flm-eyebrow{font:500 9px var(--mono);letter-spacing:.2em;color:var(--ink3)}
   .flm-day{font:400 22px var(--serif);color:var(--ink)}
