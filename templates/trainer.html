@@ -452,6 +452,8 @@
       text-transform: uppercase; margin-right: 6px; }
     .co-plates { margin-top: 22px; border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px; background: #fff; }
     .co-plates .os-input { max-width: 160px; }
+    .co-bar-row { margin-bottom: 14px; }
+    .co-bar-row .os-select-wrap { max-width: 160px; }
     .co-plate-out { margin-top: 10px; font-family: var(--monoX); font-size: 13px; color: var(--black); }
     .co-plate-out b { color: var(--accD); }
     .co-ramp { margin-top: 8px; font-family: var(--sans); font-size: 12.5px; line-height: 1.7; color: var(--gray-2); }
@@ -939,7 +941,16 @@
           <div class="co-cue" id="coCue"></div>
           <div class="co-coach" id="coCoach"></div>
           <div class="co-plates" id="coPlates" hidden>
-            <label class="os-label" for="coW">Working weight (kg)</label>
+            <div class="co-bar-row">
+              <label class="os-label" for="coBar">Your bar</label>
+              <div class="os-select-wrap"><select class="os-select" id="coBar">
+                <option value="20kg">20 kg bar</option>
+                <option value="15kg">15 kg bar</option>
+                <option value="45lb">45 lb bar</option>
+                <option value="35lb">35 lb bar</option>
+              </select></div>
+            </div>
+            <label class="os-label" for="coW">Working weight (<span id="coWUnit">kg</span>)</label>
             <input class="os-input" id="coW" inputmode="decimal" placeholder="e.g. 67.5">
             <div class="co-plate-out" id="coPlateOut"></div>
             <div class="co-ramp" id="coRamp"></div>
@@ -2348,23 +2359,41 @@
   }
 
   /* ── coach mode: the plan's rules, executed live ── */
-  const BAR_KG = 20, PLATE_SIZES = [25, 20, 15, 10, 5, 2.5, 1.25];
+  // the plate math + ramp adapt to the user's actual bar (not everyone has a 20 kg
+  // Olympic bar) and unit — a lb gym gets lb plates, a 15 kg women's bar loads
+  // right (SIMULATION: the bar was hardcoded to 20 kg). The user works entirely in
+  // the chosen unit; the plan's kg loads are shown elsewhere.
+  const BAR_CONFIGS = {
+    '20kg': { bar: 20, unit: 'kg', plates: [25, 20, 15, 10, 5, 2.5, 1.25], step: 2.5 },
+    '15kg': { bar: 15, unit: 'kg', plates: [25, 20, 15, 10, 5, 2.5, 1.25], step: 2.5 },
+    '45lb': { bar: 45, unit: 'lb', plates: [45, 35, 25, 10, 5, 2.5], step: 5 },
+    '35lb': { bar: 35, unit: 'lb', plates: [45, 35, 25, 10, 5, 2.5], step: 5 },
+  };
+  const BAR_KEY = 'trainerBar';
+  function barConfig() {
+    let k = '20kg';
+    try { k = localStorage.getItem(BAR_KEY) || '20kg'; } catch (e) {}
+    return BAR_CONFIGS[k] || BAR_CONFIGS['20kg'];
+  }
   function plateMath(target) {
+    const c = barConfig();
     target = parseFloat(target);
     if (!target || isNaN(target)) return '';
-    if (target <= BAR_KG) return 'that’s the empty bar (or lighter) — use fixed bars or dumbbells';
-    let per = (target - BAR_KG) / 2;
+    if (target <= c.bar) return 'that’s the empty bar (or lighter) — use fixed bars or dumbbells';
+    let per = (target - c.bar) / 2;
     const parts = [];
-    for (const s of PLATE_SIZES) { while (per >= s - 1e-9) { parts.push(s); per -= s; } }
+    for (const s of c.plates) { while (per >= s - 1e-9) { parts.push(s); per -= s; } }
     const loaded = target - per * 2;
     return (parts.length ? '<b>' + parts.join(' + ') + '</b> per side' : 'empty bar') +
-      (per > 0.01 ? ' · closest loadable: ' + loaded + ' kg' : '');
+      (per > 0.01 ? ' · closest loadable: ' + loaded + ' ' + c.unit : '');
   }
   function rampFor(w) {
+    const c = barConfig();
     w = parseFloat(w);
-    if (!w || isNaN(w) || w <= BAR_KG) return '';
-    const r = p => Math.max(BAR_KG, Math.round(w * p / 2.5) * 2.5);
-    return 'Ramp: bar × 10 · ' + r(.4) + ' kg × 8 · ' + r(.6) + ' kg × 5 · ' + r(.8) + ' kg × 3 · then work sets';
+    if (!w || isNaN(w) || w <= c.bar) return '';
+    const r = p => Math.max(c.bar, Math.round(w * p / c.step) * c.step);
+    return 'Ramp: bar × 10 · ' + r(.4) + ' ' + c.unit + ' × 8 · ' + r(.6) + ' ' + c.unit +
+      ' × 5 · ' + r(.8) + ' ' + c.unit + ' × 3 · then work sets';
   }
   const barbellish = n => /barbell|back squat|front squat|deadlift|bench press|overhead press|rack pull|hip thrust|good morning|row/.test(String(n).toLowerCase()) &&
     !/dumbbell|machine|cable|goblet|smith|chest-supported|seated cable|band/.test(String(n).toLowerCase());
@@ -2500,7 +2529,12 @@
     $('coCoach').innerHTML = coProgressCue(ex);
     const showPlates = barbellish(ex.name);
     $('coPlates').hidden = !showPlates;
-    if (showPlates) { $('coW').value = ''; $('coPlateOut').innerHTML = ''; $('coRamp').textContent = ''; }
+    if (showPlates) {
+      let bk = '20kg'; try { bk = localStorage.getItem(BAR_KEY) || '20kg'; } catch (e) {}
+      $('coBar').value = BAR_CONFIGS[bk] ? bk : '20kg';
+      $('coWUnit').textContent = barConfig().unit;
+      $('coW').value = ''; $('coPlateOut').innerHTML = ''; $('coRamp').textContent = '';
+    }
     const prev = lastSetsFor(ex.name, x.sets);
     const logged = CO.entries[CO.idx] ? CO.entries[CO.idx].sets : [];
     $('coSets').innerHTML = Array.from({ length: x.sets }, (_, i) => {
@@ -2625,11 +2659,17 @@
     if (any) { coFinish(); coPanels('coDone'); } else { closeCoach(); }
   });
   $('coClose').addEventListener('click', closeCoach);
-  $('coW').addEventListener('input', () => {
+  function renderPlates() {
     $('coPlateOut').innerHTML = plateMath($('coW').value);
     // every heavy barbell lift gets a ramp, not just the session opener — a
     // deadlift placed fourth needs one more than anything
     $('coRamp').textContent = rampFor($('coW').value);
+  }
+  $('coW').addEventListener('input', renderPlates);
+  $('coBar').addEventListener('change', () => {
+    try { localStorage.setItem(BAR_KEY, $('coBar').value); } catch (e) {}
+    $('coWUnit').textContent = barConfig().unit;   // remembers the choice next session
+    renderPlates();
   });
 
   /* ── check-in prefills: the studio fills in what it already knows ── */
