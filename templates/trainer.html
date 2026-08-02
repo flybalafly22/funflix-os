@@ -180,6 +180,9 @@
     .nx-cue b { color: var(--accD); font-weight: 400; }
     .nx-sub { font-family: var(--sans); font-size: 12.5px; color: #C9C9BE; line-height: 1.5; }
     .nx-sub b { color: #fff; font-weight: 600; }
+    .nx-block { margin-top: 10px; font-family: var(--monoX); font-size: 10px; letter-spacing: .08em;
+      text-transform: uppercase; color: #9A9A8E; padding-left: 11px; border-left: 2px solid #3A3A33; }
+    .nx-block.deload { color: var(--accD); border-left-color: var(--accD); }
     .nx-dots { display: flex; align-items: center; gap: 12px; margin-top: 11px; flex-wrap: wrap; }
     .nx-dotrow { display: inline-flex; gap: 6px; }
     .nx-dot { width: 9px; height: 9px; border-radius: 999px; background: rgba(255,255,255,.18); }
@@ -818,6 +821,7 @@
           <div class="nx-label">What’s next</div>
           <div class="nx-cue" id="nxCue"></div>
           <div class="nx-sub" id="nxSub"></div>
+          <div class="nx-block" id="nxBlock" hidden></div>
           <div class="nx-dots" id="nxDots"></div>
           <div class="nx-rem">
             <div class="nx-rem-txt"><b>Remind me on training days</b><span id="remStatus"></span></div>
@@ -1704,6 +1708,49 @@
 
   /* ── deload autopilot: the plan's cadence, actually scheduled ── */
   const DL_KEY = 'trainerDeloadDone';
+  // the plan's deload cadence in weeks, parsed once (shared by the deload card
+  // and the periodization banner), clamped to a sane 4–8. Kept in one place so
+  // the parse can be hardened without touching callers.
+  function deloadCadence() {
+    const sp = savedPlan();
+    const p = (sp && sp.plan) || {};
+    const txt = (((p.progressive_overload || {}).deload) || '') + ' ' +
+                (((p.duration_and_paths || {}).review_points) || '');
+    const m = String(txt).match(/every\s+(\d+)\s*(?:to|-|–|or)?\s*\d*\s*weeks?/i);
+    return Math.min(8, Math.max(4, (m && parseInt(m[1], 10)) || 6));
+  }
+  // where the lifter is in the mesocycle: accumulation weeks building to a deload,
+  // then repeat. Orientation only (calendar weeks since the plan started); the
+  // deload card still owns the actual "deload now" trigger.
+  function blockPhase() {
+    const sp = savedPlan();
+    if (!sp || !sp.plan || !(sp.plan.workout_days || []).length) return null;
+    const cadence = deloadCadence();
+    // the accumulation block resets at the last deload (DL_KEY), so week-in-block
+    // is measured from there — consistent with the deload card's own clock. The
+    // block NUMBER is calendar-approximate (only the last deload is stored).
+    let doneAt = 0;
+    try { doneAt = +localStorage.getItem(DL_KEY) || 0; } catch (e) {}
+    const anchor = Math.max(sp.at, doneAt);
+    const totalElapsed = Math.max(0, Math.floor((Date.now() - sp.at) / WEEK_MS));
+    const sinceDeload = Math.max(0, Math.floor((Date.now() - anchor) / WEEK_MS));
+    const weekInBlock = sinceDeload + 1;
+    const blockNum = Math.floor(totalElapsed / cadence) + 1;
+    const deloadNow = !!(deloadInfo() || fatigueDeload());
+    const phase = (deloadNow || weekInBlock >= cadence) ? 'deload' : 'accumulation';
+    const dur = (sp.plan.duration_and_paths || {}).plan_duration_months;
+    const totalWeeks = (typeof dur === 'number' && dur > 0) ? Math.round(dur * 4.33) : null;
+    return { week: totalElapsed + 1, blockNum, weekInBlock, cadence, phase, totalWeeks,
+             toDeload: Math.max(0, cadence - weekInBlock) };
+  }
+  function blockLine(b) {
+    if (!b) return '';
+    if (b.phase === 'deload') return 'Block ' + b.blockNum + ' · deload week — hold volume, then rebuild';
+    const to = b.toDeload;
+    return 'Block ' + b.blockNum + ' · accumulation, week ' + b.weekInBlock + ' of ' + b.cadence +
+      (to > 0 ? ' — ' + to + ' to deload' : '') +
+      (b.totalWeeks ? ' · week ' + b.week + ' of ~' + b.totalWeeks : '');
+  }
   function deloadInfo() {
     const sp = savedPlan();
     if (!sp || !sp.plan) return null;
@@ -1711,11 +1758,7 @@
     // not fatigue — never prescribe a deload to someone who should ramp back up
     const lastAt = lastSessionAt();
     if (lastAt && Date.now() - lastAt > 14 * DAY_MS) return null;
-    const p = sp.plan;
-    const txt = (((p.progressive_overload || {}).deload) || '') + ' ' +
-                (((p.duration_and_paths || {}).review_points) || '');
-    const m = String(txt).match(/every\s+(\d+)\s*(?:to|-|–|or)?\s*\d*\s*weeks?/i);
-    const cadence = Math.min(8, Math.max(4, (m && parseInt(m[1], 10)) || 6));
+    const cadence = deloadCadence();
     let doneAt = 0;
     try { doneAt = +localStorage.getItem(DL_KEY) || 0; } catch (e) {}
     const anchor = Math.max(sp.at, doneAt);
@@ -2125,6 +2168,11 @@
       $('nxSub').innerHTML = wp.done + ' of ' + wp.target + ' session' + (wp.target === 1 ? '' : 's') +
         ' this week' + (weigh ? ' · <b>weigh in</b> this morning' : '') + '.';
     }
+    // periodization orientation: where this week sits in the mesocycle
+    const bp = blockPhase(), bl = blockLine(bp);
+    if (bl) { $('nxBlock').textContent = bl; $('nxBlock').hidden = false;
+              $('nxBlock').classList.toggle('deload', bp.phase === 'deload'); }
+    else { $('nxBlock').hidden = true; }
     // week dot-strip + training streak (the daily-dashboard glance)
     const filled = Math.min(wp.done, wp.target || wp.done), streak = trainingStreak();
     let dots = '';
