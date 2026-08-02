@@ -43,7 +43,7 @@
 
     /* ── the instrument ── */
     .instrument {
-      width: 430px;
+      width: min(430px, 100%);
       background: #fff;
       border: 1px solid var(--rule-2);
       border-radius: 28px;
@@ -128,7 +128,7 @@
       max-height: 610px;
       box-shadow: 0 24px 70px rgba(0,0,0,0.05);
     }
-    @media (max-width: 760px) { .ledger { width: 430px; max-height: 230px; } }
+    @media (max-width: 760px) { .ledger { width: min(430px, 100%); max-height: 230px; } }
     .ledger-title {
       font-family: var(--sans); font-size: 10px; font-weight: 600;
       letter-spacing: 0.26em; text-transform: uppercase;
