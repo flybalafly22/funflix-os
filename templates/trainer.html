@@ -95,6 +95,7 @@
     .lg-name { font-family: var(--sans); font-weight: 600; font-size: 14px; color: var(--black); }
     .lg-rx { font-family: var(--monoX); font-size: 10px; letter-spacing: .08em; color: var(--accD); margin-left: 10px; }
     .lg-last { margin-top: 7px; font-family: var(--monoX); font-size: 10.5px; letter-spacing: .04em; color: var(--gray-2); }
+    .lg-target { margin-top: 5px; font-family: var(--sans); font-size: 11.5px; line-height: 1.4; color: var(--accD); font-weight: 500; }
     .lg-sets { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
     .lg-set { display: flex; align-items: center; gap: 5px; }
     .lg-set input { width: 62px; text-align: center; }
@@ -1457,9 +1458,11 @@
         ? '<div class="lg-last">Last · ' + new Date(last.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
           ': ' + prev.map(x => esc((x.kg || '?') + '×' + (x.reps || '?'))).join(',  ') + '</div>'
         : '';
+      const tgt = nextTarget(ex, last);
+      const tgtLine = tgt ? '<div class="lg-target">→ ' + esc(tgt) + '</div>' : '';
       return '<div class="lg-ex"><div class="lg-name">' + esc(ex.name) +
         '<span class="lg-rx">' + esc(ex.sets) + ' × ' + esc(ex.rep_range || '') + (ex.rpe_or_rir ? ' · ' + esc(ex.rpe_or_rir) : '') + '</span></div>' +
-        lastLine +
+        lastLine + tgtLine +
         '<div class="lg-sets">' + sets + '</div></div>';
     }).join('');
   }
@@ -2360,6 +2363,46 @@
       if (e) return { sets: e.sets, at: s.at || 0 };
     }
     return null;
+  }
+  // ── next-session target: double-progression, computed from the last session ──
+  // The plan says the rep range; the last log says where you are in it. This turns
+  // "beat last week" from a guess into a concrete number: hit the TOP of the range
+  // on every working set → add load and reset to the bottom; otherwise hold the
+  // load and chase +1 rep toward the top. (Deterministic, on-device.)
+  function parseRepRange(rr) {
+    const m = String(rr || '').match(/(\d+)\s*[-–—]\s*(\d+)/);
+    if (m) return [+m[1], +m[2]];
+    const s = String(rr || '').match(/(\d+)/);
+    return s ? [+s[1], +s[1]] : null;
+  }
+  function isLowerBody(name) {
+    return /squat|dead\s?lift|leg press|leg curl|leg extension|hip thrust|lunge|hinge|romanian|\brdl\b|good morning|calf|hack|glute/.test(String(name).toLowerCase());
+  }
+  function nextTarget(ex, last) {
+    if (!last || !Array.isArray(last.sets) || !last.sets.length) return null;
+    const rng = parseRepRange(ex.rep_range);
+    if (!rng) return null;
+    const [lo, hi] = rng;
+    const kgs = last.sets.map(s => parseFloat(s.kg)).filter(v => !isNaN(v) && v > 0);
+    const w = kgs.length ? Math.max(...kgs) : 0;
+    // the working sets: those at the top weight (or all, for bodyweight moves)
+    const working = last.sets.filter(s => {
+      const k = parseFloat(s.kg);
+      return w ? Math.abs(k - w) < 1e-9 : true;
+    });
+    const reps = working.map(s => parseInt(s.reps, 10)).filter(v => !isNaN(v) && v > 0);
+    if (!reps.length) return null;
+    const minReps = Math.min(...reps);
+    const allTop = reps.every(r => r >= hi);
+    if (allTop) {
+      if (w) {
+        const inc = isLowerBody(ex.name) ? 5 : 2.5;
+        return 'Hit the top everywhere last time — add ' + inc + ' kg: aim ' + (w + inc) + ' kg × ' + lo + '+.';
+      }
+      return 'Cleared ' + hi + ' on every set — add a set or push past ' + hi + ' reps.';
+    }
+    const aim = Math.min(hi, minReps + 1);
+    return (w ? 'Same ' + w + ' kg — ' : '') + 'aim ' + aim + '+ on every set (toward ' + hi + '), then add load.';
   }
   // double progression, said out loud: top of range on every set last time →
   // add load today; otherwise the target is one more rep somewhere
