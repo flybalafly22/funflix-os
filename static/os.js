@@ -12,7 +12,7 @@
     { id: 'V',   name: 'Costa Vista', desc: 'open world',     path: '/play/city-game' },
     { id: 'VI',  name: 'The Study',   desc: 'bio-analytics',  path: '/study' },
     { id: 'VII', name: 'The Fly',     desc: 'courier over a hand-built town', path: '/play/the-fly' },
-    { id: 'VIII', name: 'The Trainer', desc: 'training studio', path: '/trainer' },
+    { id: 'VIII', name: 'The Trainer', desc: 'training studio', path: '/trainer', flag: true },
   ];
   const here = location.pathname.replace(/\/+$/, '') || '/';
   const current = MODULES.find(m => m.path === here) || MODULES[0];
@@ -25,7 +25,7 @@
     <div class="hud-inner">
       <a href="/" class="hud-logo" data-nav aria-label="FUNFLIX home"><svg width="73" height="15" viewBox="0 0 486 100" role="img" aria-label="FUNFLIX"><path fill="#111110" d="M0 0 L24 0 L24 100 L0 100 Z M0 0 L60 0 L60 24 L0 24 Z M0 38 L50 38 L50 58 L0 58 Z"></path><path fill="#0C8A4C" transform="translate(74)" d="M0 0 L26 0 L26 55 Q26 74 33 74 Q40 74 40 55 L40 0 L66 0 L66 55 Q66 100 33 100 Q0 100 0 55 Z"></path><path fill="#111110" transform="translate(152)" d="M0 0 L26 0 L44 52 L44 0 L70 0 L70 100 L44 100 L26 48 L26 100 L0 100 Z"></path><g transform="translate(234)" fill="none" stroke="#111110" stroke-width="6"><rect x="3" y="3" width="18" height="94"></rect><rect x="3" y="3" width="54" height="18"></rect><rect x="3" y="40" width="44" height="14"></rect></g><path fill="#111110" transform="translate(308)" d="M0 0 L26 0 L56 76 L56 100 L0 100 Z"></path><rect x="376" width="26" height="100" fill="#0C8A4C"></rect><path fill="#111110" transform="translate(414)" d="M0 0 L26 0 L72 100 L46 100 Z M46 0 L72 0 L26 100 L0 100 Z"></path></svg></a>
       <nav class="hud-links">
-        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}">${m.name}</a>`).join('')}
+        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}${m.flag ? ' flag' : ''}">${m.name}${m.flag ? '<i class="nav-flag" aria-hidden="true"></i>' : ''}</a>`).join('')}
       </nav>
       <div class="hud-right">
         <button class="hud-cta" id="hudCta">Enter</button>
@@ -34,7 +34,7 @@
         </button>
       </div>
       <div class="hud-mobile" id="hudMobile">
-        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}">${m.name}</a>`).join('')}
+        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}${m.flag ? ' flag' : ''}">${m.name}${m.flag ? '<i class="nav-flag" aria-hidden="true"></i>' : ''}</a>`).join('')}
       </div>
     </div>`;
   document.body.prepend(hud);

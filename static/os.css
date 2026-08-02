@@ -122,6 +122,11 @@ html { scrollbar-width: thin; scrollbar-color: rgba(17,17,16,0.35) transparent; 
 }
 .hud-links a:hover { color: var(--black); }
 .hud-links a.on { color: var(--black); }
+/* flagship marker (The Trainer) — a small live dot, site-wide */
+.hud-links a.flag, .hud-mobile a.flag { color: var(--black); font-weight: 550; }
+.nav-flag { display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accD); margin-left: 7px; vertical-align: middle; }
+.hud-mobile a.flag .nav-flag { margin-left: 8px; }
 
 .hud-right { display: flex; align-items: center; gap: 12px; }
 

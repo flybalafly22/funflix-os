@@ -57,6 +57,7 @@
   .ffx-nav-links{display:flex;align-items:center;gap:22px}
   .ffx-nav-links a.link{font:500 13.5px var(--sans);color:var(--ink2);cursor:pointer;transition:color .2s;padding:11px 6px}
   .ffx-nav-links a.link:hover{color:var(--ink)}
+  .ffx-nav-links a.link.nav-trainer{color:var(--ink);font-weight:600}
   .ffx-cta{font:600 13.5px var(--sans);padding:10px 22px;border-radius:999px;background:var(--ink);color:#fff;
     cursor:pointer;box-shadow:0 8px 24px rgba(17,17,16,.18);transition:background .2s,transform .2s;display:inline-block}
   .ffx-cta:hover{background:#000;transform:translateY(-1px)}
@@ -359,6 +360,7 @@
   <a href="/" aria-label="FUNFLIX home" style="display:block"><svg width="73" height="15" viewBox="0 0 486 100" style="display:block" role="img" aria-label="FUNFLIX"><path fill="#111110" d="M0 0 L24 0 L24 100 L0 100 Z M0 0 L60 0 L60 24 L0 24 Z M0 38 L50 38 L50 58 L0 58 Z"></path><path fill="var(--accD)" transform="translate(74)" d="M0 0 L26 0 L26 55 Q26 74 33 74 Q40 74 40 55 L40 0 L66 0 L66 55 Q66 100 33 100 Q0 100 0 55 Z"></path><path fill="#111110" transform="translate(152)" d="M0 0 L26 0 L44 52 L44 0 L70 0 L70 100 L44 100 L26 48 L26 100 L0 100 Z"></path><g transform="translate(234)" fill="none" stroke="#111110" stroke-width="6"><rect x="3" y="3" width="18" height="94"></rect><rect x="3" y="3" width="54" height="18"></rect><rect x="3" y="40" width="44" height="14"></rect></g><path fill="#111110" transform="translate(308)" d="M0 0 L26 0 L56 76 L56 100 L0 100 Z"></path><rect x="376" width="26" height="100" fill="var(--accD)"></rect><path fill="#111110" transform="translate(414)" d="M0 0 L26 0 L72 100 L46 100 Z M46 0 L72 0 L26 100 L0 100 Z"></path></svg></a>
   <div class="ffx-nav-links">
     <a class="link" href="#apps" id="navApps">Apps</a>
+    <a class="link nav-trainer" href="#flagship" id="navFlagship">The Trainer<i class="nav-flag" aria-hidden="true"></i></a>
     <a class="link" href="#cost">Cost</a>
     <a class="link" href="#about">About</a>
     <a class="link" href="/trainer#account" id="ffxAcct" style="color:var(--accD);font-weight:600"
@@ -867,6 +869,10 @@
   document.getElementById('navApps').addEventListener('click', e => {
     e.preventDefault();
     document.getElementById('apps').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  document.getElementById('navFlagship').addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById('flagship').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   /* ---------- footer app links ---------- */
