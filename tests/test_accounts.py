@@ -47,6 +47,14 @@ class MemStore:
             self.hist[uid] = self.hist[uid][:10]
         self.blobs[(uid, kind)] = {"value": value, "at": int(at)}
 
+    def merge_blob(self, uid, kind, new_value, at, merge_fn):
+        cur = self.blobs.get((uid, kind))
+        old_value, old_at = (cur["value"], cur["at"]) if cur else (None, 0)
+        merged = merge_fn(old_value, new_value)
+        new_at = max(int(at), int(old_at or 0))
+        self.blobs[(uid, kind)] = {"value": merged, "at": new_at}
+        return merged
+
     def get_history(self, uid):
         return list(self.hist.get(uid, []))
 

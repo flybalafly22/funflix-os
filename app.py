@@ -139,6 +139,24 @@ class PgStore:
                 WHERE trainer_blobs.updated_at <= EXCLUDED.updated_at""",
                         (uid, kind, Json(value), int(at)))
 
+    def merge_blob(self, uid, kind, new_value, at, merge_fn):
+        # read-merge-write under a row lock so two workers syncing the same user
+        # concurrently serialize instead of losing one side's data.
+        from psycopg2.extras import Json
+        with self._cur() as (conn, cur):
+            cur.execute("SELECT value, updated_at FROM trainer_blobs "
+                        "WHERE user_id=%s AND kind=%s FOR UPDATE", (uid, kind))
+            row = cur.fetchone()
+            old_value, old_at = (row[0], row[1]) if row else (None, 0)
+            merged = merge_fn(old_value, new_value)
+            new_at = max(int(at), int(old_at or 0))
+            cur.execute("""INSERT INTO trainer_blobs (user_id, kind, value, updated_at)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, kind) DO UPDATE SET value = EXCLUDED.value,
+                    updated_at = EXCLUDED.updated_at""",
+                        (uid, kind, Json(merged), new_at))
+            return merged
+
     def get_history(self, uid):
         with self._cur() as (conn, cur):
             cur.execute("""SELECT id, plan, saved_at FROM trainer_plan_history
@@ -821,6 +839,46 @@ def auth_logout():
     return jsonify({"ok": True})
 
 
+def _sig_session(s):
+    # a session's identity for de-dupe/merge: its timestamp + day + a signature of
+    # its sets. Using entries (not just `at`) means two DIFFERENT sessions backdated
+    # to the same day — both get noon-of-day as `at` — stay distinct instead of one
+    # clobbering the other (SIMULATION "same-day backdated collision"); an identical
+    # session synced twice dedupes.
+    try:
+        return (int(s.get("at", 0)), str(s.get("day", "")),
+                json_mod.dumps(s.get("entries", []), sort_keys=True))
+    except Exception:
+        return (0, "", "")
+
+
+def _merge_logs(old, new):
+    # union of two log lists so two devices that pull→append→push concurrently
+    # don't overwrite each other (RED TEAM lost-update race). Newest first, capped.
+    seen = {}
+    for s in (old or []) + (new or []):
+        if isinstance(s, dict):
+            seen.setdefault(_sig_session(s), s)
+    out = sorted(seen.values(), key=lambda s: s.get("at", 0) if isinstance(s, dict) else 0,
+                 reverse=True)
+    return out[:400]   # matches the client LOG_CAP
+
+
+def _merge_weights(old, new):
+    # one weigh-in per calendar day; union by date, incoming wins a same-day tie
+    by_date = {}
+    for w in (old or []):
+        if isinstance(w, dict) and w.get("d"):
+            by_date[w["d"]] = w
+    for w in (new or []):
+        if isinstance(w, dict) and w.get("d"):
+            by_date[w["d"]] = w
+    return sorted(by_date.values(), key=lambda w: w.get("d", ""))
+
+
+_MERGE_FNS = {"logs": _merge_logs, "weights": _merge_weights}
+
+
 @app.route("/api/sync", methods=["GET", "PUT"])
 def sync():
     if STORE is None:
@@ -848,7 +906,12 @@ def sync():
         except (ValueError, TypeError):
             at = now_ms
         at = max(0, min(at, now_ms + 86_400_000))
-        STORE.put_blob(uid, kind, item["value"], at)
+        # logs/weights union-merge server-side (concurrent devices don't clobber);
+        # plan stays newer-wins (single object, drives history archiving)
+        if kind in _MERGE_FNS:
+            STORE.merge_blob(uid, kind, item["value"], at, _MERGE_FNS[kind])
+        else:
+            STORE.put_blob(uid, kind, item["value"], at)
     blobs = STORE.get_blobs(uid)
     return jsonify({"plan_at": (blobs.get("plan") or {}).get("at"),
                     "logs_at": (blobs.get("logs") or {}).get("at"),
