@@ -96,6 +96,9 @@
     .lg-rx { font-family: var(--monoX); font-size: 10px; letter-spacing: .08em; color: var(--accD); margin-left: 10px; }
     .lg-last { margin-top: 7px; font-family: var(--monoX); font-size: 10.5px; letter-spacing: .04em; color: var(--gray-2); }
     .lg-target { margin-top: 5px; font-family: var(--sans); font-size: 11.5px; line-height: 1.4; color: var(--accD); font-weight: 500; }
+    .lg-swap { margin-top: 6px; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--monoX);
+      font-size: 10px; letter-spacing: .06em; color: var(--gray-2); text-decoration: underline; text-underline-offset: 2px; }
+    .lg-swap:hover { color: var(--accD); }
     .lg-sets { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
     .lg-set { display: flex; align-items: center; gap: 5px; }
     .lg-set input { width: 62px; text-align: center; }
@@ -1460,6 +1463,20 @@
     const b = $('bwLog'), old = b.textContent; b.textContent = 'Logged ✓';
     setTimeout(() => { b.textContent = old; }, 1400);
   });
+  // ── interactive swap: log the plan's own substitution when you can't do a lift ──
+  // The plan already names one substitution per exercise ("can't back squat →
+  // goblet squat"). This makes it actionable: swap for logging, and the swapped
+  // movement carries its OWN history/target (dumbbell press ≠ barbell bench). The
+  // choice persists per (day, exercise) so it sticks until you swap back.
+  const SWAP_KEY = 'trainerSwaps';
+  function swapMap() { try { return JSON.parse(localStorage.getItem(SWAP_KEY)) || {}; } catch (e) { return {}; } }
+  function swapKeyFor(day, ex) { return (day.day_label || '') + '::' + ex.name; }
+  function effName(day, ex) { return swapMap()[swapKeyFor(day, ex)] || ex.name; }
+  function setSwap(day, ex, name) {
+    const m = swapMap(), k = swapKeyFor(day, ex);
+    if (name && name !== ex.name) m[k] = name; else delete m[k];
+    try { localStorage.setItem(SWAP_KEY, JSON.stringify(m)); } catch (e) {}
+  }
   function renderLgList() {
     const saved = savedPlan();
     if (!saved) return;
@@ -1467,9 +1484,12 @@
     if (!day) { $('lgList').innerHTML = ''; return; }
     $('lgList').innerHTML = (day.exercises || []).map((ex, ei) => {
       const n = Math.max(1, Math.min(8, +ex.sets || 3));
+      const eff = effName(day, ex);
+      const swapped = eff !== ex.name;
+      const sub = String(ex.substitution || '').trim();
       // Strong's mechanic: show what you did last time as reference + as the
       // input placeholders, so "beat last week" is one glance, not memory
-      const last = lastEntryFor(ex.name);
+      const last = lastEntryFor(eff);
       const prev = last ? last.sets : [];
       let sets = '';
       for (let s = 0; s < n; s++) {
@@ -1482,14 +1502,29 @@
         ? '<div class="lg-last">Last · ' + new Date(last.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
           ': ' + prev.map(x => esc((x.kg || '?') + '×' + (x.reps || '?'))).join(',  ') + '</div>'
         : '';
-      const tgt = nextTarget(ex, last);
+      const tgt = nextTarget({ name: eff, rep_range: ex.rep_range, sets: ex.sets }, last);
       const tgtLine = tgt ? '<div class="lg-target">→ ' + esc(tgt) + '</div>' : '';
-      return '<div class="lg-ex"><div class="lg-name">' + esc(ex.name) +
+      const swapBtn = sub
+        ? '<button type="button" class="lg-swap" data-swap="' + ei + '">' +
+          (swapped ? '↩ back to ' + esc(ex.name) : '⇄ swap: ' + esc(sub)) + '</button>'
+        : '';
+      return '<div class="lg-ex"><div class="lg-name">' + esc(eff) +
         '<span class="lg-rx">' + esc(ex.sets) + ' × ' + esc(ex.rep_range || '') + (ex.rpe_or_rir ? ' · ' + esc(ex.rpe_or_rir) : '') + '</span></div>' +
-        lastLine + tgtLine +
+        swapBtn + lastLine + tgtLine +
         '<div class="lg-sets">' + sets + '</div></div>';
     }).join('');
   }
+  $('lgList').addEventListener('click', e => {
+    const btn = e.target.closest('.lg-swap');
+    if (!btn) return;
+    const saved = savedPlan();
+    if (!saved) return;
+    const day = (saved.plan.workout_days || [])[+$('lDay').value || 0];
+    const ex = day && (day.exercises || [])[+btn.dataset.swap];
+    if (!ex) return;
+    setSwap(day, ex, effName(day, ex) === ex.name ? String(ex.substitution || '').trim() : null);
+    renderLgList();
+  });
   $('lDay').addEventListener('change', renderLgList);
   // progress is judged by estimated 1RM (Epley), not raw kg — 60 kg x 8 beats
   // 62.5 kg x 5, so double-progression rep gains count as the progress they are
@@ -1601,7 +1636,7 @@
         const repsIn = document.querySelector('#lgList input[data-ex="' + ei + '"][data-set="' + kgIn.dataset.set + '"][data-k="reps"]');
         if (kgIn.value.trim() || (repsIn && repsIn.value.trim())) sets.push({ kg: kgIn.value.trim(), reps: repsIn ? repsIn.value.trim() : '' });
       });
-      if (sets.length) entries.push({ name: ex.name, sets });
+      if (sets.length) entries.push({ name: effName(day, ex), sets });   // log the swapped movement if swapped
     });
     if (!entries.length) { errBox.textContent = 'Enter at least one set before saving.'; errBox.classList.add('show'); return; }
     errBox.classList.remove('show');
@@ -1734,10 +1769,21 @@
   function deloadCadence() {
     const sp = savedPlan();
     const p = (sp && sp.plan) || {};
-    const txt = (((p.progressive_overload || {}).deload) || '') + ' ' +
-                (((p.duration_and_paths || {}).review_points) || '');
-    const m = String(txt).match(/every\s+(\d+)\s*(?:to|-|–|or)?\s*\d*\s*weeks?/i);
-    return Math.min(8, Math.max(4, (m && parseInt(m[1], 10)) || 6));
+    const txt = String((((p.progressive_overload || {}).deload) || '') + ' ' +
+                       (((p.duration_and_paths || {}).review_points) || '')).toLowerCase();
+    // several phrasings, not just "every N weeks": "every 4th week", "after 5
+    // weeks", a bare "4–8 weeks", or a last-resort "6 weeks" (the old regex missed
+    // all but the first and silently defaulted to 6 — SIMULATION brittle-regex).
+    const pats = [
+      /every\s+(\d+)\s*(?:to|-|–|or)?\s*\d*\s*weeks?/,
+      /every\s+(\d+)(?:st|nd|rd|th)\s+week/,
+      /after\s+(\d+)\s+weeks?/,
+      /(\d+)\s*(?:-|–|to)\s*\d+\s*weeks?/,
+      /(\d+)\s*weeks?\b/,
+    ];
+    let n = null;
+    for (const re of pats) { const m = txt.match(re); if (m) { n = parseInt(m[1], 10); break; } }
+    return Math.min(8, Math.max(4, n || 6));
   }
   // where the lifter is in the mesocycle: accumulation weeks building to a deload,
   // then repeat. Orientation only (calendar weeks since the plan started); the
