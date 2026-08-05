@@ -81,3 +81,38 @@ new external asset (CSP + the 0.4s promise) · pytest still green · push → ve
 ## Pending (owner, free — unchanged)
 Set `GMAIL_USER` + `GMAIL_APP_PASSWORD` on Render (`EMAIL_SETUP.md`) to enable OTP +
 password-reset email for real users. Not a UI item; stays tracked.
+
+---
+
+## Rebrand pitch outcome + 3 new standing teams (2026-08-05)
+
+The owner reviewed the four rebrand directions (FUNFLIX → "The Trainer", keeping all
+eight apps). **Chosen: Direction II — The Voice** (a coach persona hosts the site).
+Built as a **private, non-production prototype only** (Artifact, not deployed): a
+time-aware serif greeting + an "Ask your Trainer" router that hands you the right
+app with a coach's reasoning. The live site is untouched. Do **not** ship the
+rebrand without an explicit owner go-ahead.
+
+The other three teams are **hired permanently** — not to rebrand, but to keep lifting
+the real website. Each stays wired to an existing team so its work is grounded.
+
+### THE ATELIER — craft & finish  (wired to THE REFINERS + UI Council)
+Owns the "made-by-hand" quality bar: hallmark/mark consistency, the premium detail
+pass (spacing, hairlines, elevation, edition-numbering), and the "Instrument No."
+framing the site already uses. Standing job: every new surface gets an Atelier
+finish review before it ships.
+
+### THE DOCTRINE — narrative & positioning  (wired to R&D LAB + THE PRODUCER)
+Owns voice, copy, and the "why each thing exists" throughline across the whole site.
+Standing job: no headline/CTA/empty-state ships without a Doctrine copy pass — active
+voice, specific-beats-clever, evidence-first. Guards against filler.
+
+### THE CLUB — membership, belonging & wayfinding  (wired to THE GUARDIANS + QA)
+Owns the account/membership experience, navigation & wayfinding, and the live
+presence/status language ("Enter", the clocks, "your trainer is in"). Standing job:
+the arrival + sign-in + cross-app navigation flows stay coherent and welcoming, and
+membership never becomes a dark pattern (with the Guardians).
+
+**Roster now:** QA · CI/CD · Automation · R&D LAB · SIMULATION · RED TEAM · THE
+REFINERS · THE GUARDIANS · UI Council · **THE ATELIER · THE DOCTRINE · THE CLUB** ·
+Producer. (THE VOICE remains on call for the rebrand if/when it's greenlit.)
