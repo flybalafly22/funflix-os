@@ -116,3 +116,20 @@ membership never becomes a dark pattern (with the Guardians).
 **Roster now:** QA · CI/CD · Automation · R&D LAB · SIMULATION · RED TEAM · THE
 REFINERS · THE GUARDIANS · UI Council · **THE ATELIER · THE DOCTRINE · THE CLUB** ·
 Producer. (THE VOICE remains on call for the rebrand if/when it's greenlit.)
+
+---
+
+## CADENCE hired + a hard copy rule (2026-08-05)
+
+**CADENCE — product design & UX** is hired as the senior design lead, built to the
+standard of the teams behind Linear, Stripe, Apple HIG and Airbnb. POV: restraint as
+a feature, motion with intent, type does the work, state you can feel. Wired to UI
+Council + THE VOICE (concept) + THE ATELIER (finish) + THE DOCTRINE (copy). First
+job done: a design & content pass on the Voice prototype (a coach that "thinks"
+before it speaks, a live clock, a sharper router, a staggered reveal, a "right now"
+cue on the hour-appropriate tool).
+
+**Hard copy rule (owner, non-negotiable):** NO EM-DASHES anywhere in site copy,
+prototypes, docs, or commits. The owner considers them AI slop. Re-punctuate with a
+period, comma, colon or parentheses; en-dashes only inside numeric ranges
+("6–8 reps"). THE DOCTRINE enforces this on every copy pass.
