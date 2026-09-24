@@ -5,8 +5,9 @@ Trainer as the flagship and the new idea taking over, while every existing
 technicality and every piece of the Trainer's research stays intact, and the whole
 system adapts.
 
-Branch: `voice-merge`. **Not deployed.** Shipping is one owner go-ahead away (see
-"How to ship").
+**Shipped 2026-09-24** on the owner's go-ahead ("time to deploy"): merge commit
+`7216306` on `main`, live on https://funflix-os.onrender.com. Live results are at the
+end of this page.
 
 ## The shape of it
 
@@ -120,3 +121,21 @@ and the landing's facts link to it for the raw evidence.
 
 Still pending (owner, free, unchanged): `GMAIL_USER` + `GMAIL_APP_PASSWORD` on
 Render for real OTP email (`docs/trainer/EMAIL_SETUP.md`).
+
+## Live verification (2026-09-24, commit 7216306)
+
+- CI: `test` and `live-verify` both green. `scripts/verify_live.py`: all OK (live
+  commit matches, `/` and `/trainer` 200, demo plan, accounts enabled).
+- Cold and signed out, desktop 1280 and phone 390: home and Trainer console-clean
+  with no overflow; the cold visit stores nothing but the theme choice; no phantom
+  "Restore last plan"; fonts served from our own server with no Google request;
+  service worker on `trainer-v4`. 43/43 live checks.
+- The handoff live: five answers on `/` arrive in `/trainer` pre-filled ("Right, Live.
+  Four facts and I write it."); Start blank clears it.
+- Signed in (simulated in the browser, so no test account was written to the
+  production database): the bar and the home nav show the account; the account panel
+  shows the profile.
+- One real plan on production (a 3-day home-barbell strength intake): valid plan in
+  159 s, full body x 3 as the rulebook says, protein 1.91 g/kg (inside 1.6 to 2.2),
+  creatine and protein powder only, and zero em-dashes in the model's output.
+
