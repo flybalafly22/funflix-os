@@ -1,4 +1,4 @@
-# CLAUDE.md — THE FLY
+# CLAUDE.md: THE FLY
 
 > Ground-truth reference for anyone (human or agent) working on this repo.
 > Claude Code reads this automatically at the start of every session.
@@ -9,22 +9,32 @@
 
 ## Project
 
-**THE FLY** — a cozy 3D cel-shaded courier/delivery game, browser-based (desktop + mobile touch),
+**THE FLY** is a cozy 3D cel-shaded courier/delivery game, browser-based (desktop + mobile touch),
 built on Three.js, served via Flask, deployed to Render. The full delivery loop, economy, seasons,
 festivals, narrative, districts, and living-town AI already work end-to-end. Active overhaul focus:
-**craft quality** (art, animation, audio, UI, writing) — not new systems.
+**craft quality** (art, animation, audio, UI, writing), not new systems.
 
 Note: this Flask app (`calculator_web`) hosts several small games/tools (a calculator, "funflix",
 "journalist", "lab", "meme"), not just THE FLY. THE FLY is the `/play/*` routes backed by
 `templates/town.html` + `static/town/*.js`.
 
 For **The Trainer** (`/trainer`, the AI training-plan studio): standing teams, roadmap and sprint
-docs live in `docs/trainer/` — start with `docs/trainer/TEAMS.md` and `docs/trainer/MANAGER.md`
+docs live in `docs/trainer/`; start with `docs/trainer/TEAMS.md` and `docs/trainer/MANAGER.md`
 (the Producer charter). Its QA suite is `tests/` (pytest) + `qa/site_qa.py`; CI is
 `.github/workflows/ci.yml`; live-deploy verification is `scripts/verify_live.py` (live site
 `https://funflix-os.onrender.com`, live commit at `/api/version`; server config is
 `gunicorn.conf.py` because Render ignores the Procfile). Accounts & cross-device sync are enabled
 by `DATABASE_URL` (Neon Postgres, Render env var) and degrade gracefully without it.
+
+**The Voice merge (2026-09):** The Trainer is the site's front door. `/` serves
+`templates/home.html` (the coach-hosted landing); its five-question session hands off
+to `/trainer` through `sessionStorage.trainerHandoff` (tab-scoped, written only on
+"Open your Trainer", consumed by a real plan). Every page wears one design system:
+`static/os.css` tokens (cobalt Voice palette, plus a dark set for pages that opt in
+with `<html data-themeable>`, same `trainerTheme` key as home). Fonts are
+self-hosted in `static/fonts/`. Hard copy rule: no em-dashes anywhere. Plan and
+record: `docs/ui/VOICE_MERGE.md`. Gates: `tests/test_voice_merge.py` +
+`qa/voice_qa.py` (end-to-end handoff).
 
 ---
 
@@ -36,7 +46,7 @@ pip install -r requirements.txt
 
 # run the Flask dev server
 python app.py
-# (runs app.run(debug=True) — see app.py:229; default Flask port 5000)
+# (runs app.run(debug=True), see app.py:229; default Flask port 5000)
 
 # then open
 http://127.0.0.1:5000/play/the-fly
@@ -47,17 +57,17 @@ ports in the 5057–5070 range, so if you boot the dev server on a non-default p
 URL as the script's first argument (see below).
 
 ### Other THE FLY routes (all served from the same Flask app)
-- `/play/the-fly` → `templates/town.html` — **current/main build** (the one described here)
-- `/play/the-fly-classic` → `templates/the_fly.html` — earlier standalone build
-- `/play/city-game` → `templates/fly.html` — earlier build, also what `qa/harness.py` targets by default
-- `/play/town-slice` → `templates/town_slice.html` — a slice/prototype variant
-- `/play/town` → `templates/town.html` — alias of the main build
+- `/play/the-fly` → `templates/town.html`, **current/main build** (the one described here)
+- `/play/the-fly-classic` → `templates/the_fly.html`, earlier standalone build
+- `/play/city-game` → `templates/fly.html`, earlier build, also what `qa/harness.py` targets by default
+- `/play/town-slice` → `templates/town_slice.html`, a slice/prototype variant
+- `/play/town` → `templates/town.html`, alias of the main build
 
 ---
 
 ## How to test
 
-There is no `npm`/`package.json` or `pytest` suite — the "Playwright harness" is a set of standalone
+There is no `npm`/`package.json` or `pytest` suite: the "Playwright harness" is a set of standalone
 Python scripts in `qa/` that boot the game in headless Chromium via `playwright.sync_api`, exercise
 it, capture screenshots into `qa/shots/`, and write a JSON report.
 
@@ -81,7 +91,7 @@ python qa/town_vignettes.py [base_url]
 
 Each script writes/updates a report (e.g. `qa/last_report.json`) and screenshots under `qa/shots/`.
 `qa/harness.py`'s header notes headless Chromium uses SwiftShader (software WebGL), so its FPS
-number is a **regression floor, not a real-GPU number** — treat large drops as meaningful, not the
+number is a **regression floor, not a real-GPU number**; treat large drops as meaningful, not the
 absolute value.
 
 The QA gate for the overhaul depends on these scripts passing (no console/page errors, expected DOM
@@ -92,7 +102,7 @@ markers present, screenshots captured). Never commit with a red run.
 ## Tech stack
 
 - **Engine:** Three.js **r0.128.0**, classic global (non-module) build, loaded from jsDelivr CDN in
-  `templates/town.html` (no CapsuleGeometry available at this version — see `static/town/lib.js`
+  `templates/town.html` (no CapsuleGeometry available at this version, see `static/town/lib.js`
   header). Post-processing via the matching r128 `examples/js/postprocessing` + `shaders` addons
   (EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, CopyShader,
   LuminosityHighPassShader, GammaCorrectionShader, UnpackDepthRGBAShader,
@@ -101,7 +111,7 @@ markers present, screenshots captured). Never commit with a red run.
   `app.py:38-51`). Served in production by gunicorn (`Procfile`: `web: gunicorn app:app`).
 - **Deploy:** Render, continuous (every tested feature committed and pushed live).
 - **Rendering:** custom cel-shading + ink-outline post-processing pipeline (built in `game.js`'s
-  composer setup; no separate shader file yet — see Sprint gates in `OVERHAUL_BRIEF.md` for the
+  composer setup; no separate shader file yet, see Sprint gates in `OVERHAUL_BRIEF.md` for the
   planned upgrade).
 - **World gen:** deterministic, seeded (see `world.js`).
 
@@ -119,20 +129,21 @@ calculator_web/
 │   └── overhaul/
 │       └── OVERHAUL_BRIEF.md  # the craft-overhaul production plan
 ├── templates/
-│   ├── town.html              # THE FLY — main build (/play/the-fly, /play/town)
-│   ├── the_fly.html           # THE FLY — classic build (/play/the-fly-classic)
-│   ├── fly.html               # THE FLY — earlier build (/play/city-game)
-│   ├── town_slice.html        # THE FLY — slice/prototype (/play/town-slice)
-│   ├── funflix.html           # unrelated: site home ("/")
+│   ├── town.html              # THE FLY, main build (/play/the-fly, /play/town)
+│   ├── the_fly.html           # THE FLY, classic build (/play/the-fly-classic)
+│   ├── fly.html               # THE FLY, earlier build (/play/city-game)
+│   ├── town_slice.html        # THE FLY, slice/prototype (/play/town-slice)
+│   ├── home.html              # site home ("/"): The Trainer's front door (the Voice landing)
 │   ├── index.html             # unrelated: calculator ("/calculator")
 │   ├── game.html              # unrelated: "/game"
 │   ├── journalist.html        # unrelated
 │   ├── lab.html                # unrelated
 │   └── meme.html               # unrelated: "/meme"
 ├── static/
-│   ├── os.css / os.js         # unrelated site chrome
+│   ├── os.css / os.js         # the shared design system + chrome (Voice tokens, nav, Apps menu, account, ⌘K)
+│   ├── fonts/                 # self-hosted Bricolage Grotesque, Geist, Geist Mono (OFL-1.1)
 │   └── town/                  # THE FLY client source (loaded in this order by town.html)
-│       ├── ARTBIBLE.md        # existing art-direction notes (predates OVERHAUL_BRIEF's ART_BIBLE.md ask —
+│       ├── ARTBIBLE.md        # existing art-direction notes (predates OVERHAUL_BRIEF's ART_BIBLE.md ask:
 │       │                      #   Sprint 0's Art Director should reconcile/extend this file, not ignore it)
 │       ├── lib.js             # shared foundation: THREE alias, math helpers, shared materials/textures
 │       ├── buildings.js       # building factories
@@ -159,19 +170,19 @@ the load order and file names in `static/town/`: `lib.js → buildings.js → pr
 world.js → game.js`, exactly as `<script>`-included in `templates/town.html`.
 
 Key entry points:
-- **Server entry:** `app.py` — route `@app.route("/play/the-fly")` → `the_fly()` → renders
+- **Server entry:** `app.py`, route `@app.route("/play/the-fly")` → `the_fly()` → renders
   `templates/town.html` (`app.py:43-44`)
 - **Client bootstrap / main scene:** `templates/town.html` (script includes + inline bootstrap that
   builds the renderer/scene/camera/composer and calls into `FLY.world` / `FLY.game.start`)
 - **Client main scene logic:** `static/town/game.js` (`FLY.game.start(ctx, world)`); world layout in
   `static/town/world.js`
-- **Asset loading:** none yet — all geometry is code-composed (primitives, custom BufferGeometry) in
+- **Asset loading:** none yet; all geometry is code-composed (primitives, custom BufferGeometry) in
   `lib.js`/`buildings.js`/`props.js`/`characters.js`. A GLTF asset-loading pipeline is Sprint 0's
   deliverable in `docs/overhaul/OVERHAUL_BRIEF.md`.
 - **Shader / post-processing pipeline:** built inline in `static/town/game.js` using the r128
   EffectComposer/UnrealBloomPass/ShaderPass stack included in `templates/town.html`; there is no
   standalone shader module yet (planned under the Rendering & Shader Agent in the overhaul brief).
-- **Test harness:** `qa/*.py` (Playwright, headless Chromium) — see "How to test" above.
+- **Test harness:** `qa/*.py` (Playwright, headless Chromium), see "How to test" above.
 
 ---
 
@@ -186,7 +197,7 @@ Key entry points:
   source + license in `ASSETS_CREDITS.md`. No copyrighted characters, logos, or music.
 - **Small, tested commits. Keep the game live at all times.**
 - **Respect the seeded/modular architecture.** You may propose upgrading Three.js or adding a GLTF
-  pipeline — propose and migrate cleanly, don't surprise-break it.
+  pipeline: propose and migrate cleanly, don't surprise-break it.
 - **Every sprint produces before/after evidence** (fixed-camera, fixed-seed screenshots + perf
   numbers) in `docs/overhaul/sprint-N/`.
 

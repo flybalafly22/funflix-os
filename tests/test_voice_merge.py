@@ -70,6 +70,7 @@ def test_fonts_are_self_hosted():
         r = c.get(f"/static/fonts/{name}.woff2")
         assert r.status_code == 200
         assert r.data[:4] == b"wOF2", name
+        assert "max-age=604800" in (r.headers.get("Cache-Control") or ""), name
     for rel in ("templates/home.html", "templates/trainer.html", "static/os.css"):
         assert "fonts.googleapis.com" not in _read(rel), rel
 
@@ -95,7 +96,7 @@ def test_no_em_dashes_on_merged_surfaces():
                 "static/trainer/manifest.json", "static/fonts/fonts.css"]
     for rel in surfaces:
         body = _read(rel)
-        assert "—" not in body and "&mdash;" not in body, rel
+        assert "\u2014" not in body and "&mdash;" not in body, rel
 
 
 def test_translucent_chrome_is_gone():

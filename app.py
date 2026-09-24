@@ -30,7 +30,7 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 
 app = Flask(__name__)
 
-# ════════ accounts & sync (optional — enabled when DATABASE_URL is set) ════════
+# ════════ accounts & sync (optional, enabled when DATABASE_URL is set) ════════
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if DATABASE_URL and "sslmode=" not in DATABASE_URL:
     DATABASE_URL += ("&" if "?" in DATABASE_URL else "?") + "sslmode=require"
@@ -318,7 +318,7 @@ def journalist_api():
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
-# ════════ The Study — supplement bio-analytics dashboard + AI analyst ════════
+# ════════ The Study, supplement bio-analytics dashboard + AI analyst ════════
 @app.route("/study")
 def study():
     return render_template("lab.html")
@@ -327,7 +327,7 @@ def study():
 @app.route("/api/analysis-data")
 def analysis_data():
     if ANALYSIS is None:
-        return jsonify({"error": "analysis.json not found — run analysis/build_analysis_json.py"}), 500
+        return jsonify({"error": "analysis.json not found. Run analysis/build_analysis_json.py"}), 500
     # Everything the dashboard needs; the heavy 'digest' is server-side only.
     out = {k: v for k, v in ANALYSIS.items() if k != "digest"}
     out["analyst_ready"] = bool(GEMINI_API_KEY)
@@ -338,12 +338,12 @@ ANALYST_SYSTEM = """You are 'The Analyst', a precise, friendly data analyst embe
 Study dashboard. You help users understand a supplement-impact analysis through back-and-forth conversation.
 
 Use ONLY the dataset facts and findings below. If a question cannot be answered from them, say so plainly \
-and suggest what the data CAN tell them. Never invent numbers — quote the figures given. This is SYNTHETIC \
+and suggest what the data CAN tell them. Never invent numbers; quote the figures given. This is SYNTHETIC \
 data for analysis practice, so frame insights as patterns in the dataset, not medical advice.
 
 Be conversational and concise: 2-4 short paragraphs or a tight bulleted list. Explain what numbers MEAN \
 (e.g. why a low coefficient of variation signals consistency, why a near-zero correlation means a factor \
-does not matter), not just what they are. Plain text only — no markdown headers or tables.
+does not matter), not just what they are. Plain text only: no markdown headers or tables, no em-dashes.
 
 ==== ANALYSIS BRIEF ====
 {digest}
@@ -402,7 +402,7 @@ def analyst_api():
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
 
-# ════════ The Trainer — evidence-based training + nutrition plans ════════
+# ════════ The Trainer, evidence-based training + nutrition plans ════════
 _TRAINER_DEMO_PATH = os.path.join(os.path.dirname(__file__), "data", "trainer_demo.json")
 try:
     with open(_TRAINER_DEMO_PATH) as _f:
@@ -456,7 +456,7 @@ def _client_ip():
 
 
 def _rate_limited(ip, bucket="plan", limit=None):
-    # Exemption is gated on the REAL TCP peer (request.remote_addr — a client
+    # Exemption is gated on the REAL TCP peer (request.remote_addr, a client
     # cannot spoof it), NOT the X-Forwarded-For-derived `ip`. Otherwise sending
     # "X-Forwarded-For: 127.0.0.1" would hit the loopback exemption and disable
     # every limit (RED TEAM RT-1). Local dev + the test suite connect from
@@ -472,7 +472,7 @@ def _rate_limited(ip, bucket="plan", limit=None):
     with _trainer_rl_lock:
         # bound memory: once the map is large, sweep out keys whose hits are all
         # stale; if it's still at the ceiling and this key is new, don't grow it
-        # (fail open for a brand-new IP — the per-account limit still guards the
+        # (fail open for a brand-new IP, the per-account limit still guards the
         # actual brute-force target).
         if len(_trainer_hits) > _RL_MAX_KEYS:
             for k in list(_trainer_hits.keys()):
@@ -497,7 +497,7 @@ def _rate_limited(ip, bucket="plan", limit=None):
 # password brute-force against ONE account. Keying on the email caps guesses per
 # targeted account regardless of source IP. Kept generous (a real user's typos
 # never reach it) so a malicious login flood can at worst lock one account for an
-# hour — never the whole site — while still capping guesses far below what any
+# hour, never the whole site, while still capping guesses far below what any
 # 8+ char password needs.
 AUTH_ACCT_LIMIT = 20
 
@@ -508,7 +508,7 @@ def _rate_limited_account(email, limit=AUTH_ACCT_LIMIT):
 
 def _req_json():
     # a JSON body that isn't an object (a list, string, number, or malformed) must
-    # not reach `.get(...)` and 500 the endpoint — coerce it to an empty dict.
+    # not reach `.get(...)` and 500 the endpoint, coerce it to an empty dict.
     j = request.get_json(silent=True)
     return j if isinstance(j, dict) else {}
 
@@ -529,18 +529,18 @@ def auth_me():
 
 # ── transactional email: account-creation OTP + password-reset codes ──
 # Two $0 providers, no paid plan and no owned domain required:
-#   1. Gmail SMTP (preferred) — stdlib smtplib, sends to ANY recipient, ~500/day
+#   1. Gmail SMTP (preferred), stdlib smtplib, sends to ANY recipient, ~500/day
 #      free. Needs GMAIL_USER + GMAIL_APP_PASSWORD (a 16-char Google app password;
 #      requires 2-Step Verification on the Google account). This is the path that
-#      lets real strangers verify — no domain to buy.
-#   2. Resend HTTP API (fallback) — free tier, but its default onboarding@resend.dev
+#      lets real strangers verify, no domain to buy.
+#   2. Resend HTTP API (fallback), free tier, but its default onboarding@resend.dev
 #      sender only reaches the Resend account owner until a domain is verified.
 # Email is ENFORCED only when at least one provider is configured; with neither,
 # signup falls back to direct (the product is never bricked). Gmail is tried
 # first; Resend is a backstop if Gmail send fails and a key is present.
 _RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
 _GMAIL_USER = os.environ.get("GMAIL_USER", "").strip()
-# app passwords are displayed grouped as "abcd efgh ijkl mnop" — tolerate spaces
+# app passwords are displayed grouped as "abcd efgh ijkl mnop", tolerate spaces
 _GMAIL_PW = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "")
 _MAIL_FROM = os.environ.get("MAIL_FROM", "The Trainer <onboarding@resend.dev>")
 
@@ -569,7 +569,7 @@ def _send_via_gmail(to, subject, html):
         msg["Subject"] = subject
         msg["From"] = _smtp_from()
         msg["To"] = to
-        msg.set_content("Your verification code is in this message — open it in an "
+        msg.set_content("Your code is in this message. Open it in an "
                         "HTML-capable email client to view it.")
         msg.add_alternative(html, subtype="html")
         ctx = ssl.create_default_context(cafile=certifi.where())
@@ -613,7 +613,7 @@ def _send_via_resend(to, subject, html):
 def _send_email(to, subject, html):
     global _last_mail_err
     _last_mail_err = ""
-    # Gmail first — it reaches any recipient for free. Fall through to Resend
+    # Gmail first, it reaches any recipient for free. Fall through to Resend
     # only if Gmail isn't configured or its send failed and a key exists.
     if _gmail_configured():
         if _send_via_gmail(to, subject, html):
@@ -627,20 +627,20 @@ def _send_email(to, subject, html):
 
 def _otp_email_html(code):
     return ("<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:440px;"
-            "margin:0 auto;padding:8px\"><p style=\"font-size:15px;color:#111\">Welcome to <b>The Trainer</b>.</p>"
-            "<p style=\"font-size:14px;color:#333\">Your verification code is:</p>"
-            "<p style=\"font-size:30px;letter-spacing:8px;font-weight:700;color:#0C8A4C;margin:12px 0\">" + code + "</p>"
-            "<p style=\"font-size:12.5px;color:#666\">It expires in 10 minutes. If you didn't request this, ignore this email — "
+            "margin:0 auto;padding:8px\"><p style=\"font-size:15px;color:#0B0F2E\">Welcome to <b>The Trainer</b>.</p>"
+            "<p style=\"font-size:14px;color:#2D314B\">Your verification code is:</p>"
+            "<p style=\"font-size:30px;letter-spacing:8px;font-weight:700;color:#2B3BFF;margin:12px 0\">" + code + "</p>"
+            "<p style=\"font-size:12.5px;color:#5B5F7B\">It expires in 10 minutes. If you didn't request this, ignore this email: "
             "no account is created until the code is entered.</p></div>")
 
 
 def _otp_reset_html(code):
     return ("<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:440px;"
-            "margin:0 auto;padding:8px\"><p style=\"font-size:15px;color:#111\">Reset your <b>The Trainer</b> password.</p>"
-            "<p style=\"font-size:14px;color:#333\">Enter this code to set a new password:</p>"
-            "<p style=\"font-size:30px;letter-spacing:8px;font-weight:700;color:#0C8A4C;margin:12px 0\">" + code + "</p>"
-            "<p style=\"font-size:12.5px;color:#666\">It expires in 10 minutes. If you didn't request this, ignore this "
-            "email — your password stays unchanged.</p></div>")
+            "margin:0 auto;padding:8px\"><p style=\"font-size:15px;color:#0B0F2E\">Reset your <b>The Trainer</b> password.</p>"
+            "<p style=\"font-size:14px;color:#2D314B\">Enter this code to set a new password:</p>"
+            "<p style=\"font-size:30px;letter-spacing:8px;font-weight:700;color:#2B3BFF;margin:12px 0\">" + code + "</p>"
+            "<p style=\"font-size:12.5px;color:#5B5F7B\">It expires in 10 minutes. If you didn't request this, ignore this "
+            "email: your password stays unchanged.</p></div>")
 
 
 # Cap the password length we ever hash. Werkzeug's KDF processes the whole
@@ -665,21 +665,21 @@ def _valid_reg(p):
 
 @app.route("/api/auth/register", methods=["POST"])
 def auth_register():
-    # direct signup — the no-mail fallback, and what the test suite exercises.
+    # direct signup, the no-mail fallback, and what the test suite exercises.
     # When email verification IS configured, this path is closed: clients must
     # use the start/verify OTP flow so every account maps to a verified inbox.
     if STORE is None:
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _mail_configured():
-        return jsonify({"error": "Email verification is required — request a code to create your account."}), 400
+        return jsonify({"error": "Email verification is required. Request a code to create your account."}), 400
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
-        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+        return jsonify({"error": "Too many attempts. Try again in a while."}), 429
     email, pw, err = _valid_reg(_req_json())
     if err:
         return jsonify({"error": err[0]}), err[1]
     uid = STORE.create_user(email, generate_password_hash(pw))
     if uid is None:
-        return jsonify({"error": "That email already has an account — sign in instead."}), 409
+        return jsonify({"error": "That email already has an account. Sign in instead."}), 409
     session.permanent = True
     session["uid"] = uid
     return jsonify({"user": email})
@@ -690,17 +690,17 @@ def auth_register_start():
     if STORE is None:
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
-        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+        return jsonify({"error": "Too many attempts. Try again in a while."}), 429
     email, pw, err = _valid_reg(_req_json())
     if err:
         return jsonify({"error": err[0]}), err[1]
     if STORE.get_user(email):
-        return jsonify({"error": "That email already has an account — sign in instead."}), 409
+        return jsonify({"error": "That email already has an account. Sign in instead."}), 409
     if not _mail_configured():
         # no mail provider → don't brick signup; create the account directly
         uid = STORE.create_user(email, generate_password_hash(pw))
         if uid is None:
-            return jsonify({"error": "That email already has an account — sign in instead."}), 409
+            return jsonify({"error": "That email already has an account. Sign in instead."}), 409
         session.permanent = True
         session["uid"] = uid
         return jsonify({"user": email, "otp": False})
@@ -712,7 +712,7 @@ def auth_register_start():
         session.pop("preg", None)
         # the reason is captured in _last_mail_err for server-side diagnosis; not
         # exposed to the caller (could reveal provider internals)
-        return jsonify({"error": "Couldn't send the verification email just now — please try again."}), 502
+        return jsonify({"error": "Couldn't send the verification email just now. Please try again."}), 502
     return jsonify({"otp": True, "email": email})
 
 
@@ -721,23 +721,23 @@ def auth_register_verify():
     if STORE is None:
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
-        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+        return jsonify({"error": "Too many attempts. Try again in a while."}), 429
     preg = session.get("preg")
     if not isinstance(preg, dict) or preg.get("exp", 0) < int(time.time()):
         session.pop("preg", None)
-        return jsonify({"error": "That code expired — start again to get a new one."}), 400
+        return jsonify({"error": "That code expired. Start again to get a new one."}), 400
     if preg.get("n", 0) >= 6:
         session.pop("preg", None)
-        return jsonify({"error": "Too many wrong codes — start again."}), 429
+        return jsonify({"error": "Too many wrong codes. Start again."}), 429
     preg["n"] = preg.get("n", 0) + 1
     session["preg"] = preg
     code = str((_req_json()).get("code", "")).strip()
     if not code or not check_password_hash(preg["ch"], code):
-        return jsonify({"error": "That code isn't right — check the email and try again."}), 400
+        return jsonify({"error": "That code isn't right. Check the email and try again."}), 400
     uid = STORE.create_user(preg["email"], preg["pwh"])
     if uid is None:
         session.pop("preg", None)
-        return jsonify({"error": "That email already has an account — sign in instead."}), 409
+        return jsonify({"error": "That email already has an account. Sign in instead."}), 409
     session.pop("preg", None)
     session.permanent = True
     session["uid"] = uid
@@ -749,14 +749,14 @@ def auth_login():
     if STORE is None:
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
-        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+        return jsonify({"error": "Too many attempts. Try again in a while."}), 429
     p = _req_json()
     email = str(p.get("email", "")).strip().lower()
     pw = str(p.get("password", ""))
     # per-account cap so an X-Forwarded-For IP-rotation flood can't brute-force
     # one account past the per-IP limit
     if _rate_limited_account(email):
-        return jsonify({"error": "Too many sign-in attempts for this account — try again in a while."}), 429
+        return jsonify({"error": "Too many sign-in attempts for this account. Try again in a while."}), 429
     row = STORE.get_user(email)
     # length guard before the (expensive) KDF: no real password is this long, so
     # reject rather than burn CPU hashing an attacker's megabyte string
@@ -770,11 +770,11 @@ def auth_login():
 @app.route("/api/auth/reset/start", methods=["POST"])
 def auth_reset_start():
     # forgot-password: emails a one-time code to the account's inbox. Needs a
-    # configured mail provider (Gmail SMTP or Resend — see EMAIL_SETUP.md).
+    # configured mail provider (Gmail SMTP or Resend, see EMAIL_SETUP.md).
     if STORE is None:
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
-        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+        return jsonify({"error": "Too many attempts. Try again in a while."}), 429
     if not _mail_configured():
         # a global capability fact, not a per-email answer → no enumeration leak
         return jsonify({"error": "Password reset by email isn't set up on this server yet."}), 503
@@ -784,7 +784,7 @@ def auth_reset_start():
     # per-account cap so IP rotation can't spam a victim's inbox with reset codes
     # (checked before the existence lookup so it doesn't leak whether they exist)
     if _rate_limited_account(email):
-        return jsonify({"error": "Too many reset requests for this account — try again in a while."}), 429
+        return jsonify({"error": "Too many reset requests for this account. Try again in a while."}), 429
     row = STORE.get_user(email)
     # anti-enumeration: identical success response whether or not the account
     # exists; only arm the session + send when it actually does.
@@ -796,7 +796,7 @@ def auth_reset_start():
                           "exp": int(time.time()) + 600, "n": 0}
         if not _send_email(email, "Your Trainer password-reset code", _otp_reset_html(code)):
             session.pop("pwr", None)
-            return jsonify({"error": "Couldn't send the reset email just now — please try again."}), 502
+            return jsonify({"error": "Couldn't send the reset email just now. Please try again."}), 502
     else:
         session.pop("pwr", None)
     return jsonify({"ok": True, "email": email})
@@ -807,21 +807,21 @@ def auth_reset_verify():
     if STORE is None:
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
-        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+        return jsonify({"error": "Too many attempts. Try again in a while."}), 429
     pwr = session.get("pwr")
     if not isinstance(pwr, dict) or pwr.get("exp", 0) < int(time.time()):
         session.pop("pwr", None)
-        return jsonify({"error": "That code expired — start again to get a new one."}), 400
+        return jsonify({"error": "That code expired. Start again to get a new one."}), 400
     if pwr.get("n", 0) >= 6:
         session.pop("pwr", None)
-        return jsonify({"error": "Too many wrong codes — start again."}), 429
+        return jsonify({"error": "Too many wrong codes. Start again."}), 429
     pwr["n"] = pwr.get("n", 0) + 1
     session["pwr"] = pwr
     p = _req_json()
     code = str(p.get("code", "")).strip()
     pw = str(p.get("password", ""))
     if not code or not check_password_hash(pwr["ch"], code):
-        return jsonify({"error": "That code isn't right — check the email and try again."}), 400
+        return jsonify({"error": "That code isn't right. Check the email and try again."}), 400
     if len(pw) < 8:
         return jsonify({"error": "Password needs at least 8 characters."}), 400
     if len(pw) > _PW_MAX:
@@ -844,7 +844,7 @@ def auth_logout():
 def _sig_session(s):
     # a session's identity for de-dupe/merge: its timestamp + day + a signature of
     # its sets. Using entries (not just `at`) means two DIFFERENT sessions backdated
-    # to the same day — both get noon-of-day as `at` — stay distinct instead of one
+    # to the same day, both get noon-of-day as `at`, stay distinct instead of one
     # clobbering the other (SIMULATION "same-day backdated collision"); an identical
     # session synced twice dedupes.
     try:
@@ -998,14 +998,14 @@ def auth_delete():
     if STORE is None:
         return jsonify({"error": "Accounts are not enabled on this server."}), 503
     if _rate_limited(_client_ip(), bucket="auth", limit=10):
-        return jsonify({"error": "Too many attempts — try again in a while."}), 429
+        return jsonify({"error": "Too many attempts. Try again in a while."}), 429
     uid = _uid()
     if not uid:
         return jsonify({"error": "Sign in first."}), 401
     acct = STORE.get_account(uid)
     pw = str((_req_json()).get("password", ""))
     if not acct or not check_password_hash(acct["pw_hash"], pw):
-        return jsonify({"error": "Password is wrong — account not deleted."}), 401
+        return jsonify({"error": "Password is wrong, so the account was not deleted."}), 401
     STORE.delete_user(uid)
     session.clear()
     return jsonify({"ok": True})
@@ -1059,7 +1059,7 @@ def _validate_plan(data, intake=None):
     """Quality gate beyond "parses as JSON with a type field". Returns the list
     of failed check names; empty = usable. Tolerances sit looser than the
     prompt's own promises (3% macro math vs its 2%, 7% sample-day vs its 5%)
-    so borderline-honest output is not rejected — this catches the skeleton
+    so borderline-honest output is not rejected; this catches the skeleton
     plans, broken arithmetic and allergen slips that used to ship."""
     if not isinstance(data, dict):
         return ["not_object"]
@@ -1107,7 +1107,7 @@ def _validate_plan(data, intake=None):
         if "\n" in s or "**" in s or "##" in s or "```" in s:
             fails.append("markdown_or_newline")
             break
-    # banned filler phrases carry no instruction — the prompt bans them outright;
+    # banned filler phrases carry no instruction, the prompt bans them outright;
     # enforce it here too so a slip is retried server-side, not shipped
     _banned = ("eat healthy", "listen to your body", "stay consistent",
                "be consistent", "train hard", "trust the process")
@@ -1117,7 +1117,7 @@ def _validate_plan(data, intake=None):
     # Allergen scan (defence-in-depth behind the prompt). Word-boundary match
     # with an optional trailing 's' so "peanut" catches "peanut butter" and
     # "peanuts" without false-hitting "eggplant"/"nutrition". The allergies come
-    # from the intake — on a check-in the client now carries them forward from
+    # from the intake, on a check-in the client now carries them forward from
     # the saved plan's safety (SIMULATION finding: check-ins forgot allergies).
     # Scan supplements[] too: a whey/fish-oil can carry a dairy/fish allergen the
     # diet-only scan missed.
@@ -1166,7 +1166,7 @@ def trainer_api():
         return jsonify({"error": "Trainer knowledge base missing on server."}), 500
 
     if _rate_limited(_client_ip()):
-        return jsonify({"error": "That's several programs within the hour — the studio needs a moment. "
+        return jsonify({"error": "That's several programs within the hour. The studio needs a moment. "
                                  "Your limit resets within the hour, and your details stay in the form."}), 429
 
     if payload.get("mode") == "checkin":
@@ -1182,7 +1182,7 @@ def trainer_api():
     followups = payload.get("followup_answers")
     followups = followups if isinstance(followups, list) else []
     if followups:
-        lines.append("\nFOLLOW-UP ANSWERS (you asked, the client answered — do NOT ask again; produce the plan):")
+        lines.append("\nFOLLOW-UP ANSWERS (you asked, the client answered: do NOT ask again, produce the plan):")
         for qa in followups[:8]:
             if not isinstance(qa, dict):
                 continue
@@ -1208,7 +1208,7 @@ def trainer_api():
     # accumulates the text and parses the JSON at the end.
     #
     # The plan is a large structured object, so give the model generous output
-    # room AND enough thinking budget to run its arithmetic self-check — a tight
+    # room AND enough thinking budget to run its arithmetic self-check, a tight
     # budget can leave it emitting an empty or truncated (unparseable) object.
     config_kwargs = dict(
         system_instruction=TRAINER_SYSTEM,
@@ -1222,7 +1222,7 @@ def trainer_api():
         pass
 
     # Gemini occasionally returns 503 UNAVAILABLE ("high demand") or a rate-limit
-    # blip — these are transient and on Google's side. Retry with exponential
+    # blip, these are transient and on Google's side. Retry with exponential
     # backoff, then FALL BACK to gemini-2.5-flash-lite (a separate, lighter
     # capacity pool on the same API key) before giving up.
     TRANSIENT = ("503", "unavailable", "high demand", "overloaded",
@@ -1249,7 +1249,7 @@ def trainer_api():
     #     asking the user to click again.
     # A plan that parses and is plan-shaped but flunks the quality gate is kept
     # as a last resort: retried for a clean one, served only if the whole chain
-    # (including Groq) exhausts — better a flawed plan than an error page.
+    # (including Groq) exhausts, better a flawed plan than an error page.
     soft = {"text": None}
 
     def groq_fallback(q, fallback_err_msg):
@@ -1260,7 +1260,7 @@ def trainer_api():
             q.put(("end", soft["text"] or fallback_err_msg))
             return
         try:
-            print("[trainer] gemini exhausted — trying groq fallback", flush=True)
+            print("[trainer] gemini exhausted, trying groq fallback", flush=True)
             req = urllib.request.Request(
                 "https://api.groq.com/openai/v1/chat/completions",
                 data=json_mod.dumps({
@@ -1339,14 +1339,14 @@ def trainer_api():
                 # everything else (truncated, malformed, empty) gets retried.
                 if "SAFETY" in finish or "RECITATION" in finish or "BLOCK" in finish:
                     q.put(("end", "\nERROR: A content filter blocked the plan. This usually comes from "
-                                  "sensitive wording in the health or extra-info box — rephrase it plainly and try again."))
+                                  "sensitive wording in the health or extra-info box. Rephrase it plainly and try again."))
                     return
                 print(f"[trainer] attempt {attempt + 1}/{MAX_ATTEMPTS} unusable output "
                       f"(model={MODEL_CHAIN[attempt]}, finish={finish or '?'}, chars={len(text)})", flush=True)
                 if attempt < MAX_ATTEMPTS - 1:
                     backoff(attempt)
                     continue
-                groq_fallback(q, "\nERROR: The model kept returning an incomplete plan — it is under heavy load "
+                groq_fallback(q, "\nERROR: The model kept returning an incomplete plan. It is under heavy load "
                                  "right now. Nothing is wrong with your details; please try again in a few minutes.")
                 return
             except Exception as exc:
@@ -1361,7 +1361,7 @@ def trainer_api():
                     continue
                 if transient:
                     groq_fallback(q, "\nERROR: Gemini is temporarily overloaded (high demand on Google's side, "
-                                     "not your account or key) — even the backup model. Please try again in a minute or two.")
+                                     "not your account or key), even the backup model. Please try again in a minute or two.")
                     return
                 groq_fallback(q, f"\nERROR: {err}")
                 return
@@ -1383,7 +1383,7 @@ def trainer_api():
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
 
-TRAINER_QA_SYSTEM = """You are The Trainer — the same evidence-based coach who wrote the client's \
+TRAINER_QA_SYSTEM = """You are The Trainer, the same evidence-based coach who wrote the client's \
 program, attached below as JSON. Answer the client's questions about THEIR program.
 
 Rules:
@@ -1397,11 +1397,11 @@ sets, rep range, rest, and effort.
 of the same session type; never stack for lost time). Do not invent a new program.
 - If a request would change targets wholesale (calories, weekly volume, the split itself), \
 explain briefly and direct them to the Week-4 check-in, which recalibrates from measured data.
-- Anything medical — pain, injury, illness, medication — is outside your expertise: recommend a \
+- Anything medical (pain, injury, illness, medication) is outside your expertise: recommend a \
 physician or physiotherapist, offer at most a conservative suggestion labelled as such, \
 consistent with the plan's safety notes.
 - Tone: warm, direct, numbers attached. 2 to 5 short sentences, or a tight list. PLAIN TEXT only: \
-no markdown symbols, no emojis.
+no markdown symbols, no emojis, no em-dashes.
 - If the question is unrelated to training, nutrition, recovery, or this plan, decline in one \
 friendly sentence and steer back to the program.
 - When a TRAINING LOG is attached, ground progress questions in the actual logged numbers: quote \
@@ -1417,14 +1417,14 @@ def trainer_ask():
     plan = payload.get("plan")
     messages = payload.get("messages") or []
     if not isinstance(plan, dict) or plan.get("type") != "plan":
-        return jsonify({"error": "No program attached — build or restore a plan first."}), 400
+        return jsonify({"error": "No program attached. Build or restore a plan first."}), 400
     if not isinstance(messages, list) or not any(
             isinstance(m, dict) and m.get("role") == "user" for m in messages):
         return jsonify({"error": "Ask a question."}), 400
     if not GEMINI_API_KEY:
         return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
     if _rate_limited(_client_ip(), bucket="qa", limit=20):
-        return jsonify({"error": "That's a lot of questions within the hour — the studio needs a "
+        return jsonify({"error": "That's a lot of questions within the hour. The studio needs a "
                                  "breather. Your limit resets soon."}), 429
 
     contents = []
@@ -1465,7 +1465,7 @@ def trainer_ask():
             if "api_key" in low or "api key" in low or "401" in low:
                 yield "\nERROR: Invalid GEMINI_API_KEY on the server."
             elif any(m in low for m in ("503", "unavailable", "high demand", "overloaded", "429")):
-                yield "\nERROR: The coach is briefly overloaded — ask again in a moment."
+                yield "\nERROR: The coach is briefly overloaded. Ask again in a moment."
             else:
                 yield f"\nERROR: {err}"
 
@@ -1485,7 +1485,7 @@ def calculate():
 
 # NOTE: text/plain is deliberately EXCLUDED. Every streaming endpoint (live plan
 # generation, demo=stream, Ask-the-Trainer) returns text/plain, and under gunicorn
-# `resp.is_streamed` does NOT reliably flag those — so compressing text/plain
+# `resp.is_streamed` does NOT reliably flag those, so compressing text/plain
 # buffered+gzipped the whole plan stream and the browser saw an "incomplete reply"
 # (prod outage 2026-07-31). Excluding text/plain keeps every stream flowing while
 # the real win (text/html for /trainer, JSON, CSS/JS) is untouched.
@@ -1495,8 +1495,17 @@ _COMPRESSIBLE = {"text/html", "text/css", "text/javascript",
 
 
 @app.after_request
+def _cache_fonts(resp):
+    # the self-hosted fonts change rarely: let browsers keep them for a week
+    # instead of revalidating three files on every page view
+    if resp.status_code == 200 and request.path.startswith("/static/fonts/"):
+        resp.headers["Cache-Control"] = "public, max-age=604800"
+    return resp
+
+
+@app.after_request
 def _compress(resp):
-    # Text compression — the biggest mobile-load win (Lighthouse "enable text
+    # Text compression, the biggest mobile-load win (Lighthouse "enable text
     # compression"): /trainer is ~187 KB of HTML/CSS/JS that gzips to ~52 KB.
     # Stdlib only ($0, no new dep). Streamed/SSE responses (all text/plain, now
     # excluded above) are left untouched so the live plan/demo streams keep flowing.
