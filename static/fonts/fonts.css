@@ -1,0 +1,9 @@
+/* The Trainer type system, self-hosted (no third-party font requests).
+   Variable fonts, Latin subset. All three are SIL Open Font License 1.1;
+   sources and licence in ASSETS_CREDITS.md. */
+@font-face { font-family: 'Bricolage Grotesque'; font-style: normal; font-weight: 200 800;
+  font-display: swap; src: url('/static/fonts/bricolage.woff2') format('woff2'); }
+@font-face { font-family: 'Geist'; font-style: normal; font-weight: 100 900;
+  font-display: swap; src: url('/static/fonts/geist.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 100 900;
+  font-display: swap; src: url('/static/fonts/geist-mono.woff2') format('woff2'); }

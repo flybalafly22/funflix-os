@@ -133,3 +133,17 @@ cue on the hour-appropriate tool).
 prototypes, docs, or commits. The owner considers them AI slop. Re-punctuate with a
 period, comma, colon or parentheses; en-dashes only inside numeric ranges
 ("6–8 reps"). THE DOCTRINE enforces this on every copy pass.
+
+---
+
+## The Voice merge (2026-09-24)
+
+The owner loved the Cobalt Voice prototype and asked for it to take over FUNFLIX, with
+The Trainer as the flagship, every technicality and every piece of research kept, and
+the whole system adapting. Done on branch `voice-merge` (not deployed): `/` is now the
+Voice landing, its five answers hand off to the real `/trainer` (tab-scoped
+sessionStorage), the landing's facts are rewritten from the engine's own rulebook with
+citations, and every page wears one design system (cobalt tokens, an opt-in dark set,
+self-hosted fonts, a solid bar with an Apps menu). The old homepage is retired (git
+history keeps it). Full record, verification and the ship steps:
+`docs/ui/VOICE_MERGE.md`. The rebrand still ships only on the owner's explicit go-ahead.

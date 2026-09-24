@@ -1,9 +1,13 @@
-/* The Trainer — service worker: the plan in your pocket.
+/* The Trainer: service worker, the plan in your pocket.
    Served from /trainer-sw.js (root path) so its scope can cover /trainer.
    Strategy: network-first navigations (always fresh online, cached shell
    offline), stale-while-revalidate statics, /api/ untouched. */
-const CACHE = 'trainer-v3';
+// v4: the Voice merge (new design system + self-hosted fonts). Bumping the name
+// drops every older cache on activate, so no one keeps the old look.
+const CACHE = 'trainer-v4';
 const SHELL = ['/trainer', '/static/os.css', '/static/os.js',
+               '/static/fonts/fonts.css', '/static/fonts/bricolage.woff2',
+               '/static/fonts/geist.woff2', '/static/fonts/geist-mono.woff2',
                '/static/trainer/manifest.json',
                '/static/trainer/icon-192.png', '/static/trainer/icon-512.png'];
 
@@ -18,7 +22,7 @@ self.addEventListener('activate', e => {
 });
 
 // on-device training-day reminders (Notification Triggers / on-open nudge): a
-// tap should focus an open Trainer tab or open one — no server ever involved.
+// tap should focus an open Trainer tab or open one; no server is ever involved.
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {

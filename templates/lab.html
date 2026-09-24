@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>The Study — FUNFLIX</title>
+  <title>The Study &middot; Funflix</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -111,7 +111,7 @@
     .seg button:not(.on):hover { background: var(--wash); color: var(--black); }
     .explore-note { margin-top: 14px; font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--gray); }
 
-    /* ════════ The Analyst — chatbot ════════ */
+    /* ════════ The Analyst: chatbot ════════ */
     .analyst { padding-bottom: 30px; }
     .chat-log {
       display: flex; flex-direction: column; gap: 18px;
@@ -173,7 +173,7 @@
     <div class="mod-head fade-rise">
       <div class="mod-over">Bureau No. VI</div>
       <h1 class="mod-title">The Study</h1>
-      <div class="mod-sub">a bio-analytics dossier on sports nutrition &mdash; that answers back</div>
+      <div class="mod-sub">a bio-analytics dossier on sports nutrition that answers back</div>
     </div>
 
     <!-- vitals -->
@@ -183,10 +183,10 @@
     <section class="desk fade-rise-d1">
       <div class="find-kicker"><span class="fk-no">Finding I</span> The headline</div>
       <h2 class="find-title">The supplement is the whole story.</h2>
-      <p class="find-body">Across <b id="f1n">1,000</b> participants, strength gains separate almost perfectly by regimen. The combined <em>&ldquo;Both&rdquo;</em> protocol leads, creatine sits in the middle, and the mass gainer trails far behind &mdash; it is a weight product, not a strength one.</p>
-      <p class="find-body">The small number beside each bar is the <b>coefficient of variation</b> (CoV) &mdash; the spread relative to the average. A lower CoV means more <em>consistent</em> results from person to person, which answers the dataset's own challenge: which regimen gives reliable strength spikes regardless of who takes it.</p>
+      <p class="find-body">Across <b id="f1n">1,000</b> participants, strength gains separate almost perfectly by regimen. The combined <em>&ldquo;Both&rdquo;</em> protocol leads, creatine sits in the middle, and the mass gainer trails far behind. It is a weight product, not a strength one.</p>
+      <p class="find-body">The small number beside each bar is the <b>coefficient of variation</b> (CoV): the spread relative to the average. A lower CoV means more <em>consistent</em> results from person to person, which answers the dataset's own challenge: which regimen gives reliable strength spikes regardless of who takes it.</p>
       <div class="chart-wrap">
-        <div class="chart-title">Mean strength gain by supplement &mdash; bar label shows consistency (CoV)</div>
+        <div class="chart-title">Mean strength gain by supplement &middot; bar label shows consistency (CoV)</div>
         <svg class="chart" id="chartSupp" viewBox="0 0 760 300" role="img" aria-label="Mean strength gain by supplement"></svg>
       </div>
     </section>
@@ -195,7 +195,7 @@
     <section class="desk">
       <div class="find-kicker"><span class="fk-no">Finding II</span> The trade-off</div>
       <h2 class="find-title">Weight and strength pull in different directions.</h2>
-      <p class="find-body">Plotting each regimen by what it actually delivers makes the design of the data legible. <em>Mass Gainer</em> buys kilograms but little strength. <em>Creatine</em> buys strength with almost no added weight. <em>Both</em> sits in the prized upper-right &mdash; gains on each axis at once.</p>
+      <p class="find-body">Plotting each regimen by what it actually delivers makes the design of the data legible. <em>Mass Gainer</em> buys kilograms but little strength. <em>Creatine</em> buys strength with almost no added weight. <em>Both</em> sits in the prized upper-right, with gains on each axis at once.</p>
       <div class="chart-wrap">
         <div class="chart-title">Each point is a regimen's average outcome</div>
         <svg class="chart" id="chartTrade" viewBox="0 0 760 380" role="img" aria-label="Weight change versus strength gain by supplement"></svg>
@@ -207,14 +207,14 @@
     <section class="desk">
       <div class="find-kicker"><span class="fk-no">Finding III</span> The non-story</div>
       <h2 class="find-title">Who you are barely moves the needle.</h2>
-      <p class="find-body">Age, gender, cycle length and starting weight are all but uncorrelated with strength gain &mdash; every correlation sits within a hair of <b>zero</b>. Average strength gain is essentially identical across genders, exactly as you'd expect from a field that was assigned at random.</p>
+      <p class="find-body">Age, gender, cycle length and starting weight are all but uncorrelated with strength gain. Every correlation sits within a hair of <b>zero</b>. Average strength gain is essentially identical across genders, exactly as you'd expect from a field that was assigned at random.</p>
       <p class="find-body">A correlation near zero means the two numbers move independently: knowing someone's age tells you nothing useful about their result. The bars below are drawn on a wide &minus;0.2 to +0.2 scale so you can see just how flat they really are.</p>
       <div class="chart-wrap">
-        <div class="chart-title">Correlation with strength gain &mdash; everything hovers at zero</div>
+        <div class="chart-title">Correlation with strength gain &middot; everything hovers at zero</div>
         <svg class="chart" id="chartCorr" viewBox="0 0 760 220" role="img" aria-label="Correlations with strength gain"></svg>
       </div>
       <div class="chart-wrap">
-        <div class="chart-title">Mean strength gain by gender &mdash; flat by design</div>
+        <div class="chart-title">Mean strength gain by gender &middot; flat by design</div>
         <svg class="chart" id="chartGender" viewBox="0 0 760 200" role="img" aria-label="Mean strength gain by gender"></svg>
       </div>
     </section>
@@ -223,7 +223,7 @@
     <section class="desk">
       <div class="find-kicker"><span class="fk-no">Explore</span> All 1,000 participants</div>
       <h2 class="find-title">See it for yourself.</h2>
-      <p class="find-body">Each dot is one participant, coloured by supplement. Switch the horizontal axis and filter by gender &mdash; notice the colour bands stay stacked no matter what you choose. That stubborn stacking <em>is</em> the finding: the regimen sets the level, everything else is noise.</p>
+      <p class="find-body">Each dot is one participant, coloured by supplement. Switch the horizontal axis and filter by gender, and notice the colour bands stay stacked no matter what you choose. That stubborn stacking <em>is</em> the finding: the regimen sets the level, everything else is noise.</p>
       <div class="controls">
         <div class="ctrl-group">
           <label class="os-label" style="margin:0">Horizontal axis</label>
@@ -253,15 +253,15 @@
     <!-- Finding 4 -->
     <section class="desk">
       <div class="find-kicker"><span class="fk-no">Finding IV</span> The model</div>
-      <h2 class="find-title">A model confirms it &mdash; one feature does the work.</h2>
-      <p class="find-body">Predicting strength gain from a participant's profile (age, gender, cycle length, starting weight and supplement), a cross-validated model lands around <b id="mBest">3.4 points</b> of average error. The mean-only baseline is roughly twice as wrong, so the features genuinely help &mdash; but which ones?</p>
+      <h2 class="find-title">A model confirms it: one feature does the work.</h2>
+      <p class="find-body">Predicting strength gain from a participant's profile (age, gender, cycle length, starting weight and supplement), a cross-validated model lands around <b id="mBest">3.4 points</b> of average error. The mean-only baseline is roughly twice as wrong, so the features genuinely help. But which ones?</p>
       <p class="find-body">Permutation importance answers that: shuffle the <em>Supplement</em> column and the model collapses; shuffle anything else and almost nothing happens. In other words, the entire predictive signal is the regimen.</p>
       <div class="chart-wrap">
-        <div class="chart-title">Average error by model &mdash; lower is better (MAE, percentage points)</div>
+        <div class="chart-title">Average error by model &middot; lower is better (MAE, percentage points)</div>
         <svg class="chart" id="chartModel" viewBox="0 0 760 250" role="img" aria-label="Model error comparison"></svg>
       </div>
       <div class="chart-wrap">
-        <div class="chart-title">Feature importance &mdash; drop in R² when a feature is scrambled</div>
+        <div class="chart-title">Feature importance &middot; drop in R² when a feature is scrambled</div>
         <svg class="chart" id="chartImp" viewBox="0 0 760 220" role="img" aria-label="Feature importance"></svg>
       </div>
     </section>
@@ -270,7 +270,7 @@
     <section class="desk analyst">
       <div class="find-kicker"><span class="fk-no">The Analyst</span> Ask the data anything</div>
       <h2 class="find-title">A conversation with the findings.</h2>
-      <p class="find-body">The analyst below has read the full brief &mdash; every table, correlation and model result on this page. Ask it to explain a number, challenge a claim, or dig into a slice of the data.</p>
+      <p class="find-body">The analyst below has read the full brief: every table, correlation and model result on this page. Ask it to explain a number, challenge a claim, or dig into a slice of the data.</p>
 
       <div class="chat-log" id="chatLog"></div>
 
@@ -327,7 +327,7 @@ function renderVitals(m, supp) {
     `<div class="vital"><div class="vital-n">${n}</div><div class="vital-l">${l}</div></div>`).join('');
 }
 
-/* ════════ Finding 1 — vertical bars (strength by supplement) ════════ */
+/* ════════ Finding 1: vertical bars (strength by supplement) ════════ */
 function renderSupp(supp) {
   const s = document.getElementById('chartSupp'); clear(s);
   const W = 760, H = 300, padL = 46, padB = 64, padT = 24, padR = 20;
@@ -351,7 +351,7 @@ function renderSupp(supp) {
   });
 }
 
-/* ════════ Finding 2 — trade-off scatter (one point per regimen) ════════ */
+/* ════════ Finding 2: trade-off scatter (one point per regimen) ════════ */
 function renderTrade(supp) {
   const s = document.getElementById('chartTrade'); clear(s);
   const W = 760, H = 380, padL = 60, padB = 60, padT = 24, padR = 30;
@@ -377,10 +377,10 @@ function renderTrade(supp) {
     s.appendChild(svg('text', { class: 'pt-lbl', x: x + (right ? 22 : -22), y: y + 5, 'text-anchor': right ? 'start' : 'end' }, SHORT[d.name]));
   });
   document.getElementById('legendTrade').innerHTML = supp.map(d =>
-    `<span><i style="background:${COLORS[d.name]}"></i>${SHORT[d.name]} &mdash; ${d.wt_mean}kg, ${d.mean}%</span>`).join('');
+    `<span><i style="background:${COLORS[d.name]}"></i>${SHORT[d.name]} &middot; ${d.wt_mean}kg, ${d.mean}%</span>`).join('');
 }
 
-/* ════════ Finding 3a — correlation bars ════════ */
+/* ════════ Finding 3a: correlation bars ════════ */
 function renderCorr(corr) {
   const s = document.getElementById('chartCorr'); clear(s);
   const W = 760, H = 220, padL = 110, padR = 40, padT = 16, padB = 28;
@@ -404,7 +404,7 @@ function renderCorr(corr) {
   });
 }
 
-/* ════════ Finding 3b — gender bars (flat) ════════ */
+/* ════════ Finding 3b: gender bars (flat) ════════ */
 function renderGender(gender) {
   const s = document.getElementById('chartGender'); clear(s);
   const W = 760, H = 200, padL = 46, padR = 20, padT = 20, padB = 40;
@@ -423,7 +423,7 @@ function renderGender(gender) {
   });
 }
 
-/* ════════ Explorer — 1,000-point scatter ════════ */
+/* ════════ Explorer: 1,000-point scatter ════════ */
 let xKey = 'Weeks', gFilter = 'All';
 const X_META = {
   Weeks: { label: 'Cycle length (weeks)', min: 4, max: 24 },
@@ -467,7 +467,7 @@ function renderScatterLegend() {
     `<span><i style="background:${COLORS[k]}"></i>${SHORT[k]}</span>`).join('');
 }
 
-/* ════════ Finding 4a — model MAE bars ════════ */
+/* ════════ Finding 4a: model MAE bars ════════ */
 function renderModel(rows) {
   const s = document.getElementById('chartModel'); clear(s);
   const W = 760, H = 250, padL = 150, padR = 60, padT = 16, padB = 28;
@@ -484,7 +484,7 @@ function renderModel(rows) {
   });
 }
 
-/* ════════ Finding 4b — feature importance ════════ */
+/* ════════ Finding 4b: feature importance ════════ */
 function renderImp(imp) {
   const s = document.getElementById('chartImp'); clear(s);
   const W = 760, H = 220, padL = 110, padR = 70, padT = 12, padB = 20;
@@ -507,7 +507,7 @@ async function boot() {
     if (DATA.error) throw new Error(DATA.error);
   } catch (e) {
     document.getElementById('vitals').innerHTML =
-      `<div class="vital" style="grid-column:1/-1"><div class="loading-line">The dossier could not be loaded &mdash; ${esc(String(e.message || e))}</div></div>`;
+      `<div class="vital" style="grid-column:1/-1"><div class="loading-line">The dossier could not be loaded: ${esc(String(e.message || e))}</div></div>`;
     return;
   }
   renderVitals(DATA.meta, DATA.by_supplement);
@@ -540,7 +540,7 @@ document.getElementById('segG').addEventListener('click', e => {
   b.classList.add('on'); gFilter = b.dataset.g; renderScatter();
 });
 
-/* ════════ The Analyst — multi-turn chat ════════ */
+/* ════════ The Analyst: multi-turn chat ════════ */
 const history = [];
 let busy = false;
 const log = document.getElementById('chatLog');
@@ -564,7 +564,7 @@ function addBubble(role, text) {
 }
 
 // seed greeting
-addBubble('assistant', "I've read the full study. Ask me to unpack any chart, defend a finding, or slice the data a different way — what's on your mind?");
+addBubble('assistant', "I've read the full study. Ask me to unpack any chart, defend a finding, or slice the data a different way. What's on your mind?");
 
 async function ask(q) {
   q = (q || input.value).trim();
@@ -603,7 +603,7 @@ async function ask(q) {
     caret.remove();
     if (answer.startsWith('ERROR:')) {
       txt.parentElement.className = 'bubble err';
-      txt.textContent = answer.replace(/^ERROR:\s*/, 'Regrettably — ');
+      txt.textContent = answer.replace(/^ERROR:\s*/, 'Regrettably: ');
       history.pop(); // don't keep a failed turn in context
     } else {
       history.push({ role: 'assistant', content: answer });
@@ -611,7 +611,7 @@ async function ask(q) {
   } catch (err) {
     caret.remove();
     txt.parentElement.className = 'bubble err';
-    txt.textContent = 'Regrettably, the line dropped — ' + err.message;
+    txt.textContent = 'Regrettably, the line dropped: ' + err.message;
     history.pop();
   } finally {
     busy = false; btn.disabled = false;

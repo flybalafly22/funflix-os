@@ -7,7 +7,7 @@
     "height_cm": 168,
     "weight_kg": 72,
     "bmi": 25.5,
-    "bmi_note": "Just over the 25.0 line. For a lifter this overstates fatness; judge progress by the waist tape, the 7-day scale average, and how the lifts hold — not the BMI number alone.",
+    "bmi_note": "Just over the 25.0 line. For a lifter this overstates fatness; judge progress by the waist tape, the 7-day scale average, and how the lifts hold, not the BMI number alone.",
     "bmr_kcal": 1470,
     "tdee_kcal": 2050,
     "calorie_target_kcal": 1650,

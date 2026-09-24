@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-themeable>
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>The Trainer — FUNFLIX</title>
-  <meta name="description" content="The Trainer — an evidence-based personal training studio. Answer one intake form, receive a complete workout + nutrition program as a PDF."/>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <title>The Trainer &middot; your program</title>
+  <meta name="description" content="The Trainer: an evidence-based training and nutrition coach. One intake, a complete program with the reason for every number, then log, recalibrate and sync. Free."/>
+  <script>(function(){try{var t=localStorage.getItem('trainerTheme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <link rel="preload" href="/static/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/os.css">
   <link rel="manifest" href="/static/trainer/manifest.json">
-  <meta name="theme-color" content="#FAFAF8">
+  <meta name="theme-color" content="#F6F7FB">
   <link rel="apple-touch-icon" href="/static/trainer/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -25,8 +25,8 @@
     .mod-sub { margin-top: 12px; font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--gray); }
 
     /* ── intake ── */
-    .intake { width: min(880px, 100%); background: #fff; border: 1px solid var(--rule-2);
-      border-radius: 28px; padding: 12px; box-shadow: 0 24px 70px rgba(17,17,16,0.05); }
+    .intake { width: min(880px, 100%); background: var(--card); border: 1px solid var(--rule-2);
+      border-radius: 28px; padding: 12px; box-shadow: 0 24px 70px rgba(var(--shadow-rgb),0.05); }
     .intake-inner { border: 1px solid var(--rule); border-radius: 18px; padding: 34px 36px 38px; }
     @media (max-width: 640px) { .intake-inner { padding: 24px 20px 28px; } }
     .sec { font-family: var(--monoX); font-size: 10px; font-weight: 500; letter-spacing: 0.24em;
@@ -64,8 +64,8 @@
     /* ── follow-up questions ── */
     .followup { display: none; width: min(720px,100%); }
     .followup.show { display: block; }
-    .fu-card { background: #fff; border: 1px solid var(--rule-2); border-radius: 24px;
-      padding: 34px 36px; box-shadow: 0 24px 70px rgba(17,17,16,0.05); }
+    .fu-card { background: var(--card); border: 1px solid var(--rule-2); border-radius: 24px;
+      padding: 34px 36px; box-shadow: 0 24px 70px rgba(var(--shadow-rgb),0.05); }
     .fu-lead { font-family: var(--serif); font-size: 24px; color: var(--black); }
     .fu-lead em { color: var(--accD); }
     .fu-q { margin-top: 26px; }
@@ -79,7 +79,7 @@
       padding: 10px 22px; font-family: var(--sans); font-size: 13px; font-weight: 600;
       color: var(--gray); cursor: pointer; transition: all .2s; }
     .mtab:hover { border-color: var(--black); color: var(--black); }
-    .mtab.on { background: var(--black); border-color: var(--black); color: #fff; }
+    .mtab.on { background: var(--black); border-color: var(--black); color: var(--on-ink); }
     .mtab.restore { margin-left: auto; border-style: dashed; color: var(--accD); }
     .mtab.restore:hover { border-color: var(--accD); }
 
@@ -107,12 +107,12 @@
       border-bottom: 1px solid var(--rule); align-items: baseline; }
     .lg-hrow:last-child { border-bottom: none; }
     .lg-hrow .hd { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
-    .lg-hrow .hb { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: #2A2A26; }
+    .lg-hrow .hb { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--text); }
     .lg-hrow .hb b { color: var(--black); }
 
     /* ── volume tune-up ── */
     .vol-card { border: 1px solid var(--rule); border-radius: 16px; padding: 6px 20px 16px; margin-top: 22px;
-      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+      background: var(--card); }
     .vol-intro { font-family: var(--sans); font-size: 12px; line-height: 1.55; color: var(--gray-2); margin: 4px 0 14px; }
     .vol-row { padding: 13px 0; border-bottom: 1px solid var(--rule); }
     .vol-row:last-child { border-bottom: none; }
@@ -121,50 +121,50 @@
     .vol-n { font-family: var(--monoX); font-size: 11px; color: var(--black); }
     .vol-band { color: var(--gray-2); }
     .vol-bar { position: relative; height: 5px; border-radius: 3px; margin: 9px 0 8px;
-      background: linear-gradient(90deg, #EDEDE9 0 8%, #E7EFE0 8% 92%, #EDEDE9 92% 100%); }
+      background: linear-gradient(90deg, var(--track) 0 8%, var(--band) 8% 92%, var(--track) 92% 100%); }
     .vol-dot { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 999px; background: var(--accD);
-      border: 2px solid #fff; transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
-    .vol-up .vol-dot { background: var(--accD); } .vol-down .vol-dot { background: #A0602A; } .vol-hold .vol-dot { background: #6D6D66; }
-    .vol-rec { font-family: var(--sans); font-size: 12.5px; line-height: 1.5; color: #2A2A26; }
+      border: 2px solid var(--card); transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgba(var(--shadow-rgb),.25); }
+    .vol-up .vol-dot { background: var(--accD); } .vol-down .vol-dot { background: var(--warm); } .vol-hold .vol-dot { background: var(--gray-2); }
+    .vol-rec { font-family: var(--sans); font-size: 12.5px; line-height: 1.5; color: var(--text); }
     .vol-up .vol-rec b, .vol-rec b { color: var(--accD); }
     .vol-fb { margin-top: 9px; display: flex; align-items: center; gap: 7px; font-family: var(--monoX);
       font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--gray-2); flex-wrap: wrap; }
     .vf { font-family: var(--sans); font-size: 11.5px; text-transform: none; letter-spacing: 0; padding: 4px 12px;
-      border: 1px solid var(--rule-2); border-radius: 999px; background: #fff; color: var(--gray); cursor: pointer; }
+      border: 1px solid var(--rule-2); border-radius: 999px; background: var(--card); color: var(--gray); cursor: pointer; }
     .vf:hover { border-color: var(--black); color: var(--black); }
-    .vf.on { background: var(--black); color: #fff; border-color: var(--black); }
+    .vf.on { background: var(--black); color: var(--on-ink); border-color: var(--black); }
 
     /* ── nutrition tune-up (adaptive TDEE, read off the scale) ── */
     .nut-card { border: 1px solid var(--rule); border-radius: 16px; padding: 16px 20px 16px; margin-bottom: 26px;
-      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+      background: var(--card); }
     .nut-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 4px 0 14px;
       background: var(--rule); border: 1px solid var(--rule); border-radius: 13px; overflow: hidden; }
-    .nut-stat { background: #fff; padding: 12px 6px 10px; text-align: center; }
+    .nut-stat { background: var(--card); padding: 12px 6px 10px; text-align: center; }
     .nut-stat b { display: block; font-family: var(--serif); font-weight: 400; font-size: 21px; color: var(--black); }
     .nut-stat span { display: block; margin-top: 3px; font-family: var(--monoX); font-size: 8px;
       letter-spacing: .12em; text-transform: uppercase; color: var(--gray-2); }
-    .nut-rec { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: #2A2A26; }
+    .nut-rec { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--text); }
     .nut-rec > b { color: var(--black); }
     .nut-card.up .nut-rec > b { color: var(--accD); }
-    .nut-card.down .nut-rec > b { color: #A0602A; }
+    .nut-card.down .nut-rec > b { color: var(--warm); }
     .nut-note { margin-top: 11px; font-family: var(--sans); font-size: 11.5px; line-height: 1.55; color: var(--gray-2); }
     .nut-gather { font-family: var(--sans); font-size: 12.5px; line-height: 1.6; color: var(--gray-2); }
     .nut-gather b { color: var(--black); }
 
     /* ── meal adherence checklist (tick the plan's sample day) ── */
     .meal-card { border: 1px solid var(--rule); border-radius: 16px; padding: 16px 20px 14px; margin-bottom: 26px;
-      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+      background: var(--card); }
     .meal-prog { margin-bottom: 12px; }
-    .meal-bar { height: 6px; border-radius: 3px; background: #EDEDE9; overflow: hidden; }
+    .meal-bar { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
     .meal-fill { display: block; height: 100%; background: var(--accD); border-radius: 3px; transition: width .25s ease; }
     .meal-tot2 { margin-top: 7px; font-family: var(--monoX); font-size: 10.5px; letter-spacing: .04em; color: var(--black); }
     .mc-list { display: flex; flex-direction: column; gap: 6px; }
     .mc-row { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; cursor: pointer;
-      padding: 10px 12px; border: 1px solid var(--rule); border-radius: 11px; background: #fff; }
+      padding: 10px 12px; border: 1px solid var(--rule); border-radius: 11px; background: var(--card); }
     .mc-row:hover { border-color: var(--rule-2); }
-    .mc-row.on { background: rgba(189,242,63,.10); border-color: rgba(12,138,76,.30); }
+    .mc-row.on { background: var(--acc-soft); border-color: var(--acc-line); }
     .mc-check { flex: none; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--rule-2);
-      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; }
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--on-acc); }
     .mc-row.on .mc-check { background: var(--accD); border-color: var(--accD); }
     .mc-name { flex: 1; font-family: var(--sans); font-size: 13px; color: var(--black); }
     .mc-name b { font-weight: 600; }
@@ -176,43 +176,43 @@
     .meal-adh b { color: var(--black); }
 
     /* ── "what's next" daily hub + opt-in on-device reminders ── */
-    .next-card { border: 1px solid #23231F; border-radius: 16px; padding: 18px 22px 16px; margin-bottom: 26px;
-      background: linear-gradient(157deg, #16160F, #262620); color: #F3F3EE; }
-    .nx-label { font-family: var(--monoX); font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: #9A9A8E; }
+    .next-card { border: 1px solid #1F2657; border-radius: 16px; padding: 18px 22px 16px; margin-bottom: 26px;
+      background: linear-gradient(157deg, #0B0F2E, #1A2050); color: #EEF1FF; }
+    .nx-label { font-family: var(--monoX); font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: #A9AFD6; }
     .nx-cue { font-family: var(--serif); font-weight: 400; font-size: 25px; line-height: 1.16; margin: 7px 0 4px; color: #fff; }
     .nx-cue b { color: var(--accD); font-weight: 400; }
-    .nx-sub { font-family: var(--sans); font-size: 12.5px; color: #C9C9BE; line-height: 1.5; }
+    .nx-sub { font-family: var(--sans); font-size: 12.5px; color: #C9CDEA; line-height: 1.5; }
     .nx-sub b { color: #fff; font-weight: 600; }
     .nx-block { margin-top: 10px; font-family: var(--monoX); font-size: 10px; letter-spacing: .08em;
-      text-transform: uppercase; color: #9A9A8E; padding-left: 11px; border-left: 2px solid #3A3A33; }
+      text-transform: uppercase; color: #A9AFD6; padding-left: 11px; border-left: 2px solid #2E3670; }
     .nx-block.deload { color: var(--accD); border-left-color: var(--accD); }
     .nx-dots { display: flex; align-items: center; gap: 12px; margin-top: 11px; flex-wrap: wrap; }
     .nx-dotrow { display: inline-flex; gap: 6px; }
     .nx-dot { width: 9px; height: 9px; border-radius: 999px; background: rgba(255,255,255,.18); }
     .nx-dot.on { background: var(--accD); }
     .nx-streak { font-family: var(--monoX); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--accD); }
-    .lg-pr { border: 1px solid rgba(12,138,76,.30); background: rgba(189,242,63,.10); border-radius: 12px;
-      padding: 12px 15px; margin: 14px 0 0; font-family: var(--sans); font-size: 13px; line-height: 1.5; color: #2A3A26; }
+    .lg-pr { border: 1px solid var(--acc-line); background: var(--acc-soft); border-radius: 12px;
+      padding: 12px 15px; margin: 14px 0 0; font-family: var(--sans); font-size: 13px; line-height: 1.5; color: var(--text); }
     .lg-pr b { color: var(--accD); }
     .calc-card { border: 1px solid var(--rule); border-radius: 16px; padding: 16px 20px 16px; margin: 22px 0 0;
-      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+      background: var(--card); }
     .calc-in { display: flex; align-items: center; gap: 10px; max-width: 320px; }
     .calc-in .os-input { text-align: center; }
     .calc-x { font-family: var(--serif); font-size: 18px; color: var(--gray-2); }
     .calc-out { margin-top: 14px; }
     .calc-hint { font-family: var(--sans); font-size: 12.5px; color: var(--gray-2); }
-    .calc-orm { font-family: var(--sans); font-size: 14px; color: #2A2A26; margin-bottom: 10px; }
+    .calc-orm { font-family: var(--sans); font-size: 14px; color: var(--text); margin-bottom: 10px; }
     .calc-orm b { font-family: var(--serif); font-weight: 400; font-size: 22px; color: var(--accD); }
     .calc-tbl { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 1px;
       background: var(--rule); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
-    .calc-cell { background: #fff; padding: 9px 4px; text-align: center; }
+    .calc-cell { background: var(--card); padding: 9px 4px; text-align: center; }
     .calc-cell b { display: block; font-family: var(--monoX); font-size: 13px; color: var(--black); }
     .calc-cell span { display: block; margin-top: 2px; font-family: var(--monoX); font-size: 9px; color: var(--gray-2); }
     .nx-rem { display: flex; align-items: center; gap: 14px; margin-top: 15px; padding-top: 14px;
       border-top: 1px solid rgba(255,255,255,.10); }
     .nx-rem-txt { flex: 1; font-family: var(--sans); }
     .nx-rem-txt b { display: block; font-weight: 600; font-size: 12.5px; color: #fff; margin-bottom: 2px; }
-    .nx-rem-txt span { display: block; color: #9A9A8E; font-size: 11px; line-height: 1.45; }
+    .nx-rem-txt span { display: block; color: #A9AFD6; font-size: 11px; line-height: 1.45; }
     .nx-toggle { flex: none; width: 46px; height: 27px; border-radius: 999px; border: none; cursor: pointer;
       background: rgba(255,255,255,.18); position: relative; transition: background .18s ease; padding: 0; }
     .nx-toggle .nx-tk { position: absolute; top: 3px; left: 3px; width: 21px; height: 21px; border-radius: 999px;
@@ -223,21 +223,21 @@
 
     /* ── month in review (the look-back capstone) ── */
     .rev-card { border: 1px solid var(--rule); border-radius: 16px; padding: 18px 22px 16px; margin: 26px 0;
-      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+      background: var(--card); }
     .rev-label { font-family: var(--monoX); font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--gray-2); }
     .rev-head { font-family: var(--serif); font-weight: 400; font-size: 20px; line-height: 1.3; margin: 8px 0 14px; color: var(--black); }
     .rev-head b { color: var(--accD); font-weight: 400; }
     .rev-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 1px;
       background: var(--rule); border: 1px solid var(--rule); border-radius: 13px; overflow: hidden; }
-    .rev-stat { background: #fff; padding: 12px 6px 10px; text-align: center; }
+    .rev-stat { background: var(--card); padding: 12px 6px 10px; text-align: center; }
     .rev-stat b { display: block; font-family: var(--serif); font-weight: 400; font-size: 21px; color: var(--black); }
-    .rev-stat.up b { color: var(--accD); } .rev-stat.down b { color: #A0602A; }
+    .rev-stat.up b { color: var(--accD); } .rev-stat.down b { color: var(--warm); }
     .rev-stat span { display: block; margin-top: 3px; font-family: var(--monoX); font-size: 8px;
       letter-spacing: .12em; text-transform: uppercase; color: var(--gray-2); }
     .rev-prs { margin-top: 14px; }
     .rev-prs .rev-pl { font-family: var(--monoX); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
       color: var(--accD); margin-bottom: 7px; }
-    .rev-pr { font-family: var(--sans); font-size: 12.5px; line-height: 1.55; color: #2A2A26; }
+    .rev-pr { font-family: var(--sans); font-size: 12.5px; line-height: 1.55; color: var(--text); }
     .rev-pr b { color: var(--black); font-weight: 600; }
 
     /* ── check-in diff ── */
@@ -256,8 +256,8 @@
 
     /* ── error ── */
     .err { display: none; width: min(620px,100%); margin-top: 18px; padding: 14px 18px; border-radius: 14px;
-      border: 1px solid rgba(200,60,50,.3); background: rgba(200,60,50,.05);
-      font-family: var(--sans); font-size: 13.5px; color: #A03428; }
+      border: 1px solid var(--danger-line); background: var(--danger-bg);
+      font-family: var(--sans); font-size: 13.5px; color: var(--danger); }
     .err.show { display: block; }
 
     /* ═══════════ the plan document ═══════════ */
@@ -266,17 +266,17 @@
     .plan-actions { display: flex; gap: 12px; align-items: center; justify-content: flex-end;
       flex-wrap: wrap; margin-bottom: 22px; }
     .pa-note { margin-right: auto; font-family: var(--sans); font-size: 12px; color: var(--gray-2); }
-    .btn-dl { background: var(--black); color: #fff; border: none; border-radius: 999px;
+    .btn-dl { background: var(--black); color: var(--on-ink); border: none; border-radius: 999px;
       font-family: var(--sans); font-size: 14px; font-weight: 600; padding: 13px 28px;
-      box-shadow: 0 8px 24px rgba(17,17,16,0.18); transition: transform .2s, background .2s; cursor: pointer; }
-    .btn-dl:hover { background: #000; transform: translateY(-1px); }
+      box-shadow: 0 8px 24px rgba(var(--shadow-rgb),0.18); transition: transform .2s, background .2s; cursor: pointer; }
+    .btn-dl:hover { background: var(--acc); color: var(--on-acc); transform: translateY(-1px); }
     .btn-again { background: transparent; border: 1px solid var(--rule-2); border-radius: 999px;
       color: var(--gray); font-family: var(--sans); font-size: 13px; font-weight: 500;
       padding: 12px 22px; cursor: pointer; transition: all .2s; }
     .btn-again:hover { border-color: var(--black); color: var(--black); }
 
-    #planDoc { background: #fff; border: 1px solid var(--rule-2); border-radius: 24px;
-      padding: 58px 62px 66px; box-shadow: 0 30px 90px rgba(17,17,16,0.07); }
+    #planDoc { background: var(--card); border: 1px solid var(--rule-2); border-radius: 24px;
+      padding: 58px 62px 66px; box-shadow: 0 30px 90px rgba(var(--shadow-rgb),0.07); }
     @media (max-width: 700px) { #planDoc { padding: 30px 22px 40px; } }
     .pd-brand { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .pd-brand .bm { font-family: var(--monoX); font-size: 10px; letter-spacing: .24em; color: var(--gray-2); }
@@ -293,14 +293,14 @@
     .pd-h { display: flex; align-items: baseline; gap: 12px; margin: 44px 0 14px; }
     .pd-h .n { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
     .pd-h .t { font-family: var(--serif); font-size: 27px; letter-spacing: -0.01em; }
-    .pd-p { font-family: var(--sans); font-size: 14.5px; line-height: 1.75; color: #2A2A26; margin: 10px 0; }
+    .pd-p { font-family: var(--sans); font-size: 14.5px; line-height: 1.75; color: var(--text); margin: 10px 0; }
     .pd-p + .pd-p { margin-top: 8px; }
     .pd-pull { font-family: var(--serif); font-style: italic; font-size: 19px; line-height: 1.5;
       color: var(--black); margin: 14px 0 10px; }
     .pd-lab { font-family: var(--monoX); font-size: 10px; font-weight: 500; letter-spacing: .2em;
       text-transform: uppercase; color: var(--accD); margin: 22px 0 4px; }
     ol.pd-list { margin: 8px 0 12px; padding-left: 22px; }
-    ol.pd-list li { font-family: var(--sans); font-size: 13.5px; line-height: 1.7; color: #2A2A26;
+    ol.pd-list li { font-family: var(--sans); font-size: 13.5px; line-height: 1.7; color: var(--text);
       margin: 7px 0; padding-left: 4px; }
 
     .day { border: 1px solid var(--rule); border-radius: 16px; margin: 18px 0; overflow: hidden;
@@ -319,7 +319,7 @@
     table.ex th { font-family: var(--monoX); font-size: 9px; font-weight: 500; letter-spacing: .16em;
       text-transform: uppercase; color: var(--gray-2); text-align: left; padding: 12px 14px 8px;
       border-bottom: 1px solid var(--rule); }
-    table.ex td { font-family: var(--sans); font-size: 13px; color: #2A2A26; padding: 11px 14px;
+    table.ex td { font-family: var(--sans); font-size: 13px; color: var(--text); padding: 11px 14px;
       border-bottom: 1px solid var(--rule); vertical-align: top; }
     table.ex tr:last-child td { border-bottom: none; }
     table.ex td:first-child { font-weight: 600; color: var(--black); }
@@ -330,7 +330,7 @@
       border-bottom: 1px solid var(--rule); align-items: baseline; }
     .meal:last-child { border-bottom: none; }
     .meal .mt { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
-    .meal .mn { font-family: var(--sans); font-size: 13.5px; color: #2A2A26; }
+    .meal .mn { font-family: var(--sans); font-size: 13.5px; color: var(--text); }
     .meal .mn b { color: var(--black); }
     .meal .mm { font-family: var(--monoX); font-size: 10.5px; color: var(--gray-2); white-space: nowrap; }
     @media (max-width: 560px) { .meal { grid-template-columns: 70px 1fr; } .meal .mm { grid-column: 2; } }
@@ -339,7 +339,7 @@
     .supp .sn { font-family: var(--sans); font-weight: 700; font-size: 14px; }
     .supp .sn span { font-family: var(--monoX); font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
       color: var(--accD); margin-left: 10px; }
-    .supp .sd { margin-top: 4px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #2A2A26; }
+    .supp .sd { margin-top: 4px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: var(--text); }
     .supp .sc { margin-top: 3px; font-family: var(--sans); font-size: 12px; line-height: 1.6;
       color: var(--gray-2); font-style: italic; }
     .meal-tot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 4px 2px;
@@ -350,17 +350,17 @@
     .path .pn { font-family: var(--sans); font-weight: 700; font-size: 14px; }
     .path .pw { font-family: var(--monoX); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
       color: var(--accD); margin-left: 8px; }
-    .path .pd2 { margin-top: 6px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #2A2A26; }
+    .path .pd2 { margin-top: 6px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: var(--text); }
 
-    .safety { margin-top: 40px; border: 1px solid rgba(200,140,40,.35); background: rgba(200,140,40,.05);
+    .safety { margin-top: 40px; border: 1px solid var(--amber-line); background: var(--amber-bg);
       border-radius: 16px; padding: 20px 24px; break-inside: avoid; }
     .safety .sh { font-family: var(--monoX); font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
-      color: #8A6420; margin-bottom: 8px; }
-    .safety p { font-family: var(--sans); font-size: 12.5px; line-height: 1.7; color: #5A4A28; margin: 6px 0; }
+      color: var(--amber-ink); margin-bottom: 8px; }
+    .safety p { font-family: var(--sans); font-size: 12.5px; line-height: 1.7; color: var(--amber-ink-2); margin: 6px 0; }
 
     /* ═══════════ ask the trainer ═══════════ */
-    .qa { margin-top: 26px; background: #fff; border: 1px solid #E9E9E5; border-radius: 24px;
-      padding: 28px 32px; box-shadow: 0 1px 2px rgba(17,17,16,.03), 0 24px 70px rgba(17,17,16,.05); }
+    .qa { margin-top: 26px; background: var(--card); border: 1px solid var(--rule-2); border-radius: 24px;
+      padding: 28px 32px; box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.03), 0 24px 70px rgba(var(--shadow-rgb),.05); }
     .qa-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
     .qa-head .qn { color: var(--accD); font-size: 15px; }
     .qa-head .qt { font-family: var(--serif); font-size: 24px; color: var(--black); }
@@ -373,9 +373,9 @@
     .qa-thread { margin-top: 6px; }
     .qm { margin-top: 16px; max-width: 88%; font-family: var(--sans); font-size: 14px;
       line-height: 1.7; white-space: pre-wrap; }
-    .qm.you { margin-left: auto; background: var(--black); color: #fff; border-radius: 16px 16px 4px 16px;
+    .qm.you { margin-left: auto; background: var(--black); color: var(--on-ink); border-radius: 16px 16px 4px 16px;
       padding: 11px 16px; width: fit-content; }
-    .qm.coach { color: #2A2A26; border-left: 2px solid var(--acc); padding-left: 16px; }
+    .qm.coach { color: var(--text); border-left: 2px solid var(--acc); padding-left: 16px; }
     .qm.coach.pending::after { content: '▍'; color: var(--accD); animation: qablink 1s steps(1) infinite; }
     @keyframes qablink { 50% { opacity: 0; } }
     .qa-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
@@ -399,14 +399,14 @@
     .fstep-nav .os-btn-primary, .go-row .os-btn-primary { width: auto; padding: 14px 30px; }
 
     /* ── first-run welcome ── */
-    .welcome { width: min(720px, 100%); background: #fff; border: 1px solid #E9E9E5; border-radius: 24px;
+    .welcome { width: min(720px, 100%); background: var(--card); border: 1px solid var(--rule-2); border-radius: 24px;
       padding: 30px 34px; margin-bottom: 22px; text-align: center;
-      box-shadow: 0 1px 2px rgba(17,17,16,.03), 0 24px 70px rgba(17,17,16,.06); }
+      box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.03), 0 24px 70px rgba(var(--shadow-rgb),.06); }
     .w-lead { font-family: var(--serif); font-size: clamp(20px, 3.2vw, 26px); line-height: 1.3; color: var(--black); }
     .w-lead em { color: var(--accD); }
     .w-points { display: flex; flex-direction: column; gap: 7px; margin: 18px 0 22px; }
     .w-points span { font-family: var(--sans); font-size: 13.5px; color: var(--gray); }
-    .w-points span::before { content: '— '; color: var(--accD); }
+    .w-points span::before { content: ''; color: var(--accD); }
     .w-cta { width: auto; padding: 14px 34px; }
     .w-or { display: block; margin: 12px auto 0; background: none; border: none; cursor: pointer;
       font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--gray); }
@@ -428,7 +428,7 @@
     .coach { position: fixed; inset: 0; z-index: 300; background: var(--paper); display: flex; flex-direction: column; }
     .coach[hidden] { display: none; }
     .co-top { display: flex; align-items: center; gap: 16px; padding: 16px 22px;
-      border-bottom: 1px solid var(--rule); background: rgba(250,250,248,.92); }
+      border-bottom: 1px solid var(--rule); background: var(--paper); }
     .co-x { background: transparent; border: 1px solid var(--rule-2); border-radius: 999px; padding: 8px 18px;
       font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--gray); cursor: pointer; transition: all .2s; }
     .co-x:hover { border-color: var(--black); color: var(--black); }
@@ -443,8 +443,8 @@
     .co-rgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 30px 0; }
     @media (max-width: 560px) { .co-rgrid { grid-template-columns: 1fr; } }
     .co-begin { width: 100%; }
-    .co-adjust { border: 1px solid rgba(12,138,76,.25); background: rgba(189,242,63,.10); border-radius: 14px;
-      padding: 14px 18px; margin-bottom: 24px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #2A2A26; }
+    .co-adjust { border: 1px solid var(--acc-line); background: var(--acc-soft); border-radius: 14px;
+      padding: 14px 18px; margin-bottom: 24px; font-family: var(--sans); font-size: 13px; line-height: 1.65; color: var(--text); }
     .co-adjust b { color: var(--accD); font-family: var(--monoX); font-size: 10px; letter-spacing: .16em;
       text-transform: uppercase; display: block; margin-bottom: 5px; }
     .co-glyph { color: var(--black); }
@@ -454,11 +454,11 @@
     .co-target { margin-top: 12px; font-family: var(--monoX); font-size: 12px; letter-spacing: .14em;
       text-transform: uppercase; color: var(--accD); }
     .co-cue { margin-top: 10px; font-family: var(--sans); font-size: 14px; line-height: 1.65; color: var(--gray); }
-    .co-coach { margin-top: 12px; font-family: var(--sans); font-size: 13.5px; line-height: 1.6; color: #2A2A26; }
+    .co-coach { margin-top: 12px; font-family: var(--sans); font-size: 13.5px; line-height: 1.6; color: var(--text); }
     .co-coach:empty { display: none; }
     .co-coach b { color: var(--accD); font-family: var(--monoX); font-size: 10px; letter-spacing: .16em;
       text-transform: uppercase; margin-right: 6px; }
-    .co-plates { margin-top: 22px; border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px; background: #fff; }
+    .co-plates { margin-top: 22px; border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px; background: var(--card); }
     .co-plates .os-input { max-width: 160px; }
     .co-bar-row { margin-bottom: 14px; }
     .co-bar-row .os-select-wrap { max-width: 160px; }
@@ -471,11 +471,11 @@
     .co-set .sn { font-family: var(--monoX); font-size: 10.5px; letter-spacing: .14em; color: var(--gray-2); width: 52px; }
     .co-set input { width: 78px; text-align: center; }
     .co-set .x { font-family: var(--monoX); font-size: 11px; color: var(--gray-2); }
-    .co-log { margin-left: auto; background: var(--black); color: #fff; border: none; border-radius: 999px;
+    .co-log { margin-left: auto; background: var(--black); color: var(--on-ink); border: none; border-radius: 999px;
       font-family: var(--sans); font-size: 12.5px; font-weight: 600; padding: 10px 20px; cursor: pointer;
       transition: transform .15s, background .2s, opacity .2s; }
     .co-log:hover { transform: translateY(-1px); }
-    .co-log.done { background: transparent; color: var(--accD); border: 1px solid rgba(12,138,76,.35); cursor: default; }
+    .co-log.done { background: transparent; color: var(--accD); border: 1px solid var(--acc-line); cursor: default; }
     .co-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 30px; }
     .co-ghost { background: transparent; border: 1px solid var(--rule-2); border-radius: 999px; padding: 11px 22px;
       font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--gray); cursor: pointer; transition: all .2s; }
@@ -485,33 +485,33 @@
     .co-timer { font-family: var(--serif); font-size: clamp(84px, 20vw, 148px); line-height: 1;
       color: var(--black); font-variant-numeric: tabular-nums; margin: 24px 0 10px; }
     .co-rest-next { font-family: var(--sans); font-size: 14px; color: var(--gray); margin-bottom: 26px; }
-    .co-summary { margin: 24px 0; border: 1px solid var(--rule); border-radius: 16px; background: #fff; padding: 6px 20px; }
+    .co-summary { margin: 24px 0; border: 1px solid var(--rule); border-radius: 16px; background: var(--card); padding: 6px 20px; }
     .co-summary .dr { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0;
       border-bottom: 1px solid var(--rule); font-family: var(--sans); font-size: 14px; color: var(--gray); }
     .co-summary .dr:last-child { border-bottom: none; }
     .co-summary .dr b { color: var(--black); font-variant-numeric: tabular-nums; }
 
-    .stall { border: 1px solid rgba(200,140,40,.35); background: rgba(200,140,40,.05); border-radius: 14px;
+    .stall { border: 1px solid var(--amber-line); background: var(--amber-bg); border-radius: 14px;
       padding: 14px 18px; margin: 18px 0; }
     .stall .st-h { font-family: var(--monoX); font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
-      color: #8A6420; margin-bottom: 6px; }
-    .stall p { font-family: var(--sans); font-size: 13px; line-height: 1.65; color: #5A4A28; margin: 4px 0; }
-    .stall.deload { border-color: rgba(12,138,76,.30); background: rgba(189,242,63,.08); }
+      color: var(--amber-ink); margin-bottom: 6px; }
+    .stall p { font-family: var(--sans); font-size: 13px; line-height: 1.65; color: var(--amber-ink-2); margin: 4px 0; }
+    .stall.deload { border-color: var(--acc-line); background: var(--acc-soft); }
     .stall.deload .st-h { color: var(--accD); }
-    .stall.deload p { color: #2A3A26; }
+    .stall.deload p { color: var(--text); }
     .stall.deload .btn-again { margin-top: 8px; }
 
     /* ── bodyweight quick-log ── */
     .bw-card { border: 1px solid var(--rule); border-radius: 16px; padding: 20px 22px 18px;
-      margin-bottom: 26px; background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+      margin-bottom: 26px; background: var(--card); }
     .bw-top { display: flex; align-items: flex-end; gap: 14px; }
     .bw-in { flex: 1; margin: 0; }
     .bw-log { width: auto; padding: 12px 24px; white-space: nowrap; }
     .bw-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 18px;
       background: var(--rule); border: 1px solid var(--rule); border-radius: 13px; overflow: hidden; }
-    .bw-stat { background: #fff; padding: 12px 8px 10px; text-align: center; }
+    .bw-stat { background: var(--card); padding: 12px 8px 10px; text-align: center; }
     .bw-stat b { display: block; font-family: var(--serif); font-weight: 400; font-size: 22px; color: var(--black); }
-    .bw-stat.up b { color: #A0602A; } .bw-stat.down b { color: var(--accD); }
+    .bw-stat.up b { color: var(--warm); } .bw-stat.down b { color: var(--accD); }
     .bw-stat span { display: block; margin-top: 3px; font-family: var(--monoX); font-size: 8.5px;
       letter-spacing: .14em; text-transform: uppercase; color: var(--gray-2); }
     .bw-spark { margin-top: 16px; }
@@ -523,12 +523,12 @@
     .bw-note { margin-top: 14px; font-family: var(--sans); font-size: 12px; line-height: 1.55; color: var(--gray-2); }
     /* ── data durability nudge / cap warning ── */
     .durable { border: 1px solid var(--rule); border-radius: 14px; padding: 13px 16px; margin: 0 0 22px;
-      font-family: var(--sans); font-size: 12.5px; line-height: 1.6; color: #2A2A26; background: #FCFCFB; }
-    .durable.warn { border-color: rgba(200,140,40,.4); background: rgba(200,140,40,.06); color: #5A4A28; }
+      font-family: var(--sans); font-size: 12.5px; line-height: 1.6; color: var(--text); background: var(--card); }
+    .durable.warn { border-color: var(--amber-line); background: var(--amber-bg); color: var(--amber-ink-2); }
     .durable b { color: var(--black); }
-    .durable.warn b { color: #8a5a1a; }
+    .durable.warn b { color: var(--warm); }
     .dur-b { display: inline-block; margin: 9px 8px 0 0; padding: 6px 15px; border: 1px solid var(--black);
-      border-radius: 999px; background: var(--black); color: #fff; font-family: var(--sans); font-size: 11.5px; cursor: pointer; }
+      border-radius: 999px; background: var(--black); color: var(--on-ink); font-family: var(--sans); font-size: 11.5px; cursor: pointer; }
     .dur-b:hover { opacity: .85; }
     .dur-x { margin-top: 9px; padding: 6px 8px; border: none; background: none; color: var(--gray-2);
       font-family: var(--sans); font-size: 11.5px; cursor: pointer; }
@@ -538,11 +538,11 @@
       font-size: 12px; line-height: 1.5; color: var(--gray-2); }
     .dev-clear b { color: var(--gray); }
     #devClearBtn { border: none; background: none; padding: 0 2px; cursor: pointer; font: inherit;
-      color: #A0602A; font-weight: 600; text-decoration: underline; }
-    #devClearBtn:hover { color: #8a5a1a; }
+      color: var(--warm); font-weight: 600; text-decoration: underline; }
+    #devClearBtn:hover { color: var(--warm); }
     /* ── trend-fed check-in ── */
     .ct-card { border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px 16px; margin-bottom: 24px;
-      background: linear-gradient(180deg, #FCFCFB, #FAFAF8); }
+      background: var(--card); }
     .ct-lead { font-family: var(--sans); font-size: 12.5px; line-height: 1.5; color: var(--gray); margin-bottom: 14px; }
     .ct-lead b { color: var(--black); }
     .ct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
@@ -550,37 +550,37 @@
       color: var(--gray-2); margin-bottom: 6px; }
     .ct-item .bw-spark { margin-top: 2px; }
     .ct-n { margin-top: 6px; font-family: var(--monoX); font-size: 11px; color: var(--black); }
-    .ct-n.up { color: #A0602A; } .ct-n.down { color: var(--accD); }
+    .ct-n.up { color: var(--warm); } .ct-n.down { color: var(--accD); }
     /* ── plan-history compare ── */
-    .hist-cmp { border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; margin: 0 0 22px; background: #FCFCFB; }
+    .hist-cmp { border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; margin: 0 0 22px; background: var(--card); }
     .hc-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .hc-l { font-family: var(--monoX); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--gray-2); }
     .hc-row .os-select-wrap { flex: 1; min-width: 180px; }
     #hcDiff { margin-top: 6px; }
     @media (max-width: 560px) { .bw-top { flex-direction: column; align-items: stretch; } .bw-log { width: 100%; } }
 
-    .coach-cta { width: 100%; background: var(--black); color: #fff; border: none; border-radius: 12px;
+    .coach-cta { width: 100%; background: var(--black); color: var(--on-ink); border: none; border-radius: 12px;
       font-family: var(--sans); font-size: 13.5px; font-weight: 600; padding: 13px 18px; cursor: pointer;
-      box-shadow: 0 8px 24px rgba(17,17,16,.16); transition: transform .2s, box-shadow .2s; }
-    .coach-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(17,17,16,.22); }
+      box-shadow: 0 8px 24px rgba(var(--shadow-rgb),.16); transition: transform .2s, box-shadow .2s; }
+    .coach-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(var(--shadow-rgb),.22); }
 
     /* ═══════════ luxury pass ═══════════ */
-    .mode-tabs { background: #fff; border: 1px solid var(--rule-2); border-radius: 999px; padding: 5px;
-      gap: 4px; box-shadow: 0 1px 2px rgba(17,17,16,.04), 0 10px 34px rgba(17,17,16,.05); width: fit-content; }
+    .mode-tabs { background: var(--card); border: 1px solid var(--rule-2); border-radius: 999px; padding: 5px;
+      gap: 4px; box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.04), 0 10px 34px rgba(var(--shadow-rgb),.05); width: fit-content; }
     .mtab { border: none; padding: 9px 20px; }
     .mtab:hover { color: var(--black); }
     .mtab.restore { border: 1px dashed var(--rule-2); }
     #planDoc, .intake .intake-inner, .fu-card {
-      box-shadow: 0 1px 2px rgba(17,17,16,.03), 0 30px 90px rgba(17,17,16,.07); }
-    #planDoc { border-radius: 28px; border-color: #E9E9E5; }
+      box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.03), 0 30px 90px rgba(var(--shadow-rgb),.07); }
+    #planDoc { border-radius: 28px; border-color: var(--rule-2); }
     .pd-h { align-items: center; }
     .pd-h::after { content: ''; flex: 1; height: 1px; background: var(--rule); margin-left: 16px; }
     table.ex td, .pd-meta span, .meal .mm, .meal-tot, .diff .dv, .diff .dc {
       font-variant-numeric: tabular-nums; }
-    .day, .supp, .path, .diff, .co-plates { border-color: #E9E9E5; }
-    .day { box-shadow: 0 1px 2px rgba(17,17,16,.03); }
-    .os-btn-primary { box-shadow: 0 10px 30px rgba(17,17,16,.20); transition: transform .2s, box-shadow .2s; }
-    .os-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 38px rgba(17,17,16,.26); }
+    .day, .supp, .path, .diff, .co-plates { border-color: var(--rule-2); }
+    .day { box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.03); }
+    .os-btn-primary { box-shadow: 0 10px 30px rgba(var(--shadow-rgb),.20); transition: transform .2s, box-shadow .2s; }
+    .os-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 38px rgba(var(--shadow-rgb),.26); }
     .th-line { font-family: var(--serif) !important; font-style: italic; }
     .th-shimmer { width: 190px; height: 2px; margin: 18px auto 0; border-radius: 2px;
       background: linear-gradient(90deg, var(--rule) 20%, var(--acc) 50%, var(--rule) 80%);
@@ -599,34 +599,153 @@
       .pd-h { break-after: avoid; }
       table.ex .vid { display: none !important; }
     }
+  
+    /* ═══════════ THE VOICE (the merge): the Trainer in the house style ═══════════
+       Bricolage for the voice, Geist for the words, cobalt for the one thing to do next.
+       Every color above is a token, so the dark set (html[data-theme="dark"]) just works. */
+    .stage { padding: 52px 24px 96px; }
+    @media (max-width: 640px) { .stage { padding: 34px 16px 80px; } }
+
+    /* the header speaks: a time-aware kicker, a line in the coach's voice */
+    .mod-head { margin-bottom: 30px; max-width: 780px; }
+    .mod-over { display: inline-flex; align-items: center; gap: 10px; font-family: var(--monoX); font-size: 12px;
+      font-weight: 500; letter-spacing: .14em; color: var(--accD); margin-bottom: 18px; }
+    .mod-over::before { content: ''; width: 22px; height: 2px; border-radius: 2px; background: currentColor; }
+    .mod-title { font-family: var(--serif); font-weight: 800; font-size: clamp(38px, 6.2vw, 70px);
+      letter-spacing: -0.035em; line-height: 1; text-wrap: balance; }
+    .mod-sub { margin: 16px auto 0; max-width: 58ch; font-family: var(--sans); font-style: normal; font-size: 17px;
+      line-height: 1.55; color: var(--gray); text-wrap: pretty; }
+
+    /* display type: the Voice, never a fake italic */
+    .th-line, .pd-for, .pd-pull, .supp .sc { font-style: normal; }
+    .th-line { font-family: var(--serif) !important; font-weight: 600; font-size: 21px; color: var(--black); letter-spacing: -0.01em; }
+    .pd-title { font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
+    .pd-for { font-family: var(--sans); font-size: 15px; color: var(--gray); }
+    .pd-h .t { font-weight: 700; font-size: 25px; letter-spacing: -0.02em; }
+    .pd-pull { font-family: var(--serif); font-weight: 600; font-size: 20px; letter-spacing: -0.01em;
+      padding-left: 16px; border-left: 3px solid var(--acc); }
+    .fu-lead, .w-lead, .co-lead, .qa-head .qt { font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+    .fu-lead em, .w-lead em, .co-lead em { font-style: normal; color: var(--accD); }
+    .co-name { font-weight: 800; letter-spacing: -0.03em; }
+    .co-timer { font-weight: 700; letter-spacing: -0.04em; }
+    .nx-cue, .rev-head { font-weight: 700; letter-spacing: -0.015em; }
+    .nut-stat b, .rev-stat b, .bw-stat b, .calc-orm b { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    .calc-x { font-family: var(--sans); }
+
+    /* labels at a readable floor (11px) */
+    .th-sub, .lg-rx, .pd-brand .bm, .pd-meta b, .day-head .df, .pd-lab, .supp .sn span, .path .pw, .diff .dl,
+    .vol-fb, .nx-label, .nx-block, .nx-streak, .rev-label, .rev-prs .rev-pl, .co-rest-label, .safety .sh,
+    .stall .st-h, .ct-item .ct-h, .hc-l, .wt, .w-meta, .sec { font-size: 11px; }
+    .nut-stat span, .rev-stat span, .bw-stat span, .mc-t, .calc-cell span, table.ex th, table.ex .vid { font-size: 10.5px; letter-spacing: .08em; }
+
+    /* cards: flat, one hairline, the Voice's radius */
+    .intake { border: 1px solid var(--rule); border-radius: 26px; padding: 0;
+      box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.04), 0 24px 70px rgba(var(--shadow-rgb),.06); }
+    .intake .intake-inner { border: 0; box-shadow: none; padding: 36px 40px 40px; }
+    @media (max-width: 640px) { .intake .intake-inner { padding: 26px 20px 28px; } }
+    .fu-card, .welcome, .qa { border-color: var(--rule); border-radius: 26px; }
+    #planDoc { border-color: var(--rule); border-radius: 26px; }
+    .mode-tabs { border-color: var(--rule); box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.04); }
+    .mtab { font-size: 13.5px; min-height: 40px; }
+    .stp.on span { color: var(--accD); }
+    .stp span { color: var(--gray-2); opacity: .55; }
+
+    /* the welcome: a coach's promise, not a feature list */
+    .welcome { padding: 34px 36px 30px; }
+    .w-lead { font-size: clamp(22px, 3.4vw, 28px); text-wrap: balance; }
+    .w-points { align-items: center; }
+    .w-points span::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accD); margin-right: 10px; vertical-align: middle; transform: translateY(-1px); }
+    .w-or { min-height: 40px; }
+    .w-talk { display: block; text-decoration: none; color: var(--accD); }
+    .w-talk:hover { color: var(--accD); }
+
+    /* the plan document */
+    .pd-brand .bm { letter-spacing: .16em; }
+    .pd-h .n { font-weight: 500; }
+    .day { border-radius: 18px; }
+    .day-head .dn { font-family: var(--serif); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+    .supp { border-left-width: 3px; }
+
+    /* the dark card ("what's next"): periwinkle accents that pass on midnight */
+    .next-card .nx-cue b, .next-card .nx-block.deload, .next-card .nx-streak { color: #A9B4FF; }
+    .next-card .nx-block.deload { border-left-color: #A9B4FF; }
+    .next-card .nx-dot.on { background: #A9B4FF; }
+    .next-card .nx-toggle[aria-checked="true"] { background: #6F7DFF; }
+    :root[data-theme="dark"] .next-card { background: linear-gradient(157deg, #141A48, #1E2660); border-color: #2A3163; }
+
+    /* buttons: cobalt for the next step, ink for the strong secondary, hairline for the rest */
+    .os-btn-primary { box-shadow: 0 10px 28px rgba(43,59,255,.22); }
+    .os-btn-primary:hover { box-shadow: 0 14px 36px rgba(43,59,255,.30); }
+    :root[data-theme="dark"] .os-btn-primary, :root[data-theme="dark"] .os-btn-primary:hover { box-shadow: none; }
+    .btn-dl, .btn-again, .co-ghost, .co-x, .qa-chip { min-height: 44px; }
+    .btn-dl { box-shadow: none; }
+    .coach-cta { border-radius: 999px; box-shadow: none; }
+
+    /* the handoff strip: what carried over from the home page */
+    .handoff { width: min(880px, 100%); display: flex; align-items: center; justify-content: space-between;
+      gap: 14px 22px; flex-wrap: wrap; margin: 0 0 16px; padding: 18px 22px 18px 24px; border-radius: 22px;
+      background: var(--acc); color: var(--on-acc); }
+    .handoff[hidden] { display: none; }
+    .ho-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .ho-k { font-family: var(--monoX); font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+    .ho-t { font-family: var(--serif); font-weight: 700; font-size: 21px; letter-spacing: -0.015em; line-height: 1.15; }
+    .ho-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .ho-chips span { font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 5px 11px; border-radius: 999px;
+      border: 1px solid color-mix(in srgb, currentColor 40%, transparent); }
+    .ho-x { appearance: none; cursor: pointer; background: none; color: inherit; border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+      border-radius: 999px; padding: 0 16px; min-height: 40px; font-family: var(--sans); font-size: 13px; font-weight: 600; }
+    .ho-x:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+    .ho-x:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    .field.from-session .os-label::after { content: '\2713  kept'; margin-left: 8px; font-family: var(--sans);
+      font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--accD); white-space: nowrap; }
+    /* one visible tab is not a choice: hide the bar until there is something to switch between */
+    .mode-tabs.solo { display: none !important; }
+
+    /* the thinking state: the coach at work */
+    .th-ring { border-width: 2.5px; }
+    .th-shimmer { background: linear-gradient(90deg, var(--rule) 20%, var(--acc) 50%, var(--rule) 80%); background-size: 200% 100%; }
+
+    /* the PDF is always ink on white, whatever the screen theme */
+    @media print {
+      :root, :root[data-theme="dark"] { color-scheme: light;
+        --paper: #fff; --card: #fff; --black: #0B0F2E; --text: #2D314B; --gray: #474B66; --gray-2: #5B5F7B;
+        --rule: #E3E6F0; --rule-2: #D0D5E5; --wash: #F3F4F9; --track: #E6E9F3; --band: #D9DFFF;
+        --acc: #2B3BFF; --accD: #2B3BFF; --acc-soft: rgba(43,59,255,.07); --acc-line: rgba(43,59,255,.26);
+        --warm: #9A4F1C; --amber-ink: #7A5518; --amber-ink-2: #5E4B26; --amber-bg: rgba(200,140,40,.07);
+        --amber-line: rgba(200,140,40,.36); --danger: #A8321F; --on-ink: #fff; --on-acc: #fff; --shadow-rgb: 11,15,46; }
+      .handoff, .hud, .statusbar { display: none !important; }
+    }
+
   </style>
 </head>
 <body>
 <div class="page-wrap">
   <div class="stage">
     <div class="mod-head fade-rise">
-      <div class="mod-over">Instrument No. VIII</div>
-      <h1 class="mod-title">The Trainer</h1>
-      <p class="mod-sub">an evidence-based training &amp; nutrition studio</p>
+      <div class="mod-over" id="modOver">The Trainer</div>
+      <h1 class="mod-title" id="modTitle">Let&rsquo;s write your program.</h1>
+      <p class="mod-sub" id="modSub">Evidence-based training and nutrition, built around your real week. Every number comes with its reason.</p>
     </div>
 
     <!-- ── FIRST-RUN WELCOME ── -->
     <div class="welcome" id="welcome" style="display:none">
-      <div class="w-lead">Programs written like a coach writes them — <em>every number justified.</em></div>
+      <div class="w-lead">I write programs the way a coach does. <em>Every number comes with its reason.</em></div>
       <div class="w-points">
-        <span>Evidence-based plan, built for your equipment and recovery</span>
-        <span>A live coach in the gym — rest timers, plate math, session log</span>
-        <span>Recalibrates from your measured results, syncs to every device</span>
+        <span>A complete plan built for your equipment, your week and your recovery</span>
+        <span>A coach in the gym: rest timers, plate maths and a session log</span>
+        <span>Recalibrates from your measured results and syncs to every device</span>
       </div>
-      <button type="button" class="os-btn-primary w-cta" id="welcomePeek">See a sample program — 10 seconds</button>
+      <button type="button" class="os-btn-primary w-cta" id="welcomePeek">See a sample program</button>
       <button type="button" class="w-or" id="welcomePeekCut">Cutting? See a fat-loss sample →</button>
-      <button type="button" class="w-or" id="welcomeBuild">or build mine now →</button>
-      <div class="w-meta">About 2 minutes · 3 short steps · no account needed</div>
+      <button type="button" class="w-or" id="welcomeBuild">Or build mine now →</button>
+      <a class="w-or w-talk" href="/#act-session" data-nav>New here? Talk it through first, it takes 90 seconds →</a>
+      <div class="w-meta">A sample takes 10 seconds · yours about 2 minutes · no account needed</div>
       <div class="w-trust">
-        <span class="wt"><b>$0</b> forever</span>
-        <span class="wt"><b>Private</b> — stays on your device</span>
-        <span class="wt"><b>Evidence-based</b> — every number justified</span>
-        <span class="wt"><b>Syncs</b> to every device</span>
+        <span class="wt"><b>Free</b> to use</span>
+        <span class="wt"><b>Private</b>: your plan stays on this device</span>
+        <span class="wt"><b>Evidence-based</b>: every number justified</span>
+        <span class="wt"><b>Syncs</b> to every device, if you want</span>
       </div>
     </div>
 
@@ -642,6 +761,12 @@
       Not your device? <button type="button" id="devClearBtn">Clear this data</button></div>
 
     <!-- ── INTAKE ── -->
+    <div class="handoff" id="handoff" hidden aria-live="polite">
+      <div class="ho-main"><span class="ho-k">From our session</span><span class="ho-t" id="hoTitle"></span>
+        <span class="ho-chips" id="hoChips"></span></div>
+      <button type="button" class="ho-x" id="hoClear">Not you? Start blank</button>
+    </div>
+
     <form class="intake fade-rise-d1" id="intakeForm" autocomplete="off">
       <div class="intake-inner">
         <div class="stepper" id="stepper" aria-label="Intake steps">
@@ -677,12 +802,12 @@
           <div class="field"><label class="os-label" for="fGoalNote">Anything specific about the goal?</label>
             <input class="os-input" id="fGoalNote" placeholder="e.g. bigger arms, first pull-up, wedding in June"></div>
           <div class="field"><label class="os-label" for="fGoalWeight">Goal weight <span style="opacity:.6">(optional)</span></label>
-            <input class="os-input" id="fGoalWeight" placeholder="e.g. 75 kg — for a maintenance off-ramp"></div>
+            <input class="os-input" id="fGoalWeight" placeholder="e.g. 75 kg, for a maintenance off-ramp"></div>
         </div>
 
         <div class="fstep-nav">
           <span></span>
-          <button type="button" class="os-btn-primary stp-next" id="next1">Next — Training →</button>
+          <button type="button" class="os-btn-primary stp-next" id="next1">Next: Training →</button>
         </div>
         </div>
 
@@ -699,8 +824,8 @@
             <input class="os-input" id="fTimings" placeholder="e.g. 7–8:30 pm"></div>
           <div class="field"><label class="os-label" for="fEnv">Where do you train?</label>
             <div class="os-select-wrap"><select class="os-select" id="fEnv">
-              <option>Commercial gym</option><option>Home — dumbbells</option>
-              <option>Home — barbell setup</option><option>Bodyweight only</option></select></div></div>
+              <option>Commercial gym</option><option>Home: dumbbells</option>
+              <option>Home: barbell setup</option><option>Bodyweight only</option></select></div></div>
           <div class="field"><label class="os-label" for="fEquip">Equipment notes (optional)</label>
             <input class="os-input" id="fEquip" placeholder="e.g. dumbbells up to 20 kg, no leg press, has rings"></div>
           <div class="field"><label class="os-label" for="fLifts">Current lifts (optional)</label>
@@ -711,10 +836,10 @@
         <div class="sec">Health &amp; recovery</div>
         <div class="grid2">
           <div class="field"><label class="os-label" for="fHealth">Any health issues?</label>
-            <textarea class="os-input" id="fHealth" placeholder="e.g. mild knee pain, asthma — or 'none'"></textarea>
-            <div class="hintline">Anything medical stays a suggestion, not advice — the plan will say so too.</div></div>
+            <textarea class="os-input" id="fHealth" placeholder="e.g. mild knee pain, asthma, or 'none'"></textarea>
+            <div class="hintline">Anything medical stays a suggestion, not advice. The plan will say so too.</div></div>
           <div class="field"><label class="os-label" for="fAllergy">Any allergies?</label>
-            <textarea class="os-input" id="fAllergy" placeholder="e.g. lactose, peanuts — or 'none'"></textarea></div>
+            <textarea class="os-input" id="fAllergy" placeholder="e.g. lactose, peanuts, or 'none'"></textarea></div>
         </div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="fSleep">Sleep per night</label>
@@ -729,7 +854,7 @@
 
         <div class="fstep-nav">
           <button type="button" class="co-ghost stp-back" data-to="1">← Back</button>
-          <button type="button" class="os-btn-primary stp-next" id="next2">Next — Fuel →</button>
+          <button type="button" class="os-btn-primary stp-next" id="next2">Next: Fuel →</button>
         </div>
         </div>
 
@@ -747,7 +872,7 @@
           <div class="field"><label class="os-label" for="fSteps">Average steps per day</label>
             <input class="os-input" id="fSteps" type="number" min="0" step="500" placeholder="e.g. 6000"></div>
           <div class="field"><label class="os-label" for="fFoods">Foods you eat daily (optional)</label>
-            <input class="os-input" id="fFoods" placeholder="e.g. dal, roti, paneer, rice — your sample day uses these">
+            <input class="os-input" id="fFoods" placeholder="e.g. dal, roti, paneer, rice (your sample day uses these)">
           </div>
         </div>
 
@@ -758,7 +883,7 @@
         <div class="go-row">
           <button type="button" class="co-ghost stp-back" data-to="2">← Back</button>
           <button type="submit" class="os-btn-primary" id="buildBtn">Build my program</button>
-          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Nothing leaves your device unless you create a free Sync account — otherwise the plan lives in your browser and your PDF.
+          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Your answers go once to the AI model that writes the plan and are not stored on our server. The plan lives in this browser and your PDF, unless you turn on free Sync.
             <button type="button" class="peek" id="peekBtn">Just looking? Preview a sample program →</button></div>
         </div>
         </div>
@@ -794,7 +919,7 @@
             <input class="os-input" id="cWaist" placeholder="e.g. +1 cm, same, −2 cm"></div>
         </div>
 
-        <div class="sec">Adherence — honesty makes the recalibration work</div>
+        <div class="sec">Adherence: honesty makes the recalibration work</div>
         <div class="grid3">
           <div class="field"><label class="os-label" for="cSessions">Sessions completed</label>
             <div class="os-select-wrap"><select class="os-select" id="cSessions">
@@ -807,7 +932,7 @@
               <option>Under 5.5 h</option><option>5.5–6.5 h</option><option selected>7–8 h</option><option>8+ h</option></select></div></div>
           <div class="field"><label class="os-label" for="cDisrupt">Disruption this block?</label>
             <div class="os-select-wrap"><select class="os-select" id="cDisrupt">
-              <option selected>None — a normal block</option><option>Travel</option>
+              <option selected>None (a normal block)</option><option>Travel</option>
               <option>Illness</option><option>Work / life chaos</option></select></div></div>
         </div>
 
@@ -816,7 +941,7 @@
           <div class="field"><label class="os-label" for="cLifts">Key lifts, then → now</label>
             <textarea class="os-input" id="cLifts" placeholder="e.g. bench 60→65 kg × 8, squat 80→90 kg × 6, lateral raises stuck at 10 kg"></textarea></div>
           <div class="field"><label class="os-label" for="cPain">Any pain or new issues?</label>
-            <textarea class="os-input" id="cPain" placeholder="e.g. right shoulder pinches on overhead press — or 'none'"></textarea></div>
+            <textarea class="os-input" id="cPain" placeholder="e.g. right shoulder pinches on overhead press, or 'none'"></textarea></div>
         </div>
 
         <div class="sec">Anything else</div>
@@ -825,7 +950,7 @@
 
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="checkinBtn">Recalibrate my program</button>
-          <div class="go-note">Your measured trend beats any formula — the Trainer re-anchors calories and volume on what actually happened, and returns a full revised program.</div>
+          <div class="go-note">Your measured trend beats any formula. The Trainer re-anchors calories and volume on what actually happened, and returns a full revised program.</div>
         </div>
       </div>
     </form>
@@ -852,25 +977,25 @@
             <button type="button" class="os-btn-primary bw-log" id="bwLog">Log weight</button>
           </div>
           <div class="bw-stats" id="bwStats" hidden>
-            <div class="bw-stat"><b id="bwNow">—</b><span>latest</span></div>
-            <div class="bw-stat"><b id="bwAvg">—</b><span>7-day avg</span></div>
-            <div class="bw-stat"><b id="bwTrend">—</b><span>trend / wk</span></div>
+            <div class="bw-stat"><b id="bwNow">·</b><span>latest</span></div>
+            <div class="bw-stat"><b id="bwAvg">·</b><span>7-day avg</span></div>
+            <div class="bw-stat"><b id="bwTrend">·</b><span>trend / wk</span></div>
           </div>
           <div class="bw-spark" id="bwSpark" hidden></div>
-          <div class="bw-note" id="bwNote">Log your weight daily — the Trainer averages it over 7 days
+          <div class="bw-note" id="bwNote">Log your weight daily. The Trainer averages it over 7 days
             and feeds the trend straight into your Week-4 check-in, so recalibration runs on the
             scale, not on memory. Stays on this device unless you sync.</div>
         </div>
         <div class="durable" id="lgDurable" hidden></div>
         <div class="nut-card" id="nutCard" hidden>
           <div class="sec" style="margin-top:0">Nutrition tune-up</div>
-          <div class="vol-intro">Your real metabolism, read off the scale — the Trainer estimates the calories you
+          <div class="vol-intro">Your real metabolism, read off the scale. The Trainer estimates the calories you
             actually burn from your weight trend and steers your target to the plan’s intended pace, between check-ins.</div>
           <div id="nutBody"></div>
         </div>
         <div class="meal-card" id="mealCard" hidden>
           <div class="sec" style="margin-top:0">Today’s meals</div>
-          <div class="vol-intro">Tick each meal of your sample day as you eat it — adherence you can measure, not
+          <div class="vol-intro">Tick each meal of your sample day as you eat it: adherence you can measure, not
             guess. Resets daily; feeds your check-in.</div>
           <div id="mealBody"></div>
         </div>
@@ -881,12 +1006,12 @@
           <div class="field"><label class="os-label" for="lDate">Date</label>
             <input class="os-input" id="lDate" type="date"></div>
           <div class="field coach-cta-wrap"><label class="os-label">&nbsp;</label>
-            <button type="button" class="coach-cta" id="coachStart">Run it live — Coach Mode →</button>
+            <button type="button" class="coach-cta" id="coachStart">Run it live: Coach Mode →</button>
             <div class="hintline">Rest timers, plate math, and set-by-set logging, straight from your plan.</div></div>
         </div>
         <div id="lgList"></div>
         <label class="lg-deload" for="lgDeload"><input type="checkbox" id="lgDeload">
-          <span>This was a <b>deload</b> week — reduced sets/loads on purpose. Don’t count it as a stall.</span></label>
+          <span>This was a <b>deload</b> week, with reduced sets and loads on purpose. Don’t count it as a stall.</span></label>
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="logBtn">Save session</button>
           <div class="go-note">Logs live only in this browser. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
@@ -905,7 +1030,7 @@
         <div class="vol-card" id="volCard" hidden>
           <div class="sec">Volume tune-up</div>
           <div class="vol-intro">Direct weekly sets per muscle vs your experience band (MEV→MRV). The Trainer
-            reads your stalls and recovery and recommends the next week’s sets — tap how a muscle felt to refine it.</div>
+            reads your stalls and recovery and recommends the next week’s sets. Tap how a muscle felt to refine it.</div>
           <div id="volBody"></div>
         </div>
         <div class="rev-card" id="revCard" hidden>
@@ -930,7 +1055,7 @@
       <div class="co-scroll">
         <!-- readiness -->
         <div class="co-panel" id="coReady">
-          <div class="co-lead">Before you lift — <em>thirty seconds of honesty</em></div>
+          <div class="co-lead">Before you lift, <em>thirty seconds of honesty.</em></div>
           <div class="co-sub">Coach Mode adjusts today's session to the body that actually showed up.</div>
           <div class="co-rgrid">
             <div class="field"><label class="os-label" for="rSleep">Last night's sleep</label>
@@ -978,7 +1103,7 @@
 
         <!-- rest -->
         <div class="co-panel co-restwrap" id="coRest" hidden>
-          <div class="co-rest-label">REST — YOUR PLAN PRESCRIBES IT</div>
+          <div class="co-rest-label">REST · YOUR PLAN PRESCRIBES IT</div>
           <div class="co-timer" id="coTimer">0:00</div>
           <div class="co-rest-next" id="coRestNext"></div>
           <button class="co-ghost" id="coSkip" type="button">Skip rest</button>
@@ -1001,7 +1126,7 @@
       <div class="th-ring"></div>
       <div class="th-line" id="thLine">Reading your intake…</div>
       <div class="th-shimmer"></div>
-      <div class="th-sub">A complete program takes a minute or two — every number is computed for you.</div>
+      <div class="th-sub">A complete program takes a minute or two. Every number is computed for you.</div>
     </div>
 
     <!-- ── FOLLOW-UP ── -->
@@ -1018,7 +1143,7 @@
     <!-- ── THE PLAN ── -->
     <div class="plan-wrap" id="planWrap">
       <div class="plan-actions">
-        <div class="pa-note">Your program is ready. “Download PDF” uses your browser’s print dialog — choose “Save as PDF”.</div>
+        <div class="pa-note">Your program is ready. “Download PDF” opens your browser’s print dialog: choose “Save as PDF”.</div>
         <button class="btn-again" id="againBtn">Start over</button>
         <button class="btn-again" id="keepBtn" style="display:none">Save to this device</button>
         <button class="btn-again" id="shareBtn">Share link</button>
@@ -1032,7 +1157,7 @@
       <!-- ── ASK THE TRAINER ── -->
       <div class="qa" id="qaWrap">
         <div class="qa-head"><span class="qn">&#10022;</span><span class="qt">Ask The Trainer</span>
-          <span class="qa-sub">about this program — swaps, whys, what-ifs</span></div>
+          <span class="qa-sub">about this program: swaps, whys, what-ifs</span></div>
         <div class="qa-chips" id="qaChips">
           <button type="button" class="qa-chip">Why these exercises for me?</button>
           <button type="button" class="qa-chip">Can I swap an exercise I dislike?</button>
@@ -1043,7 +1168,7 @@
           <input class="os-input" id="qaIn" placeholder="Ask anything about your program…">
           <button class="btn-dl qa-send" id="qaSend" type="submit">Ask</button>
         </form>
-        <div class="qa-note">Answers are grounded in your plan. Coaching guidance — not medical advice.</div>
+        <div class="qa-note">Answers are grounded in your plan. Coaching guidance, not medical advice.</div>
       </div>
     </div>
   </div>
@@ -1059,7 +1184,7 @@
 
   let mode = 'plan';
   function setMode(m) {
-    // a check-in / log needs a saved plan to act on — never land there without one
+    // a check-in / log needs a saved plan to act on, never land there without one
     if ((m === 'checkin' || m === 'log') && !savedPlan()) m = 'plan';
     mode = m;
     $('tabPlan').classList.toggle('on', m === 'plan');
@@ -1071,6 +1196,7 @@
     if (m === 'log') buildLogForm();
     if (m === 'checkin') autofillCheckin();
     updateWelcome();
+    greet();
   }
   $('tabPlan').addEventListener('click', () => setMode('plan'));
   $('tabCheckin').addEventListener('click', () => setMode('checkin'));
@@ -1099,6 +1225,7 @@
       thTimer = setInterval(() => { i = (i + 1) % TH_LINES.length; $('thLine').textContent = TH_LINES[i]; }, 2400);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    greet(s);
   }
   function fail(msg) { setState('form'); errBox.textContent = msg; errBox.classList.add('show'); }
 
@@ -1135,7 +1262,7 @@
                    return sp ? String(Math.max(1, Math.round((Date.now() - sp.at) / 604800000))) : ''; })(),
         // measured training state so the recalibration can apply its OWN rules
         // (deload if 6+ weeks since the last; a stalled lift → 10% reset) instead
-        // of guessing — the deload clock and stall watch, straight from the logs
+        // of guessing, the deload clock and stall watch, straight from the logs
         'weeks since last deload (computed)':
           (() => { const bp = blockPhase(); return bp ? String(Math.max(0, bp.weekInBlock - 1)) : ''; })(),
         'deload currently due (computed)': (deloadInfo() || fatigueDeload()) ? 'yes' : 'no',
@@ -1148,7 +1275,7 @@
       name: $('fName').value, 'gender assigned at birth': $('fSex').value,
       'date of birth': $('fDob').value, height: $('fHeight').value, weight: $('fWeight').value,
       'training experience': $('fExp').value,
-      goal: $('fGoal').value + ($('fGoalNote').value ? ' — ' + $('fGoalNote').value : ''),
+      goal: $('fGoal').value + ($('fGoalNote').value ? ': ' + $('fGoalNote').value : ''),
       'days per week': $('fDays').value, 'hours per session': $('fHours').value,
       'gym timings': $('fTimings').value,
       'training environment': $('fEnv').value, 'equipment notes': $('fEquip').value,
@@ -1156,7 +1283,7 @@
       'health issues': $('fHealth').value, allergies: $('fAllergy').value,
       'sleep hours per night': $('fSleep').value, 'stress level': $('fStress').value,
       'injury history': $('fInjury').value,
-      'diet preference': $('fDiet').value === 'Other' ? 'Other — ' + $('fDietOther').value : $('fDiet').value,
+      'diet preference': $('fDiet').value === 'Other' ? 'Other: ' + $('fDietOther').value : $('fDiet').value,
       'average steps per day': $('fSteps').value, 'meals per day': $('fMeals').value,
       'food preferences': $('fFoods').value,
       'extra info': $('fExtra').value,
@@ -1166,7 +1293,7 @@
   let pendingQuestions = [];
   let prevForDiff = null;
   async function submit(followupAnswers) {
-    // a check-in's revised plan will overwrite the saved one — keep the old
+    // a check-in's revised plan will overwrite the saved one, keep the old
     // plan around so the renderer can show what changed
     if (mode === 'checkin') { const sp = savedPlan(); prevForDiff = sp ? sp.plan : null; }
     setState('thinking');
@@ -1205,7 +1332,7 @@
         try { data = JSON.parse(text); }
         catch (e) {
           fail(r.ok
-            ? 'The Trainer’s reply came through incomplete (not an account or key issue). Please press “Build my program” again — it usually goes through on a second try.'
+            ? 'The Trainer’s reply came through incomplete (not an account or key issue). Please press “Build my program” again. It usually goes through on a second try.'
             : 'The server took too long or hiccuped (status ' + r.status + '). Please try again in a moment.');
           return;
         }
@@ -1216,7 +1343,7 @@
         if (data.greeting) document.querySelector('.fu-lead').textContent = data.greeting;
         $('fuList').innerHTML = pendingQuestions.map((q, i) =>
           '<div class="fu-q"><div class="q">' + esc(q.question) + '</div>' +
-          (q.why_it_matters ? '<div class="why">Why it matters — ' + esc(q.why_it_matters) + '</div>' : '') +
+          (q.why_it_matters ? '<div class="why">Why it matters: ' + esc(q.why_it_matters) + '</div>' : '') +
           '<input class="os-input" id="fuA' + i + '" placeholder="' + esc(q.answer_format || 'Your answer') + '"></div>').join('') +
           (data.note ? '<div class="fu-note">' + esc(data.note) + '</div>' : '');
         setState('followup');
@@ -1225,13 +1352,14 @@
         // to localStorage. Persisting it used to leave a phantom "Restore last
         // plan" that looked like the visitor's own saved data (privacy/trust bug).
         // Only a real, intentionally-built plan is saved.
-        if (!isDemo) savePlan(data, mode === 'checkin' ? null : captureSafety());
+        if (!isDemo) { savePlan(data, mode === 'checkin' ? null : captureSafety()); clearHandoff(); }
         renderPlan(data);
         setState('plan');
         if (isDemo) {
           document.querySelector('.pa-note').textContent =
-            'A sample program — this is the quality you’ll get. Build yours below; it’s tailored to your body, equipment and goals.';
+            'A sample program. This is the quality you’ll get. Build yours below: it’s tailored to your body, equipment and goals.';
           $('buildOwnBtn').style.display = '';
+          greet('plan');
         }
       } else { fail('The Trainer returned an unexpected reply. Please try again.'); }
     } catch (e) { fail('Could not reach The Trainer: ' + e.message); }
@@ -1280,7 +1408,7 @@
     $('welcome').style.display =
       (!introDone && !savedPlan() && mode === 'plan' && form.style.display !== 'none') ? '' : 'none';
   }
-  // ?sample handling lives later (after PLAN_KEY/savedPlan are initialized) —
+  // ?sample handling lives later (after PLAN_KEY/savedPlan are initialized),
   // see maybeSampleDeepLink() near the boot tail.
   $('fuBtn').addEventListener('click', () => {
     submit(pendingQuestions.map((q, i) => ({ q: q.question, a: $('fuA' + i).value })));
@@ -1288,22 +1416,146 @@
   $('againBtn').addEventListener('click', () => setState('form'));
   $('dlBtn').addEventListener('click', () => window.print());
 
+  /* ── THE HANDOFF (the merge): the home page's five answers ride into this intake.
+     They live in sessionStorage, so they are scoped to this tab and gone when it
+     closes; nothing is sent anywhere until "Build my program". A real plan
+     consumes them; "Not you? Start blank" clears them on a shared device. ── */
+  var HANDOFF_KEY = 'trainerHandoff', handoffOn = false;
+  var HO_MAP = {
+    goal: { stronger: 'Strength', muscle: 'Muscle gain', fat: 'Fat loss', health: 'General fitness' },
+    exp:  { 'new': 'Beginner (<1 year)', returning: 'Beginner (<1 year)',
+            intermediate: 'Intermediate (1–3 years)', advanced: 'Advanced (3+ years)' },
+    kit:  { fullgym: 'Commercial gym', barbell: 'Home: barbell setup', dumbbells: 'Home: dumbbells', bodyweight: 'Bodyweight only' },
+    why:  { prove: 'to prove something to myself', people: 'to be around longer for my people',
+            skin: 'to feel at home in my own skin', reset: 'I need a reset' },
+  };
+  var HO_SAY = {
+    goal: { stronger: 'Get stronger', muscle: 'Build muscle', fat: 'Lose fat', health: 'Feel healthier' },
+    exp:  { 'new': 'New to lifting', returning: 'Back after a break', intermediate: 'A couple of years in', advanced: 'Years under the bar' },
+    kit:  { fullgym: 'Full gym', barbell: 'Barbell and rack', dumbbells: 'Dumbbells at home', bodyweight: 'Bodyweight' },
+  };
+  function readHandoff() {
+    try {
+      var h = JSON.parse(sessionStorage.getItem(HANDOFF_KEY) || 'null');
+      if (!h || h.v !== 1 || !h.at || Date.now() - h.at > 6 * 3600e3) { sessionStorage.removeItem(HANDOFF_KEY); return null; }
+      return h;
+    } catch (e) { return null; }
+  }
+  function clearHandoff() {
+    try { sessionStorage.removeItem(HANDOFF_KEY); } catch (e) {}
+    handoffOn = false;
+    var s = $('handoff'); if (s) s.hidden = true;
+    document.querySelectorAll('.field.from-session').forEach(function (f) { f.classList.remove('from-session'); });
+    greet();
+  }
+  function firstNameOf(n) { return String(n || '').trim().split(/\s+/)[0].slice(0, 24); }
+  function setSelect(id, text) {
+    var el = $(id); if (!el || !text) return false;
+    var o = Array.prototype.find.call(el.options, function (x) { return x.value === text || x.text === text; });
+    if (!o) return false; el.value = o.value; return true;
+  }
+  function applyHandoff(h) {
+    function mark(id) { var f = $(id) && $(id).closest('.field'); if (f) f.classList.add('from-session'); }
+    if (h.name && !$('fName').value) { $('fName').value = String(h.name).slice(0, 40); mark('fName'); }
+    if (setSelect('fGoal', HO_MAP.goal[h.goal])) mark('fGoal');
+    if (setSelect('fExp', HO_MAP.exp[h.exp])) mark('fExp');
+    if (setSelect('fEnv', HO_MAP.kit[h.kit])) mark('fEnv');
+    var d = parseInt(h.days, 10);
+    if (d && setSelect('fDays', String(Math.min(6, Math.max(2, d))))) mark('fDays');
+    var extra = [];
+    if (h.exp === 'returning') extra.push('Coming back after a break: I have trained before.');
+    if (HO_MAP.why[h.why]) extra.push('What is driving this: ' + HO_MAP.why[h.why] + '.');
+    if (extra.length && !$('fExtra').value) { $('fExtra').value = extra.join(' '); mark('fExtra'); }
+    // the strip: what carried over, in the words they chose
+    var nm = firstNameOf(h.name);
+    $('hoTitle').textContent = nm ? 'Kept your answers, ' + nm + '.' : 'Kept your answers.';
+    var chips = [HO_SAY.goal[h.goal], HO_SAY.exp[h.exp], HO_SAY.kit[h.kit], d ? (d >= 5 ? '5+' : d) + ' days a week' : '']
+      .filter(Boolean).map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('');
+    $('hoChips').innerHTML = chips;
+    $('handoff').hidden = false;
+    handoffOn = true;
+  }
+  function bootHandoff() {
+    var q = new URLSearchParams(location.search);
+    if (q.has('sample') || q.has('demo') || (location.hash && location.hash.length > 1)) return;
+    var h = readHandoff(); if (!h) return;
+    applyHandoff(h);
+    introDone = true;                   // they already met the coach: skip the welcome
+    setMode('plan'); setState('form');
+    $('welcome').style.display = 'none';
+    greet();
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      setTimeout(function () { var el = $('fDob'); if (el) el.focus({ preventScroll: true }); }, 350);
+    }
+  }
+  $('hoClear').addEventListener('click', function () {
+    ['fName', 'fExtra'].forEach(function (id) { var f = $(id).closest('.field'); if (f && f.classList.contains('from-session')) $(id).value = ''; });
+    [['fGoal', 0], ['fExp', 0], ['fEnv', 0]].forEach(function (p) { var f = $(p[0]).closest('.field'); if (f && f.classList.contains('from-session')) $(p[0]).selectedIndex = p[1]; });
+    var df = $('fDays').closest('.field'); if (df && df.classList.contains('from-session')) $('fDays').value = '4';
+    clearHandoff();
+    $('fName').focus();
+  });
+
+  (function soloTabs() {
+    var tabs = Array.prototype.slice.call(modeTabs.querySelectorAll('.mtab'));
+    function upd() { modeTabs.classList.toggle('solo', tabs.filter(function (b) { return b.style.display !== 'none'; }).length < 2); }
+    var mo = new MutationObserver(upd);
+    tabs.forEach(function (b) { mo.observe(b, { attributes: true, attributeFilter: ['style', 'hidden'] }); });
+    upd();
+  })();
+
+  /* ── the greeting: the page header speaks in the coach's voice, per state ── */
+  function greet(state) {
+    try {
+      var over = $('modOver'), title = $('modTitle'), sub = $('modSub'); if (!over) return;
+      var hr = new Date().getHours();
+      var tod = hr < 5 ? 'Up late' : hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+      var s = state || (planWrap.classList.contains('show') ? 'plan' : thinking.classList.contains('show') ? 'thinking'
+        : followup.classList.contains('show') ? 'followup' : 'form');
+      var h = handoffOn ? readHandoff() : null, nm = h ? firstNameOf(h.name) : '';
+      var T, S;
+      if (s === 'plan') {
+        var sample = $('buildOwnBtn') && $('buildOwnBtn').style.display !== 'none';
+        T = sample ? 'A sample program.' : 'Your program.';
+        S = sample ? 'Written by the same engine that will write yours. Every number has its reason next to it.'
+                   : 'Every number has its reason next to it. Save it, print it, or ask about any of it.';
+      } else if (s === 'thinking') {
+        T = 'Writing it now.'; S = 'A minute or two. Every number is computed, then checked.';
+      } else if (s === 'followup') {
+        T = 'A couple of specifics first.'; S = 'Short answers are fine. They change the numbers.';
+      } else if (h) {
+        T = 'Right' + (nm ? ', ' + nm : '') + '. Four facts and I write it.';
+        S = 'Your goal, level, kit and days are already in. Add your date of birth, sex, height and weight, so the calories, protein and starting loads are yours.';
+      } else if (mode === 'log') {
+        T = 'Log today’s session.'; S = 'Beat one number from last time. That is the whole job.';
+      } else if (mode === 'checkin') {
+        T = 'Week-four check-in.'; S = 'Your measured trend beats any formula. Be honest and the next block gets sharper.';
+      } else if (savedPlan()) {
+        T = 'Welcome back.'; S = 'Log a session, run your week-four check-in, or write a new program.';
+      } else {
+        T = 'Let’s write your program.'; S = 'Evidence-based training and nutrition, built around your real week. Every number comes with its reason.';
+      }
+      over.textContent = nm && s === 'form' ? tod + ', ' + nm : tod;
+      title.textContent = T; sub.textContent = S;
+    } catch (e) {}
+  }
+
   /* ── plan persistence (device-only; nothing leaves the browser) ── */
   const PLAN_KEY = 'trainerLastPlan';
   // PRIVACY cleanup: older builds persisted a peeked SAMPLE here (demo:true),
-  // which then surfaced as a misleading "Restore last plan · <date>" — a sample
+  // which then surfaced as a misleading "Restore last plan · <date>", a sample
   // masquerading as the visitor's own saved data. A sample is never saved data,
   // so purge any lingering demo entry on load. (savedPlan() also ignores it.)
   try { const _s0 = JSON.parse(localStorage.getItem(PLAN_KEY)); if (_s0 && _s0.demo) localStorage.removeItem(PLAN_KEY); } catch (e) {}
   // the safety context the model must never forget across check-ins (allergies,
-  // injuries, equipment) — the intake collects it once; we persist it with the
+  // injuries, equipment), the intake collects it once; we persist it with the
   // plan so recalibration re-applies it
   function captureSafety() {
     return {
       allergies: $('fAllergy').value.trim(),
       injuries: [$('fHealth').value.trim(), $('fInjury').value.trim()].filter(Boolean).join('; '),
-      equipment: [$('fEnv').value.trim(), $('fEquip').value.trim()].filter(Boolean).join(' — '),
-      diet: $('fDiet').value === 'Other' ? 'Other — ' + $('fDietOther').value.trim() : $('fDiet').value,
+      equipment: [$('fEnv').value.trim(), $('fEquip').value.trim()].filter(Boolean).join('; '),
+      diet: $('fDiet').value === 'Other' ? 'Other: ' + $('fDietOther').value.trim() : $('fDiet').value,
       goalWeight: $('fGoalWeight').value.trim(),
       // age + gender must survive check-ins too, or special-population rules
       // (50+/60+ recovery, 16–17, women's RED-S floor) silently expire at the
@@ -1322,7 +1574,7 @@
     if (typeof pushPlan === 'function') pushPlan();
   }
   function savedPlan() {
-    // a peeked sample (demo:true) is exploratory, NOT the visitor's saved plan —
+    // a peeked sample (demo:true) is exploratory, NOT the visitor's saved plan,
     // it must never drive "Restore last plan", the Log tab, or sync (privacy).
     try { const s = JSON.parse(localStorage.getItem(PLAN_KEY)); return s && s.plan && !s.demo ? s : null; }
     catch (e) { return null; }
@@ -1338,7 +1590,7 @@
     } else { btn.style.display = 'none'; }
     const hasWorkout = saved && Array.isArray(saved.plan.workout_days) && saved.plan.workout_days.length;
     $('tabLog').style.display = hasWorkout ? '' : 'none';
-    // a check-in recalibrates a plan you've been running — hide it until one
+    // a check-in recalibrates a plan you've been running, hide it until one
     // exists, or a first-time visitor gets a stateless "recalibration" (S28)
     $('tabCheckin').style.display = hasWorkout ? '' : 'none';
     if (!hasWorkout && mode === 'checkin') setMode('plan');
@@ -1414,7 +1666,7 @@
     return ((weightAvg7() - base.kg) / days) * 7;
   }
   function weightAtPlanStart() {
-    // the weigh-in AROUND when the current plan started — not the all-time first
+    // the weigh-in AROUND when the current plan started, not the all-time first
     // entry (which would inflate the check-in's start→now trend)
     const ws = loadWeights();
     if (!ws.length) return null;
@@ -1450,14 +1702,14 @@
   }
   function renderBw() {
     const ws = loadWeights(), stats = $('bwStats'), spark = $('bwSpark');
-    renderNutrition();   // the tune-up rides on the scale trend — refresh it with the weight
+    renderNutrition();   // the tune-up rides on the scale trend, refresh it with the weight
     if (!ws.length) { stats.hidden = true; spark.hidden = true; return; }
     const now = ws[ws.length - 1].kg, avg = weightAvg7(), tr = weightTrendPerWeek();
     $('bwNow').textContent = now.toFixed(1) + ' kg';
-    $('bwAvg').textContent = avg != null ? avg.toFixed(1) + ' kg' : '—';
+    $('bwAvg').textContent = avg != null ? avg.toFixed(1) + ' kg' : '·';
     const trEl = $('bwTrend').parentElement;
     trEl.classList.remove('up', 'down');
-    if (tr == null) { $('bwTrend').textContent = '—'; }
+    if (tr == null) { $('bwTrend').textContent = '·'; }
     else {
       $('bwTrend').textContent = (tr >= 0 ? '+' : '') + tr.toFixed(2) + ' kg';
       if (tr > 0.05) trEl.classList.add('up'); else if (tr < -0.05) trEl.classList.add('down');
@@ -1537,7 +1789,7 @@
     renderLgList();
   });
   $('lDay').addEventListener('change', renderLgList);
-  // progress is judged by estimated 1RM (Epley), not raw kg — 60 kg x 8 beats
+  // progress is judged by estimated 1RM (Epley), not raw kg, 60 kg x 8 beats
   // 62.5 kg x 5, so double-progression rep gains count as the progress they are
   const e1rm = s => (s.kg || 0) * (1 + (s.reps || 0) / 30);
   function bestSet(sets) {
@@ -1566,14 +1818,14 @@
     if (n >= Math.floor(LOG_CAP * 0.9)) {
       el.className = 'durable warn';
       el.innerHTML = '<b>' + n + ' of ' + LOG_CAP + ' saved sessions.</b> This device keeps only the most recent ' +
-        LOG_CAP + ' — ' + (synced ? 'your account holds the full history, but export a backup for safety. ' : 'export a backup or create an account so the oldest aren’t dropped. ') +
+        LOG_CAP + '. ' + (synced ? 'Your account holds the full history, but export a backup for safety. ' : 'Export a backup or create an account so the oldest aren’t dropped. ') +
         exportBtn + (synced ? '' : syncBtn);
       el.hidden = false;
       return;
     }
     if (!synced && !dismissed && n >= 5) {
       el.className = 'durable';
-      el.innerHTML = '<b>' + n + ' sessions logged — only in this browser.</b> Create a free account to keep them ' +
+      el.innerHTML = '<b>' + n + ' sessions logged, only in this browser.</b> Create a free account to keep them ' +
         'safe on every device, or export a backup. ' + syncBtn + exportBtn +
         '<button type="button" class="dur-x" data-act="dismiss">Not now</button>';
       el.hidden = false;
@@ -1601,7 +1853,7 @@
     $('lgHist').innerHTML = logs.slice(0, 6).map(s => {
       const dt = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
       const bits = s.entries.map(e => { const b = bestSet(e.sets); return b ? '<b>' + esc(e.name) + '</b> ' + esc(fmtSet(b)) : ''; }).filter(Boolean);
-      return '<div class="lg-hrow"><span class="hd">' + esc(dt) + '</span><span class="hb">' + esc(s.day || '') + ' — ' + bits.join(' · ') + '</span></div>';
+      return '<div class="lg-hrow"><span class="hd">' + esc(dt) + '</span><span class="hb">' + esc(s.day || '') + ' · ' + bits.join(' · ') + '</span></div>';
     }).join('');
   }
   $('volBody').addEventListener('click', e => {
@@ -1652,7 +1904,7 @@
     if (!entries.length) { errBox.textContent = 'Enter at least one set before saving.'; errBox.classList.add('show'); return; }
     errBox.classList.remove('show');
     // all-time PR detection: did any set beat this lift's best-ever e1RM? (only
-    // celebrate beating an EXISTING best — the first time you log a lift isn't a PR)
+    // celebrate beating an EXISTING best, the first time you log a lift isn't a PR)
     const bestBefore = {};
     loadLogs().forEach(s => s.entries.forEach(e => { const b = bestSet(e.sets); if (b) bestBefore[e.name] = Math.max(bestBefore[e.name] || 0, e1rm(b)); }));
     const prs = [];
@@ -1681,7 +1933,7 @@
     renderNext();
     if (prs.length) {
       $('lgPR').innerHTML = '🎉 <b>New PR' + (prs.length > 1 ? 's' : '') + '!</b> ' +
-        prs.map(pr => esc(pr.name) + ' — ' + esc(fmtSet(pr.set))).join(' · ') + ' — your best yet.';
+        prs.map(pr => esc(pr.name) + ' ' + esc(fmtSet(pr.set))).join(' · ') + '. Your best yet.';
       $('lgPR').hidden = false;
     } else { $('lgPR').hidden = true; }
     const btn = $('logBtn'), old = btn.textContent;
@@ -1709,7 +1961,7 @@
     return /loss|cut|lean out|shred|deficit/.test(g);
   }
   function stallWatch() {
-    // advanced lifters progress slowly — 3 flat sessions is normal, so widen
+    // advanced lifters progress slowly, 3 flat sessions is normal, so widen
     // the window; and sessions more than 3 weeks apart aren't comparable (a
     // layoff is not a stall)
     const win = /advanced|elite/.test(planExperience()) ? 4 : 3;
@@ -1745,29 +1997,29 @@
   }
   function stallHTML(list) {
     if (!list.length) return '';
-    // in a fat-loss deficit, holding strength is the WIN — you're keeping muscle
+    // in a fat-loss deficit, holding strength is the WIN, you're keeping muscle
     // while you lose fat. Never tell a cutter to strip 10% off a lift they're
     // simply maintaining; only escalate if strength is actually falling (SIM F6).
     const cut = planIsCut();
-    return '<div class="stall"><div class="st-h">Stall watch — your plan’s rule, applied</div>' +
+    return '<div class="stall"><div class="st-h">Stall watch: your plan’s rule, applied</div>' +
       list.map(s => {
         if (cut) {
           return s.deep
             ? '<p><b>' + esc(s.name) + '</b> has held at ' + esc(fmtSet(s.last)) + ' for ' + (s.n + 1) +
-              ' sessions. In a cut that’s usually fine — but if strength is <b>dropping</b> across several ' +
+              ' sessions. In a cut that’s usually fine, but if strength is <b>dropping</b> across several ' +
               'lifts, your deficit may be too steep: consider a short diet break (eat at maintenance for a ' +
               'week) before you push again.</p>'
             : '<p><b>' + esc(s.name) + '</b> has held at ' + esc(fmtSet(s.last)) + ' for ' + s.n +
-              ' sessions. You’re in a fat-loss phase — <b>keeping</b> strength while you lose fat means you’re ' +
+              ' sessions. You’re in a fat-loss phase, and <b>keeping</b> strength while you lose fat means you’re ' +
               'keeping muscle, so this is a win. Hold the weight and aim to keep your reps; only drop load if ' +
               'form or joints demand it.</p>';
         }
         return s.deep
-          ? '<p><b>' + esc(s.name) + '</b> is still flat after ' + (s.n + 1) + ' sessions — past the reset window. ' +
+          ? '<p><b>' + esc(s.name) + '</b> is still flat after ' + (s.n + 1) + ' sessions, past the reset window. ' +
             'Your plan’s escalation: take the deload (halve sets, −15–20% load) this week, then rebuild.</p>'
           : '<p><b>' + esc(s.name) + '</b> has not beaten ' + esc(fmtSet(s.last)) +
             ' (by estimated 1RM) in ' + s.n + ' sessions. Your plan’s protocol: reduce 10% ' +
-            (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild — if sleep and food are in order.</p>';
+            (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild, if sleep and food are in order.</p>';
       }).join('') +
       '</div>';
   }
@@ -1784,7 +2036,7 @@
                        (((p.duration_and_paths || {}).review_points) || '')).toLowerCase();
     // several phrasings, not just "every N weeks": "every 4th week", "after 5
     // weeks", a bare "4–8 weeks", or a last-resort "6 weeks" (the old regex missed
-    // all but the first and silently defaulted to 6 — SIMULATION brittle-regex).
+    // all but the first and silently defaulted to 6, SIMULATION brittle-regex).
     const pats = [
       /every\s+(\d+)\s*(?:to|-|–|or)?\s*\d*\s*weeks?/,
       /every\s+(\d+)(?:st|nd|rd|th)\s+week/,
@@ -1804,7 +2056,7 @@
     if (!sp || !sp.plan || !(sp.plan.workout_days || []).length) return null;
     const cadence = deloadCadence();
     // the accumulation block resets at the last deload (DL_KEY), so week-in-block
-    // is measured from there — consistent with the deload card's own clock. The
+    // is measured from there, consistent with the deload card's own clock. The
     // block NUMBER is calendar-approximate (only the last deload is stored).
     let doneAt = 0;
     try { doneAt = +localStorage.getItem(DL_KEY) || 0; } catch (e) {}
@@ -1822,17 +2074,17 @@
   }
   function blockLine(b) {
     if (!b) return '';
-    if (b.phase === 'deload') return 'Block ' + b.blockNum + ' · deload week — hold volume, then rebuild';
+    if (b.phase === 'deload') return 'Block ' + b.blockNum + ' · deload week: hold volume, then rebuild';
     const to = b.toDeload;
     return 'Block ' + b.blockNum + ' · accumulation, week ' + b.weekInBlock + ' of ' + b.cadence +
-      (to > 0 ? ' — ' + to + ' to deload' : '') +
+      (to > 0 ? ' · ' + to + ' to deload' : '') +
       (b.totalWeeks ? ' · week ' + b.week + ' of ~' + b.totalWeeks : '');
   }
   function deloadInfo() {
     const sp = savedPlan();
     if (!sp || !sp.plan) return null;
     // returning from a break (>14 days since the last session) is detraining,
-    // not fatigue — never prescribe a deload to someone who should ramp back up
+    // not fatigue, never prescribe a deload to someone who should ramp back up
     const lastAt = lastSessionAt();
     if (lastAt && Date.now() - lastAt > 14 * DAY_MS) return null;
     const cadence = deloadCadence();
@@ -1848,10 +2100,10 @@
     return sinceW >= cadence ? { cadence, sinceW } : null;
   }
   function deloadHTML(dl) {
-    return '<div class="stall deload"><div class="st-h">Deload week — your plan’s schedule</div>' +
+    return '<div class="stall deload"><div class="st-h">Deload week: your plan’s schedule</div>' +
       '<p>It’s been ' + dl.sinceW + ' weeks of hard training (your plan calls for a deload about every ' +
       dl.cadence + '). This week: <b>halve the sets, take 15–20% off the loads</b>, keep the movements. ' +
-      'Resist adding work — this week is what makes next month’s PRs possible.</p>' +
+      'Resist adding work. This week is what makes next month’s PRs possible.</p>' +
       '<button type="button" class="btn-again" id="dlDone">I’ve done my deload ✓</button></div>';
   }
   // fatigue-triggered deload: 2+ different lifts stalling in the same week is a
@@ -1865,16 +2117,16 @@
     return recent.length >= 2 ? { lifts: recent.map(s => s.name) } : null;
   }
   function fatigueDeloadHTML(fd) {
-    return '<div class="stall deload"><div class="st-h">Deload now — fatigue signal</div>' +
+    return '<div class="stall deload"><div class="st-h">Deload now: fatigue signal</div>' +
       '<p><b>' + fd.lifts.length + ' lifts stalled in the same week</b> (' + esc(fd.lifts.join(', ')) +
-      ') — that’s systemic fatigue, not one plateau. Don’t wait for the calendar: <b>halve the sets, ' +
+      '). That’s systemic fatigue, not one plateau. Don’t wait for the calendar: <b>halve the sets, ' +
       '−15–20% load</b> this week, keep the movements, then rebuild.</p>' +
       '<button type="button" class="btn-again" id="dlDone">I’ve done my deload ✓</button></div>';
   }
 
   /* ── volume autoregulation (RP MEV→MRV mechanism, deterministic + $0) ──
      The plan already encodes per-muscle set targets and the experience band;
-     this runs the weekly loop the plan never ran — count direct sets per muscle,
+     this runs the weekly loop the plan never ran, count direct sets per muscle,
      read the recovery signals we already have (stalls, deload state) plus an
      optional one-tap feel, and recommend ±1–2 sets clamped to the band. */
   const MUSCLE_MAP = [
@@ -1927,20 +2179,20 @@
   }
   function volRec(sets, band, muscleStalled, deloadNow, fb) {
     const lo = band[0], hi = band[1], r = Math.round(sets);
-    if (deloadNow) return { t: 'hold', s: 'Deload week — hold volume, don’t add.' };
+    if (deloadNow) return { t: 'hold', s: 'Deload week: hold volume, don’t add.' };
     if (muscleStalled || (fb && fb.v === 'much')) {
       return r > lo
         ? { t: 'down', s: 'Pull back to ' + Math.max(lo, r - 2) + ' next week, recover, then rebuild.' }
-        : { t: 'hold', s: 'Already at your floor (' + lo + ') — fix sleep/food before cutting more.' };
+        : { t: 'hold', s: 'Already at your floor (' + lo + '). Fix sleep and food before cutting more.' };
     }
     if (fb && fb.v === 'easy') {
       return r < hi
-        ? { t: 'up', s: 'Room to grow — add 1 set next week (→ ' + (r + 1) + '), up to ' + hi + '.' }
-        : { t: 'hold', s: 'Top of your band (' + hi + ') — progress by load and reps.' };
+        ? { t: 'up', s: 'Room to grow: add 1 set next week (→ ' + (r + 1) + '), up to ' + hi + '.' }
+        : { t: 'hold', s: 'Top of your band (' + hi + '). Progress by load and reps.' };
     }
-    if (r < lo) return { t: 'up', s: 'Below the effective floor (' + lo + ') — add ' + (lo - r) + ' set' + (lo - r > 1 ? 's' : '') + '.' };
-    if (r >= hi) return { t: 'hold', s: 'Top of your band (' + hi + ') — progress by load and reps, not more sets.' };
-    return { t: 'hold', s: 'In range (' + lo + '–' + hi + ') — hold; add only when it feels easy and recovers well.' };
+    if (r < lo) return { t: 'up', s: 'Below the effective floor (' + lo + '): add ' + (lo - r) + ' set' + (lo - r > 1 ? 's' : '') + '.' };
+    if (r >= hi) return { t: 'hold', s: 'Top of your band (' + hi + '). Progress by load and reps, not more sets.' };
+    return { t: 'hold', s: 'In range (' + lo + '–' + hi + '). Hold, and add only when it feels easy and recovers well.' };
   }
   const MUSCLE_ORDER = ['chest', 'back', 'quads', 'hamstrings', 'glutes', 'delts', 'biceps', 'triceps', 'calves', 'abs'];
   function renderVolume() {
@@ -1976,7 +2228,7 @@
      prescription. We can't weigh every calorie, so we assume you've averaged the
      prescribed target and read your REAL maintenance off the scale trend, then
      nudge the target to steer your actual rate onto the plan's intended rate.
-     Deterministic, device-local, $0 — a between-check-ins steering wheel. ── */
+     Deterministic, device-local, $0, a between-check-ins steering wheel. ── */
   const KCAL_PER_KG = 7700, KCAL_DAY_PER_KG_WK = KCAL_PER_KG / 7;  // ~1100 kcal/day ≙ 1 kg/wk
   function dietTarget() {
     const sp = savedPlan();
@@ -2027,8 +2279,8 @@
     const floor = Math.max(parseFloat(ps.bmr_kcal) || 0, 1200);
     let newTarget = tgt + delta;
     if (newTarget < floor) { newTarget = Math.round(floor / 25) * 25; delta = newTarget - tgt; }
-    // F7 off-ramp: a cutter who's reached their goal weight — or is already lean
-    // and has essentially stopped losing — should be moved to MAINTENANCE, not
+    // F7 off-ramp: a cutter who's reached their goal weight, or is already lean
+    // and has essentially stopped losing, should be moved to MAINTENANCE, not
     // told to cut deeper. Prevents the "stuck at 1,470 kcal forever" failure.
     let offRamp = null;
     if (planIsCut() && bw) {
@@ -2053,19 +2305,19 @@
     return t.bwPctWk != null ? kg + ' (' + (t.bwPctWk >= 0 ? '+' : '') + t.bwPctWk.toFixed(2) + '%)' : kg;
   }
   function nutReason(t) {
-    if (t.onTrack) return { head: 'On track — hold at ' + fmtKcal(t.target) + '.',
+    if (t.onTrack) return { head: 'On track: hold at ' + fmtKcal(t.target) + '.',
       body: 'Your scale trend (' + fmtRate(t) + ') matches the plan’s intended pace. Keep eating as you are.' };
     const up = t.delta > 0, g = t.goal;
     let why;
     if (/loss|cut|deficit/.test(g)) why = up ? 'you’re losing faster than the plan intends' : 'your loss has slowed below the plan’s pace';
-    else if (/gain|muscle|bulk|mass|surplus/.test(g)) why = up ? 'you’re gaining slower than planned' : 'you’re gaining faster than planned — most of that excess is fat, not muscle';
+    else if (/gain|muscle|bulk|mass|surplus/.test(g)) why = up ? 'you’re gaining slower than planned' : 'you’re gaining faster than planned, and most of that excess is fat, not muscle';
     else why = up ? 'your trend is under the plan’s pace' : 'your trend is over the plan’s pace';
     const macro = t.protein ? ' Keep protein at ' + t.protein + ' g; put the change into ' + (up ? 'carbs' : 'carbs and fat') + '.' : '';
     return {
       head: (up ? 'Add' : 'Trim') + ' ~' + Math.abs(t.delta) + ' kcal → ' + fmtKcal(t.newTarget) + '.',
       body: 'Your real maintenance looks like ~' + fmtKcal(t.estTDEE) +
         (t.formulaTDEE ? ' (the formula guessed ' + fmtKcal(t.formulaTDEE) + ')' : '') +
-        ' — ' + why + ' at ' + fmtRate(t) + '.' + macro,
+        ', and ' + why + ' at ' + fmtRate(t) + '.' + macro,
     };
   }
   function renderNutrition() {
@@ -2092,10 +2344,10 @@
       $('nutBody').innerHTML =
         '<div class="nut-rec"><b>Time to maintain, not cut deeper.</b> ' + esc(reached) +
         ' Reverse the deficit gently: add about <b>100–150 kcal back each week</b> to your current ' +
-        fmtKcal(t.target) + ' until the scale holds steady — that number is your maintenance. Keep training ' +
+        fmtKcal(t.target) + ' until the scale holds steady. That number is your maintenance. Keep training ' +
         'hard to hold the muscle you built.</div>' +
         '<div class="nut-note">Dieting indefinitely at a low intake stalls progress and recovery. This is the ' +
-        'win condition — lock it in, then decide your next phase (maintain, or a slow lean gain).</div>';
+        'win condition. Lock it in, then decide your next phase (maintain, or a slow lean gain).</div>';
       card.hidden = false;
       return;
     }
@@ -2106,15 +2358,15 @@
       '<div class="nut-stats">' +
         stat(Math.round(t.onTrack ? t.target : t.newTarget), t.onTrack ? 'hold · kcal' : 'suggested · kcal') +
         stat(Math.round(t.estTDEE), 'real maint · est') +
-        stat((t.bwPctWk != null ? (t.bwPctWk >= 0 ? '+' : '') + t.bwPctWk.toFixed(2) : '—') + '%', 'trend / wk') +
+        stat((t.bwPctWk != null ? (t.bwPctWk >= 0 ? '+' : '') + t.bwPctWk.toFixed(2) + '%' : '·'), 'trend / wk') +
       '</div>' +
       '<div class="nut-rec"><b>' + esc(r.head) + '</b> ' + esc(r.body) + '</div>' +
       '<div class="nut-note">Assumes you’ve averaged about ' + fmtKcal(t.target) + '. Tick your meals below to ' +
-        'keep that honest — your Week-4 check-in re-anchors everything from this same scale trend.</div>';
+        'keep that honest. Your Week-4 check-in re-anchors everything from this same scale trend.</div>';
     card.hidden = false;
   }
 
-  /* ── meal adherence: tick the plan's sample day — measured, not guessed.
+  /* ── meal adherence: tick the plan's sample day, measured, not guessed.
      Device-local (like volume feedback), owner-isolated, resets each day. ── */
   const MEAL_KEY = 'trainerMeals';
   const _today = () => new Date().toISOString().slice(0, 10);
@@ -2186,7 +2438,7 @@
      The hub is a zero-permission coaching cue (next session, week progress,
      weigh-in). Reminders are strictly opt-in and 100% on-device: scheduled via
      Notification Triggers where the browser supports them, and always backed by
-     an on-open nudge — no push server, no subscription, nothing sent anywhere,
+     an on-open nudge, no push server, no subscription, nothing sent anywhere,
      so it strengthens rather than dents the privacy promise. ── */
   const REM_KEY = 'trainerReminders';
   function remPrefs() { try { return JSON.parse(localStorage.getItem(REM_KEY)) || {}; } catch (e) { return {}; } }
@@ -2219,7 +2471,7 @@
     if (!logs.length) return 0;
     const weeks = new Set(logs.map(l => _weekNo(l.at)));
     let cur = _weekNo(Date.now()), streak = 0;
-    if (!weeks.has(cur)) cur -= 1;   // this week may still be empty early on — count from last
+    if (!weeks.has(cur)) cur -= 1;   // this week may still be empty early on, count from last
     while (weeks.has(cur)) { streak++; cur--; }
     return streak;
   }
@@ -2261,10 +2513,10 @@
     tog.setAttribute('aria-checked', st === 'on' ? 'true' : 'false');
     tog.disabled = (st === 'unsupported' || st === 'denied');
     $('remStatus').textContent =
-      st === 'on' ? 'On — scheduled on this device. Nothing is sent anywhere; best with the app installed.'
-      : st === 'denied' ? 'Blocked in your browser settings — allow notifications for this site to enable.'
+      st === 'on' ? 'On: scheduled on this device. Nothing is sent anywhere. Best with the app installed.'
+      : st === 'denied' ? 'Blocked in your browser settings. Allow notifications for this site to turn it on.'
       : st === 'unsupported' ? 'Your browser doesn’t support on-device reminders.'
-      : 'Off — a private nudge on training days, scheduled on this device only.';
+      : 'Off: a private nudge on training days, scheduled on this device only.';
     card.hidden = false;
   }
   async function enableReminders() {
@@ -2300,7 +2552,7 @@
           try {
             reg.showNotification('The Trainer', {
               tag: 'trn-rem-' + when.toISOString().slice(0, 10),
-              body: 'Time to train — open your plan and log today’s session.',
+              body: 'Time to train. Open your plan and log today’s session.',
               icon: '/static/trainer/icon-192.png', badge: '/static/trainer/icon-192.png',
               showTrigger: new TimestampTrigger(when.getTime()), data: { url: '/trainer' },
             });
@@ -2312,7 +2564,7 @@
   function cancelReminders() { forEachOurNotif(n => n.close()); }
   function maybeNudge() {
     // the guaranteed path: when the app is (re)opened after the reminder time on a
-    // training day you haven't logged, fire one nudge — at most once per day
+    // training day you haven't logged, fire one nudge, at most once per day
     const p = remPrefs();
     if (!p.on || !('Notification' in window) || Notification.permission !== 'granted') return;
     const sp = savedPlan();
@@ -2325,7 +2577,7 @@
     const ns = nextSession();
     try {
       new Notification('The Trainer', {
-        body: 'Time to train — ' + (ns ? (ns.day.day_label || 'today’s session') : 'today’s session') +
+        body: 'Time to train: ' + (ns ? (ns.day.day_label || 'today’s session') : 'today’s session') +
           '. Open your plan to log it.',
         icon: '/static/trainer/icon-192.png', tag: 'trn-rem-open',
       });
@@ -2340,7 +2592,7 @@
   });
 
   /* ── month in review: the look-back capstone that makes all the tracking pay
-     off — sessions, PRs (e1RM vs the prior best), bodyweight and meal adherence
+     off, sessions, PRs (e1RM vs the prior best), bodyweight and meal adherence
      over the trailing 30 days, computed entirely from data already on-device. ── */
   function monthReview() {
     const sp = savedPlan();
@@ -2406,7 +2658,7 @@
       const rows = r.prs.slice(0, 3).map(pr => {
         const to = fmtSet(pr.to);
         const line = pr.from ? esc(fmtSet(pr.from)) + ' → <b>' + esc(to) + '</b>' : 'new best <b>' + esc(to) + '</b>';
-        return '<div class="rev-pr">' + esc(pr.name) + ' — ' + line + '</div>';
+        return '<div class="rev-pr">' + esc(pr.name) + ': ' + line + '</div>';
       }).join('');
       $('revPrs').innerHTML = '<div class="rev-prs"><div class="rev-pl">New personal records</div>' + rows + '</div>';
     } else {
@@ -2417,7 +2669,7 @@
 
   /* ── coach mode: the plan's rules, executed live ── */
   // the plate math + ramp adapt to the user's actual bar (not everyone has a 20 kg
-  // Olympic bar) and unit — a lb gym gets lb plates, a 15 kg women's bar loads
+  // Olympic bar) and unit, a lb gym gets lb plates, a 15 kg women's bar loads
   // right (SIMULATION: the bar was hardcoded to 20 kg). The user works entirely in
   // the chosen unit; the plan's kg loads are shown elsewhere.
   const BAR_CONFIGS = {
@@ -2436,7 +2688,7 @@
     const c = barConfig();
     target = parseFloat(target);
     if (!target || isNaN(target)) return '';
-    if (target <= c.bar) return 'that’s the empty bar (or lighter) — use fixed bars or dumbbells';
+    if (target <= c.bar) return 'that’s the empty bar (or lighter), so use fixed bars or dumbbells';
     let per = (target - c.bar) / 2;
     const parts = [];
     for (const s of c.plates) { while (per >= s - 1e-9) { parts.push(s); per -= s; } }
@@ -2470,20 +2722,20 @@
     CO.deload = !!(deloadInfo() || fatigueDeload());
     if (CO.deload) {
       exs = exs.map(x => ({ ...x, sets: Math.max(1, Math.ceil(x.sets / 2)), note: 'deload' }));
-      notes.push('Deload week: sets halved, take 15–20% off your usual loads. Same movements, easy quality reps — this week is what makes next month’s PRs possible.');
+      notes.push('Deload week: sets halved, take 15–20% off your usual loads. Same movements, easy quality reps. This week is what makes next month’s PRs possible.');
     }
     if (time === 2) {
       const keep = exs.filter(x => !iso(x)).slice(0, 3);
       exs = (keep.length ? keep : exs.slice(0, 3)).map(x => ({ ...x, sets: Math.min(3, x.sets), note: 'capped' }));
-      notes.push('30-minute version: the big rocks only — your compounds keep priority, isolation waits for a fuller day.');
+      notes.push('30-minute version: the big rocks only. Your compounds keep priority; isolation waits for a fuller day.');
     } else if (time === 1) {
       exs.forEach(x => { if (iso(x) && x.sets > 2) { x.note = '−' + (x.sets - 2) + ' set'; x.sets = 2; } });
-      notes.push('45-minute version: isolation trimmed to 2 sets — superset opposing arm work to save minutes, never cut rest on compounds.');
+      notes.push('45-minute version: isolation trimmed to 2 sets. Superset opposing arm work to save minutes, and never cut rest on compounds.');
     }
     if (sleepBad || sore) {
       let dropped = false;
       exs.forEach(x => { if (iso(x) && x.sets > 2 && !dropped) { x.sets -= 1; x.note = x.note || '−1 set'; dropped = true; } });
-      notes.push('Rough recovery day: leave 3 reps in reserve on everything. Protecting the stimulus you can actually recover from beats grinding — your plan’s own rule.');
+      notes.push('Rough recovery day: leave 3 reps in reserve on everything. Protecting the stimulus you can actually recover from beats grinding. That is your plan’s own rule.');
     }
     CO.banner = notes.join(' ');
     return exs;
@@ -2513,7 +2765,7 @@
   // on every working set → add load and reset to the bottom; otherwise hold the
   // load and chase +1 rep toward the top. (Deterministic, on-device.)
   function parseRepRange(rr) {
-    const m = String(rr || '').match(/(\d+)\s*[-–—]\s*(\d+)/);
+    const m = String(rr || '').match(/(\d+)\s*[-\u2013\u2014]\s*(\d+)/);
     if (m) return [+m[1], +m[2]];
     const s = String(rr || '').match(/(\d+)/);
     return s ? [+s[1], +s[1]] : null;
@@ -2540,12 +2792,12 @@
     if (allTop) {
       if (w) {
         const inc = isLowerBody(ex.name) ? 5 : 2.5;
-        return 'Hit the top everywhere last time — add ' + inc + ' kg: aim ' + (w + inc) + ' kg × ' + lo + '+.';
+        return 'Hit the top everywhere last time: add ' + inc + ' kg: aim ' + (w + inc) + ' kg × ' + lo + '+.';
       }
-      return 'Cleared ' + hi + ' on every set — add a set or push past ' + hi + ' reps.';
+      return 'Cleared ' + hi + ' on every set: add a set or push past ' + hi + ' reps.';
     }
     const aim = Math.min(hi, minReps + 1);
-    return (w ? 'Same ' + w + ' kg — ' : '') + 'aim ' + aim + '+ on every set (toward ' + hi + '), then add load.';
+    return (w ? 'Same ' + w + ' kg: ' : '') + 'aim ' + aim + '+ on every set (toward ' + hi + '), then add load.';
   }
   // double progression, said out loud: top of range on every set last time →
   // add load today; otherwise the target is one more rep somewhere
@@ -2555,7 +2807,7 @@
     if (!last) return '';
     // back after a long break: ease in, do not chase load off a stale number
     if (Date.now() - last.at > 14 * DAY_MS) {
-      return '<b>Coach:</b> first time back on this in a while — start about 10% below your ' +
+      return '<b>Coach:</b> first time back on this in a while. Start about 10% below your ' +
         'last working weight and leave 2–3 reps in reserve; rebuild before you push.';
     }
     const top = parseInt(String(ex.rep_range || '').match(/(\d+)\s*$/)?.[1], 10);
@@ -2565,11 +2817,11 @@
     const allTop = counted.every(s => parseInt(s.reps, 10) >= top);
     const lower = /squat|deadlift|leg|lunge|hip|calf|rdl|good morning|hamstring|glute/.test(String(ex.name).toLowerCase());
     if (allTop) {
-      return '<b>Coach:</b> last time you hit the top of the range on every set — add ' +
+      return '<b>Coach:</b> last time you hit the top of the range on every set, so add ' +
         (lower ? '5' : '2.5') + ' kg today and rebuild the reps.';
     }
     const b = bestSet(counted);
-    return '<b>Coach:</b> beat last time — ' + (b ? esc(fmtSet(b)) + ' was your best; ' : '') +
+    return '<b>Coach:</b> beat last time. ' + (b ? esc(fmtSet(b)) + ' was your best; ' : '') +
       'one more rep on any set wins the day.';
   }
   function coRender() {
@@ -2718,7 +2970,7 @@
   $('coClose').addEventListener('click', closeCoach);
   function renderPlates() {
     $('coPlateOut').innerHTML = plateMath($('coW').value);
-    // every heavy barbell lift gets a ramp, not just the session opener — a
+    // every heavy barbell lift gets a ramp, not just the session opener, a
     // deadlift placed fourth needs one more than anything
     $('coRamp').textContent = rampFor($('coW').value);
   }
@@ -2731,7 +2983,7 @@
 
   /* ── check-in prefills: the studio fills in what it already knows ── */
   /* ── trend-fed check-in: show the user the measured trend the recalibration
-     actually reads (it's already in the payload) — bodyweight + top-lift e1RM,
+     actually reads (it's already in the payload), bodyweight + top-lift e1RM,
      sourced from the logs on this device. ── */
   function _spark(pts, label) {
     if (pts.length < 2) return '';
@@ -2796,14 +3048,14 @@
       const psx = (sp && sp.plan && sp.plan.profile_summary) || {};
       const bw = weightAvg7() || parseFloat(psx.weight_kg) || null;
       const sl = strengthLevel(lift.name, lift.to, bw, psx.gender_assigned_at_birth);
-      parts.push('<div class="ct-item"><div class="ct-h">' + esc(lift.name) + ' — est. 1RM</div><div class="bw-spark">' +
+      parts.push('<div class="ct-item"><div class="ct-h">' + esc(lift.name) + ' · est. 1RM</div><div class="bw-spark">' +
         _spark(lift.pts, lift.name + ' estimated 1RM trend') + '</div><div class="ct-n ' + (g > 0.5 ? 'down' : g < -0.5 ? 'up' : '') + '">' +
         Math.round(lift.from) + ' → ' + Math.round(lift.to) + ' kg e1RM · ' + lift.pts.length + ' sessions' +
         (sl ? ' · <b>' + sl.level + '</b> (' + sl.ratio + '× BW)' : '') + '</div></div>');
     }
     if (!parts.length) { panel.hidden = true; return; }
     const weeks = sp ? Math.max(1, Math.round((Date.now() - sp.at) / WEEK_MS)) : null;
-    panel.innerHTML = '<div class="ct-lead"><b>Your measured trend</b> — this is what the recalibration reads' +
+    panel.innerHTML = '<div class="ct-lead"><b>Your measured trend</b>: this is what the recalibration reads' +
       (weeks ? ', ' + weeks + ' week' + (weeks === 1 ? '' : 's') + ' in' : '') + '. The scale and the bar beat any form field.</div>' +
       '<div class="ct-grid">' + parts.join('') + '</div>';
     panel.hidden = false;
@@ -2866,7 +3118,7 @@
     t.textContent = SYNC.user ? '● ' + SYNC.user.split('@')[0] : 'Sync';
   }
   function syncAuthLost() {
-    // a dead/expired session is NOT an explicit logout — keep this device's
+    // a dead/expired session is NOT an explicit logout, keep this device's
     // data (it stays stamped to its owner, so it can never merge into another
     // account) and simply reflect the signed-out state
     SYNC.user = null;
@@ -2881,7 +3133,7 @@
       if (!r.ok) return;
       const d = await r.json();
       // Un-owned (guest) local data may be adopted UP only into an account that
-      // has none yet — a fresh registration keeping the plan it just built. If
+      // has none yet, a fresh registration keeping the plan it just built. If
       // the account already has a plan, this browser's guest data belongs to
       // someone else (shared device); the server wins and local is replaced.
       if (opts.adoptGuest && d.plan) {
@@ -2896,7 +3148,7 @@
       const localAt = (savedPlan() || {}).at || 0;
       if (d.plan && d.plan.at > localAt) {
         try { localStorage.setItem(PLAN_KEY, JSON.stringify({ at: d.plan.at, plan: d.plan.value })); } catch (e) {}
-        // honesty: if a plan is on screen, show the newer one and say so —
+        // honesty: if a plan is on screen, show the newer one and say so,
         // Q&A and Share must ground in what the account now holds
         if (planWrap.classList.contains('show')) {
           renderPlan(d.plan.value);
@@ -2925,7 +3177,7 @@
   }
   async function pushPlan() {
     const s = savedPlan();
-    // a sample/peek plan (demo:true) is exploratory — it must never be pushed
+    // a sample/peek plan (demo:true) is exploratory, it must never be pushed
     // into or adopted by a real account (SIMULATION finding: demo-never-pushed)
     if (!SYNC.user || !s || s.demo) return;
     try {
@@ -2951,7 +3203,7 @@
     } catch (e) {}
   }
   // shared modal (os.js) calls this to open an archived plan in place, with a
-  // "compare with" selector so any two saved plans can be diffed — not just
+  // "compare with" selector so any two saved plans can be diffed, not just
   // archive-vs-current (plan-history: diff any two).
   let histViewed = null;
   function histCmpLabel(h) {
@@ -3005,8 +3257,8 @@
 
   /* ── device isolation: localStorage is per-browser, not per-account ──
      Every synced record is stamped with the account that owns it. When the
-     signed-in identity changes — sign-out, account deletion, or a DIFFERENT
-     account signing in on a shared browser — this device's training data is
+     signed-in identity changes, sign-out, account deletion, or a DIFFERENT
+     account signing in on a shared browser, this device's training data is
      wiped so one person's plan/logs can never surface in, or sync up into,
      another person's account. */
   const OWNER_KEY = 'trainerOwner';
@@ -3042,7 +3294,7 @@
     if (st.user && (st.event === 'me' || st.event === 'login')) {
       let owner = null;
       try { owner = localStorage.getItem(OWNER_KEY); } catch (e) {}
-      // data owned by a DIFFERENT account is foreign — wipe before touching sync
+      // data owned by a DIFFERENT account is foreign, wipe before touching sync
       if (owner && owner !== st.user) deviceReset();
       try { localStorage.setItem(OWNER_KEY, st.user); } catch (e) {}
       pullMerge({ adoptGuest: !owner });
@@ -3057,7 +3309,7 @@
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => window.TRAINER_VIEW_HISTORY(histMatch[1]), 400);
   }
-  // ?sample deep-links the homepage card into a live sample — but a RETURNING
+  // ?sample deep-links the homepage card into a live sample, but a RETURNING
   // visitor (already has a plan) lands on THEIR plan, not a demo. Deferred (like
   // #history) so every top-level const is initialized before renderPlan runs.
   {
@@ -3070,6 +3322,8 @@
       }, 0);
     }
   }
+  bootHandoff();
+  greet();
   /* ── PWA: installable, saved plan + logs readable offline at the gym ── */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -3092,7 +3346,7 @@
     new Uint8Array(buf).forEach(b => { s += String.fromCharCode(b); });
     return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-  // a shared #p= link is attacker-controllable — a tiny deflate stream can inflate
+  // a shared #p= link is attacker-controllable, a tiny deflate stream can inflate
   // to hundreds of MB (a decompression bomb) and crash the tab. Cap the encoded
   // fragment AND stream the inflation with a hard byte ceiling (RED TEAM RT-6).
   const MAX_SHARE_ENCODED = 256 * 1024;     // a real plan compresses to a few KB
@@ -3121,7 +3375,7 @@
   $('exportBtn').addEventListener('click', () => {
     if (SYNC.user) { location.href = '/api/export'; return; }
     const doc = { format: 'the-trainer/export-1', exported_at: Date.now(), account: null,
-      source: 'this device only — create a free account to include synced history',
+      source: 'this device only. Create a free account to include synced history',
       plan: savedPlan(), logs: loadLogs(), history: [] };
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -3137,9 +3391,9 @@
     const btn = $('shareBtn'), old = btn.textContent;
     try {
       const url = location.origin + location.pathname + '#p=' + await compressToB64(JSON.stringify(lastPlan.d));
-      // mobile: native share sheet (Mail, WhatsApp, notes — "email it to myself" included)
+      // mobile: native share sheet (Mail, WhatsApp, notes, "email it to myself" included)
       if (navigator.share) {
-        await navigator.share({ title: 'My training program — The Trainer', url });
+        await navigator.share({ title: 'My training program · The Trainer', url });
         btn.textContent = 'Shared ✓';
       } else {
         await navigator.clipboard.writeText(url);
@@ -3154,7 +3408,7 @@
     savePlan(lastPlan.d);
     $('keepBtn').style.display = 'none';
     document.querySelector('.pa-note').textContent =
-      'Saved ✓ — the Log tab, Coach Mode and check-ins now work with this program.';
+      'Saved. The Log tab, Coach Mode and check-ins now work with this program.';
   });
 
   /* ── add to calendar: a .ics of the week's training days, built and downloaded
@@ -3188,7 +3442,7 @@
       if (WD_CODE[wd] && !isRestFocus(d.focus)) named.push({ weekday: wd, code: WD_CODE[wd], label: d.focus || 'Training' });
     });
     if (named.length) { named.forEach((o, i) => { o.minutes = (wds[i] || {}).estimated_duration_minutes || null; }); return named; }
-    // fallback: no weekday-named split — spread the workout days across the week
+    // fallback: no weekday-named split, spread the workout days across the week
     const pat = ({ 1: ['MO'], 2: ['MO', 'TH'], 3: ['MO', 'WE', 'FR'], 4: ['MO', 'TU', 'TH', 'FR'],
                   5: ['MO', 'TU', 'WE', 'FR', 'SA'], 6: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA'] })[Math.min(6, wds.length)] || [];
     return wds.slice(0, 6).map((wd, i) => ({ weekday: CODE_WD[pat[i]], code: pat[i],
@@ -3210,7 +3464,7 @@
     tds.forEach((t, i) => {
       const delta = (WD_IDX[t.weekday] - now.getDay() + 7) % 7;
       const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() + delta, h, m, 0);
-      // minutes can arrive as "85" or "85 min" from the model — coerce, never NaN
+      // minutes can arrive as "85" or "85 min" from the model, coerce, never NaN
       const dur = Math.max(15, Math.min(240, parseInt(t.minutes, 10) || 60));
       const e = new Date(s.getTime() + dur * 60000);
       lines.push('BEGIN:VEVENT',
@@ -3219,7 +3473,7 @@
         'DTSTART:' + icsFloating(s.getFullYear(), s.getMonth() + 1, s.getDate(), s.getHours(), s.getMinutes()),
         'DTEND:' + icsFloating(e.getFullYear(), e.getMonth() + 1, e.getDate(), e.getHours(), e.getMinutes()),
         'RRULE:FREQ=WEEKLY;BYDAY=' + t.code,
-        'SUMMARY:' + icsEscape('Training — ' + t.label),
+        'SUMMARY:' + icsEscape('Training: ' + t.label),
         'DESCRIPTION:' + icsEscape('Your session from The Trainer. Open your plan to run it live and log it: ' + location.origin + '/trainer'),
         'END:VEVENT');
     });
@@ -3254,9 +3508,9 @@
   })();
 
   // also escape quotes: esc() output is interpolated into double-quoted
-  // attributes (follow-up placeholders, Coach set inputs) — unescaped " allows
+  // attributes (follow-up placeholders, Coach set inputs), unescaped " allows
   // attribute-breakout (RED TEAM RT-7)
-  function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s);
+  function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s).replace(/\s*\u2014\s*/g, ', ');
     return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
   /* ── ask the trainer: plan-grounded Q&A, streamed live ── */
@@ -3294,7 +3548,7 @@
       days: (p.workout_days || []).map(d => ({
         day: d.day_label || '',
         exercises: (d.exercises || []).slice(0, 12).map(x =>
-          (x.name || '') + ' — ' + (x.sets || '?') + ' x ' + (x.rep_range || '?') +
+          (x.name || '') + ': ' + (x.sets || '?') + ' x ' + (x.rep_range || '?') +
           (x.tempo_or_notes && /\d/.test(x.tempo_or_notes) ? ' (' + x.tempo_or_notes + ')' : '')),
       })),
       generated_days_ago: Math.max(0, Math.round((Date.now() - sp.at) / 86400000)),
@@ -3321,7 +3575,7 @@
     };
     if (ws.length) {
       // give the model consistent inputs (start weight anchored to plan start,
-      // current 7-day average) and let it compute ONE trend — don't also send a
+      // current 7-day average) and let it compute ONE trend, don't also send a
       // separate recent-window trend that could disagree
       const a7 = weightAvg7(), wStart = weightAtPlanStart();
       digest.bodyweight = {
@@ -3357,7 +3611,7 @@
       const ct = r.headers.get('content-type') || '';
       if (ct.indexOf('application/json') !== -1) {
         const data = await r.json();
-        bub.textContent = data.error || 'Something went sideways — try again.';
+        bub.textContent = data.error || 'Something went sideways. Try again.';
       } else {
         const reader = r.body.getReader(), dec = new TextDecoder();
         let full = '';
@@ -3385,7 +3639,7 @@
     if (c) qaSend(c.textContent);
   });
 
-  /* ── movement pictograms (self-authored — see ASSETS_CREDITS.md) ── */
+  /* ── movement pictograms (self-authored, see ASSETS_CREDITS.md) ── */
   const GS = 'fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"';
   const GH = (x, y) => '<circle cx="' + x + '" cy="' + y + '" r="3" fill="currentColor" stroke="none"/>';
   const GLYPHS = {
@@ -3491,7 +3745,7 @@
     const ps = d.profile_summary || {};
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     let h = '';
-    h += '<div class="pd-brand"><span class="bm">FUNFLIX · THE TRAINER</span><span class="bm">' + esc(today) + '</span></div>';
+    h += '<div class="pd-brand"><span class="bm">THE TRAINER · BY FUNFLIX</span><span class="bm">' + esc(today) + '</span></div>';
     h += '<div class="pd-title">' + esc(ps.goal || 'Your Training Program') + '</div>';
     h += '<div class="pd-for">prepared for ' + esc(ps.name || intake().name || 'you') +
       (ps.experience_level ? ' · ' + esc(ps.experience_level) : '') + '</div>';
@@ -3516,7 +3770,7 @@
         h += LAB('Change these'); h += OL(cr.training_changes);
       }
       if (Array.isArray(cr.keep_doing) && cr.keep_doing.length) {
-        h += LAB('Keep doing — the data says it works'); h += OL(cr.keep_doing);
+        h += LAB('Keep doing: the data says it works'); h += OL(cr.keep_doing);
       }
       h += DIFF(prevForDiff, d);
     }
@@ -3540,7 +3794,7 @@
       d.workout_days.forEach(day => {
         h += '<div class="day"><div class="day-head"><span class="dn">' + esc(day.day_label || '') + '</span>' +
           (day.estimated_duration_minutes ? '<span class="df">~' + esc(day.estimated_duration_minutes) + ' min</span>' : '') + '</div>';
-        if (day.warmup) h += '<div class="day-note"><b>Warm-up</b> — ' + esc(day.warmup) + '</div>';
+        if (day.warmup) h += '<div class="day-note"><b>Warm-up:</b> ' + esc(day.warmup) + '</div>';
         h += '<table class="ex"><thead><tr><th>Exercise</th><th>Sets × Reps</th><th>Rest</th><th class="hide-m">Effort</th></tr></thead><tbody>';
         (day.exercises || []).forEach(ex => {
           let subs = '';
@@ -3580,7 +3834,7 @@
 
     const ra = d.rationale;
     if (ra) {
-      h += H('Why This Program — the reasoning');
+      h += H('Why this program: the reasoning');
       if (ra.goal_fit) { h += LAB('Fit to your goal'); h += P(ra.goal_fit); }
       if (ra.exercise_selection) { h += LAB('Exercise selection'); h += P(ra.exercise_selection); }
       if (ra.ordering) { h += LAB('Ordering'); h += P(ra.ordering); }
@@ -3598,7 +3852,7 @@
       (cs.cardio_sessions || []).forEach(c => {
         h += '<div class="path"><span class="pn">' + esc(c.type || '') + '</span>' +
           (c.duration_minutes ? '<span class="pw">' + esc(c.duration_minutes) + ' min</span>' : '') +
-          '<div class="pd2">' + esc(c.intensity || '') + (c.placement ? ' — ' + esc(c.placement) : '') + '</div></div>';
+          '<div class="pd2">' + esc(c.intensity || '') + (c.placement ? ' · ' + esc(c.placement) : '') + '</div></div>';
       });
       h += P(cs.interference_note);
     }
@@ -3614,10 +3868,10 @@
       ]);
       h += P(dp.macro_rationale);
       if (Array.isArray(dp.meal_schedule) && dp.meal_schedule.length) {
-        h += LAB('Meal schedule — timed around your sessions');
+        h += LAB('Meal schedule, timed around your sessions');
         dp.meal_schedule.forEach(m => {
           h += '<div class="meal"><span class="mt">' + esc(m.time || '') + '</span>' +
-            '<span class="mn"><b>' + esc(m.meal || '') + '</b>' + (m.timing_note ? ' — ' + esc(m.timing_note) : '') + '</span>' +
+            '<span class="mn"><b>' + esc(m.meal || '') + '</b>' + (m.timing_note ? ' · ' + esc(m.timing_note) : '') + '</span>' +
             '<span class="mm">' + (m.target_kcal != null ? esc(m.target_kcal) + ' kcal · ' : '') +
             (m.target_protein_g != null ? esc(m.target_protein_g) + ' g P' : '') + '</span></div>';
         });
@@ -3626,7 +3880,7 @@
         h += LAB('A full sample day');
         dp.sample_day.forEach(m => {
           h += '<div class="meal"><span class="mt">' + esc(m.time || '') + '</span>' +
-            '<span class="mn"><b>' + esc(m.meal || '') + '</b> — ' + (m.foods || []).map(esc).join('; ') + '</span>' +
+            '<span class="mn"><b>' + esc(m.meal || '') + ':</b> ' + (m.foods || []).map(esc).join('; ') + '</span>' +
             '<span class="mm">' + (m.approx_calories != null ? esc(m.approx_calories) + ' kcal · ' : '') +
             (m.approx_protein_g != null ? esc(m.approx_protein_g) + ' g P' : '') + '</span></div>';
         });
@@ -3645,7 +3899,7 @@
     }
 
     if (Array.isArray(d.supplements) && d.supplements.length) {
-      h += H('Supplements — evidence-graded');
+      h += H('Supplements, graded by evidence');
       d.supplements.forEach(s => {
         h += '<div class="supp"><div class="sn">' + esc(s.name) + '<span>' + esc(s.evidence_level || s.evidence || '') + '</span></div>' +
           '<div class="sd">' + esc([s.dose, s.timing].filter(Boolean).join(' · ')) + '</div>' +
@@ -3680,10 +3934,10 @@
         body += (safe.exercise_modifications || []).map(s => '<p>' + esc(s) + '</p>').join('');
         if (safe.medical_disclaimer) body += '<p><em>' + esc(safe.medical_disclaimer) + '</em></p>';
       }
-      h += '<div class="safety"><div class="sh">Read this — safety &amp; scope</div>' + body + '</div>';
+      h += '<div class="safety"><div class="sh">Read this: safety and scope</div>' + body + '</div>';
     }
     $('planDoc').innerHTML = h;
-    document.title = 'Training Program — ' + (ps.name || 'The Trainer') + ' — FUNFLIX';
+    document.title = 'Training program · ' + (ps.name || 'yours') + ' · The Trainer';
   }
 })();
 </script>
