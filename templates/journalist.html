@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>The Press — FUNFLIX</title>
+  <title>The Press &middot; Funflix</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -185,7 +185,7 @@
         <div class="wire-head">
           <div class="wire-meta">
             <span class="wire-live">The Wire</span>
-            <span id="wireStamp">&mdash;</span>
+            <span id="wireStamp">&middot;</span>
           </div>
           <button class="copy-btn" id="copyBtn" onclick="copyArticle()">Copy Text</button>
         </div>
@@ -303,7 +303,7 @@
 
       if (articleText.startsWith('ERROR:')) {
         wire.classList.remove('show');
-        fault.textContent = articleText.replace(/^ERROR:\s*/, 'Regrettably — ');
+        fault.textContent = articleText.replace(/^ERROR:\s*/, 'Regrettably: ');
         fault.classList.add('show');
         return;
       }
@@ -311,7 +311,7 @@
     } catch (err) {
       uplink.classList.remove('show');
       wire.classList.remove('show');
-      fault.textContent = 'Regrettably, the dispatch was lost in transit — ' + err.message;
+      fault.textContent = 'Regrettably, the dispatch was lost in transit: ' + err.message;
       fault.classList.add('show');
     } finally {
       btn.disabled = false;

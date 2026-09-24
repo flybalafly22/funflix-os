@@ -24,7 +24,10 @@ _None imported yet — current UI uses text/emoji. CC0 icon set (or authored SVG
 | Asset | File(s) | Source | License | Notes |
 |---|---|---|---|---|
 | Movement pictograms (17 glyphs) | inline SVG in `templates/trainer.html` | authored in-repo (trainer Sprint 4) | CC0-1.0 / own work | signage-style exercise icons in the plan table + PDF |
-| PWA app icons | `static/trainer/icon-192.png`, `icon-512.png` | generated in-repo (headless render) | CC0-1.0 / own work | serif T + acid underline on paper |
+| PWA app icons | `static/trainer/icon-192.png`, `icon-512.png` | generated in-repo (headless render of an inline SVG) | CC0-1.0 / own work | the Voice mark: a white weight plate on electric cobalt (maskable-safe); also the site favicon |
+| Bricolage Grotesque (variable, opsz 12–96, wght 200–800, Latin subset) | `static/fonts/bricolage.woff2` | github.com/ateliertriay/bricolage (Google Fonts build) | OFL-1.1 | Display face of the site-wide Voice system (home, Trainer, shared chrome). Self-hosted via `static/fonts/fonts.css`. |
+| Geist (variable, wght 100–900, Latin subset) | `static/fonts/geist.woff2` | github.com/vercel/geist-font | OFL-1.1 | Body face. Replaces the Google Fonts request in `os.css`. |
+| Geist Mono (variable, wght 100–900, Latin subset) | `static/fonts/geist-mono.woff2` | github.com/vercel/geist-font | OFL-1.1 | Labels, numbers, data. |
 
 ---
 _Add a row here in the same commit that introduces any new asset. No asset ships without a recorded license._

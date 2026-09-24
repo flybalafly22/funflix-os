@@ -1,18 +1,20 @@
 /* ════════════════════════════════════════════════════════
-   FUNFLIX — shared runtime
-   injects the frame (nav, footer) and the ⌘K concierge
+   THE TRAINER (by Funflix): shared runtime
+   injects the frame (nav, Apps menu, footer), the one account door,
+   the light/dark switch on pages that opt in, and the ⌘K concierge
    ════════════════════════════════════════════════════════ */
 (() => {
+  // The Trainer is the flagship; the rest of the house stays one tap away.
   const MODULES = [
-    { id: '·',   name: 'Home',        desc: 'the collection', path: '/' },
-    { id: 'I',   name: 'Compute',     desc: 'instrument',     path: '/calculator' },
-    { id: 'II',  name: 'Synthesis',   desc: 'image atelier',  path: '/meme' },
-    { id: 'III', name: 'The Press',   desc: 'ai newsroom',    path: '/journalist' },
-    { id: 'IV',  name: 'Flyuserfly',  desc: 'a noir, playable', path: '/game' },
-    { id: 'V',   name: 'Costa Vista', desc: 'open world',     path: '/play/city-game' },
-    { id: 'VI',  name: 'The Study',   desc: 'bio-analytics',  path: '/study' },
-    { id: 'VII', name: 'The Fly',     desc: 'courier over a hand-built town', path: '/play/the-fly' },
-    { id: 'VIII', name: 'The Trainer', desc: 'training studio', path: '/trainer', flag: true },
+    { id: '·',    name: 'Home',        desc: 'the front door',                     path: '/' },
+    { id: 'VIII', name: 'The Trainer', desc: 'your program, your log, your coach', path: '/trainer', flag: true },
+    { id: 'VI',   name: 'The Study',   desc: 'supplement evidence, graded',        path: '/study' },
+    { id: 'I',    name: 'Compute',     desc: 'a precise scientific calculator',    path: '/calculator' },
+    { id: 'III',  name: 'The Press',   desc: 'a newsroom run by one machine',      path: '/journalist' },
+    { id: 'II',   name: 'Synthesis',   desc: 'a studio for making jokes',          path: '/meme' },
+    { id: 'IV',   name: 'Flyuserfly',  desc: 'a noir mystery you play',            path: '/game' },
+    { id: 'VII',  name: 'The Fly',     desc: 'deliveries over a hand-built town',  path: '/play/the-fly' },
+    { id: 'V',    name: 'Costa Vista', desc: 'an open city at golden hour',        path: '/play/city-game' },
   ];
   const here = location.pathname.replace(/\/+$/, '') || '/';
   const current = MODULES.find(m => m.path === here) || MODULES[0];
@@ -21,20 +23,22 @@
   if (!window.OS_NO_CHROME) {
   const hud = document.createElement('header');
   hud.className = 'hud';
+  const themeable = document.documentElement.hasAttribute('data-themeable');
+  const THEME_ICONS = '<svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>' +
+    '<svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4 6.2 6.2 0 0 0 20 14.5z"/></svg>';
   hud.innerHTML = `
     <div class="hud-inner">
-      <a href="/" class="hud-logo" data-nav aria-label="FUNFLIX home"><svg width="73" height="15" viewBox="0 0 486 100" role="img" aria-label="FUNFLIX"><path fill="#111110" d="M0 0 L24 0 L24 100 L0 100 Z M0 0 L60 0 L60 24 L0 24 Z M0 38 L50 38 L50 58 L0 58 Z"></path><path fill="#0C8A4C" transform="translate(74)" d="M0 0 L26 0 L26 55 Q26 74 33 74 Q40 74 40 55 L40 0 L66 0 L66 55 Q66 100 33 100 Q0 100 0 55 Z"></path><path fill="#111110" transform="translate(152)" d="M0 0 L26 0 L44 52 L44 0 L70 0 L70 100 L44 100 L26 48 L26 100 L0 100 Z"></path><g transform="translate(234)" fill="none" stroke="#111110" stroke-width="6"><rect x="3" y="3" width="18" height="94"></rect><rect x="3" y="3" width="54" height="18"></rect><rect x="3" y="40" width="44" height="14"></rect></g><path fill="#111110" transform="translate(308)" d="M0 0 L26 0 L56 76 L56 100 L0 100 Z"></path><rect x="376" width="26" height="100" fill="#0C8A4C"></rect><path fill="#111110" transform="translate(414)" d="M0 0 L26 0 L72 100 L46 100 Z M46 0 L72 0 L26 100 L0 100 Z"></path></svg></a>
-      <nav class="hud-links">
-        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}${m.flag ? ' flag' : ''}">${m.name}${m.flag ? '<i class="nav-flag" aria-hidden="true"></i>' : ''}</a>`).join('')}
+      <a href="/" class="hud-logo" data-nav aria-label="The Trainer, home"><b>THE&nbsp;TRAINER</b><span>by Funflix</span></a>
+      <nav class="hud-links" aria-label="Main">
+        <a href="/trainer" data-nav class="flag${current.path === '/trainer' ? ' on' : ''}">The Trainer<i class="nav-flag" aria-hidden="true"></i></a>
       </nav>
-      <div class="hud-right">
-        <button class="hud-cta" id="hudCta">Enter</button>
-        <button class="hud-burger" id="hudBurger" aria-label="Menu">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
-        </button>
-      </div>
+      <button class="hud-apps" id="hudBurger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="hudMobile">Apps
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      ${themeable ? '<button class="hud-theme" id="hudTheme" type="button" aria-label="Switch between light and dark">' + THEME_ICONS + '</button>' : ''}
+      <button class="hud-cta" id="hudCta" type="button">Sign in</button>
       <div class="hud-mobile" id="hudMobile">
-        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}${m.flag ? ' flag' : ''}">${m.name}${m.flag ? '<i class="nav-flag" aria-hidden="true"></i>' : ''}</a>`).join('')}
+        <div class="hm-k">The house</div>
+        ${MODULES.map(m => `<a href="${m.path}" data-nav class="${m.path === current.path ? 'on' : ''}${m.flag ? ' flag' : ''}">${m.name}<small>${m.desc}</small></a>`).join('')}
       </div>
     </div>`;
   document.body.prepend(hud);
@@ -43,8 +47,8 @@
   const sb = document.createElement('footer');
   sb.className = 'statusbar';
   sb.innerHTML = `
-    <div>Funflix &mdash; <span class="hl">MMXXVI</span></div>
-    <div class="sb-mid">${current.path === '/' ? 'Made by you &middot; Made for you' : 'No. ' + current.id + ' &mdash; ' + current.name}</div>
+    <div><a href="/" data-nav>The Trainer</a> by Funflix &middot; <span class="hl">MMXXVI</span></div>
+    <div class="sb-mid">${current.path === '/' ? 'In your corner' : 'No. ' + current.id + ' &middot; ' + current.name}</div>
     <div><span class="kbd">&#8984;K</span> Concierge &nbsp; <span class="hl" id="osClock">--:--</span></div>`;
   document.body.append(sb);
 
@@ -87,84 +91,91 @@
 
   const acctCSS = document.createElement('style');
   acctCSS.textContent = `
-    .osacct { position: fixed; inset: 0; z-index: 900; background: rgba(17,17,16,.30);
-      backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+    .osacct { --ac-bg: #FFFFFF; --ac-ink: #0B0F2E; --ac-2: #474B66; --ac-3: #5B5F7B; --ac-line: #D0D5E5;
+      --ac-line-2: #E3E6F0; --ac-acc: #2B3BFF; --ac-on-acc: #FFFFFF; --ac-soft: #EEF0FF; --ac-err: #A8321F;
+      --ac-scrim: rgba(11,15,46,.40);
+      position: fixed; inset: 0; z-index: 900; background: var(--ac-scrim);
       display: flex; align-items: center; justify-content: center; padding: 20px; }
+    :root[data-theme="dark"] .osacct { --ac-bg: #10153A; --ac-ink: #EEF1FF; --ac-2: #B3B8D8; --ac-3: #979DC0;
+      --ac-line: #2A3163; --ac-line-2: #1B2146; --ac-acc: #8C9BFF; --ac-on-acc: #070A1A; --ac-soft: #1A2050;
+      --ac-err: #FF8E7E; --ac-scrim: rgba(0,0,0,.55); color-scheme: dark; }
     .osacct[hidden] { display: none; }
     .osacct * { box-sizing: border-box; margin: 0; }
     .osacct .ac-card { position: relative; width: min(480px, 100%); max-height: 88vh; overflow-y: auto;
-      background: #FAFAF8; border: 1px solid #E9E9E5; border-radius: 28px; padding: 42px 44px 36px;
-      box-shadow: 0 40px 120px rgba(17,17,16,.28); font-family: 'Geist','Inter',system-ui,sans-serif; }
-    @media (max-width: 560px) { .osacct .ac-card { padding: 32px 24px 28px; } }
-    .osacct .ac-lead { font-family: 'Instrument Serif',Georgia,serif; font-weight: 400;
-      font-size: clamp(26px, 4.5vw, 32px); line-height: 1.15; color: #111110; }
-    .osacct .ac-lead em { color: #0C8A4C; }
-    .osacct .ac-sub { margin-top: 10px; font-size: 13.5px; line-height: 1.65; color: #63635E; }
+      background: var(--ac-bg); color: var(--ac-ink); border: 1px solid var(--ac-line); border-radius: 26px; padding: 40px 42px 34px;
+      box-shadow: 0 40px 120px rgba(7,10,26,.35); font-family: 'Geist',system-ui,sans-serif; }
+    @media (max-width: 560px) { .osacct .ac-card { padding: 30px 22px 26px; } }
+    .osacct .ac-lead { font-family: 'Bricolage Grotesque','Geist',system-ui,sans-serif; font-weight: 800;
+      font-size: clamp(26px, 4.5vw, 32px); line-height: 1.08; letter-spacing: -0.02em; color: var(--ac-ink); padding-right: 70px; }
+    .osacct .ac-lead em { font-style: normal; color: var(--ac-acc); }
+    .osacct .ac-sub { margin-top: 12px; font-size: 14px; line-height: 1.6; color: var(--ac-2); }
     .osacct .ac-close { position: absolute; top: 14px; right: 14px; background: transparent;
-      border: 1px solid #DDDDD8; border-radius: 999px; padding: 8px 18px; font-size: 12.5px;
-      font-weight: 600; color: #63635E; cursor: pointer; font-family: inherit; }
-    .osacct .ac-close:hover { border-color: #111110; color: #111110; }
-    .osacct .ac-field { margin-top: 18px; }
-    .osacct label { display: block; font-family: 'Geist Mono',monospace; font-size: 10px;
-      letter-spacing: .2em; text-transform: uppercase; color: #6D6D66; margin-bottom: 8px; }
-    .osacct input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #DDDDD8;
-      padding: 10px 2px; font-family: inherit; font-size: 15px; color: #111110; outline: none; }
-    .osacct input:focus { border-bottom-color: #0C8A4C; }
-    .osacct .ac-hint { margin-top: 7px; font-size: 11.5px; color: #6D6D66; }
-    .osacct .ac-link { background: none; border: none; padding: 0; font: inherit; font-size: 11.5px;
-      color: #0C8A4C; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
-    .osacct .ac-link:hover { color: #0a6f3d; }
-    .osacct .ac-err { margin-top: 12px; font-size: 13px; color: #A03428; }
-    .osacct .ac-btns { display: flex; gap: 10px; margin-top: 26px; align-items: center; }
+      border: 1px solid var(--ac-line); border-radius: 999px; padding: 0 16px; min-height: 38px; font-size: 13px;
+      font-weight: 600; color: var(--ac-2); cursor: pointer; font-family: inherit; }
+    .osacct .ac-close:hover { border-color: var(--ac-ink); color: var(--ac-ink); }
+    .osacct .ac-field { margin-top: 20px; }
+    .osacct label { display: block; font-family: 'Geist Mono',monospace; font-size: 11px;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--ac-3); margin-bottom: 8px; }
+    .osacct input { width: 100%; background: transparent; border: none; border-bottom: 1.5px solid var(--ac-line);
+      border-radius: 0; padding: 10px 2px; font-family: inherit; font-size: 16px; font-weight: 500; color: var(--ac-ink); outline: none; }
+    .osacct input:focus { border-bottom-color: var(--ac-acc); }
+    .osacct input::placeholder { color: var(--ac-3); }
+    .osacct button:focus-visible, .osacct a:focus-visible, .osacct input:focus-visible { outline: 2px solid var(--ac-acc); outline-offset: 3px; }
+    .osacct .ac-hint { margin-top: 8px; font-size: 12px; color: var(--ac-3); }
+    .osacct .ac-link { background: none; border: none; padding: 0; font: inherit; font-size: 12.5px; font-weight: 600;
+      color: var(--ac-acc); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .osacct .ac-err { margin-top: 12px; font-size: 13.5px; color: var(--ac-err); }
+    .osacct .ac-err:empty, .osacct .ac-ok:empty { display: none; }
+    .osacct .ac-btns { display: flex; gap: 10px; margin-top: 26px; align-items: center; flex-wrap: wrap; }
     /* the display:flex above outranks the UA [hidden] rule, so hidden button rows
-       (OTP / reset steps) would otherwise all show at once — re-hide them */
+       (OTP / reset steps) would otherwise all show at once, so re-hide them */
     .osacct .ac-btns[hidden] { display: none; }
-    .osacct .ac-primary { flex: 1; background: #111110; color: #fff; border: none; border-radius: 999px;
-      font-family: inherit; font-size: 14px; font-weight: 600; padding: 14px 26px; cursor: pointer;
-      box-shadow: 0 10px 30px rgba(17,17,16,.20); transition: transform .2s; }
+    .osacct .ac-primary { flex: 1; background: var(--ac-acc); color: var(--ac-on-acc); border: none; border-radius: 999px;
+      font-family: inherit; font-size: 15px; font-weight: 600; padding: 0 26px; min-height: 50px; cursor: pointer;
+      transition: transform .2s; }
     .osacct .ac-primary:hover { transform: translateY(-1px); }
-    .osacct .ac-ghost { background: transparent; border: 1px solid #DDDDD8; border-radius: 999px;
-      padding: 12px 22px; font-family: inherit; font-size: 13px; font-weight: 500; color: #63635E; cursor: pointer; }
-    .osacct .ac-ghost:hover { border-color: #111110; color: #111110; }
-    .osacct .ac-who { margin-top: 3px; font-family: 'Geist Mono',monospace; font-size: 11.5px;
-      letter-spacing: .05em; color: #0C8A4C; overflow: hidden; text-overflow: ellipsis; }
-    .osacct .ac-prof { display: flex; gap: 16px; align-items: center; min-width: 0; }
+    .osacct .ac-ghost { background: transparent; border: 1px solid var(--ac-line); border-radius: 999px;
+      padding: 0 22px; min-height: 50px; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--ac-ink); cursor: pointer; }
+    .osacct .ac-ghost:hover { border-color: var(--ac-ink); }
+    .osacct .ac-who { margin-top: 3px; font-family: 'Geist Mono',monospace; font-size: 12px;
+      letter-spacing: .03em; color: var(--ac-acc); overflow: hidden; text-overflow: ellipsis; }
+    .osacct .ac-prof { display: flex; gap: 16px; align-items: center; min-width: 0; padding-right: 70px; }
     .osacct .ac-prof > div:last-child { min-width: 0; }
     .osacct .ac-ava { width: 56px; height: 56px; border-radius: 999px; flex: none; display: flex;
-      align-items: center; justify-content: center; font-family: 'Instrument Serif',Georgia,serif;
-      font-size: 27px; color: #0C8A4C; background: #EFF4EE; border: 1px solid #CFE0D2;
-      box-shadow: inset 0 0 0 4px #FAFAF8; text-transform: uppercase; }
-    .osacct .ac-name { font-family: 'Instrument Serif',Georgia,serif; font-weight: 400;
-      font-size: clamp(24px, 4vw, 29px); line-height: 1.1; color: #111110; text-transform: capitalize;
+      align-items: center; justify-content: center; font-family: 'Bricolage Grotesque','Geist',sans-serif; font-weight: 800;
+      font-size: 24px; color: var(--ac-on-acc); background: var(--ac-acc); text-transform: uppercase; }
+    .osacct .ac-name { font-family: 'Bricolage Grotesque','Geist',sans-serif; font-weight: 800;
+      font-size: clamp(22px, 4vw, 27px); line-height: 1.1; letter-spacing: -0.02em; color: var(--ac-ink); text-transform: capitalize;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .osacct .ac-since { margin-top: 4px; font-size: 11.5px; color: #6D6D66; }
+    .osacct .ac-since { margin-top: 4px; font-size: 12px; color: var(--ac-3); }
     .osacct .ac-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
-      background: #E9E9E5; border: 1px solid #E9E9E5; border-radius: 16px; overflow: hidden; margin-top: 22px; }
-    .osacct .ac-stat { background: #FFFFFE; padding: 13px 8px 11px; text-align: center; }
-    .osacct .ac-stat b { display: block; font-family: 'Instrument Serif',Georgia,serif; font-weight: 400;
-      font-size: 21px; color: #111110; }
+      background: var(--ac-line-2); border: 1px solid var(--ac-line-2); border-radius: 16px; overflow: hidden; margin-top: 22px; }
+    .osacct .ac-stat { background: var(--ac-bg); padding: 13px 8px 11px; text-align: center; }
+    .osacct .ac-stat b { display: block; font-family: 'Bricolage Grotesque','Geist',sans-serif; font-weight: 700;
+      font-size: 21px; color: var(--ac-ink); font-variant-numeric: tabular-nums; }
     .osacct .ac-stat span { display: block; margin-top: 4px; font-family: 'Geist Mono',monospace;
-      font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; color: #6D6D66; }
-    .osacct .ac-ok { margin-top: 12px; font-size: 13px; color: #0C8A4C; }
-    .osacct a.ac-ghost { text-decoration: none; display: inline-block; text-align: center; }
-    .osacct .ac-danger { margin-top: 26px; padding-top: 16px; border-top: 1px dashed #E2E2DD; }
+      font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ac-3); }
+    .osacct .ac-ok { margin-top: 12px; font-size: 13.5px; color: var(--ac-acc); }
+    .osacct a.ac-ghost { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+    .osacct .ac-danger { margin-top: 26px; padding-top: 16px; border-top: 1px dashed var(--ac-line); }
     .osacct .ac-del-link { background: none; border: none; padding: 0; font-family: inherit;
-      font-size: 12px; color: #9A9A93; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-    .osacct .ac-del-link:hover { color: #A03428; }
-    .osacct .ac-danger-btn { background: #A03428; box-shadow: 0 10px 30px rgba(160,52,40,.25); }
-    .osacct .ac-status { margin-top: 10px; font-size: 13.5px; line-height: 1.65; color: #63635E; }
-    .osacct .ac-hist-head { margin-top: 26px; font-family: 'Geist Mono',monospace; font-size: 10px;
-      letter-spacing: .22em; text-transform: uppercase; color: #0C8A4C; }
+      font-size: 12.5px; color: var(--ac-3); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .osacct .ac-del-link:hover { color: var(--ac-err); }
+    .osacct .ac-danger-btn { background: var(--ac-err); color: #fff; }
+    :root[data-theme="dark"] .osacct .ac-danger-btn { color: #070A1A; }
+    .osacct .ac-status { margin-top: 14px; font-size: 14px; line-height: 1.6; color: var(--ac-2); }
+    .osacct .ac-hist-head { margin-top: 26px; font-family: 'Geist Mono',monospace; font-size: 11px;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--ac-acc); }
     .osacct .ac-hrow { display: flex; align-items: baseline; gap: 12px; padding: 12px 0;
-      border-bottom: 1px solid #ECECEA; cursor: pointer; }
+      border-bottom: 1px solid var(--ac-line-2); cursor: pointer; }
     .osacct .ac-hrow:last-child { border-bottom: none; }
-    .osacct .ac-hrow .hd { font-family: 'Geist Mono',monospace; font-size: 10.5px; color: #6D6D66; white-space: nowrap; }
-    .osacct .ac-hrow .hg { flex: 1; font-size: 13.5px; font-weight: 600; color: #111110;
+    .osacct .ac-hrow .hd { font-family: 'Geist Mono',monospace; font-size: 11px; color: var(--ac-3); white-space: nowrap; }
+    .osacct .ac-hrow .hg { flex: 1; font-size: 14px; font-weight: 600; color: var(--ac-ink);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .osacct .ac-hrow:hover .hg { color: #0C8A4C; }
-    .osacct .ac-hrow .hk { font-family: 'Geist Mono',monospace; font-size: 10.5px; color: #6D6D66; white-space: nowrap; }
-    .osacct .ac-next { display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 600;
-      color: #0C8A4C; text-decoration: none; }
+    .osacct .ac-hrow:hover .hg { color: var(--ac-acc); }
+    .osacct .ac-hrow .hk { font-family: 'Geist Mono',monospace; font-size: 11px; color: var(--ac-3); white-space: nowrap; }
+    .osacct .ac-next { display: inline-block; margin-top: 14px; font-size: 14px; font-weight: 600;
+      color: var(--ac-acc); text-decoration: none; }
     .osacct .ac-next:hover { text-decoration: underline; }
     @keyframes osacctIn { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
     .osacct .ac-card { animation: osacctIn .28s cubic-bezier(.2,.7,.2,1); }
@@ -182,12 +193,12 @@
       <div id="acOut">
         <div class="ac-lead">Your training, <em>on every device</em></div>
         <div class="ac-sub">One free account keeps your program, workout logs and check-ins in sync
-          between this browser and your phone. Without one, everything stays on this device &mdash;
-          that promise doesn't change.</div>
+          between this browser and your phone. Without one, everything stays on this device.
+          That promise doesn't change.</div>
         <div id="acForm">
           <div class="ac-field"><label for="acEmail">Email</label>
             <input id="acEmail" type="email" autocomplete="email"></div>
-          <div class="ac-field"><label for="acPw">Password &mdash; 8+ characters</label>
+          <div class="ac-field"><label for="acPw">Password (8+ characters)</label>
             <input id="acPw" type="password" autocomplete="current-password">
             <div class="ac-hint"><button type="button" class="ac-link" id="acForgot">Forgot your password?</button></div></div>
         </div>
@@ -200,7 +211,7 @@
           <div class="ac-sub" id="acRsMsg"></div>
           <div class="ac-field"><label for="acRsCode">6-digit code</label>
             <input id="acRsCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
-          <div class="ac-field"><label for="acRsPw">New password &mdash; 8+ characters</label>
+          <div class="ac-field"><label for="acRsPw">New password (8+ characters)</label>
             <input id="acRsPw" type="password" autocomplete="new-password"></div>
         </div>
         <div class="ac-err" id="acErr"></div>
@@ -228,12 +239,12 @@
           </div>
         </div>
         <div class="ac-stats" id="acStats" hidden>
-          <div class="ac-stat"><b id="acStPlan">&mdash;</b><span>plan synced</span></div>
+          <div class="ac-stat"><b id="acStPlan">&middot;</b><span>plan synced</span></div>
           <div class="ac-stat"><b id="acStLogs">0</b><span>sessions logged</span></div>
           <div class="ac-stat"><b id="acStHist">0</b><span>archived plans</span></div>
         </div>
-        <div class="ac-status">Your plan and logs follow you &mdash; phone at the gym, laptop at home.
-          Everything still works offline; changes sync when you're back.</div>
+        <div class="ac-status">Your plan and logs follow you: phone at the gym, laptop at home.
+          Everything still works offline, and changes sync when you're back.</div>
         <a class="ac-next" id="acGoTrainer" href="/trainer" style="display:none">Open The Trainer &rarr;</a>
         <div class="ac-hist-head" id="acHistHead" hidden>Plan history</div>
         <div id="acHist"></div>
@@ -245,7 +256,7 @@
           <button class="ac-del-link" id="acDelOpen" type="button">Delete my account&hellip;</button>
           <div id="acDelBox" hidden>
             <div class="ac-sub">This permanently wipes your account and every synced record from our
-              server &mdash; plan, logs, archived plans. Data saved on this device stays yours.
+              server: plan, logs and archived plans. Data saved on this device stays yours.
               Export first if you want a copy. Type your password to confirm.</div>
             <div class="ac-field"><label for="acDelPw">Password</label>
               <input id="acDelPw" type="password" autocomplete="current-password"></div>
@@ -285,7 +296,7 @@
       const d = await (await fetch('/api/profile')).json();
       if (!d.user || d.user !== ACCT.user) return;
       const dd = ms => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      $a('acStPlan').textContent = d.plan_at ? dd(d.plan_at) : '—';
+      $a('acStPlan').textContent = d.plan_at ? dd(d.plan_at) : '·';
       $a('acStLogs').textContent = d.logs_n || 0;
       $a('acStHist').textContent = d.history_n || 0;
       if (d.since) $a('acSince').textContent = 'Member since ' +
@@ -297,16 +308,13 @@
   function acctClose() { acctEl.hidden = true; }
   function refreshCtas() {
     const cta = document.getElementById('hudCta');
-    if (cta && ACCT.enabled) {
-      cta.textContent = ACCT.user ? '● ' + ACCT.user.split('@')[0] : 'Create account';
+    if (cta) {
+      // accounts need the server's database; without it there is no door to show
+      cta.hidden = ACCT.ready && !ACCT.enabled;
+      cta.textContent = ACCT.user ? ACCT.user.split('@')[0] : 'Sign in';
       cta.title = ACCT.user
-        ? 'Your account — training synced on every device'
-        : 'Free account: your training plan, workout log and check-ins on every device';
-    }
-    const ffx = document.getElementById('ffxAcct');
-    if (ffx && ACCT.enabled && ACCT.user) {
-      ffx.textContent = '● ' + ACCT.user.split('@')[0];
-      ffx.title = 'Your account — training synced on every device';
+        ? 'Your account: training synced on every device'
+        : 'Free account: your plan, workout log and check-ins on every device';
     }
   }
   async function acctHistory() {
@@ -430,25 +438,21 @@
       if (!r.ok || d.error) { $a('acDelErr').textContent = d.error || 'Something went wrong.'; return; }
       ACCT.user = null;
       acctPanels(); refreshCtas(); ACCT._emit('logout');
-      $a('acNote').textContent = 'Account deleted — every record on our server is gone. Anything saved on this device is still yours.';
+      $a('acNote').textContent = 'Account deleted. Every record on our server is gone. Anything saved on this device is still yours.';
     } catch (e) { $a('acDelErr').textContent = 'Could not reach the server.'; }
   });
 
   const hudCtaEl = document.getElementById('hudCta');
   if (hudCtaEl) hudCtaEl.addEventListener('click', () => {
-    // before /api/auth/me resolves, assume accounts exist — the modal is honest
+    // before /api/auth/me resolves, assume accounts exist: the modal is honest
     // about failures; silently dumping the user to the homepage is not
     if (ACCT.enabled || !ACCT.ready) { acctOpen(); return; }
     if (typeof window.openAccess === 'function') window.openAccess();
     else nav('/');
   });
-  const ffxAcctEl = document.getElementById('ffxAcct');
-  if (ffxAcctEl) ffxAcctEl.addEventListener('click', e => {
-    if (ACCT.enabled || !ACCT.ready) { e.preventDefault(); acctOpen(); }
-  });
 
-  // any state change — including ones raised by page engines (e.g. the
-  // trainer detecting a dead session) — refreshes every chrome surface
+  // any state change (including ones raised by page engines, e.g. the
+  // trainer detecting a dead session) refreshes every chrome surface
   ACCT.on(() => { refreshCtas(); acctPanels(); });
 
   ACCT.ready = false;
@@ -471,19 +475,47 @@
     } catch (e) {}
   }
   refreshMe(true);
-  // auth can change in another tab or before a bfcache restore — re-check
+  // auth can change in another tab or before a bfcache restore, so re-check
   window.addEventListener('pageshow', e => { if (e.persisted) refreshMe(false); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshMe(false); });
 
   const OS = window.OS = { paletteOpen: false };
   if (!window.OS_NO_CHROME) {
   const mob = document.getElementById('hudMobile');
-  document.getElementById('hudBurger').addEventListener('click', e => {
+  const appsBtn = document.getElementById('hudBurger');
+  function setApps(open) {
+    mob.classList.toggle('open', open);
+    appsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  appsBtn.addEventListener('click', e => {
     e.stopPropagation();
-    mob.classList.toggle('open');
+    setApps(!mob.classList.contains('open'));
   });
   document.addEventListener('click', e => {
-    if (!e.target.closest('#hudMobile, #hudBurger')) mob.classList.remove('open');
+    if (!e.target.closest('#hudMobile, #hudBurger')) setApps(false);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && mob.classList.contains('open')) { setApps(false); appsBtn.focus(); }
+  });
+
+  /* the light/dark switch (pages that opt in with html[data-themeable]); the same
+     preference and the same circle reveal as the home page */
+  const themeBtn = document.getElementById('hudTheme');
+  if (themeBtn) themeBtn.addEventListener('click', e => {
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    const apply = () => {
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('trainerTheme', next); } catch (err) {}
+      const tc = document.querySelector('meta[name="theme-color"]');
+      if (tc) tc.setAttribute('content', next === 'dark' ? '#070A1A' : '#F6F7FB');
+      try { window.dispatchEvent(new Event('themechange')); } catch (err) {}
+    };
+    root.style.setProperty('--vt-x', (e.clientX || innerWidth - 60) + 'px');
+    root.style.setProperty('--vt-y', (e.clientY || 30) + 'px');
+    if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.startViewTransition(apply);
+    } else apply();
   });
 
   /* ── the concierge (⌘K) ── */
@@ -493,7 +525,7 @@
     <div class="pal-box">
       <div class="pal-head">
         <span class="pp">&#10022;</span>
-        <input id="palInput" placeholder="How may we serve you&hellip;" autocomplete="off" spellcheck="false"/>
+        <input id="palInput" placeholder="Where to? Try trainer, study or account" autocomplete="off" spellcheck="false" aria-label="Search apps and actions"/>
         <span class="pal-esc">ESC</span>
       </div>
       <div class="pal-list" id="palList"></div>
@@ -506,15 +538,15 @@
   function buildItems() {
     const items = MODULES.map(m => ({
       id: m.id === '·' ? '&middot;' : m.id,
-      label: m.path === '/' ? 'Return home' : `Visit ${m.name}`,
-      hint: m.path === '/' ? 'the collection' : `No. ${m.id} — ${m.desc}`,
+      label: m.path === '/' ? 'Return home' : `Open ${m.name}`,
+      hint: m.path === '/' ? 'the front door' : `No. ${m.id} · ${m.desc}`,
       run: () => nav(m.path),
       disabled: m.path === current.path,
     })).filter(i => !i.disabled);
     if (ACCT.enabled) {
       items.unshift(ACCT.user
-        ? { id: '&#9679;', label: 'Your account — ' + ACCT.user, hint: 'training synced on every device', run: acctGo }
-        : { id: '&#9679;', label: 'Create your FUNFLIX account', hint: 'free — your training, on every device', run: acctGo });
+        ? { id: '&#9679;', label: 'Your account · ' + ACCT.user, hint: 'synced on every device', run: acctGo }
+        : { id: '&#9679;', label: 'Sign in or create a free account', hint: 'your training on every device', run: acctGo });
     }
     if (window.OS_PALETTE_EXTRA) items.push(...window.OS_PALETTE_EXTRA);
     return items;
@@ -527,7 +559,7 @@
     palSel = Math.min(palSel, Math.max(0, palItems.length - 1));
     palList.innerHTML = palItems.length
       ? palItems.map((i, n) => `<div class="pal-item ${n === palSel ? 'sel' : ''}" data-n="${n}"><span class="pi">${i.id}</span><span>${i.label}</span><span class="ph">${i.hint || ''}</span></div>`).join('')
-      : '<div class="pal-empty">Regrettably, nothing matches. Try another word.</div>';
+      : '<div class="pal-empty">Nothing matches. Try another word.</div>';
   }
 
   function openPal() {

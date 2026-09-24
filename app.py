@@ -212,7 +212,9 @@ SAFE_NAMES.update({"abs": abs, "round": round, "pi": math.pi, "e": math.e})
 
 @app.route("/")
 def index():
-    return render_template("funflix.html")
+    # The Trainer is the front door (the Voice landing); the rest of the house
+    # is one tap away from its nav, its Apps sheet and its footer.
+    return render_template("home.html")
 
 @app.route("/calculator")
 def calculator():
