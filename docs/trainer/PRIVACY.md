@@ -1,4 +1,4 @@
-# THE GUARDIANS — data privacy & trust
+# THE GUARDIANS: data privacy & trust
 
 > Standing team, hired 2026-07-31 after a user found a privacy/trust bug that
 > **every existing team missed**. The Guardians own one question and never stop
@@ -32,22 +32,22 @@ held, what was fixed) + at least one new isolation/privacy regression test.
 
 ---
 
-## Retrospective — why the teams missed this (2026-07-31)
+## Retrospective: why the teams missed this (2026-07-31)
 
 **The bug (GD-1).** A signed-out visitor saw **"Restore last plan · 17 Jul"** on
 `/trainer`. Cause: peeking a sample program wrote it to `localStorage` as a plan
-(`demo:true`), and the restore affordance showed *any* stored plan — so a **sample
+(`demo:true`), and the restore affordance showed *any* stored plan, so a **sample
 masqueraded as the visitor's own saved data**. On a shared browser this reads as
-"whose data is this?" — a trust-destroying privacy smell, even though it is
+"whose data is this?", a trust-destroying privacy smell, even though it is
 device-local (no server cross-user leak occurred).
 
-**Why five teams missed it — named honestly:**
-- **QA** drove every flow **as a user who builds or logs a plan** — it seeded
+**Why five teams missed it, named honestly:**
+- **QA** drove every flow **as a user who builds or logs a plan**: it seeded
   state and asserted features worked. It never opened the app **cold and
   logged-out and asked "what do I see, and should I?"**. Its one relevant check
   (`demo_seeds_fresh_visitor`) actually *asserted the buggy behavior as correct*.
-- **The Red Team** hunted injection, DoS, and auth bypass (RT-1..9) — genuine
-  server-side threats — but treated `localStorage` as "the user's own device, out
+- **The Red Team** hunted injection, DoS, and auth bypass (RT-1..9), genuine
+  server-side threats, but treated `localStorage` as "the user's own device, out
   of scope." It never modelled the **shared-device / borrowed-laptop** user.
 - **Simulation** ran multi-month journeys for a **single persistent persona**, so
   the "sample seen by a different person" case never arose.
@@ -68,7 +68,7 @@ account. Regression coverage in `qa/privacy_qa.py` + `site_qa.py` (note, 2026-09
 
 ---
 
-## Audit — S3 isolation proof (2026-07-31)
+## Audit: S3 isolation proof (2026-07-31)
 
 Ran the full checklist. **Server-side isolation holds** and is proven by
 `tests/test_accounts.py` (two users' plans/logs/history stay separate; the
@@ -84,21 +84,21 @@ never leaks to a guest or a second account on a shared browser.
 
 ## Standing checklist (run cold, every sprint)
 
-- [ ] Open `/trainer` in a fresh, signed-out browser — is anything shown that
+- [ ] Open `/trainer` in a fresh, signed-out browser: is anything shown that
       implies saved/owned data? (restore tab, "synced", a name, logs)
 - [ ] Peek every sample path (`?sample`, `?sample=cut`, welcome CTAs, homepage
-      card) — confirm **nothing** is written to `localStorage`.
-- [ ] Seed account A, sign out, sign in as B on the same browser — confirm A's
+      card), and confirm **nothing** is written to `localStorage`.
+- [ ] Seed account A, sign out, sign in as B on the same browser, and confirm A's
       plan/logs/weights/history are gone before B's sync runs.
-- [ ] Hit `/api/sync`, `/api/history`, `/api/export`, `/api/profile` as B — confirm
+- [ ] Hit `/api/sync`, `/api/history`, `/api/export`, `/api/profile` as B, and confirm
       only B's data returns (server isolation tests green).
 - [ ] Confirm a guest can wipe all device-local Trainer data in one action.
 
 ## Open beat (Guardians backlog)
 - **Account creation should require email verification (OTP)** so accounts map to
-  a real, owned inbox — needs an owner mail-provider key (free tier). Build ready.
+  a real, owned inbox. It needs an owner mail-provider key (free tier). Build ready.
 - **Prove server-side isolation with tests** across sync/history/export/profile.
-- **Sign-in must be fully functional** for existing accounts — audit end to end.
+- **Sign-in must be fully functional** for existing accounts: audit end to end.
 
 ## 2026-09-25 whole-site evaluation: what the Guardians found, and what changed
 
@@ -124,6 +124,9 @@ reproduced locally with the in-memory account store. Fixed and locked by
    links leave the name out and say what they carry before sharing. The creed says
    "Never sell your data."
 8. Account endpoints send `Cache-Control: no-store`; security headers on every response.
+9. **The backup provider is named when it is live.** If `GROQ_API_KEY` is set, a plan or
+   check-in can fall back to Groq when Gemini is overloaded; the build and check-in notes
+   then name Groq too (rendered by the server from the real config, locked by a test).
 
 Still open for the owner: the Gemini key's billing tier decides whether Google may keep
 prompts (paid tier: it does not). Moving the Trainer's key to the paid tier would make

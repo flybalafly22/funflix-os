@@ -1132,7 +1132,8 @@ def version():
 
 @app.route("/trainer")
 def trainer():
-    return render_template("trainer.html")
+    # the privacy copy names every provider that can actually receive a plan request
+    return render_template("trainer.html", backup_ai=bool(GROQ_API_KEY))
 
 
 @app.route("/favicon.ico")

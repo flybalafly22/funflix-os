@@ -925,7 +925,7 @@
         <div class="go-row">
           <button type="button" class="co-ghost stp-back" data-to="2">← Back</button>
           <button type="submit" class="os-btn-primary" id="buildBtn">Build my program</button>
-          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. To write the plan, your answers (first name only) go to our AI provider, Google Gemini, and are not stored on our server. On its free service Google may keep them to improve its models, so leave out anything you wouldn't want shared. The plan itself lives in this browser and your PDF, unless you turn on Sync.
+          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. To write the plan, your answers (first name only) go to our AI provider, Google Gemini, and are not stored on our server.{% if backup_ai %} If Gemini is overloaded, the same answers go to our backup provider, Groq, instead.{% endif %} On its free service Google may keep them to improve its models, so leave out anything you wouldn't want shared. The plan itself lives in this browser and your PDF, unless you turn on Sync.
             <button type="button" class="peek" id="peekBtn">Just looking? Preview a sample program →</button></div>
         </div>
         </div>
@@ -992,7 +992,7 @@
 
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="checkinBtn">Recalibrate my program</button>
-          <div class="go-note">Your check-in, plan and log summary go to our AI provider (Google Gemini) to recalibrate; nothing is stored on our server. Your measured trend beats any formula. The Trainer re-anchors calories and volume on what actually happened, and returns a full revised program.</div>
+          <div class="go-note">Your check-in, plan and log summary go to our AI provider (Google Gemini{% if backup_ai %}, or our backup, Groq, when Gemini is overloaded{% endif %}) to recalibrate; nothing is stored on our server. Your measured trend beats any formula. The Trainer re-anchors calories and volume on what actually happened, and returns a full revised program.</div>
         </div>
       </div>
     </form>

@@ -113,3 +113,11 @@ def test_email_with_markup_is_rejected():
 def test_favicon_is_served():
     r = A.app.test_client().get("/favicon.ico")
     assert r.status_code == 200 and r.data[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_backup_ai_provider_is_disclosed_only_when_switched_on(monkeypatch):
+    c = A.app.test_client()
+    monkeypatch.setattr(A, "GROQ_API_KEY", "")
+    assert b"Groq" not in c.get("/trainer").data
+    monkeypatch.setattr(A, "GROQ_API_KEY", "test-key")
+    assert b"our backup provider, Groq" in c.get("/trainer").data
