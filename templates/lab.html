@@ -4,9 +4,6 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>The Study &middot; Funflix</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/os.css">
   <style>
     .stage {
@@ -171,9 +168,11 @@
   <div class="stage">
 
     <div class="mod-head fade-rise">
-      <div class="mod-over">Bureau No. VI</div>
+      <div class="mod-over">Also from Funflix &middot; a practice data set</div>
       <h1 class="mod-title">The Study</h1>
-      <div class="mod-sub">a bio-analytics dossier on sports nutrition that answers back</div>
+      <div class="mod-sub">A data-analysis demo on simulated supplement data, with an analyst that answers back.</div>
+    </div>
+    <div class="sim-banner fade-rise-d1" role="note"><b>Simulated data.</b> These 1,000 &ldquo;participants&rdquo; were generated for analysis practice. Nothing here is evidence about real supplements. For what the research actually says, see <a href="/#act-facts">the facts on the home page</a>.
     </div>
 
     <!-- vitals -->
@@ -182,8 +181,8 @@
     <!-- Finding 1 -->
     <section class="desk fade-rise-d1">
       <div class="find-kicker"><span class="fk-no">Finding I</span> The headline</div>
-      <h2 class="find-title">The supplement is the whole story.</h2>
-      <p class="find-body">Across <b id="f1n">1,000</b> participants, strength gains separate almost perfectly by regimen. The combined <em>&ldquo;Both&rdquo;</em> protocol leads, creatine sits in the middle, and the mass gainer trails far behind. It is a weight product, not a strength one.</p>
+      <h2 class="find-title">In this simulated data, the regimen sets the result.</h2>
+      <p class="find-body">Across <b id="f1n">1,000</b> simulated participants, strength gains separate almost perfectly by regimen. The combined <em>&ldquo;Both&rdquo;</em> protocol leads, creatine sits in the middle, and the mass gainer trails far behind. It is a weight product, not a strength one.</p>
       <p class="find-body">The small number beside each bar is the <b>coefficient of variation</b> (CoV): the spread relative to the average. A lower CoV means more <em>consistent</em> results from person to person, which answers the dataset's own challenge: which regimen gives reliable strength spikes regardless of who takes it.</p>
       <div class="chart-wrap">
         <div class="chart-title">Mean strength gain by supplement &middot; bar label shows consistency (CoV)</div>
@@ -206,7 +205,7 @@
     <!-- Finding 3 -->
     <section class="desk">
       <div class="find-kicker"><span class="fk-no">Finding III</span> The non-story</div>
-      <h2 class="find-title">Who you are barely moves the needle.</h2>
+      <h2 class="find-title">Here, who you are barely moves the needle (by design).</h2>
       <p class="find-body">Age, gender, cycle length and starting weight are all but uncorrelated with strength gain. Every correlation sits within a hair of <b>zero</b>. Average strength gain is essentially identical across genders, exactly as you'd expect from a field that was assigned at random.</p>
       <p class="find-body">A correlation near zero means the two numbers move independently: knowing someone's age tells you nothing useful about their result. The bars below are drawn on a wide &minus;0.2 to +0.2 scale so you can see just how flat they really are.</p>
       <div class="chart-wrap">
@@ -564,7 +563,7 @@ function addBubble(role, text) {
 }
 
 // seed greeting
-addBubble('assistant', "I've read the full study. Ask me to unpack any chart, defend a finding, or slice the data a different way. What's on your mind?");
+addBubble('assistant', "I've read the full brief on this simulated data set. Ask me to unpack any chart, defend a finding, or slice the data a different way. What's on your mind?");
 
 async function ask(q) {
   q = (q || input.value).trim();

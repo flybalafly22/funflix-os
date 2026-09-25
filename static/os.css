@@ -458,3 +458,13 @@ html { overflow-x: clip; }
   .hud-apps .apps-label, .hud-apps .apps-chev { display: none; }
   .hud-apps .apps-grid { display: block; width: 16px; height: 16px; }
 }
+
+/* ── honest labels on the house's other apps (2026-09-25 evaluation) ── */
+.sim-banner { width: min(880px, 100%); margin: 0 auto 26px; padding: 14px 18px; border-radius: 16px;
+  border: 1px solid var(--amber-line); background: var(--amber-bg); color: var(--amber-ink-2);
+  font-family: var(--sans); font-size: 14px; line-height: 1.55; text-align: left; }
+.sim-banner b { color: var(--amber-ink); }
+.sim-banner a { color: inherit; text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+.wire-note { margin-top: 18px; padding-top: 12px; border-top: 1px dashed var(--rule-2);
+  font-family: var(--sans); font-size: 12.5px; line-height: 1.5; color: var(--gray-2); }
+

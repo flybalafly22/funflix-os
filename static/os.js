@@ -8,7 +8,7 @@
   const MODULES = [
     { id: '·',    name: 'Home',        desc: 'the front door',                     path: '/' },
     { id: 'VIII', name: 'The Trainer', desc: 'your program, your log, your coach', path: '/trainer', flag: true },
-    { id: 'VI',   name: 'The Study',   desc: 'supplement evidence, graded',        path: '/study' },
+    { id: 'VI',   name: 'The Study',   desc: 'a data demo on simulated supplements', path: '/study' },
     { id: 'I',    name: 'Compute',     desc: 'a precise scientific calculator',    path: '/calculator' },
     { id: 'III',  name: 'The Press',   desc: 'a newsroom run by one machine',      path: '/journalist' },
     { id: 'II',   name: 'Synthesis',   desc: 'a studio for making jokes',          path: '/meme' },

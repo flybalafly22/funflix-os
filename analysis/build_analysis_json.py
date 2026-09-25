@@ -1,6 +1,6 @@
 
 """
-Build data/analysis.json — the single source of truth the dashboard + chatbot read.
+Build data/analysis.json: the single source of truth the dashboard + chatbot read.
 Runs offline (needs pandas/sklearn); production only reads the JSON (no heavy deps).
 """
 import json
@@ -48,7 +48,7 @@ by_benefit = sorted(
 corr = df[["Age", "Weeks", "Initial_WT", "WT_Change", "Strength_Gain"]].corr()["Strength_Gain"]
 correlations = {k: r2(v) for k, v in corr.drop("Strength_Gain").items()}
 
-# ── modeling (profile inputs only — no post-cycle leakage) ───────────────────
+# ── modeling (profile inputs only; no post-cycle leakage) ───────────────────
 num_feats, cat_feats = ["Age", "Weeks", "Initial_WT"], ["Gender", "Supplement"]
 X, y = df[num_feats + cat_feats], df["Strength_Gain"]
 pre = ColumnTransformer([("cat", OneHotEncoder(handle_unknown="ignore"), cat_feats)],
@@ -86,7 +86,7 @@ model_tbl = "\n".join(f"  - {m['name']}: MAE={m['mae']}pp, R2={m['r2']}" for m i
 imp_tbl = "\n".join(f"  - {i['feature']}: {i['value']}" for i in importance)
 ben_tbl = "\n".join(f"  - {b['name']}: n={b['n']}, mean strength={b['mean']}%" for b in by_benefit)
 
-digest = f"""DATASET: Supplement Impact — {len(df)} synthetic participants on sports-nutrition regimens.
+digest = f"""DATASET: Supplement Impact: {len(df)} synthetic participants on sports-nutrition regimens.
 Columns: Age (18-65), Gender (Male/Female/Non-Binary), Supplement (Creatine Monohydrate / Mass Gainer / Both),
 Weeks (4-24 cycle length), Initial_WT & Final_WT (kg), Strength_Gain (% increase), Primary_Benefit (self-report).
 Derived: WT_Change = Final_WT - Initial_WT (kg). Data is clean: no missing values, no duplicate IDs,
@@ -100,10 +100,10 @@ WEIGHT vs STRENGTH SPLIT: Mass Gainer drives weight (~{[s for s in by_supp if s[
 little strength; Creatine drives strength with almost no weight change
 (~{[s for s in by_supp if s['name']=='Creatine Monohydrate'][0]['wt_mean']}kg); 'Both' leads on both axes.
 
-STRENGTH GAIN BY GENDER (flat — gender is randomly assigned noise):
+STRENGTH GAIN BY GENDER (flat: gender is randomly assigned noise):
 {chr(10).join(f"  - {g['name']}: {g['mean']}%" for g in by_gender)}
 
-CORRELATIONS with Strength_Gain (all near zero — demographics barely matter):
+CORRELATIONS with Strength_Gain (all near zero: demographics barely matter):
 {chr(10).join(f"  - {k}: {v}" for k, v in correlations.items())}
 
 STRENGTH GAIN BY PRIMARY_BENEFIT (all ~16%, so the self-reported benefit does NOT predict strength):
@@ -131,5 +131,5 @@ out = {
 }
 with open("data/analysis.json", "w") as f:
     json.dump(out, f)
-print(f"Wrote data/analysis.json — {len(records)} records, best model {best['name']} "
+print(f"Wrote data/analysis.json: {len(records)} records, best model {best['name']} "
       f"(MAE {best['mae']}, R2 {best['r2']})")

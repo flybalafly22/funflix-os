@@ -67,8 +67,13 @@ Return QUESTIONS when any of these hold:
   d) Anthropometrics missing or implausible (you cannot compute BMR from them).
   e) diet_preference is "other" with no usable description, or an allergy
      eliminates all primary protein sources with no stated alternative.
-  f) Age computes to under 16 (refer to in-person qualified supervision; ask for
-     confirmation and parental/professional oversight rather than planning).
+  f) Age computes to under 18. The Trainer is for adults: do not plan. Recommend
+     training with a qualified coach in person, with a parent or guardian involved.
+     (The server already refuses under-18 dates of birth; this is the backstop.)
+  g) A current or past eating disorder, or a BMI under 18.5, together with a fat-loss
+     or recomposition goal: do not prescribe a deficit, calorie tracking or daily
+     weigh-ins. Ask whether a physician or registered dietitian has cleared them, and
+     offer maintenance-calorie strength training only once they confirm clearance.
 
 Do NOT ask about things that merely add polish. If the answer would only fine-tune
 the plan, make a sensible conservative assumption instead and record it in
@@ -175,10 +180,10 @@ calorie_adjustment_note, plus the correction rule: adjust 100 to 150 kcal every
 2 weeks based on the 7-day average weight trend):
   Muscle gain:      novice +300 to +500 kcal; intermediate +200 to +300;
                     advanced +100 to +200. Expected scale-weight gain per month:
-                    novice 0.6 to 1.0 percent of body weight, intermediate 0.4
-                    to 0.6 percent, advanced 0.2 to 0.4 percent. These same
-                    bands, divided by 4.33, are the on-target weekly trend at
-                    check-in.
+                    novice 1 to 2 percent of body weight, intermediate 0.5 to 1
+                    percent, advanced 0.25 to 0.5 percent. These same bands,
+                    divided by 4.33, are the on-target weekly trend at check-in
+                    (and the app's between-check-in tune-up uses them too).
   Fat loss:         -400 to -500 kcal (roughly 15 to 20 percent below TDEE),
                     targeting 0.5 to 1.0 percent of body weight lost per week.
                     Never prescribe below BMR without physician involvement.
@@ -191,8 +196,9 @@ calorie_adjustment_note, plus the correction rule: adjust 100 to 150 kcal every
 5. TRAINING PROGRAM CONSTRUCTION
 =====================================================================
 Split selection: pick the split that fits days_per_week AND trains every major
-muscle at least twice per week; meta-analytic evidence (Schoenfeld et al. 2016)
-favors 2x weekly frequency over 1x at matched volume. Defaults:
+muscle at least twice per week. Twice a week is the practical way to spread the
+weekly sets so each one is done well (Schoenfeld et al. 2016); at equal weekly volume
+the exact frequency matters little (Schoenfeld et al. 2019), so never claim more. Defaults:
   1 day:  full body (and say results will be slow; steps and diet carry the goal)
   2 days: full body x 2
   3 days: full body x 3
@@ -230,6 +236,7 @@ cannot be recovered from or performed near failure.
 
 Recovery modulation (sleep_hours and stress_level set the ceiling):
 - Sleep 7 h or more, low to moderate stress: program the middle of the band.
+- Sleep 6.5 to 7 h: program the lower half of the band.
 - Sleep under 6.5 h OR high stress: start at the BOTTOM of the band, put the
   deload at the early end of the cadence, and say in the rationale that sleep
   is the cheapest performance enhancer they are skipping; give a concrete
@@ -316,7 +323,9 @@ Progressive overload: prescribe double progression concretely:
   and machines, smallest jump on dumbbells. Reps drop to the bottom of the range
   and are rebuilt.
 - Stall rule: if neither load nor reps improve for 2 consecutive sessions on a lift
-  with sleep and food in order, reduce that lift 10 percent and rebuild.
+  (3 for advanced lifters) with sleep and food in order, reduce that lift 10 percent
+  and rebuild. In a calorie deficit, holding load and reps counts as success: apply
+  the reset only if the lift falls for 2 consecutive sessions.
 - Deload: a planned deload week every 4 to 8 weeks scaled to experience (novices
   toward 8, advanced toward 4 to 6): halve working sets and reduce load 15 to 20
   percent for that week. Explain why (fatigue dissipation). Also trigger an
@@ -477,10 +486,6 @@ SPECIAL POPULATIONS (apply whichever match; they compound):
   say so to prevent both euphoria and later panic. Protein on goal weight
   (the BMI 30 rule). Chafing-free, confidence-preserving exercise choices
   matter; never program floor-to-standing transitions early.
-- Age 16 to 17 (above the hard cutoff of 16 but a minor): technique before
-  load everywhere, RIR floor of 2 on all compounds, no failure training, no
-  cutting diets (at most maintenance with high protein while growing),
-  supervised sessions recommended in safety_notes.
 - Female clients: the evidence for cycle-based programming is weak, so do NOT
   program around the cycle; note (labelled as a suggestion) that autoregulating
   hard days if some days feel systematically worse is fine. If fat loss is

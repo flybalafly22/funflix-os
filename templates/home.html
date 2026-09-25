@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Trainer &middot; a coach who gives it to you straight</title>
-<meta name="description" content="Free, evidence-based training plans that fit the life you actually have. Five questions, then a complete program: every session, every set, your calories and protein, and the reason for each.">
+<meta name="description" content="Free, evidence-based training plans that fit the life you actually have. Five questions and four body facts, then a complete plan: every session, every set, your calories and protein, and the reason for each.">
 <meta name="theme-color" content="#2B3BFF">
 <meta property="og:title" content="The Trainer">
 <meta property="og:description" content="A coach who gives it to you straight. Free, evidence-based training plans built around your real week.">
@@ -816,6 +816,7 @@ body.fade-out{opacity:0}
 .plan-real{margin-top:18px;font-size:.95rem;line-height:1.55;color:var(--ink-2)}
 .plan-real a{display:inline-block;white-space:nowrap;margin:6px 18px 0 0}
 .plan-real a.alt{color:var(--ink-2);font-weight:500}
+.plan-safe{margin-top:14px;font-size:.84rem;line-height:1.5;color:var(--ink-3);max-width:44ch}
 
 /* --- footer: the rest of the house, as real links --- */
 .foot-apps a{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-2);border:1px solid var(--line);
@@ -867,6 +868,51 @@ body.fade-out{opacity:0}
     </div>
   </section>
 
+  <!-- MARQUEE -->
+  <section class="marquee f-night" id="act-marq" aria-hidden="true">
+    <div class="marq-track">
+      <span class="marq-set">Show up.&nbsp; Beat one number.&nbsp; Eat your <span class="o">protein</span>.&nbsp; Sleep.&nbsp; Lift.&nbsp; Repeat.&nbsp; No fads.&nbsp; Just <span class="o">reps</span>.&nbsp;</span>
+      <span class="marq-set">Show up.&nbsp; Beat one number.&nbsp; Eat your <span class="o">protein</span>.&nbsp; Sleep.&nbsp; Lift.&nbsp; Repeat.&nbsp; No fads.&nbsp; Just <span class="o">reps</span>.&nbsp;</span>
+    </div>
+  </section>
+
+  <!-- THE FACTS: relatable, evidence-based, builds trust -->
+  <section class="act wrap facts" id="act-facts">
+    <p class="k" data-rv><span>Fact check</span> what actually works</p>
+    <h2 class="sec-t" data-rv data-d="1">Most of it is boring.<br>That is the good news.</h2>
+    <p class="lede" data-rv data-d="2" style="margin-top:26px">There is no secret. Results come from a short list of dull, well-proven habits you can keep on a normal week. These are the rules the engine inside The Trainer is built on, with the research behind them.</p>
+    <div class="facts-grid">
+      <div class="fact" data-rv><span class="fnum">01</span><h3>Twice a week is the reliable default.</h3><p>Train each muscle at least twice a week. Splitting the week&rsquo;s sets over two days makes each one easier to do well; at equal volume the exact frequency matters little. So two or three days get full-body sessions, four get upper and lower, and never a one-muscle-a-day bro split.</p><span class="fsrc">Schoenfeld, Ogborn &amp; Krieger, 2016; Schoenfeld, Grgic &amp; Krieger, 2019</span></div>
+      <div class="fact" data-rv data-d="1"><span class="fnum">02</span><h3>Protein is the lever you are not pulling.</h3><p>The benefit plateaus around 1.6 grams per kilo of bodyweight a day, with 2.2 as the upper end. Aim higher when you are cutting. At 75 kg that is about 120 grams, every day.</p><span class="fsrc">Morton et al., 2018, British Journal of Sports Medicine (49 trials); Helms et al., 2014 (cutting)</span></div>
+      <div class="fact" data-rv data-d="2"><span class="fnum">03</span><h3>Soreness is not the scoreboard.</h3><p>Aching mostly means the work was new or more than usual; it says little about growth. The real scoreboard is double progression. When every set reaches the top of the rep range, the weight goes up: 2.5 kg on upper-body barbell lifts, 5 kg on lower, less on dumbbells. Your log tells you the next number.</p><span class="fsrc">How the Trainer&rsquo;s log sets your next target</span></div>
+      <div class="fact" data-rv><span class="fnum">04</span><h3>You will not get bulky by accident.</h3><p>Even a beginner eating a surplus on purpose gains about 1 to 2 percent of bodyweight a month, and not all of it is muscle. Muscle is slow and stubborn. Nobody wakes up huge.</p><span class="fsrc">The gain rate the engine plans for, then checks at week 4</span></div>
+      <div class="fact" data-rv data-d="1"><span class="fnum">05</span><h3>No zone burns fat off you. A deficit does.</h3><p>Fat comes off through a steady deficit, about 400 to 500 kcal a day under what you burn, which is roughly half a kilo a week. Lift to keep the muscle, walk to spend energy, and let the food do the maths.</p><span class="fsrc">Mifflin-St Jeor energy estimate, corrected every two weeks from your 7-day average</span></div>
+      <div class="fact" data-rv data-d="2"><span class="fnum">06</span><h3>Sleep is the cheapest supplement.</h3><p>Under six and a half hours a night, the plan starts you at the bottom of your volume range. Of everything in the tubs, creatine (3 to 5 g a day) has the strongest evidence. Fat burners and BCAAs don&rsquo;t make the list.</p><span class="fsrc">ISSN position stand on creatine, Kreider et al., 2017</span></div>
+    </div>
+    <p class="facts-foot" data-rv>Beat one number at a time. That is the whole method. The plan shows its working, so you never have to remember any of this.</p>
+    
+  </section>
+
+  <!-- THE EXCUSE WALL: relatable, funny, answers real objections -->
+  <section class="excuse f-night" id="act-excuse">
+    <div class="wrap">
+      <p class="k" data-rv><span>The excuse wall</span> <em class="k-tail">we have heard them all</em></p>
+      <h2 class="sec-t" data-rv data-d="1">Every excuse you have ever used.<br>Answered.</h2>
+      <p class="lede" data-rv data-d="2">No judgement. We have used most of these ourselves. Tap one and see what the coach says back.</p>
+      <div class="xgrid" data-rv data-d="2">
+      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I'll start Monday.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Which Monday? This one works. Ninety seconds, right now.</span></span><span class="tap">tap for the comeback</span></button>
+      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I don't have time.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Give me three 45-minute slots a week. We build around those, not around a fantasy.</span></span><span class="tap">tap for the comeback</span></button>
+      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;The gym is scary.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Nobody is watching you. They are watching themselves in the mirror.</span></span><span class="tap">tap for the comeback</span></button>
+      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I don't want to get bulky.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Not by accident. People spend years trying on purpose. Relax.</span></span><span class="tap">tap for the comeback</span></button>
+      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;My membership is basically a monthly donation.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Then let's get your money's worth. Starting with a plan.</span></span><span class="tap">tap for the comeback</span></button>
+      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I don't even know what to do in there.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">That's my job. Five questions and you'll see your first day, move by move.</span></span><span class="tap">tap for the comeback</span></button>
+      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I missed a week. It's ruined.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">It isn't. One week is a rounding error. Monday is just Monday.</span></span><span class="tap">tap for the comeback</span></button>
+      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I need a better pre-workout first.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Start with sleep. It's free. If you still want a boost, the plan doses plain caffeine, not a mystery blend.</span></span><span class="tap">tap for the comeback</span></button>
+      </div>
+      <p class="xcount" id="xcount" aria-live="polite"><b>0</b> of 8 excuses retired</p>
+    </div>
+  </section>
+
   <!-- CRUSH: the signature -->
   <section id="crush">
     <div class="crush-stage">
@@ -875,7 +921,7 @@ body.fade-out{opacity:0}
         <span class="pin" style="--r:-16deg">Detox tea</span>
         <span class="pin" style="--r:12deg">Waist trainers</span>
         <span class="pin" style="--r:-9deg">Fat-burner pills</span>
-        <span class="pin" style="--r:15deg">30-day shred</span>
+        <span class="pin" style="--r:15deg">Crash challenges</span>
         <span class="pin" style="--r:-13deg">"Toning"</span>
         <span class="pin" style="--r:10deg">Bro science</span>
       </div>
@@ -892,66 +938,6 @@ body.fade-out{opacity:0}
         <h2 class="big">All of it. Gone.</h2>
         <p class="lede">What is left is the boring stuff that actually works. We load that straight onto your bar, next.</p>
       </div>
-    </div>
-  </section>
-
-  <!-- MANIFESTO -->
-  <section class="act wrap manifesto f-cobalt" id="act-code">
-    <p class="k" data-rv><span>04</span> The code</p>
-    <h2 class="big kin" data-rv>
-      <span class="ln"><span>No fads.</span></span>
-      <span class="ln"><span>No fear-mongering.</span></span>
-      <span class="ln"><span>No before-and-after lies.</span></span>
-      <span class="ln open"><span>Just <span class="uline">the work<svg viewBox="0 0 300 14" preserveAspectRatio="none"><path class="rough" d="M4 9 C 70 3, 150 12, 220 6 S 285 4, 296 8"/></svg></span>.</span></span>
-    </h2>
-    <div class="creed" data-rv data-d="2">
-      <div class="creed-col"><span class="creed-h">We will never</span><ul><li>Shame you into a session.</li><li>Sell you a fat-burner.</li><li>Call soreness progress.</li><li>Lock the plan behind a paywall.</li></ul></div>
-      <div class="creed-col"><span class="creed-h">We always will</span><ul><li>Say when it is "it depends".</li><li>Fit the plan to your real life.</li><li>Show you the reasoning.</li><li>Never sell your data.</li></ul></div>
-    </div>
-  </section>
-
-  <!-- MARQUEE -->
-  <section class="marquee f-night" id="act-marq" aria-hidden="true">
-    <div class="marq-track">
-      <span class="marq-set">Show up.&nbsp; Beat one number.&nbsp; Eat your <span class="o">protein</span>.&nbsp; Sleep.&nbsp; Lift.&nbsp; Repeat.&nbsp; No fads.&nbsp; Just <span class="o">reps</span>.&nbsp;</span>
-      <span class="marq-set">Show up.&nbsp; Beat one number.&nbsp; Eat your <span class="o">protein</span>.&nbsp; Sleep.&nbsp; Lift.&nbsp; Repeat.&nbsp; No fads.&nbsp; Just <span class="o">reps</span>.&nbsp;</span>
-    </div>
-  </section>
-
-  <!-- THE FACTS: relatable, evidence-based, builds trust -->
-  <section class="act wrap facts" id="act-facts">
-    <p class="k" data-rv><span>Fact check</span> what actually works</p>
-    <h2 class="sec-t" data-rv data-d="1">Most of it is boring.<br>That is the good news.</h2>
-    <p class="lede" data-rv data-d="2" style="margin-top:26px">There is no secret. Results come from a short list of dull, well-proven habits you can keep on a normal week. These are the rules the engine inside The Trainer is built on, with the research behind them.</p>
-    <div class="facts-grid">
-      <div class="fact" data-rv><span class="fnum">01</span><h3>Twice a week beats once, every time.</h3><p>Train each muscle at least twice a week. So two or three days get full-body sessions and four get upper and lower. Never a one-muscle-a-day bro split. The plan is built on the days you can actually protect.</p><span class="fsrc">Schoenfeld, Ogborn &amp; Krieger, 2016 (training frequency meta-analysis)</span></div>
-      <div class="fact" data-rv data-d="1"><span class="fnum">02</span><h3>Protein is the lever you are not pulling.</h3><p>The benefit plateaus around 1.6 grams per kilo of bodyweight a day, with 2.2 as the upper end. Aim higher when you are cutting. At 75 kg that is about 120 grams, every day.</p><span class="fsrc">Morton et al., 2018, British Journal of Sports Medicine (49 trials)</span></div>
-      <div class="fact" data-rv data-d="2"><span class="fnum">03</span><h3>Soreness is not the scoreboard.</h3><p>Aching only means a movement was new. The real scoreboard is double progression. When every set reaches the top of the rep range, the weight goes up: 2.5 kg on upper-body lifts, 5 kg on lower. Your log tells you the next number.</p><span class="fsrc">How the Trainer&rsquo;s log sets your next target</span></div>
-      <div class="fact" data-rv><span class="fnum">04</span><h3>You will not get bulky by accident.</h3><p>Even a beginner eating in a surplus on purpose gains about 0.6 to 1 percent of bodyweight a month, and not all of it is muscle. Muscle is slow and stubborn. Nobody wakes up huge.</p><span class="fsrc">The gain rate the engine plans for, then checks at week 4</span></div>
-      <div class="fact" data-rv data-d="1"><span class="fnum">05</span><h3>There is no fat-burning zone.</h3><p>Fat comes off through a deficit, about 400 to 500 kcal under what you burn, at 0.5 to 1 percent of bodyweight a week. Lift to keep the muscle, walk to spend energy, and let the food do the maths.</p><span class="fsrc">Mifflin-St Jeor energy estimate, corrected every two weeks from your 7-day average</span></div>
-      <div class="fact" data-rv data-d="2"><span class="fnum">06</span><h3>Sleep is the cheapest supplement.</h3><p>Under six and a half hours a night, the plan starts you at the bottom of your volume range. Of everything in the tubs, creatine (3 to 5 g a day) has the strongest evidence. Fat burners and BCAAs don&rsquo;t make the list.</p><span class="fsrc">ISSN position stand on creatine, Kreider et al., 2017</span></div>
-    </div>
-    <p class="facts-foot" data-rv>Beat one number at a time. That is the whole method. The plan shows its working, so you never have to remember any of this.</p>
-    <p class="facts-more" data-rv><a href="/study" data-nav>Want the raw evidence? The Study grades every supplement on the shelf <span aria-hidden="true">&rarr;</span></a></p>
-  </section>
-
-  <!-- THE EXCUSE WALL: relatable, funny, answers real objections -->
-  <section class="excuse f-night" id="act-excuse">
-    <div class="wrap">
-      <p class="k" data-rv><span>The excuse wall</span> <em class="k-tail">we have heard them all</em></p>
-      <h2 class="sec-t" data-rv data-d="1">Every excuse you have ever used.<br>Answered.</h2>
-      <p class="lede" data-rv data-d="2">No judgement. We have used most of these ourselves. Tap one and see what the coach says back.</p>
-      <div class="xgrid" data-rv data-d="2">
-      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I'll start Monday.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Which Monday? This one works. Ninety seconds, right now.</span></span><span class="tap">tap for the comeback</span></button>
-      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I don't have time.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">You have three forty-minute slots a week. We build around those, not around a fantasy.</span></span><span class="tap">tap for the comeback</span></button>
-      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;The gym is scary.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Nobody is watching you. They are watching themselves in the mirror.</span></span><span class="tap">tap for the comeback</span></button>
-      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I don't want to get bulky.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">You won't. People spend years trying on purpose. Relax.</span></span><span class="tap">tap for the comeback</span></button>
-      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;My membership is basically a monthly donation.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">Then let's get your money's worth. Starting with a plan.</span></span><span class="tap">tap for the comeback</span></button>
-      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I don't even know what to do in there.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">That's literally my job. Five questions and you'll know every move.</span></span><span class="tap">tap for the comeback</span></button>
-      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I missed a week. It's ruined.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">It isn't. One week is a rounding error. Monday is just Monday.</span></span><span class="tap">tap for the comeback</span></button>
-      <button class="xc" type="button" aria-pressed="false"><span class="xq"><span class="who">you, probably</span><span class="t">&ldquo;I need a better pre-workout first.&rdquo;</span></span><span class="xa"><span class="who">the coach</span><span class="t">You need sleep. It's free and it works better.</span></span><span class="tap">tap for the comeback</span></button>
-      </div>
-      <p class="xcount" id="xcount" aria-live="polite"><b>0</b> of 8 excuses retired</p>
     </div>
   </section>
 
@@ -1025,7 +1011,7 @@ body.fade-out{opacity:0}
     <p class="k" data-rv><span>03</span> Your draft</p>
     <h2 class="sec-t" data-rv data-d="1">Drafted. Not templated.</h2>
     <div class="plan-two">
-      <div class="plan-copy" data-rv><p class="said">Every line has a reason.</p><p id="proofLead">Your split comes from your days. Your rep ranges from your goal. How hard I push, from your experience. Change an answer above and this rewrites itself.</p><p class="plan-real">This is day one, drafted from the same rules as the real engine. Want to see a finished program before you start? <a href="/trainer?sample" data-nav>Read a complete one it wrote <span aria-hidden="true">&rarr;</span></a> <a class="alt" href="/trainer?sample=cut" data-nav>Or a fat-loss one <span aria-hidden="true">&rarr;</span></a></p></div>
+      <div class="plan-copy" data-rv><p class="said">Every line has a reason.</p><p id="proofLead">Your split comes from your days. Your rep ranges from your goal. How hard I push, from your experience. Change an answer above and this rewrites itself.</p><p class="plan-real">This is day one, sketched from a simplified version of the engine&rsquo;s rules. Want to see a finished program before you start? <a href="/trainer?sample" data-nav>Read a complete one it wrote <span aria-hidden="true">&rarr;</span></a> <a class="alt" href="/trainer?sample=cut" data-nav>Or a fat-loss one <span aria-hidden="true">&rarr;</span></a></p><p class="plan-safe">A sample first day, not medical advice. The Trainer checks your age, health and injuries before it writes your real plan, and it&rsquo;s for adults 18 and over.</p></div>
       <div class="spec" id="specCard" data-rv data-d="1"></div>
     </div>
   </section>
@@ -1035,7 +1021,7 @@ body.fade-out{opacity:0}
     <p class="k" data-rv><span aria-hidden="true">↳</span> then the handoff</p>
     <h2 class="sec-t" data-rv data-d="1">Open the app. It already knows you.</h2>
     <div class="two" style="margin-top:clamp(36px,5vw,60px)">
-      <div data-rv><p class="said" style="margin-bottom:16px">The session walks in with you.</p><p class="lede">Everything you told me carries into The Trainer: your name, goal, level, kit and days are already filled in. Add four body facts (height, weight, age, sex) so it can do the maths. Then it writes the whole program: every session, every set, your calories and protein, and the reason for each.</p></div>
+      <div data-rv><p class="said" style="margin-bottom:16px">The session walks in with you.</p><p class="lede">Everything you told me carries into The Trainer: your name, goal, level, kit and days are already filled in. Add four body facts (height, weight, date of birth, sex) so it can do the maths. Then it writes the whole program: every session, every set, your calories and protein, and the reason for each.</p></div>
       <div class="carry" data-rv data-d="1">
         <div class="carry-hd"><span>Carried into The Trainer</span><span class="arrow">→</span></div>
         <div class="carry-body">
@@ -1048,6 +1034,21 @@ body.fade-out{opacity:0}
         <div class="carry-foot"><span class="left">Opens <b>The Trainer</b> with everything you told me already filled in. Your answers ride along in this tab only. Nothing is sent anywhere until you press Build.</span>
           <button class="btn hot open" id="openBtn">Open your Trainer <span aria-hidden="true">→</span></button></div>
       </div>
+    </div>
+  </section>
+
+  <!-- MANIFESTO -->
+  <section class="act wrap manifesto f-cobalt" id="act-code">
+    <p class="k" data-rv><span>04</span> The code</p>
+    <h2 class="big kin" data-rv>
+      <span class="ln"><span>No fads.</span></span>
+      <span class="ln"><span>No fear-mongering.</span></span>
+      <span class="ln"><span>No before-and-after lies.</span></span>
+      <span class="ln open"><span>Just <span class="uline">the work<svg viewBox="0 0 300 14" preserveAspectRatio="none"><path class="rough" d="M4 9 C 70 3, 150 12, 220 6 S 285 4, 296 8"/></svg></span>.</span></span>
+    </h2>
+    <div class="creed" data-rv data-d="2">
+      <div class="creed-col"><span class="creed-h">We will never</span><ul><li>Shame you into a session.</li><li>Sell you a fat-burner.</li><li>Call soreness progress.</li><li>Lock the plan behind a paywall.</li></ul></div>
+      <div class="creed-col"><span class="creed-h">We always will</span><ul><li>Say when it is "it depends".</li><li>Fit the plan to your real life.</li><li>Show you the reasoning.</li><li>Never sell your data.</li></ul></div>
     </div>
   </section>
 
@@ -1069,7 +1070,7 @@ body.fade-out{opacity:0}
         <a class="flag" href="/trainer" data-nav>The Trainer</a><a href="/study" data-nav>The Study</a><a href="/calculator" data-nav>Compute</a><a href="/journalist" data-nav>The Press</a><a href="/meme" data-nav>Synthesis</a><a href="/game" data-nav>Flyuserfly</a><a href="/play/the-fly" data-nav>The Fly</a><a href="/play/city-game" data-nav>Costa Vista</a>
       </nav>
     </div>
-    <div class="foot-note"><button class="totop" id="toTop">&uarr; Back to top</button><span>The Trainer by Funflix &middot; free to use</span><span>No account needed. Your plan and logs are stored in this browser unless you choose to sync.</span></div>
+    <div class="foot-note"><button class="totop" id="toTop">&uarr; Back to top</button><span>The Trainer by Funflix &middot; free to use &middot; for adults 18 and over &middot; coaching guidance, not medical advice</span><span>No account needed. Your plan and logs are stored in this browser unless you choose to sync.</span></div>
   </footer>
 
 </main>
@@ -1109,7 +1110,7 @@ body.fade-out{opacity:0}
     <button class="sheet-acct" type="button" data-acct>Sign in or create a free account</button>
     <p class="sheet-sub">Also from Funflix</p>
     <div class="sheet-grid">
-      <a href="/study" data-nav><b>The Study</b><span>Supplement evidence, graded, with an analyst</span></a>
+      <a href="/study" data-nav><b>The Study</b><span>A data-analysis demo on simulated supplement data</span></a>
       <a href="/calculator" data-nav><b>Compute</b><span>A precise scientific calculator</span></a>
       <a href="/journalist" data-nav><b>The Press</b><span>A newsroom run by one machine</span></a>
       <a href="/meme" data-nav><b>Synthesis</b><span>A studio for making jokes</span></a>
@@ -1214,6 +1215,7 @@ body.fade-out{opacity:0}
     function upd(){ var n=Object.keys(seen).length; if(cnt) cnt.innerHTML="<b>"+n+"</b> of "+total+" excuses retired"+(n===total?". None left. Start the session.":""); }
     cards.forEach(function(c,i){ c.addEventListener("click",function(){ var on=!c.classList.contains("on"); c.classList.toggle("on",on); c.setAttribute("aria-pressed",on?"true":"false");
       var tap=c.querySelector(".tap"); if(tap) tap.textContent=on?"tap to put the excuse back":"tap for the comeback";
+      if(!on){ delete seen[i]; upd(); return; }
       if(on){ seen[i]=1; upd(); var n=Object.keys(seen).length;
         if(n===total) hudSay("Out of excuses. Good. Five questions, ninety seconds.", true);
         else if(n===1) hudSay("Told you. I have heard them all.", true); } }); });
@@ -1290,28 +1292,44 @@ body.fade-out{opacity:0}
     kit:{fullgym:"A full gym",barbell:"Barbell and rack",dumbbells:"Dumbbells at home",bodyweight:"Bodyweight only"},
     days:{"2":"2 days a week","3":"3 days a week","4":"4 days a week","5":"5+ days a week"},
     why:{prove:"To prove something",people:"For my people",skin:"At home in my skin",reset:"A reset"}};
-  var REPLY={goal:{stronger:"Strength. My favorite problem. We pick a few lifts and make the numbers move.",muscle:"Muscle. That's patience plus enough hard sets. I'll count the sets so you just work.",fat:"Lose fat, without turning your life into a spreadsheet of misery. Deal.",health:"Feel healthier. Underrated goal. We build something you can keep for years."},
+  var REPLY={goal:{stronger:"Strength. My favourite problem. We pick a few lifts and make the numbers move.",muscle:"Muscle. That's patience plus enough hard sets. I'll count the sets so you just work.",fat:"Lose fat, without turning your life into a spreadsheet of misery. Deal.",health:"Feel healthier. Underrated goal. We build something you can keep for years."},
     exp:{new:"New. Good, no bad habits to unlearn. Week one is about the shapes, not the grind.",returning:"Coming back. It returns faster than it left, I promise. We ease the loads in.",intermediate:"A couple of years. So you know the lifts. This will be honest work, nothing fancy.",advanced:"Seasoned. Then I won't baby you. The intent stays high and the last sets bite."},
     kit:{fullgym:"A full gym. Machines, cables, the lot. Plenty to work with.",barbell:"A barbell and a rack. Simple tools, heavy proof.",dumbbells:"Dumbbells. Portable, honest, more than enough for a first block.",bodyweight:"Bodyweight. No excuses about equipment. We get creative and it still works."},
-    days:{"2":"Two days. Then every session earns its keep. Full body, both times.","3":"Three days. The sweet spot for most people. Full body, hit everything often.","4":"Four days. Now we can split it. Upper and lower, twice each.","5":"Five or more. Room to specialise. We'll run push, pull, legs."},
-    why:{prove:"To prove something. Then let's go get you the receipts.",people:"For your people. Best reason there is. That one keeps you consistent.",skin:"At home in your own skin. That's the real finish line, not a number.",reset:"A reset. Understood. Consider this day one of it."}};
+    days:{"2":"Two days. Then every session earns its keep. Full body, both times.","3":"Three days. The sweet spot for most people. Full body, hit everything often.","4":"Four days. Now we can split it. Upper and lower, twice each.","5":"Five or more. Room to specialise: upper and lower first, then push, pull and legs."},
+    why:{prove:"To prove something. Then let's go get you the receipts.",people:"For your people. Best reason there is. It will get you in on the days you don't feel like it.",skin:"At home in your own skin. That's the real finish line, not a number.",reset:"A reset. Understood. Consider this day one of it."}};
   function splitOf(days){var n=parseInt(days,10)||3; if(n>=5) return {label:"Upper",name:"Upper / lower + PPL",badge:"Upper · day 1 of 5",pattern:["hpush","hpull","vpush","vpull","arms"]}; if(n===4) return {label:"Upper",name:"Upper / lower",badge:"Upper · day 1 of 4",pattern:["hpush","hpull","vpush","vpull","arms"]}; return {label:"Full body",name:"Full body",badge:"Full body · day 1 of "+n,pattern:["squat","hinge","hpush","hpull","core"]};}
   var POOL={fullgym:{squat:"Barbell Back Squat",hinge:"Romanian Deadlift",hpush:"Barbell Bench Press",hpush2:"Incline Dumbbell Press",vpush:"Seated Machine Press",vpull:"Lat Pulldown",hpull:"Seated Cable Row",triceps:"Cable Pushdown",arms:"Cable Curl",core:"Cable Crunch"},
     barbell:{squat:"Barbell Back Squat",hinge:"Romanian Deadlift",hpush:"Barbell Bench Press",hpush2:"Incline Barbell Press",vpush:"Overhead Press",vpull:"Pull-ups",hpull:"Barbell Row",triceps:"Close-grip Bench",arms:"Barbell Curl",core:"Ab Wheel Rollout"},
-    dumbbells:{squat:"Goblet Squat",hinge:"Dumbbell RDL",hpush:"Dumbbell Bench Press",hpush2:"Incline Dumbbell Press",vpush:"Dumbbell Shoulder Press",vpull:"Dumbbell Pullover",hpull:"One-arm Dumbbell Row",triceps:"Overhead DB Extension",arms:"Alternating DB Curl",core:"Plank"},
-    bodyweight:{squat:"Bulgarian Split Squat",hinge:"Single-leg Hip Hinge",hpush:"Push-ups",hpush2:"Feet-elevated Push-ups",vpush:"Pike Push-ups",vpull:"Pull-ups (or doorway rows)",hpull:"Inverted Rows",triceps:"Diamond Push-ups",arms:"Chin-ups",core:"Hollow-body Hold"}};
+    dumbbells:{squat:"Goblet Squat",hinge:"Dumbbell RDL",hpush:"Dumbbell Floor Press",hpush2:"Incline Dumbbell Press",vpush:"Dumbbell Shoulder Press",vpull:"Dumbbell Pullover (lats)",hpull:"One-arm Dumbbell Row",triceps:"Overhead DB Extension",arms:"Alternating DB Curl",core:"Plank"},
+    bodyweight:{squat:"Bulgarian Split Squat",hinge:"Single-leg Hip Hinge",hpush:"Push-ups",hpush2:"Feet-elevated Push-ups",vpush:"Pike Push-ups",vpull:"Pull-ups (or doorway rows)",hpull:"Inverted Rows",triceps:"Diamond Push-ups",arms:"Diamond Push-ups",core:"Hollow-body Hold"}};
   var REPS={stronger:{comp:{sets:4,reps:"5",cue:"Heavy. Rest three minutes. Stop one rep short of ugly."},iso:{sets:3,reps:"6-8"}},muscle:{comp:{sets:4,reps:"8-10",cue:"Two reps left in the tank. Chase the stretch."},iso:{sets:3,reps:"12-15"}},fat:{comp:{sets:3,reps:"6-10",cue:"Train it like you are building muscle. Rest two to three minutes."},iso:{sets:3,reps:"10-15"}},health:{comp:{sets:3,reps:"8-10",cue:"Comfortable and controlled. No grinding."},iso:{sets:2,reps:"12"}}};
   var GOAL_TAG={stronger:"strength",muscle:"hypertrophy",fat:"fat loss",health:"health"};
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
   function firstName(){return state.name?state.name.split(" ")[0]:""}
   function buildDay(){var goal=state.goal||"health",exp=state.exp||"intermediate",kit=state.kit||"fullgym",days=state.days||"3";var sp=splitOf(days),pool=POOL[kit],rep=REPS[goal];
-    var out=sp.pattern.map(function(slot,i){var compound=i<2,scheme=compound?rep.comp:rep.iso,sets=scheme.sets; if(exp==="new")sets=Math.max(2,sets-1); if(exp==="advanced"&&compound)sets=Math.min(5,sets+1);
-      var cue=""; if(compound&&i===0){cue=scheme.cue; if(exp==="new")cue="Leave two or three reps in you. Groove the pattern first."; else if(exp==="returning")cue="Start about twenty percent under your old best, then build."; else if(exp==="advanced")cue=scheme.cue+" Last set, one rep in the tank.";}
-      return {n:pool[slot],sr:sets+" × "+scheme.reps,cue:cue,tag:compound?"main":"",sets:sets};});
-    var totalSets=out.reduce(function(a,x){return a+x.sets;},0),mins=Math.round((8+totalSets*2.6)/5)*5; return {split:sp,ex:out,goal:goal,exp:exp,kit:kit,days:days,totalSets:totalSets,mins:mins};}
+    // two main lifts, two secondary compounds, one isolation or core slot; sets sized so a
+    // real session with full rests fits about an hour (the engine's own time budget)
+    var SEC={stronger:"6-8",muscle:"8-12",fat:"8-12",health:"8-12"}, bwStrong=(kit==="bodyweight"&&goal==="stronger");
+    var out=sp.pattern.map(function(slot,i){
+      var main=i<2, iso=(slot==="arms"||slot==="triceps"||slot==="core"), scheme=main?rep.comp:rep.iso;
+      var sets=main?scheme.sets:(goal==="stronger"&&!iso?3:2), reps=main?scheme.reps:(iso?scheme.reps:SEC[goal]);
+      if(main&&goal!=="stronger") sets=3;
+      if(exp==="new")sets=Math.max(2,sets-1); if(exp==="advanced"&&main)sets=Math.min(5,sets+1);
+      if(bwStrong&&main) reps="6-10";
+      if(slot==="core") reps=/Plank|Hold/.test(pool[slot])?"30-45 s":"10-15";
+      if((kit==="barbell"||kit==="bodyweight")&&slot==="vpull"&&(exp==="new"||exp==="returning")) pool=Object.assign({},pool,{vpull:"Pull-up negatives (5 s down)"});
+      var cue=""; if(main&&i===0){cue=bwStrong?"Pick the hardest version you can do for 6. Rest two to three minutes.":scheme.cue;
+        if(exp==="new")cue="Leave two or three reps in you. Groove the pattern first."; else if(exp==="returning")cue="Start about twenty percent under your old best, then build."; else if(exp==="advanced"&&goal!=="health")cue=cue+" Last set, one rep in the tank.";}
+      return {n:pool[slot],sr:sets+" × "+reps,cue:cue,tag:main?"main":"",sets:sets,iso:iso};});
+    var totalSets=out.reduce(function(a,x){return a+x.sets;},0);
+    var cSets=out.filter(function(x){return !x.iso;}).reduce(function(a,x){return a+x.sets;},0), iSets=totalSets-cSets;
+    var mins=Math.round((10+cSets*4+iSets*2.25)/5)*5;
+    return {split:sp,ex:out,goal:goal,exp:exp,kit:kit,days:days,totalSets:totalSets,mins:mins};}
   function noteFor(d){var nm=firstName(),who=nm?(", "+esc(nm)):"";var e={new:"You're new, so we keep it clean and light and let your body learn the shapes.",returning:"You've done this before, so we ease the loads and let it come back fast.",intermediate:"You know your way around, so this is honest work, nothing fancy.",advanced:"You're seasoned, so the intent is high and the last sets sit close to the edge."}[d.exp];
-    var g={stronger:"Beat one number from last time and the day counted.",muscle:"Enough hard sets, taken close to failure. That's the whole recipe.",fat:"Lift to keep the muscle, walk to lose the fat, and let the food do the math.",health:"Show up, move well, and leave feeling better than you walked in."}[d.goal];
-    var extra=d.goal==="fat"?" Then add two to three thousand steps a day to what you walk now. The deficit does the fat work, not the workout.":""; return "That's the session"+who+". Five movements, everything worked, out in under an hour. "+e+" "+g+extra;}
+    var g={stronger:"Beat one number from last time and the day counted.",muscle:"Enough hard sets, taken close to failure. That's the whole recipe.",fat:"Lift to keep the muscle, walk to spend energy, and let the food do the maths.",health:"Show up, move well, and leave feeling better than you walked in."}[d.goal];
+    var extra=d.goal==="fat"?" Add two to three thousand steps a day to what you walk now; the deficit does the fat work, not the workout.":"";
+    var covered=d.split.label==="Full body"?"the whole body worked.":"the whole upper body worked. Legs get their own day.";
+    return "That's the session"+who+". Five movements, "+covered+" About "+d.mins+" minutes with the rests. "+e+" "+g+extra;}
   function psFor(){return {prove:"P.S. You want to prove something. We'll get you the receipts.",people:"P.S. Being around longer for your people. Hold onto that on the hard days.",skin:"P.S. At home in your own skin. That's the one that lasts.",reset:"P.S. A reset. This is day one of it.","":"P.S. Answer the last one and I'll sign this off properly."}[state.why||""];}
   function renderPlan(animate){var pc=$("#specCard"); if(pc) pc.classList.toggle("draw",!!animate); var d=buildDay();
     var rows=d.ex.map(function(x,i){return '<li><span class="ix">'+pad(i+1)+'</span><span class="nm">'+esc(x.n)+(x.tag?'<span class="tg">'+x.tag+'</span>':'')+'</span><span class="sr">'+esc(x.sr)+'</span>'+(x.cue?'<span class="cue">'+esc(x.cue)+'</span>':'')+'</li>';}).join("");
@@ -1403,7 +1421,7 @@ body.fade-out{opacity:0}
     if(state.days){ items.push({b:state.days.replace("5","5+"),t:"days a week"}); items.push({t:splitOf(state.days).name+" split"}); }
     if(state.why) items.push({t:WW[state.why]});
     var html=items.map(function(it){return '<span class="chiplet">'+(it.b?'<b>'+esc(it.b)+'</b> ':'')+esc(it.t)+'</span>';}).join("");
-    if(answered<5) html+='<button class="chiplet cta" type="button" id="finaleGo">'+(answered?'Finish your plan':'Your plan is not built yet.')+'<b>'+(answered?(5-answered)+' to go':'Build it in 90 seconds')+' &rarr;</b></button>';
+    if(answered<5) html+='<button class="chiplet cta" type="button" id="finaleGo">'+(answered?'Finish your plan':'Your plan is not built yet.')+'<b>'+(answered?(5-answered)+' to go':'Draft your first day in 90 seconds')+' &rarr;</b></button>';
     f.innerHTML=html;
     if(answered===5) f.innerHTML+='<button class="chiplet cta" type="button" id="finaleOpen">Open your Trainer<b>It already knows you &rarr;</b></button>';
     var go=$("#finaleGo"); if(go) go.addEventListener("click",function(){ var t=$("#act-session"); if(t) jumpTo(t); });
@@ -1464,7 +1482,7 @@ body.fade-out{opacity:0}
     if(reduce) return; var nudged=false, moved=false;
     ["click","keydown","touchstart"].forEach(function(ev){ addEventListener(ev,function(){moved=true;},{once:true,passive:true}); });
     setTimeout(function(){ if(nudged||moved) return; if($("#route-home").hidden) return; if(scrollY>innerHeight*1.5) return; nudged=true;
-      toast("Still reading? The whole plan is ninety seconds away. <b>Let's move.</b>"); }, 26000);
+      toast("Still reading? Your first day is ninety seconds away. <b>Let's move.</b>"); }, 26000);
   })();
 
   /* ================= INTRO SEQUENCE ================= */

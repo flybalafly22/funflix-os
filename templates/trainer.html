@@ -863,7 +863,7 @@
         <div class="grid3">
           <div class="field"><label class="os-label" for="fSleep">Sleep per night</label>
             <div class="os-select-wrap"><select class="os-select" id="fSleep">
-              <option>Under 5.5 h</option><option>5.5–6.5 h</option><option selected>7–8 h</option><option>8+ h</option></select></div></div>
+              <option>Under 5.5 h</option><option>5.5–6.5 h</option><option>6.5–7 h</option><option selected>7–8 h</option><option>8+ h</option></select></div></div>
           <div class="field"><label class="os-label" for="fStress">Life stress</label>
             <div class="os-select-wrap"><select class="os-select" id="fStress">
               <option>Low</option><option selected>Moderate</option><option>High</option></select></div></div>
@@ -948,7 +948,7 @@
               <option>90%+ of days</option><option>70–90% of days</option><option>50–70% of days</option><option>Under 50%</option></select></div></div>
           <div class="field"><label class="os-label" for="cSleep">Sleep per night lately</label>
             <div class="os-select-wrap"><select class="os-select" id="cSleep">
-              <option>Under 5.5 h</option><option>5.5–6.5 h</option><option selected>7–8 h</option><option>8+ h</option></select></div></div>
+              <option>Under 5.5 h</option><option>5.5–6.5 h</option><option>6.5–7 h</option><option selected>7–8 h</option><option>8+ h</option></select></div></div>
           <div class="field"><label class="os-label" for="cDisrupt">Disruption this block?</label>
             <div class="os-select-wrap"><select class="os-select" id="cDisrupt">
               <option selected>None (a normal block)</option><option>Travel</option>
@@ -1003,7 +1003,7 @@
           <div class="bw-spark" id="bwSpark" hidden></div>
           <div class="bw-note" id="bwNote">Log your weight daily. The Trainer averages it over 7 days
             and feeds the trend straight into your Week-4 check-in, so recalibration runs on the
-            scale, not on memory. Stays on this device unless you sync.</div>
+            scale, not on memory. Stored in this browser unless you sync.</div>
         </div>
         <div class="durable" id="lgDurable" hidden></div>
         <div class="nut-card" id="nutCard" hidden>
@@ -1026,14 +1026,14 @@
             <input class="os-input" id="lDate" type="date"></div>
           <div class="field coach-cta-wrap"><label class="os-label">&nbsp;</label>
             <button type="button" class="coach-cta" id="coachStart">Run it live: Coach Mode →</button>
-            <div class="hintline">Rest timers, plate math, and set-by-set logging, straight from your plan.</div></div>
+            <div class="hintline">Rest timers, plate maths, and set-by-set logging, straight from your plan.</div></div>
         </div>
         <div id="lgList"></div>
         <label class="lg-deload" for="lgDeload"><input type="checkbox" id="lgDeload">
           <span>This was a <b>deload</b> week, with reduced sets and loads on purpose. Don’t count it as a stall.</span></label>
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="logBtn">Save session</button>
-          <div class="go-note">Logs live only in this browser. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
+          <div class="go-note">Logs are stored in this browser unless you sign in to sync. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
         </div>
         <div class="lg-pr" id="lgPR" hidden></div>
         <div class="calc-card" id="calcCard">
@@ -1597,9 +1597,9 @@
       } else if (mode === 'log') {
         T = 'Log today’s session.'; S = 'Beat one number from last time. That is the whole job.';
       } else if (mode === 'checkin') {
-        T = 'Week-four check-in.'; S = 'Your measured trend beats any formula. Be honest and the next block gets sharper.';
+        T = 'Week-4 check-in.'; S = 'Your measured trend beats any formula. Be honest and the next block gets sharper.';
       } else if (savedPlan()) {
-        T = 'Welcome back.'; S = 'Log a session, run your week-four check-in, or write a new program.';
+        T = 'Welcome back.'; S = 'Log a session, run your Week-4 check-in, or write a new program.';
       } else {
         T = 'Let’s write your program.'; S = 'Evidence-based training and nutrition, built around your real week. Every number comes with its reason.';
       }
@@ -1967,7 +1967,7 @@
     if (!out) return;
     const w = parseFloat($('calcKg').value), r = parseInt($('calcReps').value, 10);
     if (!w || !r || w <= 0 || r <= 0 || r > 20) {
-      out.innerHTML = '<span class="calc-hint">Enter a weight and reps (1–20) to estimate your 1RM and working loads.</span>';
+      out.innerHTML = '<span class="calc-hint">Enter a weight and reps (1–20) to estimate your 1RM and working loads. Most accurate from sets of 10 reps or fewer.</span>';
       return;
     }
     const orm = w * (1 + r / 30), round = v => Math.round(v / 2.5) * 2.5;
@@ -2656,7 +2656,7 @@
     } else {
       $('nxCue').innerHTML = 'Up next: <b>' + esc(focus) + '</b>';
       $('nxSub').innerHTML = wp.done + ' of ' + wp.target + ' session' + (wp.target === 1 ? '' : 's') +
-        ' this week' + (weigh ? ' · <b>weigh in</b> this morning' : '') + '.';
+        ' this week' + (weigh ? ' · <b>weigh in</b> today' : '') + '.';
     }
     // periodization orientation: where this week sits in the mesocycle
     const bp = blockPhase(), bl = blockLine(bp);

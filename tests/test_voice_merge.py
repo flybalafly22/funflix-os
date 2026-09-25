@@ -110,3 +110,29 @@ def test_trainer_opts_into_the_theme_switch():
     assert "<html lang=\"en\" data-themeable>" in html
     assert "trainerTheme" in html                       # same preference key as home
     assert ":root[data-theme=\"dark\"]" in _read("static/os.css")
+
+
+# ── 2026-09-25 whole-site evaluation: the content truths, pinned ──
+
+def test_the_study_is_labelled_as_simulated_everywhere():
+    home, lab, osjs = _read("templates/home.html"), _read("templates/lab.html"), _read("static/os.js")
+    facts = home[home.find('id="act-facts"'):home.find('</section>', home.find('id="act-facts"'))]
+    assert "/study" not in facts                      # not offered as evidence for the facts
+    assert "simulated supplement data" in home        # the house sheet says what it is
+    assert "simulated supplements" in osjs            # so does every Apps menu
+    assert "Simulated data." in lab and "Nothing here is evidence" in lab
+
+
+def test_engine_bands_and_the_app_tune_up_agree():
+    engine, trainer = _read("data/trainer_system.txt"), _read("templates/trainer.html")
+    assert "novice 1 to 2 percent of body weight, intermediate 0.5 to 1" in engine
+    assert "[0.010, 0.020]" in trainer and "[0.005, 0.010]" in trainer and "[0.0025, 0.005]" in trainer
+    assert "Even a beginner eating a surplus on purpose gains about 1 to 2 percent" in _read("templates/home.html")
+
+
+def test_the_engine_is_adults_only_and_screens_before_a_deficit():
+    engine, compact = _read("data/trainer_system.txt"), _read("data/trainer_system_compact.txt")
+    assert "Age computes to under 18" in engine and "Age 16 to 17" not in engine
+    assert "age under" in compact and "18" in compact and "Age 16-17" not in compact
+    assert "eating disorder" in engine and "eating disorder" in compact
+    assert "adults 18 and over" in _read("templates/home.html")
