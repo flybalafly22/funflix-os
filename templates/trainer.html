@@ -697,6 +697,17 @@
       border-radius: 999px; padding: 0 16px; min-height: 40px; font-family: var(--sans); font-size: 13px; font-weight: 600; }
     .ho-x:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
     .ho-x:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    /* the "is this yours?" step when signing in over a plan made without an account */
+    .adopt { width: min(880px, 100%); display: flex; align-items: center; justify-content: space-between;
+      gap: 14px 22px; flex-wrap: wrap; margin: 0 0 16px; padding: 18px 22px 18px 24px; border-radius: 22px;
+      background: var(--card); color: var(--black); border: 2px solid var(--acc); }
+    .adopt[hidden] { display: none; }
+    .ad-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .ad-d { font-family: var(--sans); font-size: 14px; line-height: 1.5; color: var(--gray); }
+    .ad-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ad-yes { appearance: none; cursor: pointer; border: 0; border-radius: 999px; min-height: 44px; padding: 0 18px;
+      background: var(--acc); color: var(--on-acc); font-family: var(--sans); font-size: 14px; font-weight: 600; }
+    .ad-yes:focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; }
     .field.from-session .os-label::after { content: '\2713  kept'; margin-left: 8px; font-family: var(--sans);
       font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--accD); white-space: nowrap; }
     /* one visible tab is not a choice: hide the bar until there is something to switch between */
@@ -743,7 +754,7 @@
       <div class="w-meta">A sample takes 10 seconds · yours about 2 minutes · no account needed</div>
       <div class="w-trust">
         <span class="wt"><b>Free</b> to use</span>
-        <span class="wt"><b>Private</b>: your plan stays on this device</span>
+        <span class="wt"><b>Private by default</b>: your plan and logs stay in this browser</span>
         <span class="wt"><b>Evidence-based</b>: every number justified</span>
         <span class="wt"><b>Syncs</b> to every device, if you want</span>
       </div>
@@ -761,6 +772,14 @@
       Not your device? <button type="button" id="devClearBtn">Clear this data</button></div>
 
     <!-- ── INTAKE ── -->
+    <div class="adopt" id="adopt" hidden role="alertdialog" aria-labelledby="adoptT" aria-describedby="adoptD">
+      <div class="ad-main"><span class="ho-k">Signed in as <b id="adoptWho"></b></span>
+        <span class="ho-t" id="adoptT">This browser has a plan that isn't in any account.</span>
+        <span class="ad-d" id="adoptD"></span></div>
+      <div class="ad-btns"><button type="button" class="ad-yes" id="adoptYes">It's mine: add it to my account</button>
+        <button type="button" class="ho-x" id="adoptNo">Not mine: remove it</button></div>
+    </div>
+
     <div class="handoff" id="handoff" hidden aria-live="polite">
       <div class="ho-main"><span class="ho-k">From our session</span><span class="ho-t" id="hoTitle"></span>
         <span class="ho-chips" id="hoChips"></span></div>
@@ -883,7 +902,7 @@
         <div class="go-row">
           <button type="button" class="co-ghost stp-back" data-to="2">← Back</button>
           <button type="submit" class="os-btn-primary" id="buildBtn">Build my program</button>
-          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. Your answers go once to the AI model that writes the plan and are not stored on our server. The plan lives in this browser and your PDF, unless you turn on free Sync.
+          <div class="go-note">The Trainer may ask a couple of follow-up questions first if anything needs clarifying. To write the plan, your answers (first name only) go to our AI provider, Google Gemini, and are not stored on our server. On its free service Google may keep them to improve its models, so leave out anything you wouldn't want shared. The plan itself lives in this browser and your PDF, unless you turn on Sync.
             <button type="button" class="peek" id="peekBtn">Just looking? Preview a sample program →</button></div>
         </div>
         </div>
@@ -950,7 +969,7 @@
 
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="checkinBtn">Recalibrate my program</button>
-          <div class="go-note">Your measured trend beats any formula. The Trainer re-anchors calories and volume on what actually happened, and returns a full revised program.</div>
+          <div class="go-note">Your check-in, plan and log summary go to our AI provider (Google Gemini) to recalibrate; nothing is stored on our server. Your measured trend beats any formula. The Trainer re-anchors calories and volume on what actually happened, and returns a full revised program.</div>
         </div>
       </div>
     </form>
@@ -1148,7 +1167,7 @@
         <button class="btn-again" id="keepBtn" style="display:none">Save to this device</button>
         <button class="btn-again" id="shareBtn">Share link</button>
         <button class="btn-again" id="icsBtn">Add to calendar</button>
-        <button class="btn-again" id="exportBtn">Export data</button>
+        <button class="btn-again" id="exportBtn">Download a copy</button>
         <button class="btn-dl" id="buildOwnBtn" style="display:none">Build my own program →</button>
         <button class="btn-dl" id="dlBtn">Download PDF</button>
       </div>
@@ -1168,7 +1187,7 @@
           <input class="os-input" id="qaIn" placeholder="Ask anything about your program…">
           <button class="btn-dl qa-send" id="qaSend" type="submit">Ask</button>
         </form>
-        <div class="qa-note">Answers are grounded in your plan. Coaching guidance, not medical advice.</div>
+        <div class="qa-note">Answers are grounded in your plan. Your question and plan go to our AI provider (Google Gemini) to answer; nothing is stored on our server. Coaching guidance, not medical advice.</div>
       </div>
     </div>
   </div>
@@ -1229,13 +1248,15 @@
   }
   function fail(msg) { setState('form'); errBox.textContent = msg; errBox.classList.add('show'); }
 
+  // the model needs a name to put on the plan, not your full name
+  function firstOnly(n) { return String(n || '').trim().split(/\s+/)[0].slice(0, 40); }
   function intake() {
     if (mode === 'checkin') {
       // carry the original safety context forward so the recalibration re-applies
       // allergies/injuries/equipment (the check-in form never re-collects them)
       const sf = (savedPlan() || {}).safety || {};
       return {
-        name: $('cName').value, goal: $('cGoal').value,
+        name: firstOnly($('cName').value), goal: $('cGoal').value,
         allergies: sf.allergies || '',
         // age + gender carried forward so special-population rules survive (S28)
         'date of birth': sf.dob || '',
@@ -1272,7 +1293,7 @@
       };
     }
     return {
-      name: $('fName').value, 'gender assigned at birth': $('fSex').value,
+      name: firstOnly($('fName').value), 'gender assigned at birth': $('fSex').value,
       'date of birth': $('fDob').value, height: $('fHeight').value, weight: $('fWeight').value,
       'training experience': $('fExp').value,
       goal: $('fGoal').value + ($('fGoalNote').value ? ': ' + $('fGoalNote').value : ''),
@@ -1298,8 +1319,10 @@
     if (mode === 'checkin') { const sp = savedPlan(); prevForDiff = sp ? sp.plan : null; }
     setState('thinking');
     try {
-      const body = { intake: intake() };
-      if (mode === 'checkin') {
+      const demoParam0 = new URLSearchParams(location.search).get('demo');
+      // a sample needs no answers: send nothing personal for it
+      const body = (demoOnce || demoParam0 !== null) ? {} : { intake: intake() };
+      if (mode === 'checkin' && body.intake) {   // a sample carries no check-in data either
         body.mode = 'checkin';
         // the stateful check-in: send the program the client actually ran and
         // their logged numbers so the Trainer evolves it instead of rebuilding
@@ -1489,10 +1512,8 @@
     }
   }
   $('hoClear').addEventListener('click', function () {
-    ['fName', 'fExtra'].forEach(function (id) { var f = $(id).closest('.field'); if (f && f.classList.contains('from-session')) $(id).value = ''; });
-    [['fGoal', 0], ['fExp', 0], ['fEnv', 0]].forEach(function (p) { var f = $(p[0]).closest('.field'); if (f && f.classList.contains('from-session')) $(p[0]).selectedIndex = p[1]; });
-    var df = $('fDays').closest('.field'); if (df && df.classList.contains('from-session')) $('fDays').value = '4';
     clearHandoff();
+    blankPage();          // the whole form, not just the fields the session filled
     $('fName').focus();
   });
 
@@ -1600,10 +1621,24 @@
     if (typeof updateWelcome === 'function') updateWelcome();
   }
   $('devClearBtn').addEventListener('click', () => {
-    if (confirm('Remove this program, logs and weigh-ins from THIS browser? This only clears local data on this device and cannot be undone.')) {
+    if (confirm('Remove this plan, logs and weigh-ins from THIS browser? This only clears local data on this device and cannot be undone.')) {
+      if (window.OS_ACCT && OS_ACCT.wipeDevice) OS_ACCT.wipeDevice();   // every trainer key, owner and handoff too
       deviceReset();
+      blankPage();
     }
   });
+  // everything a previous person typed or saw leaves the open page too
+  function blankPage() {
+    try { form.reset(); checkinForm.reset(); } catch (e) {}
+    $('dietOtherWrap').classList.remove('show');
+    $('fuList').innerHTML = '';
+    document.querySelectorAll('.field.from-session').forEach(f => f.classList.remove('from-session'));
+    $('handoff').hidden = true; handoffOn = false;
+    checkinForm.dataset.prefilled = '';
+    if (typeof qaReset === 'function') qaReset();
+    setStep(1);
+    greet();
+  }
 
   /* ── session log (device-only) ── */
   const LOG_KEY = 'trainerLogs';
@@ -3179,7 +3214,7 @@
     const s = savedPlan();
     // a sample/peek plan (demo:true) is exploratory, it must never be pushed
     // into or adopted by a real account (SIMULATION finding: demo-never-pushed)
-    if (!SYNC.user || !s || s.demo) return;
+    if (!SYNC.user || SYNC.hold || !s || s.demo) return;
     try {
       const r = await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: { value: s.plan, at: s.at } }) });
@@ -3187,7 +3222,7 @@
     } catch (e) {}
   }
   async function pushLogs() {
-    if (!SYNC.user) return;
+    if (!SYNC.user || SYNC.hold) return;
     try {
       const r = await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ logs: { value: loadLogs(), at: Date.now() } }) });
@@ -3195,7 +3230,7 @@
     } catch (e) {}
   }
   async function pushWeights() {
-    if (!SYNC.user) return;
+    if (!SYNC.user || SYNC.hold) return;
     try {
       const r = await fetch('/api/sync', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ weights: { value: loadWeights(), at: Date.now() } }) });
@@ -3262,6 +3297,32 @@
      wiped so one person's plan/logs can never surface in, or sync up into,
      another person's account. */
   const OWNER_KEY = 'trainerOwner';
+  /* A plan made without an account may belong to whoever used this browser before.
+     It joins an account only on an explicit "It's mine" (Guardians F-02/F-04). */
+  function hasGuestData() { return !!(savedPlan() || loadLogs().length || loadWeights().length); }
+  function askAdopt(user) {
+    SYNC.hold = true;
+    const sp = savedPlan(), ps = sp && sp.plan && sp.plan.profile_summary || {};
+    const bits = [];
+    if (sp) bits.push('“' + (ps.goal || 'A plan') + '”' + (ps.name ? ' for ' + ps.name : '') + ', saved ' +
+      new Date(sp.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+    const n = loadLogs().length, w = loadWeights().length;
+    if (n) bits.push(n + ' session' + (n > 1 ? 's' : '') + ' logged');
+    if (w) bits.push(w + ' weigh-in' + (w > 1 ? 's' : ''));
+    $('adoptWho').textContent = user;
+    $('adoptD').textContent = bits.join(' · ') + '. Is it yours?';
+    $('adopt').hidden = false;
+    setTimeout(() => $('adoptYes').focus(), 60);
+  }
+  function settleAdopt(keep) {
+    const user = SYNC.user; $('adopt').hidden = true; SYNC.hold = false;
+    if (!user) return;
+    if (!keep) { if (window.OS_ACCT && OS_ACCT.wipeDevice) OS_ACCT.wipeDevice(); deviceReset(); blankPage(); }
+    try { localStorage.setItem(OWNER_KEY, user); } catch (e) {}
+    pullMerge({ adoptGuest: true });
+  }
+  $('adoptYes').addEventListener('click', () => settleAdopt(true));
+  $('adoptNo').addEventListener('click', () => settleAdopt(false));
   function deviceReset() {
     try {
       localStorage.removeItem(PLAN_KEY);
@@ -3296,30 +3357,29 @@
       try { owner = localStorage.getItem(OWNER_KEY); } catch (e) {}
       // data owned by a DIFFERENT account is foreign, wipe before touching sync
       if (owner && owner !== st.user) deviceReset();
+      if (!owner && hasGuestData()) { askAdopt(st.user); return; }   // never upload without a yes
       try { localStorage.setItem(OWNER_KEY, st.user); } catch (e) {}
       pullMerge({ adoptGuest: !owner });
     }
     if (st.event === 'logout') {
-      deviceReset();
+      // os.js has already wiped this browser; reload so nothing lingers in the page
       try { localStorage.removeItem(OWNER_KEY); } catch (e) {}
+      location.reload();
     }
+    if (st.event === 'deleted') { refreshRestore(); renderDurable(); }
   });
   const histMatch = location.hash.match(/^#history=(\d+)$/);
   if (histMatch) {
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => window.TRAINER_VIEW_HISTORY(histMatch[1]), 400);
   }
-  // ?sample deep-links the homepage card into a live sample, but a RETURNING
-  // visitor (already has a plan) lands on THEIR plan, not a demo. Deferred (like
-  // #history) so every top-level const is initialized before renderPlan runs.
+  // ?sample always shows the sample. It used to open whatever plan this browser
+  // held, which on a shared device showed the previous person's plan as "Your
+  // program" (Guardians F-03). A saved plan stays one tap away (Restore).
   {
     const sp = new URLSearchParams(location.search);
     if (sp.has('sample')) {
-      setTimeout(() => {
-        const saved = savedPlan();
-        if (saved) { renderPlan(saved.plan); setState('plan'); }
-        else { demoVariant = sp.get('sample') === 'cut' ? 'cut' : null; demoOnce = true; submit(null); }
-      }, 0);
+      setTimeout(() => { demoVariant = sp.get('sample') === 'cut' ? 'cut' : null; demoOnce = true; submit(null); }, 0);
     }
   }
   bootHandoff();
@@ -3376,7 +3436,7 @@
     if (SYNC.user) { location.href = '/api/export'; return; }
     const doc = { format: 'the-trainer/export-1', exported_at: Date.now(), account: null,
       source: 'this device only. Create a free account to include synced history',
-      plan: savedPlan(), logs: loadLogs(), history: [] };
+      plan: savedPlan(), logs: loadLogs(), weights: loadWeights(), history: [] };
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -3386,11 +3446,22 @@
   });
 
   if (typeof CompressionStream === 'undefined') $('shareBtn').style.display = 'none';
+  let shareArmed = 0;
   $('shareBtn').addEventListener('click', async () => {
     if (!lastPlan.d) return;
-    const btn = $('shareBtn'), old = btn.textContent;
+    const btn = $('shareBtn'), old = 'Share link';
+    if (Date.now() - shareArmed > 12000) {      // first tap: say what the link carries
+      shareArmed = Date.now();
+      document.querySelector('.pa-note').textContent =
+        'The link carries this plan, including your age, height, weight and any health notes (your name is left out). Anyone with it can read it. Tap “Share link” again to share.';
+      btn.textContent = 'Tap again to share';
+      return;
+    }
+    shareArmed = 0;
     try {
-      const url = location.origin + location.pathname + '#p=' + await compressToB64(JSON.stringify(lastPlan.d));
+      const shared = JSON.parse(JSON.stringify(lastPlan.d));
+      if (shared.profile_summary) delete shared.profile_summary.name;
+      const url = location.origin + location.pathname + '#p=' + await compressToB64(JSON.stringify(shared));
       // mobile: native share sheet (Mail, WhatsApp, notes, "email it to myself" included)
       if (navigator.share) {
         await navigator.share({ title: 'My training program · The Trainer', url });

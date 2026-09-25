@@ -140,6 +140,9 @@ with sync_playwright() as p:
             pgs.fill("#fName", "QA Smoke"); pgs.fill("#fDob", "2002-05-01")
             pgs.fill("#fHeight", "178 cm"); pgs.fill("#fWeight", "82 kg")
             pgs.click("#next1"); pgs.click("#next2"); pgs.click("#buildBtn"); pgs.wait_for_selector(".plan-wrap.show", timeout=45000)
+            # two taps: the first says what the link carries (Guardians F-13), the second shares
+            pgs.click("#shareBtn"); pgs.wait_for_timeout(200)
+            check("share_warns_before_sharing", "Anyone with it can read it" in pgs.inner_text(".pa-note"))
             pgs.click("#shareBtn"); pgs.wait_for_timeout(600)
             share_url = pgs.evaluate("navigator.clipboard.readText()")
             check("share_link_copied", isinstance(share_url, str) and "#p=" in share_url,

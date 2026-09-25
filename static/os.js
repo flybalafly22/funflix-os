@@ -32,8 +32,9 @@
       <nav class="hud-links" aria-label="Main">
         <a href="/trainer" data-nav class="flag${current.path === '/trainer' ? ' on' : ''}">The Trainer<i class="nav-flag" aria-hidden="true"></i></a>
       </nav>
-      <button class="hud-apps" id="hudBurger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="hudMobile">Apps
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button class="hud-apps" id="hudBurger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="hudMobile" aria-label="Apps"><span class="apps-label">Apps</span>
+        <svg class="apps-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        <svg class="apps-grid" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
       ${themeable ? '<button class="hud-theme" id="hudTheme" type="button" aria-label="Switch between light and dark">' + THEME_ICONS + '</button>' : ''}
       <button class="hud-cta" id="hudCta" type="button">Sign in</button>
       <div class="hud-mobile" id="hudMobile">
@@ -88,6 +89,19 @@
     close() { acctClose(); },
   };
   function acctGo() { acctOpen(); }
+
+  /* Everything The Trainer keeps in this browser is under a "trainer" key (the theme
+     choice excepted). Signing out ON ANY PAGE removes all of it, plus the home page's
+     handoff, so the next person on a shared device starts clean. */
+  function wipeTrainerDevice() {
+    try {
+      Object.keys(localStorage).forEach(k => {
+        if (k.indexOf('trainer') === 0 && k !== 'trainerTheme') localStorage.removeItem(k);
+      });
+    } catch (e) {}
+    try { sessionStorage.removeItem('trainerHandoff'); } catch (e) {}
+  }
+  ACCT.wipeDevice = wipeTrainerDevice;
 
   const acctCSS = document.createElement('style');
   acctCSS.textContent = `
@@ -187,14 +201,18 @@
   acctEl.className = 'osacct';
   acctEl.id = 'acct';
   acctEl.hidden = true;
+  acctEl.setAttribute('role', 'dialog');
+  acctEl.setAttribute('aria-modal', 'true');
+  acctEl.setAttribute('aria-label', 'Your account');
   acctEl.innerHTML = `
     <div class="ac-card">
       <button class="ac-close" id="acClose" type="button">Close</button>
       <div id="acOut">
         <div class="ac-lead">Your training, <em>on every device</em></div>
         <div class="ac-sub">One free account keeps your program, workout logs and check-ins in sync
-          between this browser and your phone. Without one, everything stays on this device.
-          That promise doesn't change.</div>
+          between this browser and your phone. Without one, your plan and logs are stored only in this
+          browser. Either way, building a plan, asking a question or checking in sends your answers to
+          our AI provider (Google Gemini) to write the reply; nothing is stored on our server.</div>
         <div id="acForm">
           <div class="ac-field"><label for="acEmail">Email</label>
             <input id="acEmail" type="email" autocomplete="email"></div>
@@ -214,7 +232,7 @@
           <div class="ac-field"><label for="acRsPw">New password (8+ characters)</label>
             <input id="acRsPw" type="password" autocomplete="new-password"></div>
         </div>
-        <div class="ac-err" id="acErr"></div>
+        <div class="ac-err" id="acErr" role="alert"></div>
         <div class="ac-ok" id="acNote"></div>
         <div class="ac-btns" id="acFormBtns">
           <button class="ac-primary" id="acRegister" type="button">Create account</button>
@@ -260,7 +278,7 @@
               Export first if you want a copy. Type your password to confirm.</div>
             <div class="ac-field"><label for="acDelPw">Password</label>
               <input id="acDelPw" type="password" autocomplete="current-password"></div>
-            <div class="ac-err" id="acDelErr"></div>
+            <div class="ac-err" id="acDelErr" role="alert"></div>
             <div class="ac-btns">
               <button class="ac-primary ac-danger-btn" id="acDelGo" type="button">Delete forever</button>
               <button class="ac-ghost" id="acDelCancel" type="button">Keep my account</button>
@@ -304,14 +322,40 @@
       $a('acStats').hidden = false;
     } catch (e) {}
   }
-  function acctOpen() { $a('acNote').textContent = ''; acctPanels(); acctHistory(); acctProfile(); acctEl.hidden = false; }
-  function acctClose() { acctEl.hidden = true; }
+  let acctReturn = null;
+  function acctFocusables() {
+    return Array.prototype.filter.call(acctEl.querySelectorAll('button, a[href], input'),
+      el => !el.disabled && el.offsetParent !== null);
+  }
+  function acctOpen() {
+    acctReturn = document.activeElement;
+    $a('acNote').textContent = ''; acctPanels(); acctHistory(); acctProfile(); acctEl.hidden = false;
+    setTimeout(() => { const f = ACCT.user ? $a('acClose') : $a('acEmail'); if (f) f.focus(); }, 30);
+  }
+  function acctClose() {
+    acctEl.hidden = true;
+    if (acctReturn && acctReturn.focus && document.contains(acctReturn)) acctReturn.focus();
+    acctReturn = null;
+  }
+  acctEl.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); hideOtpStep(); hideResetStep(); acctClose(); return; }
+    if (e.key !== 'Tab') return;
+    const f = acctFocusables(); if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
   function refreshCtas() {
     const cta = document.getElementById('hudCta');
     if (cta) {
       // accounts need the server's database; without it there is no door to show
       cta.hidden = ACCT.ready && !ACCT.enabled;
-      cta.textContent = ACCT.user ? ACCT.user.split('@')[0] : 'Sign in';
+      const who = ACCT.user ? ACCT.user.split('@')[0] : '';
+      cta.classList.toggle('is-user', !!who);
+      cta.innerHTML = who
+        ? '<span class="cta-full">' + escA(who) + '</span><span class="cta-init" aria-hidden="true">' + escA(who.charAt(0)) + '</span>'
+        : 'Sign in';
+      cta.setAttribute('aria-label', who ? 'Your account: ' + who : 'Sign in or create a free account');
       cta.title = ACCT.user
         ? 'Your account: training synced on every device'
         : 'Free account: your plan, workout log and check-ins on every device';
@@ -352,7 +396,7 @@
     $a('acErr').textContent = '';
     $a('acForm').hidden = true; $a('acFormBtns').hidden = true;
     $a('acOtp').hidden = false; $a('acOtpBtns').hidden = false;
-    $a('acOtpMsg').innerHTML = 'Enter the 6-digit code we emailed to <b>' + (email || 'your inbox') +
+    $a('acOtpMsg').innerHTML = 'Enter the 6-digit code we emailed to <b>' + escA(email || 'your inbox') +
       '</b>. Your account is created only once the code is verified.';
     $a('acCode').focus();
   }
@@ -365,7 +409,7 @@
     $a('acErr').textContent = '';
     $a('acForm').hidden = true; $a('acFormBtns').hidden = true;
     $a('acReset').hidden = false; $a('acRsBtns').hidden = false;
-    $a('acRsMsg').innerHTML = 'If <b>' + (email || 'that address') + '</b> has an account, we emailed ' +
+    $a('acRsMsg').innerHTML = 'If <b>' + escA(email || 'that address') + '</b> has an account, we emailed ' +
       'it a 6-digit code. Enter it with a new password to sign back in.';
     $a('acRsCode').focus();
   }
@@ -421,6 +465,7 @@
   $a('acLogout').addEventListener('click', async () => {
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
     ACCT.user = null;
+    wipeTrainerDevice();        // on whichever page the sign-out happens
     acctPanels(); refreshCtas(); acctClose(); ACCT._emit('logout');
   });
   $a('acDelOpen').addEventListener('click', () => {
@@ -437,8 +482,9 @@
       const d = await r.json();
       if (!r.ok || d.error) { $a('acDelErr').textContent = d.error || 'Something went wrong.'; return; }
       ACCT.user = null;
-      acctPanels(); refreshCtas(); ACCT._emit('logout');
-      $a('acNote').textContent = 'Account deleted. Every record on our server is gone. Anything saved on this device is still yours.';
+      try { localStorage.removeItem('trainerOwner'); } catch (e) {}   // the copy here is now plain guest data
+      acctPanels(); refreshCtas(); ACCT._emit('deleted');
+      $a('acNote').textContent = 'Account deleted. Every record on our server is gone. Your plan and logs are still in this browser; “Clear this data” on the Trainer removes them too.';
     } catch (e) { $a('acDelErr').textContent = 'Could not reach the server.'; }
   });
 
@@ -521,14 +567,17 @@
   /* ── the concierge (⌘K) ── */
   const pal = document.createElement('div');
   pal.className = 'palette';
+  pal.setAttribute('role', 'dialog');
+  pal.setAttribute('aria-modal', 'true');
+  pal.setAttribute('aria-label', 'Go to an app or your account');
   pal.innerHTML = `
     <div class="pal-box">
       <div class="pal-head">
         <span class="pp">&#10022;</span>
-        <input id="palInput" placeholder="Where to? Try trainer, study or account" autocomplete="off" spellcheck="false" aria-label="Search apps and actions"/>
+        <input id="palInput" placeholder="Where to? Try trainer, study or account" autocomplete="off" spellcheck="false" aria-label="Search apps and actions" role="combobox" aria-expanded="true" aria-controls="palList" aria-autocomplete="list"/>
         <span class="pal-esc">ESC</span>
       </div>
-      <div class="pal-list" id="palList"></div>
+      <div class="pal-list" id="palList" role="listbox" aria-label="Results"></div>
     </div>`;
   document.body.append(pal);
   const palInput = pal.querySelector('#palInput');
@@ -545,7 +594,7 @@
     })).filter(i => !i.disabled);
     if (ACCT.enabled) {
       items.unshift(ACCT.user
-        ? { id: '&#9679;', label: 'Your account · ' + ACCT.user, hint: 'synced on every device', run: acctGo }
+        ? { id: '&#9679;', label: 'Your account · ' + escA(ACCT.user), hint: 'synced on every device', run: acctGo }
         : { id: '&#9679;', label: 'Sign in or create a free account', hint: 'your training on every device', run: acctGo });
     }
     if (window.OS_PALETTE_EXTRA) items.push(...window.OS_PALETTE_EXTRA);
@@ -558,11 +607,15 @@
       !q || i.label.toLowerCase().includes(q) || (i.hint || '').toLowerCase().includes(q));
     palSel = Math.min(palSel, Math.max(0, palItems.length - 1));
     palList.innerHTML = palItems.length
-      ? palItems.map((i, n) => `<div class="pal-item ${n === palSel ? 'sel' : ''}" data-n="${n}"><span class="pi">${i.id}</span><span>${i.label}</span><span class="ph">${i.hint || ''}</span></div>`).join('')
-      : '<div class="pal-empty">Nothing matches. Try another word.</div>';
+      ? palItems.map((i, n) => `<div class="pal-item ${n === palSel ? 'sel' : ''}" data-n="${n}" id="palOpt${n}" role="option" aria-selected="${n === palSel}"><span class="pi" aria-hidden="true">${i.id}</span><span>${i.label}</span><span class="ph">${i.hint || ''}</span></div>`).join('')
+      : '<div class="pal-empty" role="status">Nothing matches. Try another word.</div>';
+    if (palItems.length) palInput.setAttribute('aria-activedescendant', 'palOpt' + palSel);
+    else palInput.removeAttribute('aria-activedescendant');
   }
 
+  let palReturn = null;
   function openPal() {
+    palReturn = document.activeElement;
     OS.paletteOpen = true;
     pal.classList.add('open');
     palInput.value = ''; palSel = 0;
@@ -572,6 +625,8 @@
   function closePal() {
     OS.paletteOpen = false;
     pal.classList.remove('open');
+    if (palReturn && palReturn.focus && document.contains(palReturn)) palReturn.focus();
+    palReturn = null;
   }
 
   document.addEventListener('keydown', e => {
@@ -581,6 +636,7 @@
       return;
     }
     if (!OS.paletteOpen) return;
+    if (e.key === 'Tab') { e.preventDefault(); palInput.focus(); return; }   // the dialog keeps focus
     if (e.key === 'Escape') { closePal(); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); palSel = (palSel + 1) % palItems.length; renderPal(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = (palSel - 1 + palItems.length) % palItems.length; renderPal(); }

@@ -906,7 +906,7 @@ body.fade-out{opacity:0}
     </h2>
     <div class="creed" data-rv data-d="2">
       <div class="creed-col"><span class="creed-h">We will never</span><ul><li>Shame you into a session.</li><li>Sell you a fat-burner.</li><li>Call soreness progress.</li><li>Lock the plan behind a paywall.</li></ul></div>
-      <div class="creed-col"><span class="creed-h">We always will</span><ul><li>Say when it is "it depends".</li><li>Fit the plan to your real life.</li><li>Show you the reasoning.</li><li>Keep your data yours.</li></ul></div>
+      <div class="creed-col"><span class="creed-h">We always will</span><ul><li>Say when it is "it depends".</li><li>Fit the plan to your real life.</li><li>Show you the reasoning.</li><li>Never sell your data.</li></ul></div>
     </div>
   </section>
 
@@ -1069,7 +1069,7 @@ body.fade-out{opacity:0}
         <a class="flag" href="/trainer" data-nav>The Trainer</a><a href="/study" data-nav>The Study</a><a href="/calculator" data-nav>Compute</a><a href="/journalist" data-nav>The Press</a><a href="/meme" data-nav>Synthesis</a><a href="/game" data-nav>Flyuserfly</a><a href="/play/the-fly" data-nav>The Fly</a><a href="/play/city-game" data-nav>Costa Vista</a>
       </nav>
     </div>
-    <div class="foot-note"><button class="totop" id="toTop">&uarr; Back to top</button><span>The Trainer by Funflix &middot; free to use</span><span>No account needed. Your plan and logs stay on this device until you choose to sync.</span></div>
+    <div class="foot-note"><button class="totop" id="toTop">&uarr; Back to top</button><span>The Trainer by Funflix &middot; free to use</span><span>No account needed. Your plan and logs are stored in this browser unless you choose to sync.</span></div>
   </footer>
 
 </main>
@@ -1105,7 +1105,7 @@ body.fade-out{opacity:0}
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT" hidden>
   <div class="sheet-card">
     <div class="sheet-hd"><p class="k" id="sheetT">The house</p><button class="sheet-x" type="button" data-sheet-close>Close</button></div>
-    <a class="sheet-flag" href="/trainer" data-nav><span class="sf-k">The flagship</span><b>The Trainer</b><span class="sf-d">Your program, your log and a coach in the gym. Syncs to every device.</span><span class="sf-go" aria-hidden="true">&rarr;</span></a>
+    <a class="sheet-flag" href="/trainer" data-nav><span class="sf-k">The flagship</span><b>The Trainer</b><span class="sf-d">Your program, your log and a coach in the gym. Syncs to every device with a free account.</span><span class="sf-go" aria-hidden="true">&rarr;</span></a>
     <button class="sheet-acct" type="button" data-acct>Sign in or create a free account</button>
     <p class="sheet-sub">Also from Funflix</p>
     <div class="sheet-grid">
@@ -1613,6 +1613,7 @@ body.fade-out{opacity:0}
   doors.forEach(function(b){ b.addEventListener("click",function(){ closeSheet(); if(ACCT) ACCT.open(); }); });
   function label(){
     if(!ACCT) return;
+    doors.forEach(function(b){ b.hidden = !!(ACCT.ready && !ACCT.enabled); });
     var who=ACCT.user?ACCT.user.split("@")[0]:"";
     doors.forEach(function(b){
       if(b.classList.contains("sheet-acct")) b.textContent=who?("Your account · "+who):"Sign in or create a free account";

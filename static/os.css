@@ -184,6 +184,8 @@ html { scrollbar-width: thin; scrollbar-color: rgba(var(--shadow-rgb),0.35) tran
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   transition: transform 0.2s ease, opacity 0.2s;
 }
+.hud-cta { display: inline-flex; align-items: center; justify-content: center; }
+.hud-cta .cta-full { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hud-cta:hover { transform: translateY(-1px); opacity: 0.92; }
 .hud-cta:active { transform: translateY(0) scale(0.97); }
 
@@ -436,3 +438,23 @@ html { scrollbar-width: thin; scrollbar-color: rgba(var(--shadow-rgb),0.35) tran
 .stage .mod-over { font-family: var(--monoX); font-weight: 500; letter-spacing: 0.16em; color: var(--accD); }
 .stage .mod-title { font-family: var(--serif); font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
 .stage .mod-sub { font-family: var(--sans); font-style: normal; font-size: 17px; line-height: 1.5; color: var(--gray); }
+
+/* ── phones: the bar always fits (Design F17). The account button becomes an
+   initial, and on the narrowest screens the Apps label becomes an icon. ── */
+html { overflow-x: clip; }
+.hud-apps .apps-grid, .hud-cta .cta-init { display: none; }
+@media (max-width: 480px) {
+  .hud-inner { gap: 4px; padding: 8px 12px; }
+  .hud-logo b { letter-spacing: 0.14em; }
+  .hud-apps { padding: 0 10px; }
+  .hud-theme { width: 38px; height: 38px; }
+  .hud-cta { flex: 0 1 auto; min-width: 0; max-width: 34vw; padding: 0 14px; }
+  .hud-cta.is-user { width: 38px; min-width: 38px; padding: 0; justify-content: center; }
+  .hud-cta.is-user .cta-full { display: none; }
+  .hud-cta.is-user .cta-init { display: inline; font-family: var(--serif); font-weight: 800; text-transform: uppercase; }
+}
+@media (max-width: 360px) {
+  .hud-apps { padding: 0; width: 38px; justify-content: center; }
+  .hud-apps .apps-label, .hud-apps .apps-chev { display: none; }
+  .hud-apps .apps-grid { display: block; width: 16px; height: 16px; }
+}

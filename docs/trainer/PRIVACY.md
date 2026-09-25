@@ -63,7 +63,7 @@ and signed out."*
 `localStorage`; `savedPlan()` ignores any `demo:true` entry; a one-time load purge
 removes demo entries older builds left behind; and a guest now sees **"Saved only
 on this browser… Not your device? Clear this data"** to wipe local data without an
-account. Regression coverage in `qa_privacy.py` + `site_qa.py`
+account. Regression coverage in `qa/privacy_qa.py` + `site_qa.py` (note, 2026-09-25: `qa_privacy.py` was cited here but never existed; the real suite is `qa/privacy_qa.py`, run in CI)
 (`demo_peek_does_not_persist`, `demo_peek_no_restore_tab`).
 
 ---
@@ -74,7 +74,7 @@ Ran the full checklist. **Server-side isolation holds** and is proven by
 `tests/test_accounts.py` (two users' plans/logs/history stay separate; the
 history-item route is `WHERE user_id AND id` so IDOR fails; one user's write never
 touches another; deleting one account leaves the other intact; every data endpoint
-rejects the anonymous). **Browser cross-user proof added** (`qa_isolation_e2e.py`):
+rejects the anonymous). **Browser cross-user proof added** (cited as `qa_isolation_e2e.py`, which never existed; the proof now lives in `qa/privacy_qa.py`, run in CI):
 A registers via OTP and syncs a plan; A logs out; **B registers on the same
 browser** → B's `/api/sync` is empty of A's data, B is B (not A), **A's device
 localStorage is wiped** on B's login (owner-stamp), and B cannot read A's history
@@ -99,3 +99,33 @@ never leaks to a guest or a second account on a shared browser.
   a real, owned inbox — needs an owner mail-provider key (free tier). Build ready.
 - **Prove server-side isolation with tests** across sync/history/export/profile.
 - **Sign-in must be fully functional** for existing accounts — audit end to end.
+
+## 2026-09-25 whole-site evaluation: what the Guardians found, and what changed
+
+Opened cold and signed out first, then shared-device and two-account scenarios, all
+reproduced locally with the in-memory account store. Fixed and locked by
+`qa/privacy_qa.py` (runs in CI, self-contained, no secrets):
+
+1. **Sign-out on any page wipes this browser.** Only `/trainer` used to; signing out
+   from the home page left the plan, logs and weigh-ins for the next person. The wipe
+   now lives in `os.js` (every `trainer*` key except the theme, plus the handoff).
+2. **Guest data joins an account only on an explicit yes.** Signing in over a plan made
+   without an account shows "This browser has a plan that isn't in any account ... Is
+   it yours?". Nothing syncs until it is answered; "Not mine" removes it.
+3. **`?sample` always shows the sample**, never the plan this browser holds.
+4. **Samples send nothing personal** (no intake, no check-in data).
+5. **"Clear this data" clears everything**, owner stamp and handoff included, and resets
+   the open form. "Not you? Start blank" resets the whole form too.
+6. **Deleting an account keeps this browser's copy** (as the confirm box always
+   promised) and removes the owner stamp; a distinct `deleted` event, not `logout`.
+7. **Honest copy.** Every "stays on this device" line now says "stored in this
+   browser", and each place that sends data to the AI says so and names Google Gemini
+   (free service: may be kept to improve models). Only the first name is sent. Share
+   links leave the name out and say what they carry before sharing. The creed says
+   "Never sell your data."
+8. Account endpoints send `Cache-Control: no-store`; security headers on every response.
+
+Still open for the owner: the Gemini key's billing tier decides whether Google may keep
+prompts (paid tier: it does not). Moving the Trainer's key to the paid tier would make
+the strongest privacy promise possible; until then the copy states the free-tier terms.
+

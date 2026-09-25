@@ -22,12 +22,29 @@ jobs:
       - name: Eval bench (offline — demo + checked-in fixtures)
         run: python qa/trainer_bench.py
 
+  privacy:
+    # THE GUARDIANS' browser-level regressions: shared device, sign-out on any page,
+    # guest data never uploaded without a yes, samples send nothing personal.
+    # Self-contained (in-memory accounts, no secrets).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt pytest playwright
+          python -m playwright install --with-deps chromium
+      - name: Privacy regressions
+        run: python qa/privacy_qa.py
+
   live-verify:
     # After Render auto-deploys this push, confirm the LIVE site actually
     # serves this commit and a working plan. Render ignores the Procfile and
     # deploys can fail silently — never trust an unverified deploy.
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: test
+    needs: [test, privacy]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
