@@ -191,7 +191,10 @@ def test_cut_demo_valid_and_served():
     d = c.post("/api/trainer", json={"demo": "cut"}).get_json()
     assert d["profile_summary"]["gender_assigned_at_birth"] == "female"
     assert d["profile_summary"]["goal"].lower().startswith("fat loss")
-    assert d["diet_plan"]["calorie_target_kcal"] == 1650
+    # the rulebook's deficit, checked against the sample's own maintenance (the sample is
+    # engine-written since 2026-09-25, so its exact number is the engine's, not hand-picked)
+    deficit = d["profile_summary"]["tdee_kcal"] - d["diet_plan"]["calorie_target_kcal"]
+    assert 400 <= deficit <= 500
     # default demo is unchanged (muscle gain)
     d0 = c.post("/api/trainer", json={"demo": 1}).get_json()
     assert d0["profile_summary"]["name"] == "Rohan"

@@ -65,7 +65,7 @@
  },
  "workout_days": [
   {
-   "day_label": "Day 1 - Upper A (Monday)",
+   "day_label": "Day 1: Upper A (Monday)",
    "estimated_duration_minutes": 85,
    "warmup": "8 to 10 minutes: 5 minutes easy rowing or incline walking, band pull-aparts 2 x 15, push-ups 2 x 10, then ramp into bench press with bar x 10, 40 percent x 8, 60 percent x 5, 80 percent x 3.",
    "exercises": [
@@ -100,7 +100,7 @@
      "name": "Lat pulldown",
      "sets": 3,
      "rep_range": "10-12",
-     "rest_seconds": 90,
+     "rest_seconds": 120,
      "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
      "tempo_or_notes": "Medium grip, pull to the upper chest, no torso swing.",
      "substitution": "Assisted pull-up or single-arm cable pulldown"
@@ -136,7 +136,7 @@
    "session_notes": "23 working sets. With the arm superset this fits in about 80 to 85 minutes including warm-up."
   },
   {
-   "day_label": "Day 2 - Lower A (Tuesday)",
+   "day_label": "Day 2: Lower A (Tuesday)",
    "estimated_duration_minutes": 80,
    "warmup": "10 to 12 minutes: 5 minutes on the bike, leg swings 2 x 10 per side, bodyweight squats 2 x 12, then ramp into back squat with bar x 10, 40 percent x 8, 60 percent x 5, 80 percent x 3.",
    "exercises": [
@@ -198,7 +198,7 @@
    "session_notes": "20 working sets, about 75 to 80 minutes including warm-up."
   },
   {
-   "day_label": "Day 3 - Upper B (Thursday)",
+   "day_label": "Day 3: Upper B (Thursday)",
    "estimated_duration_minutes": 85,
    "warmup": "8 to 10 minutes: 5 minutes easy rowing, band pull-aparts 2 x 15, scapular pull-ups 2 x 5, then ramp into the overhead press with bar x 10, 50 percent x 6, 75 percent x 3.",
    "exercises": [
@@ -233,7 +233,7 @@
      "name": "Seated cable row",
      "sets": 3,
      "rep_range": "10-12",
-     "rest_seconds": 90,
+     "rest_seconds": 120,
      "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
      "tempo_or_notes": "Neutral grip, drive the elbows back, control the return without letting the stack slam.",
      "substitution": "Chest-supported machine row"
@@ -269,7 +269,7 @@
    "session_notes": "23 working sets. With the arm superset this fits in about 80 to 85 minutes including warm-up."
   },
   {
-   "day_label": "Day 4 - Lower B (Friday)",
+   "day_label": "Day 4: Lower B (Friday)",
    "estimated_duration_minutes": 80,
    "warmup": "10 to 12 minutes: 5 minutes on the bike, hip hinges with a dowel 2 x 10, glute bridges 2 x 12, then ramp into the deadlift with 40 percent x 5, 60 percent x 3, 80 percent x 2.",
    "exercises": [
@@ -295,7 +295,7 @@
      "name": "Bulgarian split squat",
      "sets": 3,
      "rep_range": "8-12",
-     "rest_seconds": 90,
+     "rest_seconds": 120,
      "rpe_or_rir": "RIR 1-2 (RPE 8-9)",
      "tempo_or_notes": "Sets are per leg; rest 90 seconds after each leg. Slight forward lean loads the glute, upright torso loads the quad more.",
      "substitution": "Walking lunge or reverse lunge"
@@ -358,7 +358,7 @@
  "rationale": {
   "exercise_selection": "Every weekly movement pattern is covered twice: horizontal press (bench, cable fly) and pull (chest-supported row, seated cable row), vertical press (overhead press, incline press) and pull (pull-up, lat pulldown), squat (back squat, hack squat, leg press), hinge (deadlift, Romanian deadlift), and single-leg work (Bulgarian split squat), with targeted isolation for delts, arms, calves and abs. Choices favor a high stimulus-to-fatigue ratio: the chest-supported row removes the lower-back limiter of a bent-over row, and seated leg curls load the hamstrings at long muscle length. Barbell compounds anchor each day because they load the most muscle per set and progress in the smallest reliable increments.",
   "ordering": "Compounds come first while you are fresh, because performance on them drives the double-progression engine; isolation comes last since it tolerates fatigue with little penalty. Arm work is supersetted at the end of upper days purely to fit the 90-minute budget without cutting rest on the lifts that matter.",
-  "volume_analysis": "Weekly hard sets per muscle: chest 10 direct (bench 4, fly 3, incline press 3), back 14 (rows 7, vertical pulls 7), delts 10 direct plus heavy indirect pressing, quads 13 (squat 4, leg press 3, hack squat 3, split squat 3), hamstrings 9 direct (RDL 3, leg curls 6) plus deadlifts, glutes about 10 indirect through squat, hinge and lunge patterns, biceps 6 direct plus about 14 pulling sets, triceps 6 direct plus about 14 pressing sets, calves 8, abs 6. All muscles sit inside the 10 to 16 set intermediate band once indirect work is counted, matching the dose-response evidence (Schoenfeld et al. 2017).",
+  "volume_analysis": "Weekly hard sets per muscle: chest 10 direct (bench 4, fly 3, incline press 3), back 14 (rows 7, vertical pulls 7), delts 10 direct plus heavy indirect pressing, quads 13 (squat 4, leg press 3, hack squat 3, split squat 3), hamstrings 9 direct (RDL 3, leg curls 6) plus deadlifts, glutes about 10 indirect through squat, hinge and lunge patterns, biceps 6 direct plus about 14 pulling sets, triceps 6 direct plus about 14 pressing sets, calves 8, abs 6. Chest, back, delts, quads and hamstrings sit inside the 10 to 16 set intermediate band; calves (8) and abs (6) are deliberately held below it, because they are secondary to the goal and the time budget. The dose-response evidence (Schoenfeld et al. 2017) supports that band.",
   "goal_fit": "For muscle gain on 4 days at 90 minutes, the upper/lower split delivers 2x weekly frequency per muscle, 19 to 23 sets per session inside the time budget with full rest periods, and rep ranges of 5 to 20 biased toward the hypertrophy-efficient middle. Nothing here chases fatigue for its own sake; the surplus, the logbook, and near-failure sets do the work."
  },
  "cardio_and_steps": {
@@ -383,21 +383,21 @@
   "macro_rationale": "Protein 165 g is 2.0 g per kg, inside the 1.6 to 2.2 g per kg range supported by the Morton et al. 2018 meta-analysis, which found benefits plateau near 1.6 g per kg on average with an upper confidence limit near 2.2; the upper half costs nothing and covers day-to-day variability. Fat 80 g is about 1.0 g per kg, enough for hormonal health. Carbs 405 g fill the remaining calories and fuel 4 heavy sessions per week. Arithmetic check: 165 x 4 + 405 x 4 + 80 x 9 = 3000 kcal.",
   "meal_schedule": [
    {
-    "meal": "Meal 1 - Breakfast",
+    "meal": "Meal 1: Breakfast",
     "time": "09:00",
     "target_kcal": 1000,
     "target_protein_g": 50,
     "timing_note": "First feeding of the day; no special timing requirement beyond hitting its protein target."
    },
    {
-    "meal": "Meal 2 - Lunch, pre-workout",
+    "meal": "Meal 2: Lunch, pre-workout",
     "time": "15:30",
     "target_kcal": 950,
     "target_protein_g": 50,
     "timing_note": "2.5 to 3 hours before the 18:30 session, carrying about 100 g of carbs so glycogen is topped up for training."
    },
    {
-    "meal": "Meal 3 - Post-workout dinner",
+    "meal": "Meal 3: Post-workout dinner",
     "time": "20:30",
     "target_kcal": 1050,
     "target_protein_g": 65,
@@ -406,7 +406,7 @@
   ],
   "sample_day": [
    {
-    "meal": "Meal 1 - Breakfast",
+    "meal": "Meal 1: Breakfast",
     "time": "09:00",
     "foods": [
      "4 whole eggs scrambled in 5 g butter",
@@ -418,7 +418,7 @@
     "approx_calories": 1030
    },
    {
-    "meal": "Meal 2 - Lunch, pre-workout",
+    "meal": "Meal 2: Lunch, pre-workout",
     "time": "15:30",
     "foods": [
      "150 g cooked chicken breast (about 200 g raw)",
@@ -430,7 +430,7 @@
     "approx_calories": 935
    },
    {
-    "meal": "Meal 3 - Post-workout dinner",
+    "meal": "Meal 3: Post-workout dinner",
     "time": "20:30",
     "foods": [
      "30 g whey protein in water immediately after training, around 20:05",
@@ -495,7 +495,7 @@
    "caveat": "If you take anticoagulant or blood pressure medication, clear fish oil doses with your physician first."
   }
  ],
- "supplements_excluded_note": "Deliberately excluded: anything hormonal (SARMs, prohormones, products marketed as testosterone boosters), fat burners and thermogenics, BCAAs and EAAs (redundant at 165 g of daily protein), glutamine for muscle growth, and proprietary-blend pre-workouts. These are unproven, unnecessary at your protein intake, or carry real health and contamination risks. A product promising steroid-like results without being a steroid is either lying or dangerous.",
+ "supplements_excluded_note": "Deliberately excluded: anything hormonal (SARMs, prohormones, products marketed as testosterone boosters), fat burners and thermogenics, BCAAs and EAAs (redundant at 165 g of daily protein), glutamine for muscle growth, and proprietary-blend pre-workouts. These are unproven, unnecessary at your protein intake, or carry real health and contamination risks. A product promising steroid-like results without being a steroid is either lying or dangerous. Mass gainers and proprietary blends too: they are calories with a markup.",
  "duration_and_paths": {
   "plan_duration_months": 4,
   "duration_rationale": "Run this plan for 16 weeks with deload weeks at week 6 and week 12. Muscle gain is slow, roughly 0.5 to 0.75 kg of scale weight per month for an intermediate, so 16 weeks is the minimum runway to bank 2 to 3 kg and let double progression compound on every lift. Switching programs before 12 weeks is the most common self-inflicted stall in this phase.",

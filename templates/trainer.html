@@ -1384,7 +1384,7 @@
         setState('plan');
         if (isDemo) {
           document.querySelector('.pa-note').textContent =
-            'A sample program. This is the quality you’ll get. Build yours below: it’s tailored to your body, equipment and goals.';
+            'A sample program, so you can see the format. Yours is written from your own answers: your body, your equipment, your week.';
           $('buildOwnBtn').style.display = '';
           greet('plan');
         }
@@ -1585,7 +1585,7 @@
       if (s === 'plan') {
         var sample = $('buildOwnBtn') && $('buildOwnBtn').style.display !== 'none';
         T = sample ? 'A sample program.' : 'Your program.';
-        S = sample ? 'Written by the same engine that will write yours. Every number has its reason next to it.'
+        S = sample ? 'The format and depth yours will have. Every number has its reason next to it.'
                    : 'Every number has its reason next to it. Save it, print it, or ask about any of it.';
       } else if (s === 'thinking') {
         T = 'Writing it now.'; S = 'A minute or two. Every number is computed, then checked.';
