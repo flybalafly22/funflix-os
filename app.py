@@ -1,3 +1,4 @@
+import ast
 import gzip as _gzip
 import hashlib
 import math
@@ -207,8 +208,102 @@ try:
 except FileNotFoundError:
     ANALYSIS = None
 
-SAFE_NAMES = {name: getattr(math, name) for name in dir(math) if not name.startswith("_")}
-SAFE_NAMES.update({"abs": abs, "round": round, "pi": math.pi, "e": math.e})
+# ════════ Compute: a calculator that can only calculate ════════
+# RED TEAM (2026-09-25): the old `eval(expr, {"__builtins__": {}}, ...)` was a sandbox
+# in name only; attribute walks like ().__class__.__base__.__subclasses__() reached
+# os.popen, i.e. remote code execution on a public route. Expressions are now parsed
+# with `ast` and only numbers, arithmetic, brackets and a fixed list of math
+# functions are allowed. Size guards stop 9**9**9-style denial of service.
+_CALC_FUNCS = {
+    "sin": math.sin, "cos": math.cos, "tan": math.tan, "asin": math.asin, "acos": math.acos,
+    "atan": math.atan, "sinh": math.sinh, "cosh": math.cosh, "tanh": math.tanh,
+    "log": math.log, "log2": math.log2, "log10": math.log10, "sqrt": math.sqrt, "exp": math.exp,
+    "pow": math.pow, "factorial": math.factorial, "abs": abs, "fabs": math.fabs,
+    "degrees": math.degrees, "radians": math.radians, "round": round,
+    "floor": math.floor, "ceil": math.ceil, "hypot": math.hypot,
+}
+_CALC_CONSTS = {"pi": math.pi, "e": math.e, "tau": math.tau}
+_CALC_BINOPS = {
+    ast.Add: lambda a, b: a + b, ast.Sub: lambda a, b: a - b, ast.Mult: lambda a, b: a * b,
+    ast.Div: lambda a, b: a / b, ast.FloorDiv: lambda a, b: a // b, ast.Mod: lambda a, b: a % b,
+}
+_CALC_MAX_LEN, _CALC_MAX_NODES, _CALC_MAX_ABS = 200, 120, 1e300
+
+
+class CalcError(ValueError):
+    """An expression the calculator refuses, with a message fit to show the user."""
+
+
+def _calc_num(v):
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        raise CalcError("Only numbers, please")
+    if isinstance(v, float) and (v != v):
+        raise CalcError("Not a number")
+    if abs(v) > _CALC_MAX_ABS:
+        raise CalcError("Result too large")
+    return v
+
+
+def _calc_pow(a, b):
+    # big integer powers are exact and slow; cap them, otherwise fall back to floats
+    if abs(b) > 10000 or (isinstance(a, int) and isinstance(b, int) and b > 0 and abs(a) > 1
+                          and b * math.log10(abs(a)) > 300):
+        return _calc_num(math.pow(a, b))  # raises OverflowError past float range
+    return _calc_num(a ** b)
+
+
+def _calc_eval(node):
+    if isinstance(node, ast.Expression):
+        return _calc_eval(node.body)
+    if isinstance(node, ast.Constant):
+        return _calc_num(node.value)
+    if isinstance(node, ast.Name):
+        if node.id in _CALC_CONSTS:
+            return _CALC_CONSTS[node.id]
+        raise CalcError("Unknown name: " + node.id[:20])
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        v = _calc_eval(node.operand)
+        return v if isinstance(node.op, ast.UAdd) else -v
+    if isinstance(node, ast.BinOp):
+        a, b = _calc_eval(node.left), _calc_eval(node.right)
+        if isinstance(node.op, ast.Pow):
+            return _calc_pow(a, b)
+        op = _CALC_BINOPS.get(type(node.op))
+        if op is None:
+            raise CalcError("That operator isn't supported")
+        return _calc_num(op(a, b))
+    if isinstance(node, ast.Call):
+        if not isinstance(node.func, ast.Name) or node.func.id not in _CALC_FUNCS or node.keywords:
+            raise CalcError("That function isn't supported")
+        args = [_calc_eval(a) for a in node.args]
+        name = node.func.id
+        if name == "factorial":
+            if len(args) != 1 or not float(args[0]).is_integer() or not 0 <= args[0] <= 170:
+                raise CalcError("n! works for whole numbers from 0 to 170")
+            return _calc_num(math.factorial(int(args[0])))
+        if name == "pow":   # math.pow: float semantics, as the x^y key always had
+            if len(args) != 2:
+                raise CalcError("pow needs two numbers")
+            return _calc_num(math.pow(args[0], args[1]))
+        return _calc_num(_CALC_FUNCS[name](*args))
+    raise CalcError("Only numbers, arithmetic and math functions are allowed")
+
+
+def safe_calculate(expression):
+    """Evaluate a calculator expression safely. Raises CalcError, ZeroDivisionError,
+    OverflowError or ValueError (math domain) for anything it won't or can't compute."""
+    expression = str(expression or "").strip()
+    if not expression:
+        raise CalcError("Enter an expression")
+    if len(expression) > _CALC_MAX_LEN:
+        raise CalcError("That expression is too long")
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        raise CalcError("Check the expression")
+    if sum(1 for _ in ast.walk(tree)) > _CALC_MAX_NODES:
+        raise CalcError("That expression is too long")
+    return _calc_eval(tree)
 
 @app.route("/")
 def index():
@@ -1474,14 +1569,18 @@ def trainer_ask():
 
 @app.route("/calculate", methods=["POST"])
 def calculate():
-    expression = request.json.get("expression", "")
+    expression = _req_json().get("expression", "")
     try:
-        result = eval(expression, {"__builtins__": {}}, SAFE_NAMES)
+        result = safe_calculate(expression)
         return jsonify({"result": str(result)})
     except ZeroDivisionError:
         return jsonify({"error": "Division by zero"})
-    except Exception as exc:
+    except OverflowError:
+        return jsonify({"error": "Result too large"})
+    except CalcError as exc:
         return jsonify({"error": str(exc)})
+    except (ValueError, TypeError):
+        return jsonify({"error": "That isn't something I can compute"})
 
 # NOTE: text/plain is deliberately EXCLUDED. Every streaming endpoint (live plan
 # generation, demo=stream, Ask-the-Trainer) returns text/plain, and under gunicorn
