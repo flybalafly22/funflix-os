@@ -44,13 +44,25 @@
     </div>`;
   document.body.prepend(hud);
 
+  /* ── landmarks: one <main> per page and a way to skip the bar ── */
+  const mainEl = document.querySelector('main') || document.querySelector('.page-wrap');
+  if (mainEl) {
+    if (mainEl.tagName !== 'MAIN') mainEl.setAttribute('role', 'main');
+    if (!mainEl.id) mainEl.id = 'main';
+    if (!mainEl.hasAttribute('tabindex')) mainEl.setAttribute('tabindex', '-1');
+    const skip = document.createElement('a');
+    skip.className = 'skip-link'; skip.href = '#' + mainEl.id; skip.textContent = 'Skip to content';
+    skip.addEventListener('click', e => { e.preventDefault(); mainEl.focus(); mainEl.scrollIntoView(); });
+    document.body.prepend(skip);
+  }
+
   /* ── the footer line ── */
   const sb = document.createElement('footer');
   sb.className = 'statusbar';
   sb.innerHTML = `
     <div><a href="/" data-nav>The Trainer</a> by Funflix &middot; <span class="hl">MMXXVI</span></div>
-    <div class="sb-mid">${current.path === '/' ? 'In your corner' : 'No. ' + current.id + ' &middot; ' + current.name}</div>
-    <div><span class="kbd">&#8984;K</span> Concierge &nbsp; <span class="hl" id="osClock">--:--</span></div>`;
+    <div class="sb-mid">${current.path === '/' ? 'In your corner' : current.name}</div>
+    <div><span class="sb-k"><span class="kbd">&#8984;K</span> Concierge &nbsp; </span><span class="hl" id="osClock">--:--</span></div>`;
   document.body.append(sb);
 
   setInterval(() => {
@@ -586,9 +598,9 @@
 
   function buildItems() {
     const items = MODULES.map(m => ({
-      id: m.id === '·' ? '&middot;' : m.id,
+      id: '&rarr;',
       label: m.path === '/' ? 'Return home' : `Open ${m.name}`,
-      hint: m.path === '/' ? 'the front door' : `No. ${m.id} · ${m.desc}`,
+      hint: m.desc,
       run: () => nav(m.path),
       disabled: m.path === current.path,
     })).filter(i => !i.disabled);
@@ -632,7 +644,10 @@
   document.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
-      OS.paletteOpen ? closePal() : openPal();
+      // never open over another open dialog (Coach Mode mid-set, the account panel)
+      const other = Array.from(document.querySelectorAll('[aria-modal="true"]'))
+        .some(d => d !== pal && !pal.contains(d) && !d.hidden && d.getClientRects().length);
+      if (OS.paletteOpen) closePal(); else if (!other) openPal();
       return;
     }
     if (!OS.paletteOpen) return;

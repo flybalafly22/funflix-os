@@ -9,10 +9,13 @@
 <meta property="og:title" content="The Trainer">
 <meta property="og:description" content="A coach who gives it to you straight. Free, evidence-based training plans built around your real week.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://funflix-os.onrender.com/static/trainer/icon-512.png">
+<meta name="twitter:card" content="summary">
 <link rel="icon" href="/static/trainer/icon-192.png">
 <link rel="apple-touch-icon" href="/static/trainer/icon-192.png">
 <link rel="preload" href="/static/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/geist-mono.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/fonts.css">
 <script>(function(){try{var t=localStorage.getItem('trainerTheme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <style>
@@ -39,7 +42,7 @@
   --cobalt:#3B4BFF; --cobalt-deep:#2A38E6; --midnight:#11163A; --ice:#0F1436; --peri:#8C9BFF;
   --island:#1A2050; --island-ink:#FFFFFF;
 }
-html{-webkit-text-size-adjust:100%;overflow-x:clip;scroll-behavior:smooth;background:var(--paper)}
+html{-webkit-text-size-adjust:100%;overflow-x:clip;scroll-behavior:smooth;background:var(--paper);font-synthesis:none}
 body{margin:0;background:transparent;color:var(--ink);font-family:var(--sans);font-size:18px;line-height:1.55;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 ::selection{background:var(--cobalt);color:#fff}
@@ -55,6 +58,7 @@ svg .rough{filter:url(#rough)}
 .mark{display:flex;align-items:baseline;gap:9px}
 .mark b{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600}
 .mark .sub{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink-3);text-transform:uppercase}
+@media(max-width:360px){.mark .sub{display:none}}
 .nav-r{display:flex;align-items:center;gap:18px}
 .nav-time{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
 .nav-cta{appearance:none;cursor:pointer;background:var(--ink);color:var(--paper);border:0;font-family:var(--sans);font-weight:500;
@@ -108,6 +112,7 @@ svg .rough{filter:url(#rough)}
 /* ---------- CRUSH signature ---------- */#crush{position:relative;height:210vh}
 .crush-stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
 .crush-label{margin:0 auto 4vh;text-align:center}
+.crush-label.in.hush{opacity:0;transition:opacity .35s var(--ease)}
 .pins{display:flex;flex-wrap:wrap;justify-content:center;gap:14px 34px;max-width:1000px;margin:0 auto;padding:0 20px}
 .pin{font-family:var(--disp);font-weight:800;font-size:clamp(1.4rem,4.6vw,3.4rem);letter-spacing:-.02em;color:var(--ink);
   transform-origin:50% 100%;transition:transform .5s var(--ease),opacity .5s var(--ease);will-change:transform}
@@ -185,7 +190,7 @@ svg .rough{filter:url(#rough)}
 
 /* ---------- plan spec (minimal) ---------- */.plan-two{display:grid;grid-template-columns:.82fr 1.18fr;gap:clamp(28px,5vw,64px);align-items:center;margin-top:clamp(40px,6vw,70px)}
 @media(max-width:820px){.plan-two{grid-template-columns:1fr}}
-.plan-copy .said{margin-bottom:16px}
+.plan-copy .said{margin-bottom:16px;color:var(--ink);max-width:20ch}
 .plan-copy p{color:var(--ink-2);max-width:32ch}
 .spec{border:1px solid var(--ink);border-radius:12px;background:var(--card);overflow:hidden}
 .spec-hd{padding:20px 24px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
@@ -201,11 +206,12 @@ svg .rough{filter:url(#rough)}
 .spec-ex .nm .tg{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--acc);margin-left:8px;border:1px solid var(--acc-soft);border-radius:4px;padding:2px 5px}
 .spec-ex .sr{font-family:var(--mono);font-size:.96rem;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .spec-ex .cue{grid-column:2/-1;font-size:.85rem;color:var(--ink-3);margin-top:2px}
-.spec-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.spec-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .spec-stats>div{padding:16px 22px;border-right:1px solid var(--line-2)}
 .spec-stats>div:last-child{border-right:0}
 .spec-stats b{display:block;font-family:var(--disp);font-weight:800;font-size:clamp(1.7rem,3vw,2.4rem);line-height:1}
 .spec-stats span{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);margin-top:6px;display:block}
+@media(max-width:400px){.spec-stats>div{padding:14px 12px}.spec-stats span{font-size:10px;letter-spacing:.08em}}
 .spec-note{padding:18px 24px}
 .spec-note .by{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
 .spec-note p{margin:0;font-family:var(--disp);font-weight:500;font-size:1.12rem;line-height:1.3}
@@ -268,7 +274,6 @@ svg .rough{filter:url(#rough)}
 #crush{height:auto!important}
 .crush-stage{position:static!important;height:auto!important;padding:20vh 0}
 .plate{display:none!important}
-.pin.down{transform:none;opacity:.16}
 .crush-after{position:static!important;opacity:1!important;transform:none!important;margin-top:8vh}
 .barbell{position:static!important}}
 
@@ -343,6 +348,9 @@ svg .rough{filter:url(#rough)}
 
 /* crush intensified (S4) */.pin{transition:transform .55s var(--ease),opacity .55s var(--ease),filter .55s var(--ease)}
 .pin.down{transform:translateY(86px) rotate(var(--r,18deg)) scale(.82);opacity:0;filter:blur(2px)}
+/* reduced motion: the still version tells the same story, every fad crossed off */
+@media (prefers-reduced-motion:reduce){.pin,.pin.down{transition:none}
+.pin.down{transform:none;opacity:.5;filter:none;text-decoration:line-through;text-decoration-thickness:.07em;text-decoration-color:var(--acc)}}
 .pins.shake{animation:cshake .28s}
 @keyframes cshake{0%,100%{transform:translate(0,0)}25%{transform:translate(-3px,1px)}70%{transform:translate(3px,-1px)}}
 .crush-count{position:absolute;bottom:clamp(60px,11vh,108px);left:0;right:0;text-align:center;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);opacity:0;transition:opacity .35s;pointer-events:none}
@@ -582,7 +590,7 @@ svg .rough{filter:url(#rough)}
 
 
 /* --- fields: each block re-themes every component inside it --- */.f-cobalt{--paper:var(--cobalt);--paper-2:var(--cobalt-deep);--card:rgba(255,255,255,.08);
-  --ink:#FFFFFF;--ink-2:rgba(255,255,255,.92);--ink-3:rgba(255,255,255,.88);
+  --ink:#FFFFFF;--ink-2:#FFFFFF;--ink-3:#FFFFFF;
   --line:rgba(255,255,255,.3);--line-2:rgba(255,255,255,.14);
   --acc:#FFFFFF;--acc-soft:rgba(255,255,255,.16);--acc-ink:var(--cobalt);--neg:rgba(255,255,255,.55);
   background:var(--cobalt);color:#fff}
@@ -600,11 +608,11 @@ svg .rough{filter:url(#rough)}
 
 /* --- hero: a full-bleed cobalt field with depth --- */.hero{position:relative;overflow:hidden;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;
   padding-block:clamp(112px,16vh,150px) clamp(88px,12vh,124px)}
-.hero.f-cobalt{background-color:var(--cobalt);background-image:radial-gradient(120% 95% at 26% 10%,#4150FF 0%,var(--cobalt) 46%,var(--cobalt-deep) 100%)}
+.hero.f-cobalt{background-color:var(--cobalt);background-image:radial-gradient(120% 95% at 26% 10%,var(--cobalt) 46%,var(--cobalt-deep) 100%)}
 .hero-in{position:relative;z-index:2;width:100%}
 .hero-bg{position:absolute;inset:0;height:auto;z-index:0;overflow:hidden;pointer-events:none;contain:paint}
 :root .f-cobalt .hero-grid{opacity:1;background-image:linear-gradient(rgba(255,255,255,.085) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.085) 1px,transparent 1px)}
-.f-cobalt .hero-glow{display:block;position:absolute;inset:-30%;background:radial-gradient(28% 28% at var(--mx,66%) var(--my,32%),rgba(255,255,255,.17),transparent 62%)}
+.f-cobalt .hero-glow{display:block;position:absolute;inset:-30%;background:radial-gradient(28% 28% at var(--mx,66%) var(--my,32%),rgba(255,255,255,.08),transparent 62%)}
 :root .f-cobalt .hero-plate{color:#fff;opacity:.24}
 .hero .whistle{z-index:2}
 .f-cobalt .btn.hot{background:#fff;border-color:#fff;color:var(--cobalt);box-shadow:0 16px 34px -16px rgba(6,10,60,.65)}
@@ -615,7 +623,7 @@ svg .rough{filter:url(#rough)}
 
 /* --- nav: transparent over the hero, then solid; hides on the way down --- */.nav{transition:transform .45s var(--ease),background .3s,border-color .3s}
 .nav{color:var(--ink)}
-.nav:not(.stuck){--ink:#fff;--ink-3:rgba(255,255,255,.86);--line:rgba(255,255,255,.4)}
+.nav:not(.stuck){--ink:#fff;--ink-3:#fff;--line:rgba(255,255,255,.4)}
 .hero .mega{font-size:min(clamp(3rem,10.5vw,9rem),15.5vh)}
 @media (max-height:800px) and (min-width:681px){.hero{padding-block:clamp(84px,12.5vh,150px) 60px}
 .hero .k{margin-bottom:20px}
@@ -739,14 +747,19 @@ svg .rough{filter:url(#rough)}
 .finale .chiplet.cta b{color:var(--acc);opacity:1;font-family:var(--mono);font-weight:600;margin-left:6px}
 .intro{background:#0B0F2E;color:#fff}
 .intro-sub{color:rgba(255,255,255,.72)}
+.skip-link{position:fixed;left:12px;top:10px;z-index:1000;transform:translateY(-160%);background:#0B0F2E;color:#fff;font:600 14px/1 var(--sans);
+  padding:13px 18px;border-radius:999px;text-decoration:none;transition:transform .2s}
+.skip-link:focus{transform:none;outline:2px solid #8C9BFF;outline-offset:2px}
+main:focus{outline:none}
 .intro-line{color:rgba(255,255,255,.84)}
 .intro-bar{background:rgba(255,255,255,.14)}
 .intro-bar>i{background:#8C9BFF}
-.q.locked{opacity:.38}
+.q.locked{opacity:.55}
 .coach.tuck{opacity:0;transform:translate(-50%,calc(100% + 34px))}
 .coach.tuck .island,.coach.tuck .coach-bubble{pointer-events:none}
 
 /* short laptop screens: the sticky rig stays fully in view */@media (max-height:820px) and (min-width:861px){.rig{top:76px;gap:10px}
+.nav{padding-top:14px;padding-bottom:14px}
 .rig .bar-live{padding:12px 18px 8px}
 .rig .drow{padding:6px 0}
 .rig .dos-top{padding-top:12px}
@@ -827,6 +840,7 @@ body.fade-out{opacity:0}
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <svg class="hidden-defs" aria-hidden="true"><defs>
   <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.4"/></filter>
 </defs></svg>
@@ -843,7 +857,7 @@ body.fade-out{opacity:0}
   </div>
 </nav>
 
-<main>
+<main id="main" tabindex="-1">
 
   <!-- HERO: a full-bleed electric cobalt field -->
   <section class="hero f-cobalt" id="act-hero">
@@ -956,19 +970,19 @@ body.fade-out{opacity:0}
           </div>
           <p class="reply reveal-soft" id="r-name"></p>
         </div>
-        <div class="q locked" id="q-goal"><p class="q-ask">What are we here to do?</p>
+        <div class="q locked" inert id="q-goal"><p class="q-ask">What are we here to do?</p>
           <div class="chips" data-key="goal"><button class="chip" data-val="stronger">Get stronger</button><button class="chip" data-val="muscle">Build muscle</button><button class="chip" data-val="fat">Lose fat</button><button class="chip" data-val="health">Feel healthier</button></div>
           <p class="reply reveal-soft" id="r-goal"></p></div>
-        <div class="q locked" id="q-exp"><p class="q-ask">How long have you been training?</p><p class="q-hint">this decides how hard I push you in week one</p>
+        <div class="q locked" inert id="q-exp"><p class="q-ask">How long have you been training?</p><p class="q-hint">this decides how hard I push you in week one</p>
           <div class="chips" data-key="exp"><button class="chip" data-val="new">New to lifting</button><button class="chip" data-val="returning">Getting back after a break</button><button class="chip" data-val="intermediate">A couple of years in</button><button class="chip" data-val="advanced">Years under the bar</button></div>
           <p class="reply reveal-soft" id="r-exp"></p></div>
-        <div class="q locked" id="q-kit"><p class="q-ask">What will you be training with?</p><p class="q-hint">the truth, so I only program what you can load</p>
+        <div class="q locked" inert id="q-kit"><p class="q-ask">What will you be training with?</p><p class="q-hint">the truth, so I only program what you can load</p>
           <div class="chips" data-key="kit"><button class="chip" data-val="fullgym">A full gym, machines and all</button><button class="chip" data-val="barbell">A barbell and a rack</button><button class="chip" data-val="dumbbells">Dumbbells at home</button><button class="chip" data-val="bodyweight">Just my bodyweight</button></div>
           <p class="reply reveal-soft" id="r-kit"></p></div>
-        <div class="q locked" id="q-days"><p class="q-ask">How many days a week can you protect?</p><p class="q-hint">the honest number, not the hopeful one</p>
+        <div class="q locked" inert id="q-days"><p class="q-ask">How many days a week can you protect?</p><p class="q-hint">the honest number, not the hopeful one</p>
           <div class="chips" data-key="days"><button class="chip" data-val="2">Two</button><button class="chip" data-val="3">Three</button><button class="chip" data-val="4">Four</button><button class="chip" data-val="5">Five or more</button></div>
           <p class="reply reveal-soft" id="r-days"></p></div>
-        <div class="q locked" id="q-why"><p class="q-ask">Last one, and it isn't about training. What's really driving this?</p>
+        <div class="q locked" inert id="q-why"><p class="q-ask">Last one, and it isn't about training. What's really driving this?</p>
           <div class="chips" data-key="why"><button class="chip" data-val="prove">To prove something to myself</button><button class="chip" data-val="people">To be around longer for my people</button><button class="chip" data-val="skin">To feel at home in my own skin</button><button class="chip" data-val="reset">I just need a reset</button></div>
           <p class="reply reveal-soft" id="r-why"></p></div>
       </div>
@@ -1181,8 +1195,8 @@ body.fade-out{opacity:0}
 
   /* CRUSH scrub */
   (function(){
-    if(reduce) return;
-    var sec=$("#crush"), plate=$("#plate"), pins=$$("#pins .pin"), after=$("#crushAfter"), pinsEl=$("#pins"), count=$("#crushCount");
+    if(reduce){ $$("#pins .pin").forEach(function(p){ p.classList.add("down"); }); return; }  /* the still version tells the same story: crossed off */
+    var sec=$("#crush"), plate=$("#plate"), pins=$$("#pins .pin"), after=$("#crushAfter"), pinsEl=$("#pins"), count=$("#crushCount"), lbl=$(".crush-label");
     var pinX=[], plateW=0, running=false, downCount=0;
     function measure(){ plateW=plate.offsetWidth; pinX=pins.map(function(p){var r=p.getBoundingClientRect(); return r.left+r.width/2;}); }
     function upd(){
@@ -1200,6 +1214,7 @@ body.fade-out{opacity:0}
         if(count){ count.firstChild.textContent=downCount; count.classList.toggle("on", downCount>0 && !showAfter); }
         if(grew && pinsEl){ pinsEl.classList.remove("shake"); void pinsEl.offsetWidth; pinsEl.classList.add("shake"); } }
       after.classList.toggle("show",showAfter);
+      if(lbl) lbl.classList.toggle("hush",showAfter);
       if(count && showAfter) count.classList.remove("on");
     }
     function onScroll(){ if(!running){ running=true; requestAnimationFrame(upd); } }
@@ -1230,7 +1245,11 @@ body.fade-out{opacity:0}
       if($("#route-home").hidden){ tv.style.opacity="0"; return; }
       var vh=innerHeight, sc=scrollY, br=bar.getBoundingClientRect();
       if(!br.width){ tv.style.opacity="0"; return; }
-      var endY=(br.top+sc) - vh*0.74, startY=endY - vh*1.0;
+      var w=tv.offsetWidth||200, sy=vh*0.46;
+      /* set off only once "All of it. Gone." has scrolled clear of the start point, so the plate never crosses it */
+      var ca=$("#crushAfter"), le=ca&&ca.querySelector(".lede");
+      var clear=le ? crush.offsetTop+crush.offsetHeight-vh + ca.offsetTop+le.offsetTop+le.offsetHeight - (sy - w*0.5 - 8) : 0;
+      var endY=(br.top+sc) - vh*0.74, startY=Math.min(Math.max(endY - vh*1.0, clear), endY - vh*0.3);
       var q=(sc-startY)/((endY-startY)||1);
       if(q<=0.002){ tv.style.opacity="0"; landed=false; return; }
       if(q>=0.985){ tv.style.opacity="0";
@@ -1238,8 +1257,7 @@ body.fade-out{opacity:0}
           var h=$("#blHint"); if(h && !Object.keys(plated).length) h.textContent="Bar's set. Every answer loads a plate."; }
         return; }
       landed=false;
-      var w=tv.offsetWidth||200;
-      var sx=innerWidth*0.72, sy=vh*0.46, ex=br.left+br.width*0.225, ey=br.top+br.height*0.5;
+      var sx=innerWidth*0.72, ex=br.left+br.width*0.225, ey=br.top+br.height*0.5;
       var qx=1-(1-q)*(1-q), qy=q*q;   /* sideways momentum eases out, gravity pulls it down faster and faster */
       var x=sx+(ex-sx)*qx, y=sy+(ey-sy)*qy;
       var s=1+(Math.max(.1,(br.height*0.74)/w)-1)*q, deg=q*600;
@@ -1358,7 +1376,7 @@ body.fade-out{opacity:0}
     if(reduce){fin();return;} el.classList.add("show"); el.innerHTML='<span class="caret"></span>'; setTimeout(fin,700); }
   function say(el,text){ if(reduce){el.textContent=text;el.classList.add("show");return;} el.classList.add("show"); el.textContent=""; var caret=document.createElement("span"); caret.className="caret"; el.appendChild(caret);
     var i=0;(function step(){ if(i<text.length){i++;el.textContent=text.slice(0,i);el.appendChild(caret);setTimeout(step,16);} else {setTimeout(function(){if(caret.parentNode)caret.parentNode.removeChild(caret);},520);} })(); }
-  function unlock(id){var q=$(id); if(q&&q.classList.contains("locked")) q.classList.remove("locked");}
+  function unlock(id){var q=$(id); if(q&&q.classList.contains("locked")){ q.classList.remove("locked"); q.removeAttribute("inert"); }}
   function submitName(skip){var v=skip?"":($("#nameInput").value||"").trim().slice(0,24); state.name=v; $("#fileWho").innerHTML=v?('File for <span class="nm">'+esc(firstName())+'</span>'):"A new file"; $("#c-name").textContent=v||"your file";
     var el=$("#r-name"); think(el,function(){say(el,v?("Good to meet you, "+firstName()+"."):"No name, no problem. I'll just call it your file.");}); hudQuiet(v?("Good to meet you, "+firstName()+"."):"No name needed. Let's work."); unlock("#q-goal"); stallReset();}
   $("#nameGo").addEventListener("click",function(){submitName(false)}); $("#nameSkip").addEventListener("click",function(){submitName(true)});
@@ -1390,11 +1408,12 @@ body.fade-out{opacity:0}
   function jumpTo(t){ if(!t) return; scrollTo({top:Math.max(0,t.getBoundingClientRect().top+scrollY),behavior:reduce?"auto":"smooth"}); }
   var coachHold=0, lastPlates=0;
   function coachPeek(ms){ var c=$("#hud"); if(!c) return; c.classList.remove("tuck"); coachHold=Date.now()+(ms||0); }
-  function coachOpen(ms){ var c=$("#hud"); if(!c) return; coachPeek(ms||5200); c.classList.add("say"); clearTimeout(coachT); coachT=setTimeout(function(){ c.classList.remove("say"); }, ms||5200); }
+  var sayY=0;
+  function coachOpen(ms){ var c=$("#hud"); if(!c) return; coachPeek(ms||5200); sayY=scrollY; c.classList.add("say"); clearTimeout(coachT); coachT=setTimeout(function(){ c.classList.remove("say"); }, ms||5200); }
   function hudSay(t,flash,html){ var el=$("#hudLine"), c=$("#hud"); if(!el||!t) return; var was=c&&c.classList.contains("say");
     if(html) el.innerHTML=t; else el.textContent=t;
     if(was&&!reduce){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
-    coachOpen(Math.min(narrow?4600:7200, 2400+el.textContent.length*(narrow?30:40))); }
+    coachOpen(Math.min(4200, 1800+el.textContent.length*26)); }
   function hudProgress(n){ var p=$("#hudPct"), pct=Math.round((n/5)*100); if(p) p.textContent=pct+"%"; if(n>lastPlates){ lastPlates=n; coachPeek(3200); }
     $$(".ip").forEach(function(r){ var on=(+r.getAttribute("data-i"))<=n;
       if(on&&!r.classList.contains("on")&&!reduce&&r.animate) r.animate([{transform:"scaleY(.2)"},{transform:"scaleY(1.25)",offset:.7},{transform:"scaleY(1)"}],{duration:460,easing:"cubic-bezier(.2,1.5,.4,1)"});
@@ -1405,6 +1424,8 @@ body.fade-out{opacity:0}
     /* while reading (scrolling down) the coach tucks away; scrolling up or anything worth saying brings it back */
     var ly=scrollY, tk=false;
     function tuck(){ tk=false; var y=scrollY, d=y-ly;
+      /* a line never sits over what you are reading: scroll on and it goes */
+      if(c.classList.contains("say") && Math.abs(y-sayY)>140){ c.classList.remove("say"); clearTimeout(coachT); coachHold=0; }
       if(y<innerHeight*.55){ if(Date.now()>coachHold && !c.classList.contains("say")) c.classList.add("tuck"); ly=y; return; }
       if(Math.abs(d)<8) return; ly=y;
       if(d>0 && y>innerHeight*.6 && Date.now()>coachHold && !c.classList.contains("say")) c.classList.add("tuck"); else if(d<0) c.classList.remove("tuck"); }
@@ -1477,20 +1498,12 @@ body.fade-out{opacity:0}
     });
   })();
 
-  /* ================= IDLE COACH NUDGE (once) ================= */
-  (function(){
-    if(reduce) return; var nudged=false, moved=false;
-    ["click","keydown","touchstart"].forEach(function(ev){ addEventListener(ev,function(){moved=true;},{once:true,passive:true}); });
-    setTimeout(function(){ if(nudged||moved) return; if($("#route-home").hidden) return; if(scrollY>innerHeight*1.5) return; nudged=true;
-      toast("Still reading? Your first day is ninety seconds away. <b>Let's move.</b>"); }, 26000);
-  })();
-
   /* ================= INTRO SEQUENCE ================= */
   function runIntro(done){
     try{sessionStorage.setItem("introSeen","1");}catch(e){}
     try{scrollTo(0,0);}catch(e){}
     var v=document.createElement("div"); v.className="intro"; v.setAttribute("aria-hidden","true");
-    v.innerHTML='<div class="intro-in"><div class="intro-mark">THE&nbsp;TRAINER</div><div class="intro-sub">the voice</div><div class="intro-bar"><i></i></div><div class="intro-line">Warming up.</div></div>';
+    v.innerHTML='<div class="intro-in"><div class="intro-mark">THE&nbsp;TRAINER</div><div class="intro-sub">by Funflix</div><div class="intro-bar"><i></i></div><div class="intro-line">Warming up.</div></div>';
     document.body.appendChild(v);
     document.documentElement.classList.add("intro-open");
     var bar=v.querySelector(".intro-bar>i"), line=v.querySelector(".intro-line");

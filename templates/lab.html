@@ -35,7 +35,7 @@
     .vitals {
       display: grid; grid-template-columns: repeat(4, 1fr);
       border: 1px solid var(--rule-2); border-radius: 22px;
-      overflow: hidden; background: #fff;
+      overflow: hidden; background: var(--card);
     }
     @media (max-width: 640px) { .vitals { grid-template-columns: repeat(2, 1fr); } }
     .vital { padding: 26px 22px; border-right: 1px solid var(--rule); }
@@ -52,8 +52,8 @@
 
     /* ── finding cards ── */
     .desk {
-      background: #fff; border: 1px solid var(--rule-2); border-radius: 28px;
-      padding: 36px 38px; box-shadow: 0 24px 70px rgba(0,0,0,0.05);
+      background: var(--card); border: 1px solid var(--rule-2); border-radius: 28px;
+      padding: 36px 38px; box-shadow: 0 24px 70px rgba(var(--shadow-rgb),0.06);
     }
     @media (max-width: 640px) { .desk { padding: 26px 22px; } }
     .find-kicker {
@@ -68,10 +68,10 @@
       letter-spacing: -0.015em; color: var(--black); margin-bottom: 14px;
     }
     .find-body {
-      font-family: var(--serif); font-size: 18px; line-height: 1.75; color: #2a2a28;
+      font-family: var(--serif); font-size: 18px; line-height: 1.75; color: var(--text);
     }
     .find-body + .find-body { margin-top: 14px; }
-    .find-body em { color: var(--black); font-style: italic; }
+    .find-body em { color: var(--black); font-style: normal; font-weight: 600; }
     .find-body b { font-weight: 400; color: var(--black); border-bottom: 1px solid var(--rule-2); }
 
     .chart-wrap { margin-top: 26px; }
@@ -118,7 +118,7 @@
     .bubble { max-width: 86%; font-size: 16px; line-height: 1.7; }
     .bubble.ai {
       align-self: flex-start;
-      font-family: var(--serif); color: #232321;
+      font-family: var(--serif); color: var(--text);
       white-space: pre-wrap;
     }
     .bubble.ai .who, .bubble.user .who {
@@ -293,11 +293,13 @@
 <script src="/static/os.js"></script>
 <script>
 /* ════════ palette + helpers ════════ */
+/* the house palette: ink, cobalt and slate, each at least 3:1 on the white card */
 const COLORS = {
-  'Both': '#111111',
-  'Creatine Monohydrate': '#c8a45d',
-  'Mass Gainer': '#9b9b9b',
+  'Both': '#0B0F2E',
+  'Creatine Monohydrate': '#2B3BFF',
+  'Mass Gainer': '#5B5F7B',
 };
+const NEUTRAL = '#8A90AD';
 const SHORT = { 'Both': 'Both', 'Creatine Monohydrate': 'Creatine', 'Mass Gainer': 'Mass Gainer' };
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -398,7 +400,7 @@ function renderCorr(corr) {
     const cy = padT + rh * (i + 0.5);
     const x = xPx(v);
     s.appendChild(svg('text', { class: 'bar-lbl', x: padL - 14, y: cy + 4, 'text-anchor': 'end' }, k));
-    s.appendChild(svg('rect', { x: Math.min(zero, x), y: cy - 9, width: Math.max(2, Math.abs(x - zero)), height: 18, rx: 4, fill: '#111' }));
+    s.appendChild(svg('rect', { x: Math.min(zero, x), y: cy - 9, width: Math.max(2, Math.abs(x - zero)), height: 18, rx: 4, fill: '#0B0F2E' }));
     s.appendChild(svg('text', { class: 'bar-sub', x: x + (v >= 0 ? 8 : -8), y: cy + 4, 'text-anchor': v >= 0 ? 'start' : 'end' }, v.toFixed(3)));
   });
 }
@@ -416,7 +418,7 @@ function renderGender(gender) {
   const n = gender.length, slot = plotW / n, bw = Math.min(120, slot * 0.42);
   gender.forEach((d, i) => {
     const cx = padL + slot * (i + 0.5), y = yPx(d.mean);
-    s.appendChild(svg('rect', { x: cx - bw / 2, y, width: bw, height: padT + plotH - y, rx: 6, fill: '#d8d4cb' }));
+    s.appendChild(svg('rect', { x: cx - bw / 2, y, width: bw, height: padT + plotH - y, rx: 6, fill: NEUTRAL }));
     s.appendChild(svg('text', { class: 'bar-val', x: cx, y: y - 8, 'text-anchor': 'middle' }, d.mean + '%'));
     s.appendChild(svg('text', { class: 'bar-lbl', x: cx, y: H - 16, 'text-anchor': 'middle' }, d.name));
   });
@@ -478,7 +480,7 @@ function renderModel(rows) {
     const cy = padT + rh * (i + 0.5), bw = xPx(r.mae) - padL;
     const isBest = r.name === DATA.model.best;
     s.appendChild(svg('text', { class: 'bar-lbl', x: padL - 14, y: cy + 4, 'text-anchor': 'end' }, r.name));
-    s.appendChild(svg('rect', { x: padL, y: cy - 11, width: Math.max(2, bw), height: 22, rx: 4, fill: isBest ? '#111' : '#cfcabf' }));
+    s.appendChild(svg('rect', { x: padL, y: cy - 11, width: Math.max(2, bw), height: 22, rx: 4, fill: isBest ? '#2B3BFF' : NEUTRAL }));
     s.appendChild(svg('text', { class: 'bar-sub', x: padL + bw + 8, y: cy + 4 }, r.mae + 'pp  ·  R² ' + r.r2));
   });
 }
@@ -493,7 +495,7 @@ function renderImp(imp) {
   imp.forEach((d, i) => {
     const cy = padT + rh * (i + 0.5), bw = (d.value / maxV) * plotW;
     s.appendChild(svg('text', { class: 'bar-lbl', x: padL - 14, y: cy + 4, 'text-anchor': 'end' }, d.feature));
-    s.appendChild(svg('rect', { x: padL, y: cy - 10, width: Math.max(1.5, bw), height: 20, rx: 4, fill: i === 0 ? '#c8a45d' : '#d8d4cb' }));
+    s.appendChild(svg('rect', { x: padL, y: cy - 10, width: Math.max(1.5, bw), height: 20, rx: 4, fill: i === 0 ? '#2B3BFF' : NEUTRAL }));
     s.appendChild(svg('text', { class: 'bar-sub', x: padL + Math.max(1.5, bw) + 8, y: cy + 4 }, d.value.toFixed(3)));
   });
 }
@@ -523,7 +525,7 @@ async function boot() {
   renderImp(DATA.model.importance);
   if (DATA.analyst_ready === false)
     document.getElementById('apiHint').textContent =
-      'Note: set the GEMINI_API_KEY environment variable to enable the live analyst.';
+      'The live analyst is switched off right now. Every chart above still works.';
 }
 boot();
 

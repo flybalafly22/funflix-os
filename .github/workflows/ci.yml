@@ -19,7 +19,7 @@ jobs:
         run: python -m py_compile app.py gunicorn.conf.py
       - name: Unit tests
         run: python -m pytest tests/ -q
-      - name: Eval bench (offline — demo + checked-in fixtures)
+      - name: Eval bench (offline, demo + checked-in fixtures)
         run: python qa/trainer_bench.py
 
   privacy:
@@ -38,11 +38,13 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Privacy regressions
         run: python qa/privacy_qa.py
+      - name: Accessibility regressions (dialogs, landmarks, targets)
+        run: python qa/a11y_qa.py
 
   live-verify:
     # After Render auto-deploys this push, confirm the LIVE site actually
     # serves this commit and a working plan. Render ignores the Procfile and
-    # deploys can fail silently — never trust an unverified deploy.
+    # deploys can fail silently; never trust an unverified deploy.
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [test, privacy]
     runs-on: ubuntu-latest

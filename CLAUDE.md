@@ -20,7 +20,8 @@ Note: this Flask app (`calculator_web`) hosts several small games/tools (a calcu
 
 For **The Trainer** (`/trainer`, the AI training-plan studio): standing teams, roadmap and sprint
 docs live in `docs/trainer/`; start with `docs/trainer/TEAMS.md` and `docs/trainer/MANAGER.md`
-(the Producer charter). Its QA suite is `tests/` (pytest) + `qa/site_qa.py`; CI is
+(the Producer charter). Its QA suite is `tests/` (pytest) + `qa/site_qa.py` + `qa/voice_qa.py`, plus two
+self-contained browser regression scripts CI also runs: `qa/privacy_qa.py` and `qa/a11y_qa.py`; CI is
 `.github/workflows/ci.yml`; live-deploy verification is `scripts/verify_live.py` (live site
 `https://funflix-os.onrender.com`, live commit at `/api/version`; server config is
 `gunicorn.conf.py` because Render ignores the Procfile). Accounts & cross-device sync are enabled

@@ -4,7 +4,8 @@
    offline), stale-while-revalidate statics, /api/ untouched. */
 // v4: the Voice merge (new design system + self-hosted fonts). Bumping the name
 // drops every older cache on activate, so no one keeps the old look.
-const CACHE = 'trainer-v4';
+// v5: the accessibility pass (landmarks, skip link, 44 px targets, dialogs).
+const CACHE = 'trainer-v5';
 const SHELL = ['/trainer', '/static/os.css', '/static/os.js',
                '/static/fonts/fonts.css', '/static/fonts/bricolage.woff2',
                '/static/fonts/geist.woff2', '/static/fonts/geist-mono.woff2',

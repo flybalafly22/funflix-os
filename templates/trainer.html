@@ -8,6 +8,13 @@
   <script>(function(){try{var t=localStorage.getItem('trainerTheme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <link rel="preload" href="/static/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/geist-mono.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" href="/static/trainer/icon-192.png">
+  <meta property="og:title" content="The Trainer">
+  <meta property="og:description" content="Your program, your log, your coach. Free, evidence-based training plans built around your real week.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://funflix-os.onrender.com/static/trainer/icon-512.png">
+  <meta name="twitter:card" content="summary">
   <link rel="stylesheet" href="/static/os.css">
   <link rel="manifest" href="/static/trainer/manifest.json">
   <meta name="theme-color" content="#F6F7FB">
@@ -290,7 +297,7 @@
       letter-spacing: .2em; color: var(--gray-2); text-transform: uppercase; margin-bottom: 4px; }
     .pd-meta span { color: var(--black); font-weight: 600; }
 
-    .pd-h { display: flex; align-items: baseline; gap: 12px; margin: 44px 0 14px; }
+    .pd-h { display: flex; align-items: baseline; gap: 12px; margin: 44px 0 14px; font-size: inherit; font-weight: inherit; }
     .pd-h .n { font-family: var(--monoX); font-size: 11px; color: var(--accD); }
     .pd-h .t { font-family: var(--serif); font-size: 27px; letter-spacing: -0.01em; }
     .pd-p { font-family: var(--sans); font-size: 14.5px; line-height: 1.75; color: var(--text); margin: 10px 0; }
@@ -307,7 +314,7 @@
       break-inside: avoid; }
     .day-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
       padding: 14px 20px; background: var(--wash); border-bottom: 1px solid var(--rule); }
-    .day-head .dn { font-family: var(--sans); font-weight: 700; font-size: 15px; }
+    .day-head .dn { font-family: var(--sans); font-weight: 700; font-size: 15px; margin: 0; }
     .day-head .df { font-family: var(--monoX); font-size: 10px; letter-spacing: .18em;
       text-transform: uppercase; color: var(--accD); }
     .day-note { padding: 12px 20px; font-family: var(--sans); font-size: 12.5px; line-height: 1.65;
@@ -475,6 +482,8 @@
       font-family: var(--sans); font-size: 12.5px; font-weight: 600; padding: 10px 20px; cursor: pointer;
       transition: transform .15s, background .2s, opacity .2s; }
     .co-log:hover { transform: translateY(-1px); }
+    .co-log { min-height: 44px; }
+    .coach [tabindex="-1"]:focus { outline: none; }
     .co-log.done { background: transparent; color: var(--accD); border: 1px solid var(--acc-line); cursor: default; }
     .co-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 30px; }
     .co-ghost { background: transparent; border: 1px solid var(--rule-2); border-radius: 999px; padding: 11px 22px;
@@ -519,7 +528,10 @@
     .bw-spark .sp-line { fill: none; stroke: var(--accD); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
     .bw-spark .sp-avg { fill: none; stroke: var(--black); stroke-width: 1.25; stroke-dasharray: 3 3; opacity: .5; }
     .bw-spark .sp-dot { fill: var(--accD); }
-    .bw-spark .sp-lbl { font-family: var(--monoX); font-size: 9px; fill: var(--gray-2); }
+    .bw-spark .sp-box { position: relative; padding-left: 42px; }
+    .bw-spark .sp-v { position: absolute; left: 0; font-family: var(--monoX); font-size: 10px; line-height: 1; color: var(--gray-2); font-variant-numeric: tabular-nums; }
+    .bw-spark .sp-hi { top: 2px; }
+    .bw-spark .sp-lo { bottom: 2px; }
     .bw-note { margin-top: 14px; font-family: var(--sans); font-size: 12px; line-height: 1.55; color: var(--gray-2); }
     /* ── data durability nudge / cap warning ── */
     .durable { border: 1px solid var(--rule); border-radius: 14px; padding: 13px 16px; margin: 0 0 22px;
@@ -570,6 +582,17 @@
     .mtab { border: none; padding: 9px 20px; }
     .mtab:not(.on):hover { color: var(--black); }
     .mtab.restore { border: 1px dashed var(--rule-2); }
+    /* phones: the tabs fill tidy rows inside a rounded panel instead of a lumpy pill; 44 px targets */
+    @media (max-width: 560px) {
+      .mode-tabs { width: 100%; border-radius: 18px; }
+      .mode-tabs .mtab { flex: 1 1 auto; min-height: 44px; padding: 9px 14px; }
+      .ho-x, .peek { min-height: 44px; }
+      #devClearBtn { display: flex; align-items: center; min-height: 44px; margin: 0 auto; padding: 0 10px; }
+      .peek { display: flex; align-items: center; }
+      table.ex .vid { display: inline-block; padding: 12px 6px; margin: -12px 0 -12px 2px; }
+      .stp { padding: 13px 0; }
+      .stepper { padding-bottom: 6px; }
+    }
     #planDoc, .intake .intake-inner, .fu-card {
       box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.03), 0 30px 90px rgba(var(--shadow-rgb),.07); }
     #planDoc { border-radius: 28px; border-color: var(--rule-2); }
@@ -648,7 +671,7 @@
     .mode-tabs { border-color: var(--rule); box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.04); }
     .mtab { font-size: 13.5px; min-height: 40px; }
     .stp.on span { color: var(--accD); }
-    .stp span { color: var(--gray-2); opacity: .55; }
+    .stp span { color: var(--gray-2); }
 
     /* the welcome: a coach's promise, not a feature list */
     .welcome { padding: 34px 36px 30px; }
@@ -795,11 +818,11 @@
         </div>
 
         <div class="fstep" id="step1">
-        <div class="sec">The client</div>
+        <h2 class="sec">The client</h2>
         <div class="grid3">
           <div class="field"><label class="os-label" for="fName">Name</label>
             <input class="os-input" id="fName" placeholder="Your name" required></div>
-          <div class="field"><label class="os-label" for="fSex">Gender assigned at birth</label>
+          <div class="field"><label class="os-label" for="fSex">Sex (for the calorie maths)</label>
             <div class="os-select-wrap"><select class="os-select" id="fSex" required><option value="" selected disabled>Choose</option><option>Male</option><option>Female</option></select></div></div>
           <div class="field"><label class="os-label" for="fDob">Date of birth</label>
             <input class="os-input" id="fDob" type="date" required></div>
@@ -812,7 +835,7 @@
               <option>Beginner (&lt;1 year)</option><option>Intermediate (1–3 years)</option><option>Advanced (3+ years)</option></select></div></div>
         </div>
 
-        <div class="sec">The goal</div>
+        <h2 class="sec">The goal</h2>
         <div class="grid2">
           <div class="field"><label class="os-label" for="fGoal">Primary goal</label>
             <div class="os-select-wrap"><select class="os-select" id="fGoal">
@@ -820,7 +843,7 @@
               <option>Body recomposition</option><option>General fitness</option></select></div></div>
           <div class="field"><label class="os-label" for="fGoalNote">Anything specific about the goal?</label>
             <input class="os-input" id="fGoalNote" placeholder="e.g. bigger arms, first pull-up, wedding in June"></div>
-          <div class="field"><label class="os-label" for="fGoalWeight">Goal weight <span style="opacity:.6">(optional)</span></label>
+          <div class="field"><label class="os-label" for="fGoalWeight">Goal weight (optional)</label>
             <input class="os-input" id="fGoalWeight" placeholder="e.g. 75 kg, for a maintenance off-ramp"></div>
         </div>
 
@@ -831,7 +854,7 @@
         </div>
 
         <div class="fstep" id="step2" style="display:none">
-        <div class="sec">Availability &amp; where you train</div>
+        <h2 class="sec">Availability &amp; where you train</h2>
         <div class="grid3">
           <div class="field"><label class="os-label" for="fDays">Days per week</label>
             <div class="os-select-wrap"><select class="os-select" id="fDays">
@@ -852,7 +875,7 @@
             <div class="hintline">If given, your plan starts with concrete weights instead of “find your weight”.</div></div>
         </div>
 
-        <div class="sec">Health &amp; recovery</div>
+        <h2 class="sec">Health &amp; recovery</h2>
         <div class="grid2">
           <div class="field"><label class="os-label" for="fHealth">Any health issues?</label>
             <textarea class="os-input" id="fHealth" placeholder="e.g. mild knee pain, asthma, or 'none'"></textarea>
@@ -878,7 +901,7 @@
         </div>
 
         <div class="fstep" id="step3" style="display:none">
-        <div class="sec">Fuel</div>
+        <h2 class="sec">Fuel</h2>
         <div class="grid3">
           <div class="field"><label class="os-label" for="fDiet">Diet preference</label>
             <div class="os-select-wrap"><select class="os-select" id="fDiet">
@@ -895,7 +918,7 @@
           </div>
         </div>
 
-        <div class="sec">Anything else</div>
+        <h2 class="sec">Anything else</h2>
         <div class="field"><label class="os-label" for="fExtra">Extra information that could shape the plan</label>
           <textarea class="os-input" id="fExtra" placeholder="e.g. home dumbbells only on weekends, night-shift work, past sports, exercises you hate…"></textarea></div>
 
@@ -913,7 +936,7 @@
     <form class="intake" id="checkinForm" autocomplete="off" style="display:none">
       <div class="intake-inner">
         <div class="ct-card" id="cTrend" hidden></div>
-        <div class="sec">You</div>
+        <h2 class="sec">You</h2>
         <div class="grid3">
           <div class="field"><label class="os-label" for="cName">Name</label>
             <input class="os-input" id="cName" placeholder="Your name" required></div>
@@ -926,7 +949,7 @@
               <option>2</option><option>3</option><option selected>4</option><option>6</option><option>8</option></select></div></div>
         </div>
 
-        <div class="sec">The measurements</div>
+        <h2 class="sec">The measurements</h2>
         <div class="grid3">
           <div class="field"><label class="os-label" for="cWeightStart">Weight when you started</label>
             <input class="os-input" id="cWeightStart" placeholder="e.g. 82 kg" required></div>
@@ -938,7 +961,7 @@
             <input class="os-input" id="cWaist" placeholder="e.g. +1 cm, same, −2 cm"></div>
         </div>
 
-        <div class="sec">Adherence: honesty makes the recalibration work</div>
+        <h2 class="sec">Adherence: honesty makes the recalibration work</h2>
         <div class="grid3">
           <div class="field"><label class="os-label" for="cSessions">Sessions completed</label>
             <div class="os-select-wrap"><select class="os-select" id="cSessions">
@@ -955,7 +978,7 @@
               <option>Illness</option><option>Work / life chaos</option></select></div></div>
         </div>
 
-        <div class="sec">The training log</div>
+        <h2 class="sec">The training log</h2>
         <div class="grid2">
           <div class="field"><label class="os-label" for="cLifts">Key lifts, then → now</label>
             <textarea class="os-input" id="cLifts" placeholder="e.g. bench 60→65 kg × 8, squat 80→90 kg × 6, lateral raises stuck at 10 kg"></textarea></div>
@@ -963,7 +986,7 @@
             <textarea class="os-input" id="cPain" placeholder="e.g. right shoulder pinches on overhead press, or 'none'"></textarea></div>
         </div>
 
-        <div class="sec">Anything else</div>
+        <h2 class="sec">Anything else</h2>
         <div class="field"><label class="os-label" for="cExtra">Anything the numbers don’t show</label>
           <textarea class="os-input" id="cExtra" placeholder="e.g. travelled for a week, switched to morning sessions, appetite way up…"></textarea></div>
 
@@ -989,7 +1012,7 @@
           </div>
         </div>
         <div class="bw-card">
-          <div class="sec" style="margin-top:0">Bodyweight</div>
+          <h2 class="sec" style="margin-top:0">Bodyweight</h2>
           <div class="bw-top">
             <div class="field bw-in"><label class="os-label" for="bwKg">Today’s weight (kg)</label>
               <input class="os-input" id="bwKg" inputmode="decimal" placeholder="e.g. 82.4"></div>
@@ -1007,18 +1030,18 @@
         </div>
         <div class="durable" id="lgDurable" hidden></div>
         <div class="nut-card" id="nutCard" hidden>
-          <div class="sec" style="margin-top:0">Nutrition tune-up</div>
+          <h2 class="sec" style="margin-top:0">Nutrition tune-up</h2>
           <div class="vol-intro">Your real metabolism, read off the scale. The Trainer estimates the calories you
             actually burn from your weight trend and steers your target to the plan’s intended pace, between check-ins.</div>
           <div id="nutBody"></div>
         </div>
         <div class="meal-card" id="mealCard" hidden>
-          <div class="sec" style="margin-top:0">Today’s meals</div>
+          <h2 class="sec" style="margin-top:0">Today’s meals</h2>
           <div class="vol-intro">Tick each meal of your sample day as you eat it: adherence you can measure, not
             guess. Resets daily; feeds your check-in.</div>
           <div id="mealBody"></div>
         </div>
-        <div class="sec">Log a session</div>
+        <h2 class="sec">Log a session</h2>
         <div class="grid3">
           <div class="field"><label class="os-label" for="lDay">Which session?</label>
             <div class="os-select-wrap"><select class="os-select" id="lDay"></select></div></div>
@@ -1031,13 +1054,14 @@
         <div id="lgList"></div>
         <label class="lg-deload" for="lgDeload"><input type="checkbox" id="lgDeload">
           <span>This was a <b>deload</b> week, with reduced sets and loads on purpose. Don’t count it as a stall.</span></label>
+        <div class="err" id="lgErr" role="alert"></div>
         <div class="go-row">
           <button type="submit" class="os-btn-primary" id="logBtn">Save session</button>
           <div class="go-note">Logs are stored in this browser unless you sign in to sync. Once two or more sessions are logged, your Week-4 check-in fills its lift numbers from them automatically.</div>
         </div>
         <div class="lg-pr" id="lgPR" hidden></div>
         <div class="calc-card" id="calcCard">
-          <div class="sec" style="margin-top:0">1RM &amp; load calculator</div>
+          <h2 class="sec" style="margin-top:0">1RM &amp; load calculator</h2>
           <div class="calc-in">
             <input class="os-input" id="calcKg" inputmode="decimal" placeholder="weight (kg)">
             <span class="calc-x">×</span>
@@ -1047,7 +1071,7 @@
         </div>
         <div id="lgStall"></div>
         <div class="vol-card" id="volCard" hidden>
-          <div class="sec">Volume tune-up</div>
+          <h2 class="sec">Volume tune-up</h2>
           <div class="vol-intro">Direct weekly sets per muscle vs your experience band (MEV→MRV). The Trainer
             reads your stalls and recovery and recommends the next week’s sets. Tap how a muscle felt to refine it.</div>
           <div id="volBody"></div>
@@ -1058,13 +1082,13 @@
           <div class="rev-stats" id="revStats"></div>
           <div id="revPrs"></div>
         </div>
-        <div class="sec" id="lgHistHead" style="display:none">Previous sessions</div>
+        <h2 class="sec" id="lgHistHead" style="display:none">Previous sessions</h2>
         <div id="lgHist"></div>
       </div>
     </form>
 
     <!-- ── COACH MODE ── -->
-    <div class="coach" id="coach" hidden>
+    <div class="coach" id="coach" hidden role="dialog" aria-modal="true" aria-label="Coach Mode">
       <div class="co-top">
         <button class="co-x" id="coExit" type="button">Exit</button>
         <div class="co-day" id="coDay"></div>
@@ -1074,7 +1098,7 @@
       <div class="co-scroll">
         <!-- readiness -->
         <div class="co-panel" id="coReady">
-          <div class="co-lead">Before you lift, <em>thirty seconds of honesty.</em></div>
+          <div class="co-lead" id="coLeadR" tabindex="-1">Before you lift, <em>thirty seconds of honesty.</em></div>
           <div class="co-sub">Coach Mode adjusts today's session to the body that actually showed up.</div>
           <div class="co-rgrid">
             <div class="field"><label class="os-label" for="rSleep">Last night's sleep</label>
@@ -1094,7 +1118,7 @@
         <div class="co-panel" id="coEx" hidden>
           <div class="co-adjust" id="coAdjust" hidden></div>
           <div class="co-glyph" id="coGlyph"></div>
-          <div class="co-name" id="coName"></div>
+          <div class="co-name" id="coName" tabindex="-1"></div>
           <div class="co-target" id="coTarget"></div>
           <div class="co-cue" id="coCue"></div>
           <div class="co-coach" id="coCoach"></div>
@@ -1125,12 +1149,12 @@
           <div class="co-rest-label">REST · YOUR PLAN PRESCRIBES IT</div>
           <div class="co-timer" id="coTimer">0:00</div>
           <div class="co-rest-next" id="coRestNext"></div>
-          <button class="co-ghost" id="coSkip" type="button">Skip rest</button>
+          <button class="co-ghost" id="coSkip" type="button" aria-describedby="coRestNext">Skip rest</button>
         </div>
 
         <!-- done -->
         <div class="co-panel" id="coDone" hidden>
-          <div class="co-lead">Session logged. <em>The logbook is the scoreboard.</em></div>
+          <div class="co-lead" id="coLeadD" tabindex="-1">Session logged. <em>The logbook is the scoreboard.</em></div>
           <div class="co-summary" id="coSummary"></div>
           <div id="coStall"></div>
           <button class="os-btn-primary co-begin" id="coClose" type="button">Save &amp; close</button>
@@ -1785,11 +1809,11 @@
     const Y = v => P + (1 - (v - lo) / (hi - lo)) * (H - 2 * P);
     const line = pts.map((p, i) => (i ? 'L' : 'M') + X(_wat(p.d)).toFixed(1) + ' ' + Y(p.kg).toFixed(1)).join(' ');
     const last = pts[pts.length - 1];
-    return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="bodyweight trend, last ' + pts.length + ' entries">' +
+    // the high/low labels sit in their own gutter (HTML, so the stretched SVG never distorts them or runs the line through them)
+    return '<div class="sp-box"><span class="sp-v sp-hi" aria-hidden="true">' + hi.toFixed(1) + '</span><span class="sp-v sp-lo" aria-hidden="true">' + lo.toFixed(1) + '</span>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="bodyweight trend, last ' + pts.length + ' entries, between ' + lo.toFixed(1) + ' and ' + hi.toFixed(1) + ' kg">' +
       '<path class="sp-line" d="' + line + '"/>' +
-      '<circle class="sp-dot" cx="' + X(_wat(last.d)).toFixed(1) + '" cy="' + Y(last.kg).toFixed(1) + '" r="2.6"/>' +
-      '<text class="sp-lbl" x="' + P + '" y="11">' + hi.toFixed(1) + '</text>' +
-      '<text class="sp-lbl" x="' + P + '" y="' + (H - 3) + '">' + lo.toFixed(1) + '</text></svg>';
+      '<circle class="sp-dot" cx="' + X(_wat(last.d)).toFixed(1) + '" cy="' + Y(last.kg).toFixed(1) + '" r="2.6"/></svg></div>';
   }
   function renderBw() {
     const ws = loadWeights(), stats = $('bwStats'), spark = $('bwSpark');
@@ -1978,6 +2002,7 @@
   $('calcKg').addEventListener('input', renderCalc);
   $('calcReps').addEventListener('input', renderCalc);
   renderCalc();
+  $('logForm').addEventListener('input', () => $('lgErr').classList.remove('show'));
   $('logForm').addEventListener('submit', e => {
     e.preventDefault();
     const saved = savedPlan();
@@ -1992,7 +2017,9 @@
       });
       if (sets.length) entries.push({ name: effName(day, ex), sets });   // log the swapped movement if swapped
     });
-    if (!entries.length) { errBox.textContent = 'Enter at least one set before saving.'; errBox.classList.add('show'); return; }
+    // the message sits right above the button that was pressed (Design F19)
+    if (!entries.length) { $('lgErr').textContent = 'Enter at least one set before saving.'; $('lgErr').classList.add('show'); return; }
+    $('lgErr').classList.remove('show');
     errBox.classList.remove('show');
     // all-time PR detection: did any set beat this lift's best-ever e1RM? (only
     // celebrate beating an EXISTING best, the first time you log a lift isn't a PR)
@@ -2870,10 +2897,17 @@
   const barbellish = n => /barbell|back squat|front squat|deadlift|bench press|overhead press|rack pull|hip thrust|good morning|row/.test(String(n).toLowerCase()) &&
     !/dumbbell|machine|cable|goblet|smith|chest-supported|seated cable|band/.test(String(n).toLowerCase());
 
-  const CO = { exs: [], idx: 0, entries: [], day: null, banner: '', t0: 0, timer: null };
+  const CO = { exs: [], idx: 0, entries: [], day: null, banner: '', t0: 0, timer: null, done: false };
 
   function coPanels(show) {
     ['coReady', 'coEx', 'coRest', 'coDone'].forEach(id => { $(id).hidden = id !== show; });
+    // focus follows the panel (after the caller renders it), so a keyboard or
+    // screen-reader user is never left on a control that just disappeared
+    setTimeout(() => coFocus({ coReady: 'coLeadR', coEx: 'coName', coRest: 'coSkip', coDone: 'coLeadD' }[show]), 0);
+  }
+  function coFocus(id) {
+    const el = id && $(id);
+    if (el && !$('coach').hidden) el.focus();
   }
   function coAdjust(day) {
     const sleepBad = $('rSleep').selectedIndex === 2, sore = $('rSore').selectedIndex === 2,
@@ -3026,10 +3060,10 @@
       const done = logged[i];
       const ph = prev[i] || {};
       return '<div class="co-set"><span class="sn">SET ' + (i + 1) + '</span>' +
-        '<input class="os-input" inputmode="decimal" placeholder="' + esc(ph.kg || 'kg') + '" id="coKg' + i + '"' + (done ? ' value="' + esc(done.kg) + '" disabled' : '') + '>' +
+        '<input class="os-input" inputmode="decimal" placeholder="' + esc(ph.kg || 'kg') + '" id="coKg' + i + '" aria-label="Set ' + (i + 1) + ' weight, kg"' + (done ? ' value="' + esc(done.kg) + '" disabled' : '') + '>' +
         '<span class="x">×</span>' +
-        '<input class="os-input" inputmode="numeric" placeholder="' + esc(ph.reps || 'reps') + '" id="coRp' + i + '"' + (done ? ' value="' + esc(done.reps) + '" disabled' : '') + '>' +
-        '<button type="button" class="co-log' + (done ? ' done' : '') + '" data-set="' + i + '"' + (done ? ' disabled' : '') + '>' + (done ? 'Logged ✓' : 'Log set') + '</button></div>';
+        '<input class="os-input" inputmode="numeric" placeholder="' + esc(ph.reps || 'reps') + '" id="coRp' + i + '" aria-label="Set ' + (i + 1) + ' reps"' + (done ? ' value="' + esc(done.reps) + '" disabled' : '') + '>' +
+        '<button type="button" class="co-log' + (done ? ' done' : '') + '" data-set="' + i + '" aria-label="' + (done ? 'Set ' + (i + 1) + ' logged' : 'Log set ' + (i + 1)) + '"' + (done ? ' disabled' : '') + '>' + (done ? 'Logged ✓' : 'Log set') + '</button></div>';
     }).join('');
     $('coPrev').style.visibility = CO.idx === 0 ? 'hidden' : '';
     $('coNext').textContent = CO.idx === CO.exs.length - 1 ? 'Finish session →' : 'Next exercise →';
@@ -3089,7 +3123,7 @@
     if (CO.timer) { clearInterval(CO.timer); CO.timer = null; }
     const entries = CO.entries.filter(e => e && e.sets.filter(Boolean).length)
       .map(e => ({ name: e.name, sets: e.sets.filter(Boolean) }));
-    if (entries.length) {
+    if (entries.length && !CO.done) {
       const logs = loadLogs();
       // tag deload sessions so stall watch / progression cues ignore their
       // deliberately reduced loads
@@ -3107,39 +3141,65 @@
       '<div class="dr"><span>Total volume moved</span><b>' + Math.round(vol).toLocaleString() + ' kg</b></div>' +
       '<div class="dr"><span>Session time</span><b>' + mins + ' min</b></div>';
     $('coStall').innerHTML = stallHTML(stallWatch());
+    CO.done = true;
     coPanels('coDone');
   }
+  // Coach Mode is a modal dialog: the page behind goes inert, focus moves in,
+  // Tab stays inside, Escape exits, and focus returns to where it was
+  let coRet = null, coInert = [];
   function openCoach() {
     const saved = savedPlan();
     if (!saved) return;
     CO.day = (saved.plan.workout_days || [])[+$('lDay').value || 0];
     if (!CO.day) return;
-    CO.idx = 0; CO.entries = []; CO.banner = ''; CO.t0 = Date.now();
+    CO.idx = 0; CO.entries = []; CO.banner = ''; CO.t0 = Date.now(); CO.done = false;
     $('coDay').textContent = CO.day.day_label || 'Session';
     $('coCount').textContent = '';
-    coPanels('coReady');
-    $('coach').hidden = false;
+    coRet = document.activeElement;
+    const co = $('coach');
+    co.setAttribute('aria-label', 'Coach Mode, ' + (CO.day.day_label || 'Session'));
+    co.hidden = false;
+    Array.from(document.body.children).forEach(el => { if (el !== co && !el.inert) { el.inert = true; coInert.push(el); } });
     document.body.style.overflow = 'hidden';
+    coPanels('coReady');
   }
   function closeCoach() {
     if (CO.timer) { clearInterval(CO.timer); CO.timer = null; }
+    coInert.forEach(el => { el.inert = false; }); coInert = [];
     $('coach').hidden = true;
     document.body.style.overflow = '';
     renderLgHist();
+    const back = coRet && document.contains(coRet) && coRet !== document.body ? coRet : $('coachStart');
+    coRet = null;
+    if (back && back.focus) back.focus();
   }
+  document.addEventListener('keydown', e => {
+    const co = $('coach');
+    if (co.hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); $('coExit').click(); return; }
+    if (e.key !== 'Tab') return;
+    const f = Array.from(co.querySelectorAll('button, input, select, textarea, a[href]'))
+      .filter(el => !el.disabled && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden');
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1], at = document.activeElement, inside = co.contains(at);
+    if (!inside) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+    else if (e.shiftKey && at === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
+  });
   // escape the page's stacking context (.page-wrap is z-index:5, under the hud)
   document.body.appendChild($('coach'));
   $('coachStart').addEventListener('click', openCoach);
   $('coBegin').addEventListener('click', () => { CO.exs = coAdjust(CO.day); CO.t0 = Date.now(); coPanels('coEx'); coRender(); });
-  $('coPrev').addEventListener('click', () => { if (CO.idx > 0) { CO.idx -= 1; coRender(); } });
+  $('coPrev').addEventListener('click', () => { if (CO.idx > 0) { CO.idx -= 1; coRender(); coFocus('coName'); } });
   $('coNext').addEventListener('click', () => {
-    if (CO.idx === CO.exs.length - 1) { coFinish(); } else { CO.idx += 1; coRender(); }
+    if (CO.idx === CO.exs.length - 1) { coFinish(); } else { CO.idx += 1; coRender(); coFocus('coName'); }
   });
   $('coSkip').addEventListener('click', () => {
     if (CO.timer) { clearInterval(CO.timer); CO.timer = null; }
     coAfterRest($('coRestNext').textContent.indexOf('Up next') === 0);
   });
   $('coExit').addEventListener('click', () => {
+    if (CO.done) { closeCoach(); return; }
     const any = CO.entries.some(e => e && e.sets.filter(Boolean).length);
     if (any) { coFinish(); coPanels('coDone'); } else { closeCoach(); }
   });
@@ -3907,7 +3967,7 @@
   /* ── plan renderer ── */
   const lastPlan = { d: null };
   let secN = 0;
-  function H(t) { secN++; return '<div class="pd-h"><span class="n">' + String(secN).padStart(2, '0') + '</span><span class="t">' + esc(t) + '</span></div>'; }
+  function H(t) { secN++; return '<h2 class="pd-h"><span class="n">' + String(secN).padStart(2, '0') + '</span><span class="t">' + esc(t) + '</span></h2>'; }
   function P(t) { return t ? '<p class="pd-p">' + esc(t) + '</p>' : ''; }
   function PS(v) { return (Array.isArray(v) ? v : v ? [v] : []).map(P).join(''); }
 
@@ -4011,7 +4071,7 @@
     if (Array.isArray(d.workout_days) && d.workout_days.length) {
       h += H('The Sessions');
       d.workout_days.forEach(day => {
-        h += '<div class="day"><div class="day-head"><span class="dn">' + esc(day.day_label || '') + '</span>' +
+        h += '<div class="day"><div class="day-head"><h3 class="dn">' + esc(day.day_label || '') + '</h3>' +
           (day.estimated_duration_minutes ? '<span class="df">~' + esc(day.estimated_duration_minutes) + ' min</span>' : '') + '</div>';
         if (day.warmup) h += '<div class="day-note"><b>Warm-up:</b> ' + esc(day.warmup) + '</div>';
         h += '<table class="ex"><thead><tr><th>Exercise</th><th>Sets × Reps</th><th>Rest</th><th class="hide-m">Effort</th></tr></thead><tbody>';
