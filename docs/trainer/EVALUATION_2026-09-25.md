@@ -76,8 +76,9 @@ and lows are fixed too. The few that are not are listed under "Still open" below
 - Decide the Gemini tier. On the free tier Google may keep prompts and use them
   to improve its models. The copy says so plainly, but a paid tier would remove
   the caveat.
-- Check whether `GROQ_API_KEY` is set on Render. If it is, the copy now names
-  Groq automatically.
+- The Groq backup is switched on in production (`GROQ_API_KEY` is set), so some
+  plans and check-ins can reach Groq when Gemini is overloaded. Until `dede776`
+  the copy did not say so; it now does. Keeping the backup is your call.
 - Say how long Neon keeps backups after "Delete forever", so the copy can state
   it.
 
