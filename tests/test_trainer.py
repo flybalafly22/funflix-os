@@ -159,11 +159,13 @@ def test_missing_name_or_goal_returns_400(client, intake):
     assert data and data.get("error")
 
 
-def test_missing_api_key_returns_500(client, monkeypatch):
+def test_missing_api_key_returns_503_in_plain_words(client, monkeypatch):
+    # QA F9 (2026-09-25): users get a calm sentence, never a server env-var name
     monkeypatch.setattr(A, "GEMINI_API_KEY", "")
     resp = client.post("/api/trainer", json=INTAKE_BODY)
-    assert resp.status_code == 500
-    assert "GEMINI_API_KEY" in resp.get_json()["error"]
+    assert resp.status_code == 503
+    err = resp.get_json()["error"]
+    assert err == A.AI_OFF_MSG and "GEMINI" not in err
 
 
 # ───────────────────────── mocked model chain ─────────────────────────
@@ -245,7 +247,7 @@ def test_invalid_api_key_error_message(client, api_key, monkeypatch):
     install_fake_client(monkeypatch, [Exception("401 API_KEY_INVALID")])
     resp, body = post_trainer(client, INTAKE_BODY)
     assert resp.status_code == 200
-    assert "Invalid GEMINI_API_KEY" in body
+    assert A.AI_KEY_MSG in body and "GEMINI" not in body
 
 
 # ─────────────────────────────── checkin mode ───────────────────────────────

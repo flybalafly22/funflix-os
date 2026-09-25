@@ -24,6 +24,9 @@ from google.genai import types
 from flask import Flask, render_template, request, jsonify, Response, session, stream_with_context
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+# What people see when the AI can't run: plain words, no server internals (QA F9).
+AI_OFF_MSG = "The AI coach is switched off on this server right now. Please try again later."
+AI_KEY_MSG = "The AI service turned this server away just now. Please try again later."
 # Optional last-resort fallback for The Trainer when every Gemini attempt fails:
 # an OpenAI-compatible call to Groq (independent infrastructure). Set on Render.
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
@@ -377,13 +380,13 @@ def journalist():
 
 @app.route("/api/journalist", methods=["POST"])
 def journalist_api():
-    topic = request.json.get("topic", "").strip()
+    topic = str(_req_json().get("topic", "") or "").strip()[:200]
     if not topic:
         return jsonify({"error": "Please enter a topic."}), 400
 
     api_key = GEMINI_API_KEY
     if not api_key:
-        return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
+        return jsonify({"error": AI_OFF_MSG}), 503
 
     def generate():
         try:
@@ -407,7 +410,7 @@ def journalist_api():
         except Exception as exc:
             err = str(exc)
             if "API_KEY" in err or "api key" in err.lower() or "401" in err:
-                yield "ERROR: Invalid GEMINI_API_KEY. Check your key and restart the server."
+                yield "ERROR: " + AI_KEY_MSG
             else:
                 yield f"ERROR: {err}"
 
@@ -454,16 +457,18 @@ def analyst_api():
     messages = payload.get("messages", [])
     if not isinstance(messages, list) or not messages:
         return jsonify({"error": "Please ask a question."}), 400
-    if not any(m.get("role") == "user" for m in messages):
+    if not any(isinstance(m, dict) and m.get("role") == "user" for m in messages):
         return jsonify({"error": "Please ask a question."}), 400
 
     api_key = GEMINI_API_KEY
     if not api_key:
-        return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
+        return jsonify({"error": AI_OFF_MSG}), 503
 
     # Build Gemini conversation contents from the client-side history (cap to last 12 turns).
     contents = []
     for m in messages[-12:]:
+        if not isinstance(m, dict):
+            continue
         role = "model" if m.get("role") == "assistant" else "user"
         text = (m.get("content") or "").strip()
         if text:
@@ -490,7 +495,7 @@ def analyst_api():
         except Exception as exc:
             err = str(exc)
             if "API_KEY" in err or "api key" in err.lower() or "401" in err:
-                yield "ERROR: Invalid GEMINI_API_KEY. Check your key and restart the server."
+                yield "ERROR: " + AI_KEY_MSG
             else:
                 yield f"ERROR: {err}"
 
@@ -608,7 +613,7 @@ def _req_json():
     return j if isinstance(j, dict) else {}
 
 
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_EMAIL_RE = re.compile(r"^[^@\s<>\"'`]+@[^@\s<>\"'`]+\.[^@\s<>\"'`]+$")
 
 
 def _uid():
@@ -1117,6 +1122,11 @@ def trainer():
     return render_template("trainer.html")
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return app.send_static_file("trainer/icon-192.png")
+
+
 @app.route("/trainer-sw.js")
 def trainer_sw():
     # The service worker must be served from a root-level path so its scope
@@ -1130,6 +1140,32 @@ _ALLERGEN_STOP = {"none", "nothing", "known", "food", "mild", "severe", "and", "
                   "not", "has", "with", "this", "plan"}
 
 
+# A category word must check every food in the category: "dairy" has to catch whey,
+# yogurt and paneer, not just the literal word (content audit F-25, 2026-09-25).
+_DAIRY = {"milk", "whey", "casein", "yogurt", "yoghurt", "cheese", "paneer", "butter",
+          "ghee", "cream", "curd", "lactose", "kefir", "dairy", "skyr", "quark"}
+_GLUTEN = {"wheat", "bread", "roti", "chapati", "naan", "paratha", "pasta", "couscous",
+           "seitan", "barley", "rye", "semolina", "noodle", "bagel", "cracker", "gluten"}
+_TREE_NUTS = {"almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "brazil",
+              "macadamia", "nut"}
+_FISH = {"fish", "salmon", "tuna", "cod", "tilapia", "sardine", "mackerel", "anchovy",
+         "trout", "haddock", "pollock"}
+_ALLERGEN_FAMILIES = {
+    "dairy": _DAIRY, "milk": _DAIRY, "lactose": _DAIRY, "whey": _DAIRY | {"whey"},
+    "egg": {"egg", "mayonnaise", "mayo", "albumen", "meringue", "omelette", "omelet"},
+    "nut": _TREE_NUTS | {"peanut", "groundnut"}, "tree": _TREE_NUTS,
+    "peanut": {"peanut", "groundnut"}, "groundnut": {"peanut", "groundnut"},
+    "shellfish": {"shellfish", "shrimp", "prawn", "crab", "lobster", "scallop", "mussel",
+                  "clam", "oyster", "crayfish"},
+    "fish": _FISH, "seafood": _FISH | {"shrimp", "prawn", "crab", "lobster", "scallop",
+                                        "mussel", "clam", "oyster"},
+    "soy": {"soy", "soya", "tofu", "tempeh", "edamame", "miso"},
+    "soya": {"soy", "soya", "tofu", "tempeh", "edamame", "miso"},
+    "gluten": _GLUTEN, "wheat": _GLUTEN, "coeliac": _GLUTEN, "celiac": _GLUTEN,
+    "sesame": {"sesame", "tahini"},
+}
+
+
 def _allergen_tokens(s):
     """Allergen words from a free-text string (intake allergies OR a plan's
     allergy_note). len>=3 keeps egg/soy/nut/fish; trailing 's' stemmed so the
@@ -1137,6 +1173,14 @@ def _allergen_tokens(s):
     return {(w[:-1] if w.endswith("s") and len(w) > 3 else w)
             for w in re.split(r"[^a-z]+", str(s).lower())
             if len(w) >= 3 and w not in _ALLERGEN_STOP}
+
+
+def _allergen_scan_words(s):
+    """The intake's allergen words, each widened to its whole food family."""
+    words = set()
+    for w in _allergen_tokens(s):
+        words |= _ALLERGEN_FAMILIES.get(w, {w})
+    return words
 
 
 def _plan_strings(o):
@@ -1148,6 +1192,23 @@ def _plan_strings(o):
             yield from _plan_strings(v)
     elif isinstance(o, str):
         yield o
+
+
+UNDER_18_MSG = ("The Trainer is for adults 18 and over. If you're younger, the right call is a "
+                "qualified coach in person, with a parent or guardian in the loop.")
+
+
+def _age_from_dob(dob):
+    """Whole years from an ISO date string ('YYYY-MM-DD'); None if it isn't one."""
+    m = re.match(r"^\s*(\d{4})-(\d{2})-(\d{2})", str(dob or ""))
+    if not m:
+        return None
+    try:
+        born = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+    today = date.today()
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
 
 def _validate_plan(data, intake=None):
@@ -1216,7 +1277,7 @@ def _validate_plan(data, intake=None):
     # the saved plan's safety (SIMULATION finding: check-ins forgot allergies).
     # Scan supplements[] too: a whey/fish-oil can carry a dairy/fish allergen the
     # diet-only scan missed.
-    words = _allergen_tokens((intake or {}).get("allergies", ""))
+    words = _allergen_scan_words((intake or {}).get("allergies", ""))
     if words:
         food = {k: v for k, v in (dp.items() if isinstance(dp, dict) else [])
                 if k not in ("allergy_note", "diet_preference_note")}
@@ -1254,9 +1315,12 @@ def trainer_api():
         intake = {}
     if not str(intake.get("name", "")).strip() or not str(intake.get("goal", "")).strip():
         return jsonify({"error": "Please fill in at least your name and goal."}), 400
+    age = _age_from_dob(intake.get("date of birth"))
+    if age is not None and age < 18:
+        return jsonify({"error": UNDER_18_MSG}), 400
 
     if not GEMINI_API_KEY:
-        return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
+        return jsonify({"error": AI_OFF_MSG}), 503
     if not TRAINER_SYSTEM:
         return jsonify({"error": "Trainer knowledge base missing on server."}), 500
 
@@ -1347,6 +1411,13 @@ def trainer_api():
     # (including Groq) exhausts, better a flawed plan than an error page.
     soft = {"text": None}
 
+    def keep_soft(text, fails):
+        # A flawed-but-usable plan is kept as the last resort, EXCEPT one that puts
+        # a listed allergen in the diet: that is a safety failure, never served
+        # (SIMULATION E9 / content audit F-25).
+        if "allergen_in_diet" not in fails:
+            soft["text"] = soft["text"] or text
+
     def groq_fallback(q, fallback_err_msg):
         # Last resort when every Gemini attempt failed: one shot at Groq's
         # Llama 3.3 70B (independent infrastructure, same system prompt, same
@@ -1386,7 +1457,7 @@ def trainer_api():
                     q.put(("end", text))
                     return
                 print(f"[trainer] groq plan failed quality checks: {fails}", flush=True)
-                soft["text"] = soft["text"] or text
+                keep_soft(text, fails)
             else:
                 print(f"[trainer] groq fallback returned unusable output (chars={len(text)})", flush=True)
         except Exception as exc:
@@ -1427,7 +1498,7 @@ def trainer_api():
                         q.put(("end", text))  # complete, validated payload
                         return
                     print(f"[trainer] attempt {attempt + 1} plan failed quality checks: {fails}", flush=True)
-                    soft["text"] = soft["text"] or text
+                    keep_soft(text, fails)
                     data = None
 
                 # Unusable output. A safety block will not improve on retry;
@@ -1448,7 +1519,7 @@ def trainer_api():
                 err = str(exc)
                 low = err.lower()
                 if "api_key" in low or "api key" in low or "401" in low:
-                    q.put(("end", "\nERROR: Invalid GEMINI_API_KEY on the server."))
+                    q.put(("end", "\nERROR: " + AI_KEY_MSG))
                     return
                 transient = any(m in low for m in TRANSIENT)
                 if transient and attempt < MAX_ATTEMPTS - 1:
@@ -1517,7 +1588,7 @@ def trainer_ask():
             isinstance(m, dict) and m.get("role") == "user" for m in messages):
         return jsonify({"error": "Ask a question."}), 400
     if not GEMINI_API_KEY:
-        return jsonify({"error": "GEMINI_API_KEY environment variable is not set."}), 500
+        return jsonify({"error": AI_OFF_MSG}), 503
     if _rate_limited(_client_ip(), bucket="qa", limit=20):
         return jsonify({"error": "That's a lot of questions within the hour. The studio needs a "
                                  "breather. Your limit resets soon."}), 429
@@ -1558,7 +1629,7 @@ def trainer_ask():
             err = str(exc)
             low = err.lower()
             if "api_key" in low or "api key" in low or "401" in low:
-                yield "\nERROR: Invalid GEMINI_API_KEY on the server."
+                yield "\nERROR: " + AI_KEY_MSG
             elif any(m in low for m in ("503", "unavailable", "high demand", "overloaded", "429")):
                 yield "\nERROR: The coach is briefly overloaded. Ask again in a moment."
             else:
@@ -1591,6 +1662,20 @@ def calculate():
 _COMPRESSIBLE = {"text/html", "text/css", "text/javascript",
                  "application/javascript", "application/json", "image/svg+xml",
                  "application/manifest+json"}
+
+
+_NO_STORE_PREFIXES = ("/api/auth/", "/api/sync", "/api/history", "/api/profile", "/api/export")
+
+
+@app.after_request
+def _security_headers(resp):
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+    if request.path.startswith(_NO_STORE_PREFIXES):
+        resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @app.after_request
