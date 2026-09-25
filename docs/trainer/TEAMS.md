@@ -115,12 +115,15 @@ objectives and plans that ultimately benefit The Trainer.
 ## Operational facts every team needs
 - Live site: `https://funflix-os.onrender.com` (Render auto-deploys `main`).
 - Live commit check: `GET /api/version`.
-- Model chain: gemini-2.5-flash ×2 → gemini-2.5-flash-lite ×2 → Groq
-  Llama 3.3 70B last resort (only if GROQ_API_KEY is set; uses
-  data/trainer_system_compact.txt because Groq's free tier caps
-  prompt+completion ~12k tokens/min; needs a User-Agent header or
-  Cloudflare 403s). Server-side buffering + JSON validation + retries;
-  keepalive whitespace every 10 s.
+- Model chain: set by the `GEMINI_MODELS` env var (default
+  `gemini-2.5-flash,gemini-3.5-flash,gemini-3.5-flash-lite`): the primary twice, then
+  each fallback once, then Groq Llama 3.3 70B as a last resort (only if GROQ_API_KEY is
+  set; uses data/trainer_system_compact.txt because Groq's free tier caps
+  prompt+completion ~12k tokens/min; needs a User-Agent header or Cloudflare 403s).
+  A model Google has retired (404 / "no longer available") is skipped, never fatal:
+  gemini-2.5-flash-lite was retired in 2026 and briefly broke the fallback path.
+  Users only ever see plain-words errors. Server-side buffering + JSON validation +
+  retries; keepalive whitespace every 10 s.
 - Keyless testing: `POST /api/trainer {"demo":1}` (JSON) or `{"demo":"stream"}`
   (streamed text) — no GEMINI_API_KEY needed.
 - Real-API tests cost quota; use one targeted request, not loops.

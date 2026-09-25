@@ -3,7 +3,7 @@
 No network: the Gemini SDK is mocked by monkeypatching the module attribute
 `app.genai.Client`. `/api/trainer` buffers the model output in a worker
 thread, JSON-validates it (dict with type "questions" or "plan"), and walks a
-model chain of 2x gemini-2.5-flash then 2x gemini-2.5-flash-lite with
+model chain (GEMINI_MODELS: the primary twice, then each fallback once) with
 time.sleep backoffs between attempts — time.sleep is patched so retries are
 instant.
 """
@@ -180,14 +180,14 @@ def test_valid_plan_single_attempt_on_flash(client, api_key, monkeypatch):
     assert calls[0]["model"] == "gemini-2.5-flash"
 
 
-def test_503_on_flash_falls_back_to_flash_lite(client, api_key, monkeypatch):
+def test_503_on_primary_falls_back_to_the_next_model(client, api_key, monkeypatch):
     boom = Exception("503 UNAVAILABLE: the model is overloaded, high demand")
     calls = install_fake_client(monkeypatch, [boom, boom, VALID_PLAN_TEXT])
     resp, body = post_trainer(client, INTAKE_BODY)
     assert resp.status_code == 200
     assert json.loads(body.strip()) == VALID_PLAN
-    assert [c["model"] for c in calls] == [
-        "gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
+    m = A.GEMINI_MODELS
+    assert [c["model"] for c in calls] == [m[0], m[0], m[1]]
 
 
 def test_persistent_503_reports_backup_model_failure(client, api_key, monkeypatch):
@@ -197,10 +197,9 @@ def test_persistent_503_reports_backup_model_failure(client, api_key, monkeypatc
     assert resp.status_code == 200
     assert "\nERROR:" in body
     assert "even the backup model" in body
-    # full chain exhausted: 2x flash then 2x flash-lite
-    assert [c["model"] for c in calls] == [
-        "gemini-2.5-flash", "gemini-2.5-flash",
-        "gemini-2.5-flash-lite", "gemini-2.5-flash-lite"]
+    # full chain exhausted: the primary twice, then each fallback once
+    m = A.GEMINI_MODELS
+    assert [c["model"] for c in calls] == [m[0], m[0]] + list(m[1:3])
 
 
 def test_unusable_json_twice_then_valid_plan(client, api_key, monkeypatch):
@@ -239,7 +238,8 @@ def test_non_transient_error_yields_error_text(client, api_key, monkeypatch):
     calls = install_fake_client(monkeypatch, [Exception("kaboom: totally novel failure")])
     resp, body = post_trainer(client, INTAKE_BODY)
     assert resp.status_code == 200
-    assert "\nERROR: kaboom: totally novel failure" in body
+    # a plain sentence, never the provider's raw text (QA F9, 2026-09-25)
+    assert "\nERROR: " + A.AI_BUSY_MSG in body and "kaboom" not in body
     assert len(calls) == 1  # non-transient -> no retry
 
 
@@ -274,3 +274,32 @@ def test_plan_mode_prompt_uses_intake_header(client, api_key, monkeypatch):
     assert "WEEK-4 CHECK-IN" not in contents
     assert "- name: Test User" in contents
     assert "- goal: muscle gain" in contents
+
+
+# ── 2026-09-25: Google retired gemini-2.5-flash-lite; a gone model must never end a request ──
+
+def test_a_retired_model_is_skipped_not_fatal(client, api_key, monkeypatch):
+    gone = Exception("404 NOT_FOUND. This model models/x is no longer available to new users.")
+    boom = Exception("503 UNAVAILABLE: high demand")
+    calls = install_fake_client(monkeypatch, [boom, boom, gone, VALID_PLAN_TEXT])
+    resp, body = post_trainer(client, INTAKE_BODY)
+    assert json.loads(body.strip()) == VALID_PLAN
+    m = A.GEMINI_MODELS
+    assert [c["model"] for c in calls] == [m[0], m[0], m[1], m[2]]
+
+
+def test_raw_provider_errors_never_reach_users(client, api_key, monkeypatch):
+    install_fake_client(monkeypatch, [Exception("400 INVALID_ARGUMENT: internal detail https://ai.google.dev/x")])
+    resp, body = post_trainer(client, INTAKE_BODY)
+    assert A.AI_BUSY_MSG in body and "ai.google.dev" not in body and "INVALID_ARGUMENT" not in body
+
+
+def test_other_ai_endpoints_skip_a_retired_model(client, api_key, monkeypatch):
+    gone = Exception("404 NOT_FOUND: no longer available")
+    calls = install_fake_client(monkeypatch, [gone, "An answer grounded in your plan."])
+    r = client.post("/api/trainer/ask", json={"messages": [{"role": "user", "content": "Why these exercises?"}],
+                                              "plan": {"type": "plan", "workout_days": [{"day_label": "A"}]}})
+    body = r.get_data(as_text=True)
+    assert "An answer grounded in your plan." in body and "ERROR" not in body
+    assert [c["model"] for c in calls][:2] == A.GEMINI_MODELS[:2]
+

@@ -26,6 +26,47 @@ from flask import Flask, render_template, request, jsonify, Response, session, s
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # What people see when the AI can't run: plain words, no server internals (QA F9).
 AI_OFF_MSG = "The AI coach is switched off on this server right now. Please try again later."
+AI_BUSY_MSG = "The AI hit a problem on its side (not your answers). Please try again in a few minutes."
+AI_LOAD_MSG = "The AI is busy right now. Please try again in a minute."
+# Google retires model names over time (gemini-2.5-flash-lite stopped serving in 2026).
+# The chain can be changed on Render without a deploy, e.g.
+#   GEMINI_MODELS="gemini-2.5-flash,gemini-3.5-flash,gemini-3.5-flash-lite"
+# A model that comes back "not found / no longer available" is skipped, not fatal.
+GEMINI_MODELS = [m.strip() for m in (os.environ.get("GEMINI_MODELS") or
+                 "gemini-2.5-flash,gemini-3.5-flash,gemini-3.5-flash-lite").split(",") if m.strip()]
+
+
+def _model_gone(err):
+    low = str(err).lower()
+    return "404" in low or "not_found" in low or "not found" in low or "no longer available" in low
+
+
+def _stream_with_fallback(make_stream, prefix="ERROR: "):
+    """Stream text from the first configured model that exists. A retired model is
+    skipped (only before anything was sent, so nothing repeats); every other failure
+    ends in a plain sentence, never the provider's raw error text."""
+    for i, model in enumerate(GEMINI_MODELS):
+        sent = False
+        try:
+            for chunk in make_stream(model):
+                if chunk.text:
+                    sent = True
+                    yield chunk.text
+            return
+        except Exception as exc:
+            err = str(exc)
+            low = err.lower()
+            print(f"[ai] {model} failed: {err[:300]}", flush=True)
+            if "api_key" in low or "api key" in low or "401" in low:
+                yield prefix + AI_KEY_MSG
+                return
+            if not sent and _model_gone(err) and i < len(GEMINI_MODELS) - 1:
+                continue
+            if any(m in low for m in ("503", "unavailable", "high demand", "overloaded", "429", "resource_exhausted")):
+                yield prefix + AI_LOAD_MSG
+                return
+            yield prefix + AI_BUSY_MSG
+            return
 AI_KEY_MSG = "The AI service turned this server away just now. Please try again later."
 # Optional last-resort fallback for The Trainer when every Gemini attempt fails:
 # an OpenAI-compatible call to Groq (independent infrastructure). Set on Render.
@@ -388,31 +429,18 @@ def journalist_api():
     if not api_key:
         return jsonify({"error": AI_OFF_MSG}), 503
 
+    prompt = (
+        f"Search the internet for the latest news and information about: {topic}\n\n"
+        f"Then write a compelling 4-paragraph news article about what you found. "
+        f"Start with a punchy headline on its own line, then write the article. "
+        f"Use clear, engaging journalistic language with key facts and context."
+    )
+
     def generate():
-        try:
-            client = genai.Client(api_key=api_key)
-            prompt = (
-                f"Search the internet for the latest news and information about: {topic}\n\n"
-                f"Then write a compelling 4-paragraph news article about what you found. "
-                f"Start with a punchy headline on its own line, then write the article. "
-                f"Use clear, engaging journalistic language with key facts and context."
-            )
-            response = client.models.generate_content_stream(
-                model="gemini-2.5-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                ),
-            )
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-        except Exception as exc:
-            err = str(exc)
-            if "API_KEY" in err or "api key" in err.lower() or "401" in err:
-                yield "ERROR: " + AI_KEY_MSG
-            else:
-                yield f"ERROR: {err}"
+        client = genai.Client(api_key=api_key)
+        yield from _stream_with_fallback(lambda model: client.models.generate_content_stream(
+            model=model, contents=prompt,
+            config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())])))
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
@@ -479,25 +507,10 @@ def analyst_api():
     system_instruction = ANALYST_SYSTEM.format(digest=ANALYSIS["digest"])
 
     def generate():
-        try:
-            client = genai.Client(api_key=api_key)
-            response = client.models.generate_content_stream(
-                model="gemini-2.5-flash",
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.4,
-                ),
-            )
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-        except Exception as exc:
-            err = str(exc)
-            if "API_KEY" in err or "api key" in err.lower() or "401" in err:
-                yield "ERROR: " + AI_KEY_MSG
-            else:
-                yield f"ERROR: {err}"
+        client = genai.Client(api_key=api_key)
+        yield from _stream_with_fallback(lambda model: client.models.generate_content_stream(
+            model=model, contents=contents,
+            config=types.GenerateContentConfig(system_instruction=system_instruction, temperature=0.4)))
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
@@ -1382,12 +1395,11 @@ def trainer_api():
 
     # Gemini occasionally returns 503 UNAVAILABLE ("high demand") or a rate-limit
     # blip, these are transient and on Google's side. Retry with exponential
-    # backoff, then FALL BACK to gemini-2.5-flash-lite (a separate, lighter
-    # capacity pool on the same API key) before giving up.
+    # backoff, then FALL BACK to the next configured model (GEMINI_MODELS) before
+    # giving up. A retired model (404 / "no longer available") is skipped at once.
     TRANSIENT = ("503", "unavailable", "high demand", "overloaded",
                  "429", "resource_exhausted", "rate limit", "500", "internal error")
-    MODEL_CHAIN = ("gemini-2.5-flash", "gemini-2.5-flash",
-                   "gemini-2.5-flash-lite", "gemini-2.5-flash-lite")
+    MODEL_CHAIN = (GEMINI_MODELS[0],) * 2 + tuple(GEMINI_MODELS[1:3])
     MAX_ATTEMPTS = len(MODEL_CHAIN)
 
     def backoff(attempt):
@@ -1465,7 +1477,10 @@ def trainer_api():
         q.put(("end", soft["text"] or fallback_err_msg))
 
     def run_model_chain(q):
+        dead = set()
         for attempt in range(MAX_ATTEMPTS):
+            if MODEL_CHAIN[attempt] in dead:
+                continue
             finish = ""
             try:
                 client = genai.Client(api_key=GEMINI_API_KEY)
@@ -1521,6 +1536,10 @@ def trainer_api():
                 if "api_key" in low or "api key" in low or "401" in low:
                     q.put(("end", "\nERROR: " + AI_KEY_MSG))
                     return
+                if _model_gone(err):
+                    print(f"[trainer] {MODEL_CHAIN[attempt]} is not available, skipping it", flush=True)
+                    dead.add(MODEL_CHAIN[attempt])
+                    continue
                 transient = any(m in low for m in TRANSIENT)
                 if transient and attempt < MAX_ATTEMPTS - 1:
                     backoff(attempt)
@@ -1529,9 +1548,11 @@ def trainer_api():
                     groq_fallback(q, "\nERROR: Gemini is temporarily overloaded (high demand on Google's side, "
                                      "not your account or key), even the backup model. Please try again in a minute or two.")
                     return
-                groq_fallback(q, f"\nERROR: {err}")
+                print(f"[trainer] model error: {err[:300]}", flush=True)
+                groq_fallback(q, "\nERROR: " + AI_BUSY_MSG)
                 return
-        q.put(("end", None))  # unreachable, but the reader must never block forever
+        # every configured model was retired or skipped: never leave the reader waiting
+        groq_fallback(q, "\nERROR: " + AI_BUSY_MSG)
 
     def generate():
         q = Queue()
@@ -1615,25 +1636,9 @@ def trainer_ask():
         pass
 
     def generate():
-        try:
-            client = genai.Client(api_key=GEMINI_API_KEY)
-            response = client.models.generate_content_stream(
-                model="gemini-2.5-flash",
-                contents=contents,
-                config=types.GenerateContentConfig(**config_kwargs),
-            )
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-        except Exception as exc:
-            err = str(exc)
-            low = err.lower()
-            if "api_key" in low or "api key" in low or "401" in low:
-                yield "\nERROR: " + AI_KEY_MSG
-            elif any(m in low for m in ("503", "unavailable", "high demand", "overloaded", "429")):
-                yield "\nERROR: The coach is briefly overloaded. Ask again in a moment."
-            else:
-                yield f"\nERROR: {err}"
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        yield from _stream_with_fallback(lambda model: client.models.generate_content_stream(
+            model=model, contents=contents, config=types.GenerateContentConfig(**config_kwargs)), prefix="\nERROR: ")
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
