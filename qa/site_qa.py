@@ -113,6 +113,7 @@ with sync_playwright() as p:
         pg.fill("#fDob", "2002-05-01")
         pg.fill("#fHeight", "178 cm")
         pg.fill("#fWeight", "82 kg")
+        pg.select_option("#fSex", "Male")   # sex is a required choice now (no silent default)
         pg.click("#next1"); pg.click("#next2"); pg.click("#buildBtn")
         try:
             pg.wait_for_selector(".plan-wrap.show", timeout=45000)
@@ -138,7 +139,7 @@ with sync_playwright() as p:
             pgs = ctx_share.new_page()
             pgs.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
             pgs.fill("#fName", "QA Smoke"); pgs.fill("#fDob", "2002-05-01")
-            pgs.fill("#fHeight", "178 cm"); pgs.fill("#fWeight", "82 kg")
+            pgs.fill("#fHeight", "178 cm"); pgs.fill("#fWeight", "82 kg"); pgs.select_option("#fSex", "Male")
             pgs.click("#next1"); pgs.click("#next2"); pgs.click("#buildBtn"); pgs.wait_for_selector(".plan-wrap.show", timeout=45000)
             # two taps: the first says what the link carries (Guardians F-13), the second shares
             pgs.click("#shareBtn"); pgs.wait_for_timeout(200)
@@ -196,7 +197,7 @@ with sync_playwright() as p:
         pg.evaluate("localStorage.setItem('trainerLastPlan', JSON.stringify({at: 111, plan: {type:'plan', profile_summary:{goal:'REAL'}, workout_days:[{day_label:'D', exercises:[{name:'X', sets:3}]}]}}))")
         pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
         pg.fill("#fName", "QA"); pg.fill("#fDob", "2002-05-01")
-        pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82")
+        pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82"); pg.select_option("#fSex", "Male")
         pg.click("#next1"); pg.click("#next2"); pg.click("#buildBtn")
         pg.wait_for_selector(".plan-wrap.show", timeout=45000)
         check("demo_never_clobbers_saved_plan",
@@ -207,7 +208,7 @@ with sync_playwright() as p:
         pg.evaluate("localStorage.removeItem('trainerLastPlan')")
         pg.goto(BASE + "/trainer?demo", wait_until="networkidle", timeout=30000)
         pg.fill("#fName", "QA"); pg.fill("#fDob", "2002-05-01")
-        pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82")
+        pg.fill("#fHeight", "178"); pg.fill("#fWeight", "82"); pg.select_option("#fSex", "Male")
         pg.click("#next1"); pg.click("#next2"); pg.click("#buildBtn")
         pg.wait_for_selector(".plan-wrap.show", timeout=45000)
         check("demo_peek_does_not_persist",

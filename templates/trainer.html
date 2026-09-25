@@ -568,7 +568,7 @@
     .mode-tabs { background: var(--card); border: 1px solid var(--rule-2); border-radius: 999px; padding: 5px;
       gap: 4px; box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.04), 0 10px 34px rgba(var(--shadow-rgb),.05); width: fit-content; }
     .mtab { border: none; padding: 9px 20px; }
-    .mtab:hover { color: var(--black); }
+    .mtab:not(.on):hover { color: var(--black); }
     .mtab.restore { border: 1px dashed var(--rule-2); }
     #planDoc, .intake .intake-inner, .fu-card {
       box-shadow: 0 1px 2px rgba(var(--shadow-rgb),.03), 0 30px 90px rgba(var(--shadow-rgb),.07); }
@@ -800,7 +800,7 @@
           <div class="field"><label class="os-label" for="fName">Name</label>
             <input class="os-input" id="fName" placeholder="Your name" required></div>
           <div class="field"><label class="os-label" for="fSex">Gender assigned at birth</label>
-            <div class="os-select-wrap"><select class="os-select" id="fSex"><option>Male</option><option>Female</option></select></div></div>
+            <div class="os-select-wrap"><select class="os-select" id="fSex" required><option value="" selected disabled>Choose</option><option>Male</option><option>Female</option></select></div></div>
           <div class="field"><label class="os-label" for="fDob">Date of birth</label>
             <input class="os-input" id="fDob" type="date" required></div>
           <div class="field"><label class="os-label" for="fHeight">Height</label>
@@ -856,7 +856,7 @@
         <div class="grid2">
           <div class="field"><label class="os-label" for="fHealth">Any health issues?</label>
             <textarea class="os-input" id="fHealth" placeholder="e.g. mild knee pain, asthma, or 'none'"></textarea>
-            <div class="hintline">Anything medical stays a suggestion, not advice. The plan will say so too.</div></div>
+            <div class="hintline">Include any history of an eating disorder. Anything medical stays a suggestion, not advice; the plan will say so too.</div></div>
           <div class="field"><label class="os-label" for="fAllergy">Any allergies?</label>
             <textarea class="os-input" id="fAllergy" placeholder="e.g. lactose, peanuts, or 'none'"></textarea></div>
         </div>
@@ -1157,7 +1157,7 @@
       </div>
     </div>
 
-    <div class="err" id="errBox"></div>
+    <div class="err" id="errBox" role="alert"></div>
 
     <!-- ── THE PLAN ── -->
     <div class="plan-wrap" id="planWrap">
@@ -1210,6 +1210,7 @@
     $('tabCheckin').classList.toggle('on', m === 'checkin');
     $('tabLog').classList.toggle('on', m === 'log');
     form.style.display = m === 'plan' ? '' : 'none';
+    if ($('handoff')) $('handoff').hidden = !(handoffOn && m === 'plan');
     checkinForm.style.display = m === 'checkin' ? '' : 'none';
     $('logForm').style.display = m === 'log' ? '' : 'none';
     if (m === 'log') buildLogForm();
@@ -1246,7 +1247,10 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
     greet(s);
   }
-  function fail(msg) { setState('form'); errBox.textContent = msg; errBox.classList.add('show'); }
+  function fail(msg) {
+    setState('form'); errBox.textContent = msg; errBox.classList.add('show');
+    setTimeout(() => errBox.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 60);
+  }
 
   // the model needs a name to put on the plan, not your full name
   function firstOnly(n) { return String(n || '').trim().split(/\s+/)[0].slice(0, 40); }
@@ -1398,8 +1402,48 @@
     document.querySelectorAll('.stp').forEach(b => b.classList.toggle('on', +b.dataset.step <= n));
     $('stepper').scrollIntoView({ block: 'nearest' });
   }
+  // plain-language checks on the four body facts the energy maths needs
+  function parseHeightCm(s) {
+    s = String(s || '').toLowerCase().trim();
+    let m = s.match(/^(\d)\s*(?:'|ft|feet|foot)\s*(\d{1,2}(?:\.\d)?)?\s*(?:"|in|inches)?$/);
+    if (m) return Math.round((+m[1] * 12 + (+m[2] || 0)) * 2.54);
+    m = s.match(/^(\d+(?:\.\d+)?)\s*(cm|m|in|inches)?$/);
+    if (!m) return null;
+    const v = +m[1], u = m[2] || (v < 3 ? 'm' : 'cm');
+    return u === 'm' ? Math.round(v * 100) : /in/.test(u) ? Math.round(v * 2.54) : v;
+  }
+  function parseWeightKg(s) {
+    const m = String(s || '').toLowerCase().trim().match(/^(\d+(?:\.\d+)?)\s*(kg|kgs|kilos?|lb|lbs|pounds?)?$/);
+    if (!m) return null;
+    return /lb|pound/.test(m[2] || '') ? +m[1] * 0.4536 : +m[1];
+  }
+  function ageFromDob(v) {
+    const d = new Date(v + 'T00:00:00');
+    if (isNaN(d)) return null;
+    const n = new Date();
+    return n.getFullYear() - d.getFullYear() - ((n.getMonth() < d.getMonth() || (n.getMonth() === d.getMonth() && n.getDate() < d.getDate())) ? 1 : 0);
+  }
+  function checkBodyFacts() {
+    const age = $('fDob').value ? ageFromDob($('fDob').value) : null;
+    $('fDob').setCustomValidity(age == null ? '' : age < 18
+      ? 'The Trainer is for adults 18 and over. If you’re younger, train with a qualified coach in person.'
+      : age > 100 ? 'Check the year of your date of birth.' : '');
+    const h = $('fHeight').value.trim() ? parseHeightCm($('fHeight').value) : null;
+    $('fHeight').setCustomValidity($('fHeight').value.trim() && !(h >= 120 && h <= 230)
+      ? 'Add your height like “178 cm” or “5\'10”.' : '');
+    const w = $('fWeight').value.trim() ? parseWeightKg($('fWeight').value) : null;
+    $('fWeight').setCustomValidity($('fWeight').value.trim() && !(w >= 30 && w <= 300)
+      ? 'Add your weight like “82 kg” or “180 lb”.' : '');
+    // a deficit below a healthy weight is not something to plan without a clinician
+    const bmi = h && w ? w / Math.pow(h / 100, 2) : null;
+    $('fGoal').setCustomValidity(bmi && bmi < 18.5 && /Fat loss|recomposition/.test($('fGoal').value)
+      ? 'At your height and weight a deficit isn’t safe to plan without a doctor or dietitian. Pick General fitness or Strength and the plan trains you at maintenance.' : '');
+  }
+  ['fDob', 'fHeight', 'fWeight', 'fGoal'].forEach(id => $(id).addEventListener('input', checkBodyFacts));
+  ['fDob', 'fGoal'].forEach(id => $(id).addEventListener('change', checkBodyFacts));
   function stepValid(n) {
-    const ids = n === 1 ? ['fName', 'fDob', 'fHeight', 'fWeight'] : [];
+    checkBodyFacts();
+    const ids = n === 1 ? ['fName', 'fSex', 'fDob', 'fHeight', 'fWeight', 'fGoal'] : [];
     for (const id of ids) {
       const el = $(id);
       if (!el.checkValidity()) { el.reportValidity(); return false; }
@@ -1481,7 +1525,10 @@
     function mark(id) { var f = $(id) && $(id).closest('.field'); if (f) f.classList.add('from-session'); }
     if (h.name && !$('fName').value) { $('fName').value = String(h.name).slice(0, 40); mark('fName'); }
     if (setSelect('fGoal', HO_MAP.goal[h.goal])) mark('fGoal');
-    if (setSelect('fExp', HO_MAP.exp[h.exp])) mark('fExp');
+    if (h.exp === 'returning') {   // "back after a break" says nothing about the level reached before it
+      var ef = $('fExp').closest('.field');
+      if (ef && !ef.querySelector('.hintline')) ef.insertAdjacentHTML('beforeend', '<div class="hintline">You said you’re coming back: pick the level you reached before the break.</div>');
+    } else if (setSelect('fExp', HO_MAP.exp[h.exp])) mark('fExp');
     if (setSelect('fEnv', HO_MAP.kit[h.kit])) mark('fEnv');
     var d = parseInt(h.days, 10);
     if (d && setSelect('fDays', String(Math.min(6, Math.max(2, d))))) mark('fDays');
@@ -1544,9 +1591,9 @@
         T = 'Writing it now.'; S = 'A minute or two. Every number is computed, then checked.';
       } else if (s === 'followup') {
         T = 'A couple of specifics first.'; S = 'Short answers are fine. They change the numbers.';
-      } else if (h) {
-        T = 'Right' + (nm ? ', ' + nm : '') + '. Four facts and I write it.';
-        S = 'Your goal, level, kit and days are already in. Add your date of birth, sex, height and weight, so the calories, protein and starting loads are yours.';
+      } else if (h && mode === 'plan') {
+        T = nm ? 'Right, ' + nm + '. Four facts and I write it.' : 'Right. Five quick facts and I write it.';
+        S = (nm ? '' : 'A name to put on the plan, then ') + 'your date of birth, sex, height and weight, so the calories and protein are yours. Your goal, kit and days are already in; add your current lifts too and week one starts with real weights.';
       } else if (mode === 'log') {
         T = 'Log today’s session.'; S = 'Beat one number from last time. That is the whole job.';
       } else if (mode === 'checkin') {
@@ -1691,14 +1738,23 @@
     const win = ws.filter(w => _wat(w.d) >= cutoff);
     return win.reduce((s, w) => s + w.kg, 0) / win.length;
   }
+  // a least-squares slope (kg a week) over weigh-ins since `fromAt`: every entry counts,
+  // so it neither understates a steady trend nor swings on one salty day (SIM-18)
+  function fitTrend(fromAt, minPts, minDays) {
+    const pts = loadWeights().filter(w => _wat(w.d) >= fromAt).map(w => [_wat(w.d) / 86400000, w.kg]);
+    if (pts.length < minPts) return null;
+    const span = pts[pts.length - 1][0] - pts[0][0];
+    if (span < minDays) return null;
+    const n = pts.length, mx = pts.reduce((s, q) => s + q[0], 0) / n, my = pts.reduce((s, q) => s + q[1], 0) / n;
+    let num = 0, den = 0;
+    pts.forEach(q => { num += (q[0] - mx) * (q[1] - my); den += (q[0] - mx) * (q[0] - mx); });
+    return den ? { perWeek: num / den * 7, span: Math.round(span), n } : null;
+  }
   function weightTrendPerWeek() {
     const ws = loadWeights();
-    if (ws.length < 2) return null;
-    const last = ws[ws.length - 1];
-    const base = ws.find(w => _wat(w.d) >= _wat(last.d) - 28 * 86400000) || ws[0];
-    const days = (_wat(last.d) - _wat(base.d)) / 86400000;
-    if (days < 3) return null;
-    return ((weightAvg7() - base.kg) / days) * 7;
+    if (ws.length < 3) return null;
+    const f = fitTrend(_wat(ws[ws.length - 1].d) - 28 * 86400000, 3, 5);
+    return f ? f.perWeek : null;
   }
   function weightAtPlanStart() {
     // the weigh-in AROUND when the current plan started, not the all-time first
@@ -1901,7 +1957,7 @@
   });
   $('lgStall').addEventListener('click', e => {
     if (e.target && e.target.id === 'dlDone') {
-      try { localStorage.setItem(DL_KEY, String(Date.now())); } catch (e2) {}
+      try { localStorage.setItem(DL_KEY, String(Date.now())); localStorage.removeItem(DL_SHOWN_KEY); } catch (e2) {}
       renderLgHist();
     }
   });
@@ -1982,9 +2038,16 @@
     const logs = loadLogs();
     return logs.reduce((m, s) => Math.max(m, s.at || 0), 0);
   }
-  function trainedWeeksSince(anchor) {
+  // distinct plan weeks with a logged session since `anchor`, counting only weeks
+  // BEFORE `beforeWk` (the week in progress is not yet a completed week)
+  function trainedWeeksSince(anchor, beforeWk) {
     const wk = {};
-    loadLogs().forEach(s => { if ((s.at || 0) >= anchor) wk[Math.floor(s.at / WEEK_MS)] = 1; });
+    // weeks of the PLAN (counted from the anchor), not epoch weeks that start on a Thursday (SIM-15)
+    loadLogs().forEach(s => {
+      if ((s.at || 0) < anchor) return;
+      const i = Math.floor((s.at - anchor) / WEEK_MS);
+      if (beforeWk == null || i < beforeWk) wk[i] = 1;
+    });
     return Object.keys(wk).length;
   }
   function planExperience() {
@@ -2013,12 +2076,19 @@
         (hist[e.name] = hist[e.name] || []).push({ at: s.at, kg: b.kg, reps: b.reps, e1: e1rm(b), vol });
       });
     });
-    const better = (x, y) => y.e1 > x.e1 + 1e-9 || (Math.abs(y.e1 - x.e1) <= 1e-9 && y.vol > x.vol);
+    // progress is what the rulebook says it is: more load, or more reps at the same load.
+    // A double-progression jump (80 x 8 -> 82.5 x 6) is progress, not a stall (SIMULATION SIM-14).
+    const better = (x, y) => y.kg > x.kg + 1e-9 ||
+      (Math.abs(y.kg - x.kg) <= 1e-9 && (y.reps > x.reps || y.vol > x.vol));
     const contiguous = arr => arr.every((p, i) => i === 0 || p.at - arr[i - 1].at <= GAP);
     const improving = arr => arr.some((p, i) => i > 0 && better(arr[i - 1], p));
     const out = [];
     for (const name in hist) {
-      const hs = hist[name];
+      // a deliberate load drop (the 10% reset, or a lighter restart) opens a fresh
+      // window: rebuilding from a reset is not "still flat" (SIM-14)
+      let from = 0;
+      hist[name].forEach((p, i) => { if (i && p.kg < hist[name][i - 1].kg - 1e-9) from = i; });
+      const hs = hist[name].slice(from);
       if (hs.length < win) continue;
       const wnd = hs.slice(-win);
       if (!contiguous(wnd) || improving(wnd)) continue;
@@ -2052,15 +2122,15 @@
         return s.deep
           ? '<p><b>' + esc(s.name) + '</b> is still flat after ' + (s.n + 1) + ' sessions, past the reset window. ' +
             'Your plan’s escalation: take the deload (halve sets, −15–20% load) this week, then rebuild.</p>'
-          : '<p><b>' + esc(s.name) + '</b> has not beaten ' + esc(fmtSet(s.last)) +
-            ' (by estimated 1RM) in ' + s.n + ' sessions. Your plan’s protocol: reduce 10% ' +
+          : '<p><b>' + esc(s.name) + '</b> has added neither load nor reps beyond ' + esc(fmtSet(s.last)) +
+            ' in ' + s.n + ' sessions. Your plan’s protocol: reduce 10% ' +
             (s.reset ? '(to about ' + s.reset + ' kg) ' : '') + 'and rebuild, if sleep and food are in order.</p>';
       }).join('') +
       '</div>';
   }
 
   /* ── deload autopilot: the plan's cadence, actually scheduled ── */
-  const DL_KEY = 'trainerDeloadDone';
+  const DL_KEY = 'trainerDeloadDone', DL_SHOWN_KEY = 'trainerDeloadShown';
   // the plan's deload cadence in weeks, parsed once (shared by the deload card
   // and the periodization banner), clamped to a sane 4–8. Kept in one place so
   // the parse can be hardened without touching callers.
@@ -2080,7 +2150,14 @@
       /(\d+)\s*weeks?\b/,
     ];
     let n = null;
-    for (const re of pats) { const m = txt.match(re); if (m) { n = parseInt(m[1], 10); break; } }
+    // a range ("every 4 to 8 weeks") is read the rulebook's way: novices toward the
+    // long end, advanced lifters toward the short end (RND_LAB A4, SIMULATION)
+    const rng = txt.match(/(\d+)\s*(?:-|–|to|or)\s*(\d+)\s*weeks?/);
+    if (rng) {
+      const a = +rng[1], b = +rng[2], exp = planExperience();
+      n = /novice|beginner/.test(exp) ? Math.max(a, b) : /advanced|elite/.test(exp) ? Math.min(a, b) : Math.round((a + b) / 2);
+    }
+    if (n == null) for (const re of pats) { const m = txt.match(re); if (m) { n = parseInt(m[1], 10); break; } }
     return Math.min(8, Math.max(4, n || 6));
   }
   // where the lifter is in the mesocycle: accumulation weeks building to a deload,
@@ -2101,7 +2178,9 @@
     const weekInBlock = sinceDeload + 1;
     const blockNum = Math.floor(totalElapsed / cadence) + 1;
     const deloadNow = !!(deloadInfo() || fatigueDeload());
-    const phase = (deloadNow || weekInBlock >= cadence) ? 'deload' : 'accumulation';
+    // the phase comes from the deload rules themselves, and a returner ramps in (SIM-21)
+    const lastAt = lastSessionAt();
+    const phase = (lastAt && Date.now() - lastAt > 14 * DAY_MS) ? 'ramp' : deloadNow ? 'deload' : 'accumulation';
     const dur = (sp.plan.duration_and_paths || {}).plan_duration_months;
     const totalWeeks = (typeof dur === 'number' && dur > 0) ? Math.round(dur * 4.33) : null;
     return { week: totalElapsed + 1, blockNum, weekInBlock, cadence, phase, totalWeeks,
@@ -2109,7 +2188,8 @@
   }
   function blockLine(b) {
     if (!b) return '';
-    if (b.phase === 'deload') return 'Block ' + b.blockNum + ' · deload week: hold volume, then rebuild';
+    if (b.phase === 'ramp') return 'Welcome back · a ramp-in week: lighter loads, 2–3 reps in reserve, then the block resumes';
+    if (b.phase === 'deload') return 'Block ' + b.blockNum + ' · deload week: half the sets, lighter loads, then rebuild';
     const to = b.toDeload;
     return 'Block ' + b.blockNum + ' · accumulation, week ' + b.weekInBlock + ' of ' + b.cadence +
       (to > 0 ? ' · ' + to + ' to deload' : '') +
@@ -2129,16 +2209,27 @@
     // fatigue accrues from TRAINING, not the calendar: count weeks that actually
     // contain a logged session since the anchor. A user who never logs still
     // gets a calendar-based reminder (we can't see their training otherwise).
-    const sinceW = loadLogs().length
-      ? trainedWeeksSince(anchor)
-      : Math.floor((Date.now() - anchor) / WEEK_MS);
-    return sinceW >= cadence ? { cadence, sinceW } : null;
+    const curWk = Math.floor((Date.now() - anchor) / WEEK_MS);   // 0 = the first plan week
+    const sinceW = loadLogs().length ? trainedWeeksSince(anchor, curWk) : curWk;   // completed weeks
+    // "a deload every N weeks" means the Nth week IS the deload (the plans say "every 6th week"):
+    // it is due once N-1 hard weeks are done
+    if (sinceW < cadence - 1) { try { localStorage.removeItem(DL_SHOWN_KEY); } catch (e) {} return null; }
+    // a deload that was due a week ago has happened (or been skipped): the block
+    // rolls over on its own instead of saying "deload week" forever (SIM-21)
+    let shown = 0;
+    try { shown = +localStorage.getItem(DL_SHOWN_KEY) || 0; } catch (e) {}
+    if (!shown) { shown = Date.now(); try { localStorage.setItem(DL_SHOWN_KEY, String(shown)); } catch (e) {} }
+    if (Date.now() - shown > 7 * DAY_MS) {
+      try { localStorage.setItem(DL_KEY, String(shown + 7 * DAY_MS)); localStorage.removeItem(DL_SHOWN_KEY); } catch (e) {}
+      return null;
+    }
+    return { cadence, sinceW };
   }
   function deloadHTML(dl) {
     return '<div class="stall deload"><div class="st-h">Deload week: your plan’s schedule</div>' +
-      '<p>It’s been ' + dl.sinceW + ' weeks of hard training (your plan calls for a deload about every ' +
+      '<p>That’s ' + dl.sinceW + ' training weeks since your last deload (your plan calls for one about every ' +
       dl.cadence + '). This week: <b>halve the sets, take 15–20% off the loads</b>, keep the movements. ' +
-      'Resist adding work. This week is what makes next month’s PRs possible.</p>' +
+      'Resist adding work. This week lets fatigue fade so the next block starts fresh.</p>' +
       '<button type="button" class="btn-again" id="dlDone">I’ve done my deload ✓</button></div>';
   }
   // fatigue-triggered deload: 2+ different lifts stalling in the same week is a
@@ -2154,7 +2245,7 @@
   function fatigueDeloadHTML(fd) {
     return '<div class="stall deload"><div class="st-h">Deload now: fatigue signal</div>' +
       '<p><b>' + fd.lifts.length + ' lifts stalled in the same week</b> (' + esc(fd.lifts.join(', ')) +
-      '). That’s systemic fatigue, not one plateau. Don’t wait for the calendar: <b>halve the sets, ' +
+      '). Two lifts stalling together usually means fatigue, if sleep and food are in order. Don’t wait for the calendar: <b>halve the sets, ' +
       '−15–20% load</b> this week, keep the movements, then rebuild.</p>' +
       '<button type="button" class="btn-again" id="dlDone">I’ve done my deload ✓</button></div>';
   }
@@ -2265,29 +2356,37 @@
      nudge the target to steer your actual rate onto the plan's intended rate.
      Deterministic, device-local, $0, a between-check-ins steering wheel. ── */
   const KCAL_PER_KG = 7700, KCAL_DAY_PER_KG_WK = KCAL_PER_KG / 7;  // ~1100 kcal/day ≙ 1 kg/wk
+  /* Rewritten 2026-09-25 (SIMULATION SIM-16/17/18/19, content F-08/F-21): steer the measured
+     trend into the RULEBOOK's on-target band (not the pace implied by the calorie arithmetic),
+     read nothing in the first two weeks (water and glycogen), move by one small step
+     (100-150 kcal, up to 200 on a stalled cut), and after a change the person accepts, wait
+     two weeks before suggesting another. */
+  const NUT_KEY = 'trainerNutTarget';   // {kcal, at, planAt}: a change the person said they're doing
+  function nutAccepted() {
+    const sp = savedPlan();
+    try { const a = JSON.parse(localStorage.getItem(NUT_KEY)); return a && sp && a.planAt === sp.at && a.kcal > 0 ? a : null; }
+    catch (e) { return null; }
+  }
   function dietTarget() {
     const sp = savedPlan();
     if (!sp || !sp.plan) return null;
+    const acc = nutAccepted();
+    if (acc) return acc.kcal;                         // the target they are actually eating to now
     const dp = sp.plan.diet_plan || {}, ps = sp.plan.profile_summary || {};
     const t = parseFloat(dp.calorie_target_kcal != null ? dp.calorie_target_kcal : ps.calorie_target_kcal);
     return !isNaN(t) && t > 0 ? t : null;
   }
-  function intendedRatePerWeek(sp, bw) {
+  // the rulebook's on-target weekly trend (kg a week) for this plan's goal and experience
+  function rateBand(sp, bw) {
     const ps = (sp.plan || {}).profile_summary || {};
-    const tdee = parseFloat(ps.tdee_kcal), tgt = dietTarget();
-    let kg;
-    if (!isNaN(tdee) && tgt != null) {
-      kg = (tgt - tdee) * 7 / KCAL_PER_KG;                 // the plan's OWN intended rate
-    } else {
-      const g = String(ps.goal || '').toLowerCase();
-      let frac = 0;
-      if (/loss|cut|lean out|shred|deficit/.test(g)) frac = -0.005;
-      else if (/gain|muscle|bulk|mass|surplus/.test(g)) frac = 0.0025;
-      else if (/strength/.test(g)) frac = 0.001;
-      kg = frac * (bw || 80);
+    const g = String(ps.goal || '').toLowerCase(), exp = planExperience(), base = bw || 80;
+    if (/loss|cut|lean out|shred|deficit/.test(g)) return [-0.010 * base, -0.005 * base];
+    if (/recomp/.test(g)) return [-0.005 * base, 0.0015 * base];
+    if (/gain|muscle|bulk|mass|surplus|hypertroph/.test(g)) {
+      const m = /advanced|elite/.test(exp) ? [0.0025, 0.005] : /novice|beginner/.test(exp) ? [0.010, 0.020] : [0.005, 0.010];
+      return [m[0] * base / 4.33, m[1] * base / 4.33];   // the band is per month; the trend is per week
     }
-    const base = bw || 80;
-    return Math.max(-0.012 * base, Math.min(0.006 * base, kg));  // physiological guardrails
+    return [-0.0015 * base, 0.0025 * base];               // strength and general fitness: hold roughly steady
   }
   function nutritionTune() {
     const sp = savedPlan();
@@ -2295,43 +2394,47 @@
     const tgt = dietTarget();
     if (tgt == null) return null;                    // no calorie target → nothing to tune
     const ws = loadWeights(), ps = sp.plan.profile_summary || {};
-    const startW = weightAtPlanStart();
-    const bw = weightAvg7() || (startW && startW.kg) || parseFloat(ps.weight_kg) || null;
-    const entries = ws.length;
-    const span = entries >= 2 ? Math.round((_wat(ws[entries - 1].d) - _wat(ws[0].d)) / DAY_MS) : 0;
-    const trend = weightTrendPerWeek();              // kg/wk (null if <2 entries / <3 days)
-    if (!(trend != null && entries >= 4 && span >= 10)) {
-      return { gathering: true, target: tgt,
-               needDays: Math.max(0, 10 - span), needEntries: Math.max(0, 4 - entries) };
+    const bw = weightAvg7() || parseFloat(ps.weight_kg) || null;
+    const acc = nutAccepted();
+    const anchor = acc ? acc.at : sp.at;
+    const readyAt = anchor + 14 * DAY_MS;
+    // skip the first week of a plan (water), and read only what happened since the last change
+    const fromAt = Math.max(sp.at + 7 * DAY_MS, acc ? acc.at : 0,
+                            ws.length ? _wat(ws[ws.length - 1].d) - 28 * DAY_MS : 0);
+    const fit = fitTrend(fromAt, 4, 7);
+    if (Date.now() < readyAt || !fit) {
+      const recent = ws.filter(w => _wat(w.d) >= fromAt).length;
+      return { gathering: true, target: tgt, accepted: acc,
+               waitDays: Math.max(0, Math.ceil((readyAt - Date.now()) / DAY_MS)),
+               needEntries: fit ? 0 : Math.max(1, 4 - recent) };
     }
-    const intended = intendedRatePerWeek(sp, bw);
-    const estTDEE = Math.round(tgt - trend * KCAL_DAY_PER_KG_WK);   // real maintenance estimate
-    const tol = Math.max(0.1, 0.0015 * (bw || 80));  // kg/wk on-track tolerance (≈0.15% BW)
-    const off = trend - intended;
-    const cap = Math.min(400, Math.round(tgt * 0.2));
-    let delta = Math.max(-cap, Math.min(cap, (intended - trend) * KCAL_DAY_PER_KG_WK));
-    delta = Math.round(delta / 25) * 25;
+    const trend = fit.perWeek;
+    const band = rateBand(sp, bw), lo = band[0], hi = band[1];
+    const cut = planIsCut();
+    let delta = trend < lo ? 150 : trend > hi ? -(cut ? 200 : 150) : 0;
     const floor = Math.max(parseFloat(ps.bmr_kcal) || 0, 1200);
     let newTarget = tgt + delta;
     if (newTarget < floor) { newTarget = Math.round(floor / 25) * 25; delta = newTarget - tgt; }
-    // F7 off-ramp: a cutter who's reached their goal weight, or is already lean
-    // and has essentially stopped losing, should be moved to MAINTENANCE, not
-    // told to cut deeper. Prevents the "stuck at 1,470 kcal forever" failure.
+    const estTDEE = Math.round(tgt - trend * KCAL_DAY_PER_KG_WK);   // supporting context only
+    // off-ramps: a cutter at goal weight (or already lean and flat) moves to maintenance;
+    // so does a gainer who has reached the goal weight (SIM-19)
     let offRamp = null;
-    if (planIsCut() && bw) {
-      const gw = parseFloat((sp.safety || {}).goalWeight);
+    const gw = parseFloat((sp.safety || {}).goalWeight);
+    if (bw) {
       const h = parseFloat(ps.height_cm);
       const bmi = h ? bw / Math.pow(h / 100, 2) : null;
-      if (!isNaN(gw) && gw > 0 && bw <= gw + 0.3) offRamp = { reason: 'goal', goalWeight: gw };
-      else if (bmi != null && bmi <= 21.5 && trend >= -0.1) offRamp = { reason: 'lean', bmi: +bmi.toFixed(1) };
+      const g = String(ps.goal || '').toLowerCase();
+      if (cut && !isNaN(gw) && gw > 0 && bw <= gw + 0.3) offRamp = { reason: 'goal', goalWeight: gw };
+      else if (cut && bmi != null && bmi <= 21.5 && trend >= -0.1) offRamp = { reason: 'lean', bmi: +bmi.toFixed(1) };
+      else if (/gain|muscle|bulk|mass/.test(g) && !isNaN(gw) && gw > 0 && bw >= gw - 0.3) offRamp = { reason: 'goalGain', goalWeight: gw };
     }
     return {
-      target: tgt, trend, intended, estTDEE, delta, newTarget, offRamp,
-      onTrack: Math.abs(off) <= tol || Math.abs(delta) < 40,
+      target: tgt, trend, band, estTDEE, delta, newTarget, offRamp, accepted: acc,
+      onTrack: delta === 0,
       bw, bwPctWk: bw ? trend / bw * 100 : null,
-      formulaTDEE: !isNaN(parseFloat(ps.tdee_kcal)) ? parseFloat(ps.tdee_kcal) : null,
+      bandPct: bw ? [lo / bw * 100, hi / bw * 100] : null,
       protein: parseFloat((sp.plan.diet_plan || {}).protein_g) || null,
-      goal: String(ps.goal || '').toLowerCase(),
+      goal: String(ps.goal || '').toLowerCase(), cut,
     };
   }
   const fmtKcal = v => Math.round(v) + ' kcal';
@@ -2340,21 +2443,30 @@
     return t.bwPctWk != null ? kg + ' (' + (t.bwPctWk >= 0 ? '+' : '') + t.bwPctWk.toFixed(2) + '%)' : kg;
   }
   function nutReason(t) {
+    const band = t.bandPct ? ' (on target: ' + (t.bandPct[0] >= 0 ? '+' : '') + t.bandPct[0].toFixed(2) + '% to ' +
+      (t.bandPct[1] >= 0 ? '+' : '') + t.bandPct[1].toFixed(2) + '% a week)' : '';
     if (t.onTrack) return { head: 'On track: hold at ' + fmtKcal(t.target) + '.',
-      body: 'Your scale trend (' + fmtRate(t) + ') matches the plan’s intended pace. Keep eating as you are.' };
+      body: 'Your scale trend (' + fmtRate(t) + ') sits inside your plan’s target band' + band + '. Keep eating as you are.' };
     const up = t.delta > 0, g = t.goal;
     let why;
-    if (/loss|cut|deficit/.test(g)) why = up ? 'you’re losing faster than the plan intends' : 'your loss has slowed below the plan’s pace';
+    if (t.cut) why = up ? 'you’re losing faster than the plan intends' : 'your loss has slowed below the plan’s pace';
     else if (/gain|muscle|bulk|mass|surplus/.test(g)) why = up ? 'you’re gaining slower than planned' : 'you’re gaining faster than planned, and most of that excess is fat, not muscle';
     else why = up ? 'your trend is under the plan’s pace' : 'your trend is over the plan’s pace';
     const macro = t.protein ? ' Keep protein at ' + t.protein + ' g; put the change into ' + (up ? 'carbs' : 'carbs and fat') + '.' : '';
+    const steps = (t.cut && !up) ? ' Or keep the calories and add 1,500 to 2,000 steps a day.' : '';
     return {
-      head: (up ? 'Add' : 'Trim') + ' ~' + Math.abs(t.delta) + ' kcal → ' + fmtKcal(t.newTarget) + '.',
-      body: 'Your real maintenance looks like ~' + fmtKcal(t.estTDEE) +
-        (t.formulaTDEE ? ' (the formula guessed ' + fmtKcal(t.formulaTDEE) + ')' : '') +
-        ', and ' + why + ' at ' + fmtRate(t) + '.' + macro,
+      head: (up ? 'Add' : 'Trim') + ' ' + Math.abs(t.delta) + ' kcal → ' + fmtKcal(t.newTarget) + '.',
+      body: 'Your trend is ' + fmtRate(t) + band + ', so ' + why + '. One small step, then give it two weeks.' + macro + steps,
     };
   }
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('#nutGo');
+    if (!b) return;
+    const sp = savedPlan();
+    if (!sp) return;
+    try { localStorage.setItem(NUT_KEY, JSON.stringify({ kcal: +b.dataset.kcal, at: Date.now(), planAt: sp.at })); } catch (e2) {}
+    renderNutrition();
+  });
   function renderNutrition() {
     const card = $('nutCard');
     if (!card) return;
@@ -2364,10 +2476,22 @@
       card.className = 'nut-card';
       const need = [];
       if (t.needEntries) need.push(t.needEntries + ' more weigh-in' + (t.needEntries > 1 ? 's' : ''));
-      if (t.needDays) need.push(t.needDays + ' more day' + (t.needDays > 1 ? 's' : ''));
-      $('nutBody').innerHTML = '<div class="nut-gather">Log your weight for a couple of weeks and the Trainer ' +
-        'will read your real metabolism off the scale and auto-tune these calories (target now: <b>' +
-        fmtKcal(t.target) + '</b>). ' + (need.length ? 'Need ' + need.join(' · ') + '.' : 'Keep logging daily.') + '</div>';
+      if (t.waitDays) need.push(t.waitDays + ' more day' + (t.waitDays > 1 ? 's' : ''));
+      const lead = t.accepted
+        ? 'You set <b>' + fmtKcal(t.accepted.kcal) + '</b> on ' + new Date(t.accepted.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
+          '. The next read comes two weeks after a change, so it measures the new number, not the old one.'
+        : 'Weigh in most mornings. The first week is mostly water, so the Trainer reads your trend from week two and ' +
+          'suggests a change after two weeks (target now: <b>' + fmtKcal(t.target) + '</b>).';
+      $('nutBody').innerHTML = '<div class="nut-gather">' + lead + ' ' +
+        (need.length ? 'Next read in ' + need.join(' · ') + '.' : 'Keep logging.') + '</div>';
+      card.hidden = false;
+      return;
+    }
+    if (t.offRamp && t.offRamp.reason === 'goalGain') {
+      card.className = 'nut-card';
+      $('nutBody').innerHTML = '<div class="nut-rec"><b>Goal reached: time to hold.</b> You’re at your goal weight (' +
+        t.offRamp.goalWeight + ' kg). Eat at maintenance, about ' + fmtKcal(t.estTDEE) + ' by your own scale trend, ' +
+        'and keep your sets and loads where they are. Then pick your next phase at your Week-4 check-in.</div>';
       card.hidden = false;
       return;
     }
@@ -2379,8 +2503,8 @@
       $('nutBody').innerHTML =
         '<div class="nut-rec"><b>Time to maintain, not cut deeper.</b> ' + esc(reached) +
         ' Reverse the deficit gently: add about <b>100–150 kcal back each week</b> to your current ' +
-        fmtKcal(t.target) + ' until the scale holds steady. That number is your maintenance. Keep training ' +
-        'hard to hold the muscle you built.</div>' +
+        fmtKcal(t.target) + ' until the scale holds steady. That number is your maintenance. Keep your sets ' +
+        'and loads where they are to hold the muscle you built.</div>' +
         '<div class="nut-note">Dieting indefinitely at a low intake stalls progress and recovery. This is the ' +
         'win condition. Lock it in, then decide your next phase (maintain, or a slow lean gain).</div>';
       card.hidden = false;
@@ -2396,6 +2520,7 @@
         stat((t.bwPctWk != null ? (t.bwPctWk >= 0 ? '+' : '') + t.bwPctWk.toFixed(2) + '%' : '·'), 'trend / wk') +
       '</div>' +
       '<div class="nut-rec"><b>' + esc(r.head) + '</b> ' + esc(r.body) + '</div>' +
+      (t.onTrack ? '' : '<button type="button" class="btn-again nut-go" id="nutGo" data-kcal="' + Math.round(t.newTarget) + '">I’m doing this: ' + fmtKcal(t.newTarget) + '</button>') +
       '<div class="nut-note">Assumes you’ve averaged about ' + fmtKcal(t.target) + '. Tick your meals below to ' +
         'keep that honest. Your Week-4 check-in re-anchors everything from this same scale trend.</div>';
     card.hidden = false;
@@ -2495,8 +2620,9 @@
   function weekProgress() {
     const sp = savedPlan();
     const target = sp && sp.plan ? (sp.plan.workout_days || []).length : 0;
-    const weekAgo = Date.now() - 7 * DAY_MS;
-    return { done: loadLogs().filter(l => l.at >= weekAgo).length, target };
+    // this training week, Monday to Sunday: a Monday morning starts at 0, not at last week's total (SIM-24)
+    const d = new Date(), mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7).getTime();
+    return { done: loadLogs().filter(l => l.at >= mon).length, target };
   }
   function weighInDueToday() { const t = _today(); return !loadWeights().some(w => w.d === t); }
   const _weekNo = t => { const d = new Date(t); const off = (d.getDay() + 6) % 7;  // Mon=0
@@ -2638,7 +2764,8 @@
     if (inWin.length < 4) return null;             // not enough of a month yet
     const spanDays = Math.max(1, Math.round((inWin[0].at - inWin[inWin.length - 1].at) / DAY_MS));
     if (spanDays < 10) return null;
-    const perWeek = +(inWin.length / (spanDays / 7)).toFixed(1);
+    // sessions a week over the month (or since the plan began, if sooner), not the logged span (SIM-23)
+    const perWeek = +(inWin.length / (Math.max(7, Math.min(30, (now - sp.at) / DAY_MS)) / 7)).toFixed(1);
     const targetPerWeek = (sp.plan.workout_days || []).length || null;
     let setsLogged = 0;
     inWin.forEach(s => s.entries.forEach(e => { setsLogged += (e.sets || []).length; }));
@@ -2656,7 +2783,8 @@
     const prs = [];
     Object.keys(winBest).forEach(name => {
       const pre = preBest[name];
-      if (!pre || winBest[name].v > pre.v + 1e-9) prs.push({ name, to: winBest[name], from: pre || null, gain: winBest[name].v - (pre ? pre.v : 0) });
+      // a PR beats an earlier best; a lift's first appearance is a new lift, not a PR (SIM-23)
+      if (pre && winBest[name].v > pre.v + 1e-9) prs.push({ name, to: winBest[name], from: pre, gain: winBest[name].v - pre.v });
     });
     prs.sort((a, b) => b.gain - a.gain);
     const ws = loadWeights().filter(w => _wat(w.d) >= cutoff);
@@ -2757,7 +2885,7 @@
     CO.deload = !!(deloadInfo() || fatigueDeload());
     if (CO.deload) {
       exs = exs.map(x => ({ ...x, sets: Math.max(1, Math.ceil(x.sets / 2)), note: 'deload' }));
-      notes.push('Deload week: sets halved, take 15–20% off your usual loads. Same movements, easy quality reps. This week is what makes next month’s PRs possible.');
+      notes.push('Deload week: sets halved, take 15–20% off your usual loads. Same movements, easy quality reps. This week lets fatigue fade so the next block starts fresh.');
     }
     if (time === 2) {
       const keep = exs.filter(x => !iso(x)).slice(0, 3);
@@ -2770,7 +2898,7 @@
     if (sleepBad || sore) {
       let dropped = false;
       exs.forEach(x => { if (iso(x) && x.sets > 2 && !dropped) { x.sets -= 1; x.note = x.note || '−1 set'; dropped = true; } });
-      notes.push('Rough recovery day: leave 3 reps in reserve on everything. Protecting the stimulus you can actually recover from beats grinding. That is your plan’s own rule.');
+      notes.push('Rough recovery day: leave 3 reps in reserve on everything. Protecting the stimulus you can actually recover from beats grinding. It follows your plan’s rule: never answer poor recovery with more work.');
     }
     CO.banner = notes.join(' ');
     return exs;
@@ -2808,56 +2936,69 @@
   function isLowerBody(name) {
     return /squat|dead\s?lift|leg press|leg curl|leg extension|hip thrust|lunge|hinge|romanian|\brdl\b|good morning|calf|hack|glute/.test(String(name).toLowerCase());
   }
-  function nextTarget(ex, last) {
+  // The plan's own jumps when it states them; otherwise the rulebook's: 2.5 kg on
+  // upper-body barbell lifts, 5 kg on lower-body barbell and machine work, the
+  // smallest jump on dumbbells.
+  function loadIncrements() {
+    const sp = savedPlan();
+    const txt = String((((sp || {}).plan || {}).progressive_overload || {}).load_increments || '').toLowerCase();
+    const num = re => { const m = txt.match(re); const v = m ? parseFloat(m[1]) : NaN; return v > 0 && v <= 10 ? v : null; };
+    return { upper: num(/upper[^.;]*?(\d+(?:\.\d+)?)\s*kg/) || 2.5,
+             lower: num(/lower[^.;]*?(\d+(?:\.\d+)?)\s*kg/) || 5,
+             db: num(/dumbbell[^.;]*?(\d+(?:\.\d+)?)\s*kg/) || 2 };
+  }
+  function implementOf(name) {
+    const n = String(name).toLowerCase();
+    if (/dumbbell|\bdb\b|goblet|kettlebell|\bkb\b|lateral raise|hammer curl|concentration|\bfly\b|flye/.test(n)) return 'db';
+    if (/cable|machine|pulldown|pushdown|leg press|leg curl|leg extension|pec deck|smith|hack/.test(n)) return 'machine';
+    return 'barbell';
+  }
+  const roundLoad = (kg, name) => implementOf(name) === 'db' ? Math.round(kg) : Math.round(kg / 2.5) * 2.5;
+  // the next number for this lift. ONE rule, read by the Log tab and by Coach Mode,
+  // so the two never contradict each other (SIMULATION SIM-12/13/20)
+  function progressAdvice(name, repRange) {
+    const last = lastEntryFor(name);
     if (!last || !Array.isArray(last.sets) || !last.sets.length) return null;
-    const rng = parseRepRange(ex.rep_range);
+    const rng = parseRepRange(repRange);
     if (!rng) return null;
     const [lo, hi] = rng;
     const kgs = last.sets.map(s => parseFloat(s.kg)).filter(v => !isNaN(v) && v > 0);
     const w = kgs.length ? Math.max(...kgs) : 0;
-    // the working sets: those at the top weight (or all, for bodyweight moves)
-    const working = last.sets.filter(s => {
-      const k = parseFloat(s.kg);
-      return w ? Math.abs(k - w) < 1e-9 : true;
-    });
+    const working = last.sets.filter(s => { const k = parseFloat(s.kg); return w ? Math.abs(k - w) < 1e-9 : true; });
     const reps = working.map(s => parseInt(s.reps, 10)).filter(v => !isNaN(v) && v > 0);
     if (!reps.length) return null;
-    const minReps = Math.min(...reps);
-    const allTop = reps.every(r => r >= hi);
-    if (allTop) {
-      if (w) {
-        const inc = isLowerBody(ex.name) ? 5 : 2.5;
-        return 'Hit the top everywhere last time: add ' + inc + ' kg: aim ' + (w + inc) + ' kg × ' + lo + '+.';
-      }
-      return 'Cleared ' + hi + ' on every set: add a set or push past ' + hi + ' reps.';
+    // back after a break: ease in, never chase load off a stale number
+    const days = Math.floor((Date.now() - last.at) / DAY_MS);
+    if (days > 14) {
+      const wk = Math.max(2, Math.round(days / 7));
+      return w
+        ? 'Back after ' + wk + ' weeks: start about 10% lighter (' + roundLoad(w * 0.9, name) + ' kg), leave 2–3 reps in reserve, and rebuild before adding load.'
+        : 'Back after ' + wk + ' weeks: stop a few reps short of last time, leave 2–3 in reserve, and rebuild.';
     }
-    const aim = Math.min(hi, minReps + 1);
+    // the stall rule, applied here too (a cutter who holds strength is winning)
+    const st = stallWatch().find(s => s.name === name);
+    if (st && !planIsCut()) {
+      return st.deep
+        ? 'Still flat after ' + (st.n + 1) + ' sessions: take the deload this week (half the sets, 15–20% lighter), then rebuild.'
+        : 'Flat for ' + st.n + ' sessions: drop about 10%' + (st.reset ? ' to ' + st.reset + ' kg' : '') + ' and rebuild.';
+    }
+    if (reps.every(r => r >= hi)) {
+      if (!w) return 'Cleared ' + hi + ' on every set: move to a harder variation, or add a set.';
+      const inc = loadIncrements();
+      if (implementOf(name) === 'db') return 'Hit the top everywhere: take the next dumbbell up (about ' + inc.db + ' kg more per hand) and aim ' + lo + '+ reps.';
+      const step = isLowerBody(name) ? inc.lower : inc.upper;
+      return 'Hit the top everywhere: add ' + step + ' kg and aim ' + (Math.round((w + step) * 100) / 100) + ' kg × ' + lo + '+.';
+    }
+    const aim = Math.min(hi, Math.min(...reps) + 1);
     return (w ? 'Same ' + w + ' kg: ' : '') + 'aim ' + aim + '+ on every set (toward ' + hi + '), then add load.';
   }
+  function nextTarget(ex) { return progressAdvice(ex.name, ex.rep_range); }
   // double progression, said out loud: top of range on every set last time →
   // add load today; otherwise the target is one more rep somewhere
   function coProgressCue(ex) {
     if (CO.deload) return '';
-    const last = lastEntryFor(ex.name);
-    if (!last) return '';
-    // back after a long break: ease in, do not chase load off a stale number
-    if (Date.now() - last.at > 14 * DAY_MS) {
-      return '<b>Coach:</b> first time back on this in a while. Start about 10% below your ' +
-        'last working weight and leave 2–3 reps in reserve; rebuild before you push.';
-    }
-    const top = parseInt(String(ex.rep_range || '').match(/(\d+)\s*$/)?.[1], 10);
-    if (!top) return '';
-    const counted = last.sets.filter(s => s.reps !== '' && !isNaN(parseInt(s.reps, 10)));
-    if (!counted.length) return '';
-    const allTop = counted.every(s => parseInt(s.reps, 10) >= top);
-    const lower = /squat|deadlift|leg|lunge|hip|calf|rdl|good morning|hamstring|glute/.test(String(ex.name).toLowerCase());
-    if (allTop) {
-      return '<b>Coach:</b> last time you hit the top of the range on every set, so add ' +
-        (lower ? '5' : '2.5') + ' kg today and rebuild the reps.';
-    }
-    const b = bestSet(counted);
-    return '<b>Coach:</b> beat last time. ' + (b ? esc(fmtSet(b)) + ' was your best; ' : '') +
-      'one more rep on any set wins the day.';
+    const a = progressAdvice(ex.name, ex.rep_range);
+    return a ? '<b>Coach:</b> ' + esc(a) : '';
   }
   function coRender() {
     const x = CO.exs[CO.idx], ex = x.ex;
@@ -3047,21 +3188,24 @@
   }
   // strength standards: where an e1RM sits as a multiple of bodyweight, by lift.
   // Thresholds are approximate community consensus (male e1RM/BW); women scaled ~0.72.
+  // barbell standards, so only barbell lifts are graded: a goblet squat or a dumbbell
+  // press read against a barbell table calls an intermediate lifter a beginner
   const STRENGTH_STD = [
-    [/bench|chest press/, [0.75, 1.0, 1.5, 2.0]],
-    [/squat/, [1.0, 1.5, 2.0, 2.5]],
-    [/deadlift|rdl|romanian/, [1.25, 1.75, 2.5, 3.0]],
-    [/overhead press|ohp|shoulder press|military/, [0.45, 0.65, 0.9, 1.2]],
-    [/\brow\b/, [0.7, 1.0, 1.35, 1.75]],
+    [/^(barbell )?bench press|^flat bench/, [0.75, 1.0, 1.5, 2.0]],
+    [/^(barbell )?(back |front )?squat$|^(barbell )?back squat/, [1.0, 1.5, 2.0, 2.5]],
+    [/^(barbell |conventional |sumo )?deadlift/, [1.25, 1.75, 2.5, 3.0]],
+    [/^(barbell |standing )?(overhead|military) press|^ohp/, [0.45, 0.65, 0.9, 1.2]],
+    [/^(barbell |pendlay |bent[- ]over )row/, [0.7, 1.0, 1.35, 1.75]],
   ];
   function strengthLevel(name, e1, bw, gender) {
     if (!e1 || !bw) return null;
-    const n = String(name).toLowerCase();
+    const n = String(name).toLowerCase().trim();
+    if (/dumbbell|\bdb\b|goblet|kettlebell|split|bulgarian|hack|smith|machine|cable|romanian|\brdl\b|seated|one[- ]arm/.test(n)) return null;
     let std = null;
     for (const [re, s] of STRENGTH_STD) if (re.test(n)) { std = s; break; }
     if (!std) return null;
     const scale = /female|woman/.test(String(gender || '').toLowerCase()) ? 0.72 : 1;
-    const ratio = e1 / bw, labels = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Elite'];
+    const ratio = e1 / bw, labels = ['entry', 'developing', 'solid', 'strong', 'elite'];
     let lvl = 0;
     std.forEach((x, i) => { if (ratio >= x * scale) lvl = i + 1; });
     return { level: labels[lvl], ratio: +ratio.toFixed(2) };
@@ -3109,7 +3253,7 @@
         }
         return false;
       });
-      const kcal = (saved.plan.diet_plan || {}).calorie_target_kcal;
+      const kcal = dietTarget();   // the target they are actually eating to (a change they accepted counts)
       if (!$('cCalTarget').value && kcal != null) $('cCalTarget').value = kcal + ' kcal';
       // measured beats memory: fill "weight now" from the 7-day average
       const avg = weightAvg7();
@@ -3125,12 +3269,15 @@
     if (logs.length < 2) return;
     const chron = logs.slice().sort((a, b) => a.at - b.at);
     const first = {}, last = {};
-    chron.forEach(s => s.entries.forEach(e => {
-      const b = bestSet(e.sets);
-      if (!b) return;
-      if (!(e.name in first)) first[e.name] = b;
-      last[e.name] = b;
-    }));
+    chron.forEach(s => {
+      if (s.deload) return;   // a deliberately lighter week is not a strength loss (SIM-22)
+      s.entries.forEach(e => {
+        const b = bestSet(e.sets);
+        if (!b) return;
+        if (!(e.name in first)) first[e.name] = b;
+        last[e.name] = b;
+      });
+    });
     const lines = Object.keys(first)
       .filter(n => first[n].kg !== last[n].kg || first[n].reps !== last[n].reps)
       .map(n => n + ': ' + fmtSet(first[n]) + ' -> ' + fmtSet(last[n]));
@@ -3633,6 +3780,7 @@
     const sessions = logs.slice(0, 10).map(s => ({
       date: new Date(s.at).toISOString().slice(0, 10),
       day: s.day || '',
+      ...(s.deload ? { deload_week: true } : {}),   // so the engine never reads it as lost strength (SIM-22)
       best_sets: s.entries.map(e => {
         const b = bestSet(e.sets);
         return b ? e.name + ': ' + fmtSet(b) : null;
